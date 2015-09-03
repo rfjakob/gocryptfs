@@ -18,11 +18,11 @@ import (
 )
 
 // debug flag enables logging of debug messages to stderr.
-var debug = flag.Bool("debug", false, "enable debug log messages to stderr")
+var debug = flag.Bool("debug", true, "enable debug log messages to stderr")
 
 func usage() {
 	fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
-	fmt.Fprintf(os.Stderr, "  %s MOUNTPOINT\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "  %s BACKING MOUNTPOINT\n", os.Args[0])
 	flag.PrintDefaults()
 }
 
@@ -34,18 +34,19 @@ func main() {
 	flag.Usage = usage
 	flag.Parse()
 
-	if flag.NArg() != 1 {
+	if flag.NArg() != 2 {
 		usage()
 		os.Exit(2)
 	}
 
-	mountpoint := flag.Arg(0)
+	backing := flag.Arg(0)
+	mountpoint := flag.Arg(1)
 	c, err := fuse.Mount(
 		mountpoint,
-		fuse.FSName("memfs"),
-		fuse.Subtype("memfs"),
+		fuse.FSName("gocryptfs"),
+		fuse.Subtype("gocryptfs"),
 		fuse.LocalVolume(),
-		fuse.VolumeName("Memory FS"),
+		fuse.VolumeName("gocryptfs"),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -59,7 +60,7 @@ func main() {
 
 	srv := fs.New(c, cfg)
 	var key [16]byte
-	filesys := frontend.New(key)
+	filesys := frontend.New(key, backing)
 
 	if err := srv.Serve(filesys); err != nil {
 		log.Fatal(err)
