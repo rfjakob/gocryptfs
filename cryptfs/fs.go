@@ -26,7 +26,7 @@ type FS struct {
 	cipherBS int64
 }
 
-func New(key [16]byte) *FS {
+func NewFS(key [16]byte) *FS {
 
 	b, err := aes.NewCipher(key[:])
 	if err != nil {
