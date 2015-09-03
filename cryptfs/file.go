@@ -1,19 +1,27 @@
-package gocryptfs
+package cryptfs
 
 import (
 	"fmt"
 	"os"
 	"io"
 	"errors"
+	"crypto/cipher"
 )
+
+type File struct {
+	file *os.File
+	gcm cipher.AEAD
+	plainBS	int64
+	cipherBS int64
+}
 
 // readCipherBlock - Read ciphertext block number "blockNo", decrypt,
 // return plaintext
-func (be *Backend) readCipherBlock(blockNo int64, f *os.File) ([]byte, error) {
+func (be *File) readCipherBlock(blockNo int64) ([]byte, error) {
 	off := blockNo * int64(be.cipherBS)
 	buf := make([]byte, be.cipherBS)
 
-	readN, err := f.ReadAt(buf, off)
+	readN, err := be.file.ReadAt(buf, off)
 
 	if err != nil && err != io.EOF {
 		return nil, err
@@ -56,7 +64,7 @@ type intraBlock struct {
 }
 
 // Split a plaintext byte range into (possible partial) blocks
-func (be *Backend) splitRange(offset int64, length int64, f *os.File) []intraBlock {
+func (be *File) splitRange(offset int64, length int64) []intraBlock {
 	var b intraBlock
 	var parts []intraBlock
 
@@ -71,7 +79,7 @@ func (be *Backend) splitRange(offset int64, length int64, f *os.File) []intraBlo
 	return parts
 }
 
-func (be *Backend) min64(x int64, y int64) int64 {
+func (be *File) min64(x int64, y int64) int64 {
 	if x < y {
 		return x
 	}
@@ -79,7 +87,7 @@ func (be *Backend) min64(x int64, y int64) int64 {
 }
 
 // writeCipherBlock - Encrypt plaintext and write it to file block "blockNo"
-func (be *Backend) writeCipherBlock(blockNo int64, plain []byte, f *os.File) error {
+func (be *File) writeCipherBlock(blockNo int64, plain []byte) error {
 
 	if int64(len(plain)) > be.plainBS {
 		panic("writeCipherBlock: Cannot write block that is larger than plainBS")
@@ -91,7 +99,7 @@ func (be *Backend) writeCipherBlock(blockNo int64, plain []byte, f *os.File) err
 	cipherBuf := be.gcm.Seal(nonce, nonce, plain, nil)
 
 	// WriteAt retries short writes autmatically
-	written, err := f.WriteAt(cipherBuf, blockNo * be.cipherBS)
+	written, err := be.file.WriteAt(cipherBuf, blockNo * be.cipherBS)
 
 	debug.Printf("writeCipherBlock: wrote %d ciphertext bytes to block %d\n",
 		written, blockNo)
@@ -101,12 +109,12 @@ func (be *Backend) writeCipherBlock(blockNo int64, plain []byte, f *os.File) err
 
 // Perform RMW cycle on block
 // Write "data" into file location specified in "b"
-func (be *Backend) rmwWrite(b intraBlock, data []byte, f *os.File) error {
+func (be *File) rmwWrite(b intraBlock, data []byte, f *os.File) error {
 	if b.length != int64(len(data)) {
 		panic("Length mismatch")
 	}
 
-	oldBlock, err := be.readCipherBlock(b.blockNo, f)
+	oldBlock, err := be.readCipherBlock(b.blockNo)
 	if err != nil {
 		return err
 	}
@@ -128,7 +136,7 @@ func (be *Backend) rmwWrite(b intraBlock, data []byte, f *os.File) error {
 	copy(newBlock[b.offset:b.offset + b.length], data)
 
 	// Actual write
-	err = be.writeCipherBlock(b.blockNo, newBlock, f)
+	err = be.writeCipherBlock(b.blockNo, newBlock)
 
 	if err != nil {
 		// An incomplete write to a ciphertext block means that the whole block

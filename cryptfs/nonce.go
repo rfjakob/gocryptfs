@@ -1,4 +1,4 @@
-package gocryptfs
+package cryptfs
 
 import (
 	"encoding/binary"
