@@ -19,14 +19,14 @@ const (
 	DECRYPT = false
 )
 
-type FS struct {
+type CryptFS struct {
 	blockCipher cipher.Block
 	gcm cipher.AEAD
 	plainBS	int64
 	cipherBS int64
 }
 
-func NewFS(key [16]byte) *FS {
+func NewCryptFS(key [16]byte) *CryptFS {
 
 	b, err := aes.NewCipher(key[:])
 	if err != nil {
@@ -38,7 +38,7 @@ func NewFS(key [16]byte) *FS {
 		panic(err)
 	}
 
-	return &FS{
+	return &CryptFS{
 		blockCipher: b,
 		gcm: g,
 		plainBS: DEFAULT_PLAINBS,
@@ -46,8 +46,8 @@ func NewFS(key [16]byte) *FS {
 	}
 }
 
-func (fs *FS) NewFile(f *os.File) *File {
-	return &File {
+func (fs *CryptFS) NewFile(f *os.File) *CryptFile {
+	return &CryptFile {
 		file: f,
 		gcm: fs.gcm,
 		plainBS: fs.plainBS,
@@ -56,7 +56,7 @@ func (fs *FS) NewFile(f *os.File) *File {
 }
 
 // DecryptName - decrypt filename
-func (be *FS) decryptName(cipherName string) (string, error) {
+func (be *CryptFS) decryptName(cipherName string) (string, error) {
 
 	bin, err := base64.URLEncoding.DecodeString(cipherName)
 	if err != nil {
@@ -81,7 +81,7 @@ func (be *FS) decryptName(cipherName string) (string, error) {
 }
 
 // EncryptName - encrypt filename
-func (be *FS) encryptName(plainName string) string {
+func (be *CryptFS) encryptName(plainName string) string {
 
 	bin := []byte(plainName)
 	bin = be.pad16(bin)
@@ -97,7 +97,7 @@ func (be *FS) encryptName(plainName string) string {
 
 // TranslatePath - encrypt or decrypt path. Just splits the string on "/"
 // and hands the parts to EncryptName() / DecryptName()
-func (be *FS) translatePath(path string, op bool) (string, error) {
+func (be *CryptFS) translatePath(path string, op bool) (string, error) {
 	var err error
 
 	// Empty string means root directory
@@ -125,18 +125,18 @@ func (be *FS) translatePath(path string, op bool) (string, error) {
 }
 
 // EncryptPath - encrypt filename or path. Just hands it to TranslatePath().
-func (be *FS) EncryptPath(path string) string {
+func (be *CryptFS) EncryptPath(path string) string {
 	newPath, _ := be.translatePath(path, ENCRYPT)
 	return newPath
 }
 
 // DecryptPath - decrypt filename or path. Just hands it to TranslatePath().
-func (be *FS) DecryptPath(path string) (string, error) {
+func (be *CryptFS) DecryptPath(path string) (string, error) {
 	return be.translatePath(path, DECRYPT)
 }
 
 // plainSize - calculate plaintext size from ciphertext size
-func (be *FS) PlainSize(s int64) int64 {
+func (be *CryptFS) PlainSize(s int64) int64 {
 	// Zero sized files stay zero-sized
 	if s > 0 {
 		// Number of blocks
@@ -149,7 +149,7 @@ func (be *FS) PlainSize(s int64) int64 {
 
 // pad16 - pad filename to 16 byte blocks using standard PKCS#7 padding
 // https://tools.ietf.org/html/rfc5652#section-6.3
-func (be *FS) pad16(orig []byte) (padded []byte) {
+func (be *CryptFS) pad16(orig []byte) (padded []byte) {
 	oldLen := len(orig)
 	if oldLen == 0 {
 		panic("Padding zero-length string makes no sense")
@@ -169,7 +169,7 @@ func (be *FS) pad16(orig []byte) (padded []byte) {
 }
 
 // unPad16 - remove padding
-func (be *FS) unPad16(orig []byte) ([]byte, error) {
+func (be *CryptFS) unPad16(orig []byte) ([]byte, error) {
 	oldLen := len(orig)
 	if oldLen % aes.BlockSize != 0 {
 		return nil, errors.New("Unaligned size")

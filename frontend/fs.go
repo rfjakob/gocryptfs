@@ -2,25 +2,26 @@ package frontend
 
 import (
 	"github.com/rfjakob/gocryptfs/cryptfs"
-	"bazil.org/fuse/fs"
+	"github.com/rfjakob/cluefs/lib/cluefs"
 )
 
 type FS struct {
-	*cryptfs.FS
-	backing string
+	*cryptfs.CryptFS
+	*cluefs.ClueFS
 }
 
-func New(key [16]byte, b string) *FS {
+type nullTracer struct {}
+
+func (nullTracer) Trace(op cluefs.FsOperTracer) {}
+
+func NewFS(key [16]byte, backing string) *FS {
+	var nt nullTracer
+	clfs, err := cluefs.NewClueFS(backing, nt)
+	if err != nil {
+		panic(err)
+	}
 	return &FS {
-		FS: cryptfs.NewFS(key),
-		backing: b,
+		CryptFS: cryptfs.NewCryptFS(key),
+		ClueFS: clfs,
 	}
-}
-
-func (fs *FS) Root() (fs.Node, error) {
-	n := Node{
-		backing: "",
-		parentFS: fs,
-	}
-	return n, nil
 }

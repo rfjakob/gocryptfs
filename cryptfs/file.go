@@ -8,7 +8,7 @@ import (
 	"crypto/cipher"
 )
 
-type File struct {
+type CryptFile struct {
 	file *os.File
 	gcm cipher.AEAD
 	plainBS	int64
@@ -17,7 +17,7 @@ type File struct {
 
 // readCipherBlock - Read ciphertext block number "blockNo", decrypt,
 // return plaintext
-func (be *File) readCipherBlock(blockNo int64) ([]byte, error) {
+func (be *CryptFile) readCipherBlock(blockNo int64) ([]byte, error) {
 	off := blockNo * int64(be.cipherBS)
 	buf := make([]byte, be.cipherBS)
 
@@ -64,7 +64,7 @@ type intraBlock struct {
 }
 
 // Split a plaintext byte range into (possible partial) blocks
-func (be *File) splitRange(offset int64, length int64) []intraBlock {
+func (be *CryptFile) splitRange(offset int64, length int64) []intraBlock {
 	var b intraBlock
 	var parts []intraBlock
 
@@ -79,7 +79,7 @@ func (be *File) splitRange(offset int64, length int64) []intraBlock {
 	return parts
 }
 
-func (be *File) min64(x int64, y int64) int64 {
+func (be *CryptFile) min64(x int64, y int64) int64 {
 	if x < y {
 		return x
 	}
@@ -87,7 +87,7 @@ func (be *File) min64(x int64, y int64) int64 {
 }
 
 // writeCipherBlock - Encrypt plaintext and write it to file block "blockNo"
-func (be *File) writeCipherBlock(blockNo int64, plain []byte) error {
+func (be *CryptFile) writeCipherBlock(blockNo int64, plain []byte) error {
 
 	if int64(len(plain)) > be.plainBS {
 		panic("writeCipherBlock: Cannot write block that is larger than plainBS")
@@ -109,7 +109,7 @@ func (be *File) writeCipherBlock(blockNo int64, plain []byte) error {
 
 // Perform RMW cycle on block
 // Write "data" into file location specified in "b"
-func (be *File) rmwWrite(b intraBlock, data []byte, f *os.File) error {
+func (be *CryptFile) rmwWrite(b intraBlock, data []byte, f *os.File) error {
 	if b.length != int64(len(data)) {
 		panic("Length mismatch")
 	}
