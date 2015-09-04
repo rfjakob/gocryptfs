@@ -22,6 +22,40 @@ type Node struct {
 	parentFS *FS
 }
 
+// FileModeFromStat - create os.FileMode from stat value
+// For some reason, they use different constants.
+// Adapted from https://golang.org/src/os/stat_linux.go
+func FileModeFromStat(st *syscall.Stat_t) os.FileMode {
+	fileMode := os.FileMode(st.Mode & 0777)
+	switch st.Mode & syscall.S_IFMT {
+	case syscall.S_IFBLK:
+		fileMode |= os.ModeDevice
+	case syscall.S_IFCHR:
+		fileMode |= os.ModeDevice | os.ModeCharDevice
+	case syscall.S_IFDIR:
+		fileMode |= os.ModeDir
+	case syscall.S_IFIFO:
+		fileMode |= os.ModeNamedPipe
+	case syscall.S_IFLNK:
+		fileMode |= os.ModeSymlink
+	case syscall.S_IFREG:
+		// nothing to do
+	case syscall.S_IFSOCK:
+		fileMode |= os.ModeSocket
+	}
+	if st.Mode & syscall.S_ISGID != 0 {
+		fileMode |= os.ModeSetgid
+	}
+	if st.Mode & syscall.S_ISUID != 0 {
+		fileMode |= os.ModeSetuid
+	}
+	if st.Mode & syscall.S_ISVTX != 0 {
+		fileMode |= os.ModeSticky
+	}
+	return fileMode
+}
+
+
 func StatToAttr(s *syscall.Stat_t, a *fuse.Attr) {
 	a.Inode = s.Ino
 	a.Size = uint64(s.Size)
@@ -29,7 +63,7 @@ func StatToAttr(s *syscall.Stat_t, a *fuse.Attr) {
 	a.Atime = time.Unix(s.Atim.Sec, s.Atim.Nsec)
 	a.Mtime = time.Unix(s.Mtim.Sec, s.Mtim.Nsec)
 	a.Ctime = time.Unix(s.Ctim.Sec, s.Ctim.Nsec)
-	a.Mode = os.FileMode(s.Mode) | os.ModeDir
+	a.Mode = FileModeFromStat(s)
 	a.Nlink = uint32(s.Nlink)
 	a.Uid = uint32(s.Uid)
 	a.Gid = uint32(s.Gid)
