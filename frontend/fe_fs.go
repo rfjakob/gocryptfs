@@ -1,5 +1,16 @@
 package frontend
 
+// frontend sits between FUSE and ClueFS
+// and uses cryptfs for all crypto operations
+//
+//          cryptfs
+//             ^
+//             |
+//             v
+// FUSE <-> frontend <-> ClueFS
+//
+// This file handles just the root directory
+
 import (
 	"fmt"
 	"github.com/rfjakob/gocryptfs/cryptfs"
