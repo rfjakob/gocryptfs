@@ -55,6 +55,10 @@ func (fs *CryptFS) NewFile(f *os.File) *CryptFile {
 	}
 }
 
+func (be *CryptFS) PlainBS() int64 {
+	return be.plainBS
+}
+
 // DecryptName - decrypt filename
 func (be *CryptFS) decryptName(cipherName string) (string, error) {
 

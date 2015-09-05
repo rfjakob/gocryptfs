@@ -103,6 +103,9 @@ func (d *Dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 
 func (d *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fusefs.Node, fusefs.Handle, error) {
 	fmt.Printf("Create\n")
+
+	req.Flags, _ = fixFlags(req.Flags)
+
 	req.Name = d.crfs.EncryptPath(req.Name)
 	n, _, err := d.Dir.Create(ctx, req, resp)
 	if err != nil {
