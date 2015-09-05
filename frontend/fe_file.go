@@ -22,7 +22,7 @@ import (
 )
 
 func fixFlags(flags fuse.OpenFlags) (fuse.OpenFlags, bool) {
-	fmt.Printf("fixFlags: Before: %s\n", flags.String())
+	cryptfs.Debug.Printf("fixFlags: Before: %s\n", flags.String())
 	var writeOnly bool
 	// We always need read access to do read-modify-write cycles
 	if flags & fuse.OpenWriteOnly > 0 {
@@ -32,7 +32,7 @@ func fixFlags(flags fuse.OpenFlags) (fuse.OpenFlags, bool) {
 	}
 	// We also cannot open the file in append mode, we need to seek back for RMW
 	flags = flags &^ fuse.OpenAppend
-	fmt.Printf("fixFlags: After: %s\n", flags.String())
+	cryptfs.Debug.Printf("fixFlags: After: %s\n", flags.String())
 	return flags, writeOnly
 }
 
@@ -51,7 +51,7 @@ type File struct {
 }
 
 func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fusefs.Handle, error) {
-	fmt.Printf("File.Open\n")
+	cryptfs.Debug.Printf("File.Open\n")
 
 	req.Flags, f.writeOnly = fixFlags(req.Flags)
 
@@ -91,7 +91,7 @@ func (f *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 }
 
 func (f *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
-	fmt.Printf("File.Write\n")
+	cryptfs.Debug.Printf("File.Write\n")
 	resp.Size = 0
 	iblocks := f.crfs.SplitRange(uint64(req.Offset), uint64(len(req.Data)))
 	var blockData []byte
@@ -134,7 +134,7 @@ func (f *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wri
 }
 
 func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
-	fmt.Printf("Attr\n")
+	cryptfs.Debug.Printf("Attr\n")
 	err := f.File.Node.Attr(ctx, attr)
 	if err != nil {
 		return err

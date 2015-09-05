@@ -12,7 +12,6 @@ package frontend
 // This file handles just the root directory
 
 import (
-	"fmt"
 	"github.com/rfjakob/gocryptfs/cryptfs"
 	"github.com/rfjakob/cluefs/lib/cluefs"
 	fusefs "bazil.org/fuse/fs"
@@ -42,6 +41,6 @@ func NewFS(key [16]byte, backing string) *FS {
 }
 
 func (fs *FS) Root() (fusefs.Node, error) {
-	fmt.Printf("Root\n")
+	cryptfs.Debug.Printf("Root\n")
 	return NewDir("", fs.backing, fs), nil
 }

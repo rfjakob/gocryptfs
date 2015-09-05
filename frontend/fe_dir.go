@@ -27,7 +27,7 @@ type Dir struct {
 }
 
 func NewDir(parent string, name string, fs *FS) *Dir {
-	fmt.Printf("NewDir parent=%s name=%s\n", parent, name)
+	cryptfs.Debug.Printf("NewDir parent=%s name=%s\n", parent, name)
 	return &Dir {
 		Dir: cluefs.NewDir(parent, name, fs.ClueFS),
 		crfs: fs.CryptFS,
@@ -35,7 +35,7 @@ func NewDir(parent string, name string, fs *FS) *Dir {
 }
 
 func (d *Dir) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fusefs.Handle, error) {
-	fmt.Printf("Open\n")
+	cryptfs.Debug.Printf("Open\n")
 	h, err := d.Dir.Open(ctx, req, resp)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (d *Dir) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenRe
 }
 
 func (d *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.LookupResponse) (fusefs.Node, error) {
-	fmt.Printf("Lookup %s\n", req.Name)
+	cryptfs.Debug.Printf("Lookup %s\n", req.Name)
 	req.Name = d.crfs.EncryptPath(req.Name)
 	node, err := d.Dir.Lookup(ctx, req, resp)
 	if err != nil {
@@ -72,7 +72,7 @@ func (d *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.Lo
 }
 
 func (d *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
-	fmt.Printf("ReadDirAll\n")
+	cryptfs.Debug.Printf("ReadDirAll\n")
 	entries, err := d.Dir.ReadDirAll(ctx)
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func (d *Dir) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 }
 
 func (d *Dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fusefs.Node, error) {
-	fmt.Printf("Mkdir %s\n", req.Name)
+	cryptfs.Debug.Printf("Mkdir %s\n", req.Name)
 	req.Name = d.crfs.EncryptPath(req.Name)
 	n, err := d.Dir.Mkdir(ctx, req)
 	if err != nil {
@@ -109,16 +109,14 @@ func (d *Dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fusefs.Node, e
 }
 
 func (d *Dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
-	fmt.Printf("Remove\n")
+	cryptfs.Debug.Printf("Remove\n")
 	req.Name = d.crfs.EncryptPath(req.Name)
 	return d.Dir.Remove(ctx, req)
 }
 
 func (d *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fusefs.Node, fusefs.Handle, error) {
-	fmt.Printf("Create\n")
-
+	cryptfs.Debug.Printf("Create\n")
 	req.Flags, _ = fixFlags(req.Flags)
-
 	req.Name = d.crfs.EncryptPath(req.Name)
 	n, _, err := d.Dir.Create(ctx, req, resp)
 	if err != nil {

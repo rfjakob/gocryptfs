@@ -22,7 +22,7 @@ func (be *CryptFS) DecryptBlock(ciphertext []byte) ([]byte, error) {
 	}
 
 	if len(ciphertext) < NONCE_LEN {
-		warn.Printf("decryptBlock: Block is too short: %d bytes\n", len(ciphertext))
+		Warn.Printf("decryptBlock: Block is too short: %d bytes\n", len(ciphertext))
 		return nil, errors.New("Block is too short")
 	}
 

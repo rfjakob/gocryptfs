@@ -49,7 +49,7 @@ func (n *nonce96) Get() []byte {
 	binary.BigEndian.PutUint64(r[4:12], n.low64)
 	n.lock.Unlock()
 
-	debug.Printf("nonce96.Get(): %s\n", hex.EncodeToString(r))
+	Debug.Printf("nonce96.Get(): %s\n", hex.EncodeToString(r))
 
 	return r
 }
