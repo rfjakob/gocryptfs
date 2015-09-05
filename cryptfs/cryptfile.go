@@ -15,6 +15,50 @@ type CryptFile struct {
 	cipherBS int64
 }
 
+// decryptBlock - Verify and decrypt GCM block
+func (be *CryptFS) DecryptBlock(ciphertext []byte) ([]byte, error) {
+
+	// Empty block?
+	if len(ciphertext) == 0 {
+		return ciphertext, nil
+	}
+
+	if len(ciphertext) < NONCE_LEN {
+		warn.Printf("decryptBlock: Block is too short: %d bytes\n", len(ciphertext))
+		return nil, errors.New("Block is too short")
+	}
+
+	// Extract nonce
+	nonce := ciphertext[:NONCE_LEN]
+	ciphertext = ciphertext[NONCE_LEN:]
+
+	// Decrypt
+	var plaintext []byte
+	plaintext, err := be.gcm.Open(plaintext, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return plaintext, nil
+}
+
+// encryptBlock - Encrypt and add MAC using GCM
+func (be *CryptFS) EncryptBlock(plaintext []byte) []byte {
+
+	// Empty block?
+	if len(plaintext) == 0 {
+		return plaintext
+	}
+
+	// Get fresh nonce
+	nonce := gcmNonce.Get()
+
+	// Encrypt plaintext and append to nonce
+	ciphertext := be.gcm.Seal(nonce, nonce, plaintext, nil)
+
+	return ciphertext
+}
+
 // readCipherBlock - Read ciphertext block number "blockNo", decrypt,
 // return plaintext
 func (be *CryptFile) readCipherBlock(blockNo int64) ([]byte, error) {
@@ -30,8 +74,7 @@ func (be *CryptFile) readCipherBlock(blockNo int64) ([]byte, error) {
 	// Truncate buffer to actually read bytes
 	buf = buf[:readN]
 
-	// Empty block?file:///home/jakob/go/src/github.com/rfjakob/gocryptfs-bazil/backend/backend.go
-
+	// Empty block?
 	if len(buf) == 0 {
 		return buf, nil
 	}
@@ -58,28 +101,49 @@ func (be *CryptFile) readCipherBlock(blockNo int64) ([]byte, error) {
 
 // intraBlock identifies a part of a file block
 type intraBlock struct {
-	blockNo int64  // Block number in file
-	offset  int64  // Offset into block plaintext
-	length  int64  // Length of data from this block
+	BlockNo int64  // Block number in file
+	Offset  int64  // Offset into block plaintext
+	Length  int64  // Length of data from this block
+	fs    *CryptFS
+}
+
+// isPartial - is the block partial? This means we have to do read-modify-write.
+func (ib *intraBlock) IsPartial() bool {
+	if ib.Offset > 0 || ib.Length < ib.fs.plainBS {
+		return true
+	}
+	return false
+}
+
+// ciphertextRange - get byte range in ciphertext file corresponding to BlockNo
+func (ib *intraBlock) CiphertextRange() (offset int64, length int64) {
+	return ib.BlockNo * ib.fs.cipherBS, ib.fs.cipherBS
+}
+
+// CropBlock - crop a full plaintext block down to the relevant part
+func (ib *intraBlock) CropBlock(d []byte) []byte{
+	return d[ib.Offset:ib.Offset+ib.Length]
 }
 
 // Split a plaintext byte range into (possible partial) blocks
-func (be *CryptFile) splitRange(offset int64, length int64) []intraBlock {
+func (be *CryptFS) SplitRange(offset int64, length int64) []intraBlock {
 	var b intraBlock
 	var parts []intraBlock
 
+	b.fs = be
+
 	for length > 0 {
-		b.blockNo = offset / be.plainBS
-		b.offset = offset % be.plainBS
-		b.length = be.min64(length, be.plainBS - b.offset)
+		b.BlockNo = offset / be.plainBS
+		b.Offset = offset % be.plainBS
+		b.Length = be.min64(length, be.plainBS - b.Offset)
 		parts = append(parts, b)
-		offset += b.length
-		length -= b.length
+		offset += b.Length
+		length -= b.Length
 	}
 	return parts
 }
 
-func (be *CryptFile) min64(x int64, y int64) int64 {
+func (be *CryptFS) min64(x int64, y int64) int64 {
 	if x < y {
 		return x
 	}
@@ -110,16 +174,16 @@ func (be *CryptFile) writeCipherBlock(blockNo int64, plain []byte) error {
 // Perform RMW cycle on block
 // Write "data" into file location specified in "b"
 func (be *CryptFile) rmwWrite(b intraBlock, data []byte, f *os.File) error {
-	if b.length != int64(len(data)) {
+	if b.Length != int64(len(data)) {
 		panic("Length mismatch")
 	}
 
-	oldBlock, err := be.readCipherBlock(b.blockNo)
+	oldBlock, err := be.readCipherBlock(b.BlockNo)
 	if err != nil {
 		return err
 	}
-	newBlockLen := b.offset + b.length
-	debug.Printf("newBlockLen := %d + %d\n", b.offset, b.length)
+	newBlockLen := b.Offset + b.Length
+	debug.Printf("newBlockLen := %d + %d\n", b.Offset, b.Length)
 	var newBlock []byte
 
 	// Write goes beyond the old block and grows the file?
@@ -133,10 +197,10 @@ func (be *CryptFile) rmwWrite(b intraBlock, data []byte, f *os.File) error {
 	// Fill with old data
 	copy(newBlock, oldBlock)
 	// Then overwrite the relevant parts with new data
-	copy(newBlock[b.offset:b.offset + b.length], data)
+	copy(newBlock[b.Offset:b.Offset + b.Length], data)
 
 	// Actual write
-	err = be.writeCipherBlock(b.blockNo, newBlock)
+	err = be.writeCipherBlock(b.BlockNo, newBlock)
 
 	if err != nil {
 		// An incomplete write to a ciphertext block means that the whole block

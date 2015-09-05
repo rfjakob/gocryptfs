@@ -45,10 +45,16 @@ func (d *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.Lo
 	}
 	clueDir, ok := n.(*cluefs.Dir)
 	if ok {
-		return &Dir { Dir: clueDir }, nil
+		return &Dir {
+			Dir: clueDir,
+			crfs: d.crfs,
+		}, nil
 	} else {
 		clueFile := n.(*cluefs.File)
-		return &File { File: clueFile }, nil
+		return &File {
+			File: clueFile,
+			crfs: d.crfs,
+		}, nil
 	}
 }
 
@@ -103,6 +109,9 @@ func (d *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.Cr
 		return nil, nil, err
 	}
 	clueFile := n.(*cluefs.File)
-	cryptFile := &File {File: clueFile}
+	cryptFile := &File {
+		File: clueFile,
+		crfs: d.crfs,
+	}
 	return cryptFile, cryptFile, nil
 }
