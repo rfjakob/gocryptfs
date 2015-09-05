@@ -30,7 +30,7 @@ func (d *Dir) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenRe
 	}
 	clueDir := h.(*cluefs.Dir)
 
-	return Dir {
+	return &Dir {
 		Dir: clueDir,
 		crfs: d.crfs,
 	}, nil
