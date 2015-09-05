@@ -1,9 +1,16 @@
 package main
 
 import (
+	"bazil.org/fuse"
+	fusefs "bazil.org/fuse/fs"
+	"fmt"
 	"github.com/rfjakob/cluefs/lib/cluefs"
 	"github.com/rfjakob/gocryptfs/frontend"
 	"os"
+)
+
+const (
+	PROGRAM_NAME = "gocryptfs"
 )
 
 func main() {
@@ -17,10 +24,31 @@ func main() {
 	var key [16]byte
 	cfs := frontend.NewFS(key, conf.GetShadowDir())
 
-	// Mount and serve file system requests
-	if err = cfs.MountAndServe(conf.GetMountPoint(), conf.GetReadOnly()); err != nil {
-		cluefs.ErrlogMain.Printf("could not mount file system [%s]", err)
-		os.Exit(3)
+	// Mount the file system
+	mountOpts := []fuse.MountOption{
+		fuse.FSName(PROGRAM_NAME),
+		fuse.Subtype(PROGRAM_NAME),
+		fuse.VolumeName(PROGRAM_NAME),
+		fuse.LocalVolume(),
+	}
+	conn, err := fuse.Mount(conf.GetMountPoint(), mountOpts...)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer conn.Close()
+
+	// Start serving requests
+	if err = fusefs.Serve(conn, cfs); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	// Check for errors when mounting the file system
+	<-conn.Ready
+	if err = conn.MountError; err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
 	// We are done

@@ -1,13 +1,16 @@
 package frontend
 
 import (
+	"fmt"
 	"github.com/rfjakob/gocryptfs/cryptfs"
 	"github.com/rfjakob/cluefs/lib/cluefs"
+	fusefs "bazil.org/fuse/fs"
 )
 
 type FS struct {
 	*cryptfs.CryptFS
 	*cluefs.ClueFS
+	backing string
 }
 
 type nullTracer struct {}
@@ -23,5 +26,11 @@ func NewFS(key [16]byte, backing string) *FS {
 	return &FS {
 		CryptFS: cryptfs.NewCryptFS(key),
 		ClueFS: clfs,
+		backing: backing,
 	}
+}
+
+func (fs *FS) Root() (fusefs.Node, error) {
+	fmt.Printf("Root\n")
+	return NewDir("", fs.backing, fs), nil
 }
