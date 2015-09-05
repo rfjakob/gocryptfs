@@ -7,7 +7,6 @@ import (
 	"strings"
 	"encoding/base64"
 	"errors"
-	"os"
 )
 
 const (
@@ -22,8 +21,8 @@ const (
 type CryptFS struct {
 	blockCipher cipher.Block
 	gcm cipher.AEAD
-	plainBS	int64
-	cipherBS int64
+	plainBS	uint64
+	cipherBS uint64
 }
 
 func NewCryptFS(key [16]byte) *CryptFS {
@@ -46,6 +45,7 @@ func NewCryptFS(key [16]byte) *CryptFS {
 	}
 }
 
+/*
 func (fs *CryptFS) NewFile(f *os.File) *CryptFile {
 	return &CryptFile {
 		file: f,
@@ -54,8 +54,9 @@ func (fs *CryptFS) NewFile(f *os.File) *CryptFile {
 		cipherBS: fs.cipherBS,
 	}
 }
+*/
 
-func (be *CryptFS) PlainBS() int64 {
+func (be *CryptFS) PlainBS() uint64 {
 	return be.plainBS
 }
 
@@ -139,18 +140,25 @@ func (be *CryptFS) DecryptPath(path string) (string, error) {
 	return be.translatePath(path, DECRYPT)
 }
 
-// plainSize - calculate plaintext size from ciphertext size
-func (be *CryptFS) PlainSize(s int64) int64 {
+// PlainSize - calculate plaintext size from ciphertext size
+func (be *CryptFS) PlainSize(size uint64) uint64 {
 	// Zero sized files stay zero-sized
-	if s > 0 {
-		// Number of blocks
-		n := s / be.cipherBS + 1
+	if size > 0 {
 		overhead := be.cipherBS - be.plainBS
-		s -= n * overhead
+		nBlocks := (size + be.cipherBS - 1) / be.cipherBS
+		size -= nBlocks * overhead
 	}
-	return s
+	return size
 }
 
+
+// plainSizeFromCipherSize - calculate plaintext size from ciphertext size
+func (be *CryptFS) plainSizeFromCipherSize(size int64) int64 {
+	if size > 0 {
+
+	}
+	return size
+}
 // pad16 - pad filename to 16 byte blocks using standard PKCS#7 padding
 // https://tools.ietf.org/html/rfc5652#section-6.3
 func (be *CryptFS) pad16(orig []byte) (padded []byte) {

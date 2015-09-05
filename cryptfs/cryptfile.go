@@ -1,9 +1,9 @@
 package cryptfs
 
 import (
-	"fmt"
+	//"fmt"
 	"os"
-	"io"
+	//"io"
 	"errors"
 	"crypto/cipher"
 )
@@ -11,8 +11,6 @@ import (
 type CryptFile struct {
 	file *os.File
 	gcm cipher.AEAD
-	plainBS	int64
-	cipherBS int64
 }
 
 // decryptBlock - Verify and decrypt GCM block
@@ -59,6 +57,7 @@ func (be *CryptFS) EncryptBlock(plaintext []byte) []byte {
 	return ciphertext
 }
 
+/*
 // readCipherBlock - Read ciphertext block number "blockNo", decrypt,
 // return plaintext
 func (be *CryptFile) readCipherBlock(blockNo int64) ([]byte, error) {
@@ -98,12 +97,13 @@ func (be *CryptFile) readCipherBlock(blockNo int64) ([]byte, error) {
 
 	return plainBuf, nil
 }
+*/
 
 // intraBlock identifies a part of a file block
 type intraBlock struct {
-	BlockNo int64  // Block number in file
-	Offset  int64  // Offset into block plaintext
-	Length  int64  // Length of data from this block
+	BlockNo uint64  // Block number in file
+	Offset  uint64  // Offset into block plaintext
+	Length  uint64  // Length of data from this block
 	fs    *CryptFS
 }
 
@@ -117,13 +117,13 @@ func (ib *intraBlock) IsPartial() bool {
 
 // CiphertextRange - get byte range in ciphertext file corresponding to BlockNo
 // (complete block)
-func (ib *intraBlock) CiphertextRange() (offset int64, length int64) {
+func (ib *intraBlock) CiphertextRange() (offset uint64, length uint64) {
 	return ib.BlockNo * ib.fs.cipherBS, ib.fs.cipherBS
 }
 
 // PlaintextRange - get byte range in plaintext corresponding to BlockNo
 // (complete block)
-func (ib *intraBlock) PlaintextRange() (offset int64, length int64) {
+func (ib *intraBlock) PlaintextRange() (offset uint64, length uint64) {
 	return ib.BlockNo * ib.fs.plainBS, ib.fs.plainBS
 }
 
@@ -138,7 +138,7 @@ func (ib *intraBlock) CropBlock(d []byte) []byte{
 }
 
 // Split a plaintext byte range into (possible partial) blocks
-func (be *CryptFS) SplitRange(offset int64, length int64) []intraBlock {
+func (be *CryptFS) SplitRange(offset uint64, length uint64) []intraBlock {
 	var b intraBlock
 	var parts []intraBlock
 
@@ -147,7 +147,7 @@ func (be *CryptFS) SplitRange(offset int64, length int64) []intraBlock {
 	for length > 0 {
 		b.BlockNo = offset / be.plainBS
 		b.Offset = offset % be.plainBS
-		b.Length = be.min64(length, be.plainBS - b.Offset)
+		b.Length = be.minu64(length, be.plainBS - b.Offset)
 		parts = append(parts, b)
 		offset += b.Length
 		length -= b.Length
@@ -155,13 +155,14 @@ func (be *CryptFS) SplitRange(offset int64, length int64) []intraBlock {
 	return parts
 }
 
-func (be *CryptFS) min64(x int64, y int64) int64 {
+func (be *CryptFS) minu64(x uint64, y uint64) uint64 {
 	if x < y {
 		return x
 	}
 	return y
 }
 
+/*
 // writeCipherBlock - Encrypt plaintext and write it to file block "blockNo"
 func (be *CryptFile) writeCipherBlock(blockNo int64, plain []byte) error {
 
@@ -186,7 +187,7 @@ func (be *CryptFile) writeCipherBlock(blockNo int64, plain []byte) error {
 // Perform RMW cycle on block
 // Write "data" into file location specified in "b"
 func (be *CryptFile) rmwWrite(b intraBlock, data []byte, f *os.File) error {
-	if b.Length != int64(len(data)) {
+	if b.Length != uint64(len(data)) {
 		panic("Length mismatch")
 	}
 
@@ -200,7 +201,7 @@ func (be *CryptFile) rmwWrite(b intraBlock, data []byte, f *os.File) error {
 
 	// Write goes beyond the old block and grows the file?
 	// Must create a bigger newBlock
-	if newBlockLen > int64(len(oldBlock)) {
+	if newBlockLen > uint64(len(oldBlock)) {
 		newBlock = make([]byte, newBlockLen)
 	} else {
 		newBlock = make([]byte, len(oldBlock))
@@ -222,3 +223,4 @@ func (be *CryptFile) rmwWrite(b intraBlock, data []byte, f *os.File) error {
 
 	return err
 }
+*/

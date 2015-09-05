@@ -11,6 +11,7 @@ import (
 
 type Dir struct {
 	*cluefs.Dir
+
 	crfs *cryptfs.CryptFS
 }
 
@@ -39,18 +40,19 @@ func (d *Dir) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenRe
 func (d *Dir) Lookup(ctx context.Context, req *fuse.LookupRequest, resp *fuse.LookupResponse) (fusefs.Node, error) {
 	fmt.Printf("Lookup %s\n", req.Name)
 	req.Name = d.crfs.EncryptPath(req.Name)
-	n, err := d.Dir.Lookup(ctx, req, resp)
+	node, err := d.Dir.Lookup(ctx, req, resp)
 	if err != nil {
 		return nil, err
 	}
-	clueDir, ok := n.(*cluefs.Dir)
+	clueDir, ok := node.(*cluefs.Dir)
 	if ok {
 		return &Dir {
 			Dir: clueDir,
 			crfs: d.crfs,
 		}, nil
 	} else {
-		clueFile := n.(*cluefs.File)
+		resp.Attr.Size = d.crfs.PlainSize(resp.Attr.Size)
+		clueFile := node.(*cluefs.File)
 		return &File {
 			File: clueFile,
 			crfs: d.crfs,

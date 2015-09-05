@@ -56,12 +56,12 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 }
 
 func (f *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
-	iblocks := f.crfs.SplitRange(req.Offset, int64(req.Size))
+	iblocks := f.crfs.SplitRange(uint64(req.Offset), uint64(req.Size))
 	for _, ib := range iblocks {
 		var partReq fuse.ReadRequest
 		var partResp fuse.ReadResponse
 		o, l := ib.CiphertextRange()
-		partReq.Offset = o
+		partReq.Offset = int64(o)
 		partReq.Size = int(l)
 		partResp.Data = make([]byte, int(l))
 		err := f.File.Read(ctx, &partReq, &partResp)
@@ -82,7 +82,7 @@ func (f *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 func (f *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error {
 	fmt.Printf("File.Write\n")
 	resp.Size = 0
-	iblocks := f.crfs.SplitRange(req.Offset, int64(len(req.Data)))
+	iblocks := f.crfs.SplitRange(uint64(req.Offset), uint64(len(req.Data)))
 	var blockData []byte
 	for _, ib := range iblocks {
 		if ib.IsPartial() {
@@ -91,7 +91,7 @@ func (f *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wri
 			var readReq fuse.ReadRequest
 			var readResp fuse.ReadResponse
 			o, l := ib.PlaintextRange()
-			readReq.Offset = o
+			readReq.Offset = int64(o)
 			readReq.Size = int(l)
 			err := f.Read(ctx, &readReq, &readResp)
 			if err != nil {
@@ -109,7 +109,7 @@ func (f *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wri
 		var partResp fuse.WriteResponse
 		o, _ := ib.CiphertextRange()
 		partReq.Data = ciphertext
-		partReq.Offset = o
+		partReq.Offset = int64(o)
 		err := f.File.Write(ctx, &partReq, &partResp)
 		if err != nil {
 			fmt.Printf("Write failure: %s\n", err.Error())
@@ -119,5 +119,15 @@ func (f *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wri
 		req.Data = req.Data[len(blockData):len(req.Data)]
 		resp.Size += len(blockData)
 	}
+	return nil
+}
+
+func (f *File) Attr(ctx context.Context, attr *fuse.Attr) error {
+	fmt.Printf("Attr\n")
+	err := f.File.Node.Attr(ctx, attr)
+	if err != nil {
+		return err
+	}
+	attr.Size = f.crfs.PlainSize(attr.Size)
 	return nil
 }
