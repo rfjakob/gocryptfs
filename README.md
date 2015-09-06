@@ -39,5 +39,5 @@ The output should look like this:
 	+ go test -bench=.
 	PASS
 	BenchmarkStreamWrite	     100	  14062281 ns/op	  74.57 MB/s
-	BenchmarkStreamRead	     100	  11267741 ns/op	  93.06 MB/s
+	BenchmarkStreamRead 	     100	  11267741 ns/op	  93.06 MB/s
 	ok  	github.com/rfjakob/gocryptfs	7.569s
