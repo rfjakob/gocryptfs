@@ -68,7 +68,7 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 
 func (f *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
 
-	fmt.Printf("Read: o=%d l=%d\n", req.Offset, req.Size)
+	cryptfs.Debug.Printf("Read: o=%d l=%d\n", req.Offset, req.Size)
 
 	// Read the backing ciphertext in one go
 	iblocks := f.crfs.SplitRange(uint64(req.Offset), uint64(req.Size))

@@ -27,17 +27,17 @@ type nullTracer struct {}
 
 func (nullTracer) Trace(op cluefs.FsOperTracer) {}
 
-func NewFS(key [16]byte, backing string, useOpenssl bool) *FS {
-	var nt nullTracer
-	clfs, err := cluefs.NewClueFS(backing, nt)
+func NewFS(key [16]byte, backing string, useOpenssl bool) (*FS, error) {
+	var tracer nullTracer
+	clfs, err := cluefs.NewClueFS(backing, tracer)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	return &FS {
 		CryptFS: cryptfs.NewCryptFS(key, useOpenssl),
 		ClueFS: clfs,
 		backing: backing,
-	}
+	}, nil
 }
 
 func (fs *FS) Root() (fusefs.Node, error) {

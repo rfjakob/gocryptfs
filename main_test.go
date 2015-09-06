@@ -1,0 +1,149 @@
+package main
+
+import (
+	"io"
+	"fmt"
+	"time"
+	"testing"
+	"os"
+	"os/exec"
+	"io/ioutil"
+	"crypto/md5"
+	"encoding/hex"
+)
+
+const tmpDir = "test_tmp_dir/"
+const plainDir = tmpDir + "plain/"
+const cipherDir = tmpDir + "cipher/"
+
+func TestMain(m *testing.M) {
+
+	fu := exec.Command("fusermount", "-u", plainDir)
+	fu.Stdout = os.Stdout
+	fu.Stderr = os.Stderr
+	fu.Run()
+	os.RemoveAll(tmpDir)
+
+	err := os.MkdirAll(plainDir, 0777)
+	if err != nil {
+		panic("Could not create plainDir")
+	}
+
+	err = os.MkdirAll(cipherDir, 0777)
+	if err != nil {
+		panic("Could not create cipherDir")
+	}
+
+	c := exec.Command("./gocryptfs", cipherDir, plainDir)
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	go c.Run()
+
+	time.Sleep(3 * time.Second)
+
+	r := m.Run()
+
+
+	fu.Run()
+	os.Exit(r)
+}
+
+func testWriteN(t *testing.T, fn string, n int, hashWant string) {
+	file, err := os.Create(plainDir + fn)
+	if err != nil {
+		t.FailNow()
+	}
+
+	d := make([]byte, n)
+	written, err := file.Write(d)
+	if err != nil || written != len(d) {
+		fmt.Printf("err=\"%s\", written=%d\n", err, written)
+		t.Fail()
+	}
+	file.Close()
+
+	buf, err := ioutil.ReadFile(plainDir + fn)
+	if err != nil {
+		t.Fail()
+	}
+
+	rawHash := md5.Sum(buf)
+	hashActual := hex.EncodeToString(rawHash[:])
+	if hashActual != hashWant {
+		fmt.Printf("hashWant=%s hashActual=%s\n", hashWant, hashActual)
+		t.Fail()
+	}
+}
+
+func TestWrite10(t *testing.T) {
+	testWriteN(t, "10", 10, "a63c90cc3684ad8b0a2176a6a8fe9005")
+}
+
+func TestWrite100(t *testing.T) {
+	testWriteN(t, "100", 100, "6d0bb00954ceb7fbee436bb55a8397a9")
+}
+
+func TestWrite1M(t *testing.T) {
+	testWriteN(t, "1M", 1024*1024, "b6d81b360a5672d80c27430f39153e2c")
+}
+
+func TestWrite1Mx100(t *testing.T) {
+	testWriteN(t, "1Mx100", 1024*1024, "b6d81b360a5672d80c27430f39153e2c")
+	// Read and check 100 times to catch race conditions
+	var i int
+	for i = 0; i < 100; i++ {
+		buf, err := ioutil.ReadFile(plainDir + "1M")
+		if err != nil {
+			t.Fail()
+		}
+		rawHash := md5.Sum(buf)
+		hashActual := hex.EncodeToString(rawHash[:])
+		if hashActual != "b6d81b360a5672d80c27430f39153e2c" {
+			fmt.Printf("Read corruption in loop # %d\n", i)
+			t.FailNow()
+		} else {
+			//fmt.Print(".")
+		}
+	}
+}
+
+func BenchmarkStreamWrite(t *testing.B) {
+	buf := make([]byte, 1024*1024)
+	t.SetBytes(int64(len(buf)))
+
+	file, err := os.Create(plainDir + "BenchmarkWrite")
+	if err != nil {
+		t.FailNow()
+	}
+
+	t.ResetTimer()
+	var i int
+	for i = 0; i < t.N; i++ {
+		written, err := file.Write(buf)
+		if err != nil {
+			fmt.Printf("err=\"%s\", written=%d\n", err.Error(), written)
+			t.FailNow()
+		}
+	}
+}
+
+func BenchmarkStreamRead(t *testing.B) {
+	buf := make([]byte, 1024*1024)
+	t.SetBytes(int64(len(buf)))
+	file, err := os.Open(plainDir + "BenchmarkWrite")
+	if err != nil {
+		t.FailNow()
+	}
+	t.ResetTimer()
+	var i int
+	for i = 0; i < t.N; i++ {
+		_, err := file.Read(buf)
+		if err == io.EOF {
+			fmt.Printf("Test file too small\n")
+			t.SkipNow()
+		} else if err != nil {
+			fmt.Println(err)
+			t.FailNow()
+		}
+	}
+}
