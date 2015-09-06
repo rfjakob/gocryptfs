@@ -20,21 +20,26 @@ type CryptFS struct {
 	cipherBS uint64
 }
 
-func NewCryptFS(key [16]byte) *CryptFS {
+func NewCryptFS(key [16]byte, useOpenssl bool) *CryptFS {
 
 	b, err := aes.NewCipher(key[:])
 	if err != nil {
 		panic(err)
 	}
 
-	g, err := cipher.NewGCM(b)
-	if err != nil {
-		panic(err)
+	var gcm cipher.AEAD
+	if useOpenssl {
+		gcm = opensslGCM{key}
+	} else {
+		gcm, err = cipher.NewGCM(b)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return &CryptFS{
 		blockCipher: b,
-		gcm: g,
+		gcm: gcm,
 		plainBS: DEFAULT_PLAINBS,
 		cipherBS: DEFAULT_PLAINBS + NONCE_LEN + AUTH_TAG_LEN,
 	}

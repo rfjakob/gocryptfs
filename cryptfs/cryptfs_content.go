@@ -49,8 +49,11 @@ func (be *CryptFS) DecryptBlock(ciphertext []byte) ([]byte, error) {
 
 	// Decrypt
 	var plaintext []byte
+
 	plaintext, err := be.gcm.Open(plaintext, nonce, ciphertext, nil)
+
 	if err != nil {
+		Warn.Printf("DecryptBlock: %s\n", err.Error())
 		return nil, err
 	}
 

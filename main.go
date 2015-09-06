@@ -11,6 +11,7 @@ import (
 
 const (
 	PROGRAM_NAME = "gocryptfs"
+	USE_OPENSSL = true
 )
 
 func main() {
@@ -22,7 +23,7 @@ func main() {
 
 	// Create the file system object
 	var key [16]byte
-	cfs := frontend.NewFS(key, conf.GetShadowDir())
+	cfs := frontend.NewFS(key, conf.GetShadowDir(), USE_OPENSSL)
 
 	// Mount the file system
 	mountOpts := []fuse.MountOption{
