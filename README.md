@@ -22,6 +22,11 @@ Current Status
 * Key is set to static all-zero
 * Not ready for anything but testing and debugging
 
+Install
+-------
+
+	go get github.com/rfjakob/gocryptfs
+
 Testing
 -------
 Run `./main_benchmark.bash` to run the test suite and the streaming read/write
