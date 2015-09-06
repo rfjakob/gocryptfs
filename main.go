@@ -1,24 +1,23 @@
 package main
 
 import (
-	"path/filepath"
-	"flag"
-	"os"
-	"fmt"
-	"github.com/rfjakob/gocryptfs/frontend"
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
-
+	"flag"
+	"fmt"
+	"github.com/rfjakob/gocryptfs/frontend"
+	"os"
+	"path/filepath"
 )
 
 const (
 	PROGRAM_NAME = "gocryptfs"
-	USE_OPENSSL = true
+	USE_OPENSSL  = true
 
-	ERREXIT_USAGE = 1
-	ERREXIT_NEWFS = 2
-	ERREXIT_MOUNT = 3
-	ERREXIT_SERVE = 4
+	ERREXIT_USAGE  = 1
+	ERREXIT_NEWFS  = 2
+	ERREXIT_MOUNT  = 3
+	ERREXIT_SERVE  = 4
 	ERREXIT_MOUNT2 = 5
 )
 
@@ -48,7 +47,7 @@ func main() {
 		fuse.Subtype(PROGRAM_NAME),
 		fuse.VolumeName(PROGRAM_NAME),
 		fuse.LocalVolume(),
-		fuse.MaxReadahead(1024*1024),
+		fuse.MaxReadahead(1024 * 1024),
 	}
 	conn, err := fuse.Mount(mountpoint, mountOpts...)
 	if err != nil {

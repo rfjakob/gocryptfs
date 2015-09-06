@@ -1,15 +1,15 @@
 package main
 
 import (
-	"io"
-	"fmt"
-	"time"
-	"testing"
-	"os"
-	"os/exec"
-	"io/ioutil"
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"testing"
+	"time"
 )
 
 const tmpDir = "test_tmp_dir/"
@@ -42,7 +42,6 @@ func TestMain(m *testing.M) {
 	time.Sleep(3 * time.Second)
 
 	r := m.Run()
-
 
 	fu.Run()
 	os.Exit(r)
