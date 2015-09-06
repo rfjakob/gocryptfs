@@ -30,6 +30,7 @@ func main() {
 		fuse.Subtype(PROGRAM_NAME),
 		fuse.VolumeName(PROGRAM_NAME),
 		fuse.LocalVolume(),
+		fuse.MaxReadahead(1024*1024),
 	}
 	conn, err := fuse.Mount(conf.GetMountPoint(), mountOpts...)
 	if err != nil {
