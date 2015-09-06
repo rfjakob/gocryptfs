@@ -3,6 +3,7 @@ package cryptfs
 // File content encryption / decryption
 
 import (
+	"bytes"
 	"os"
 	"errors"
 	"crypto/cipher"
@@ -13,7 +14,23 @@ type CryptFile struct {
 	gcm cipher.AEAD
 }
 
-// decryptBlock - Verify and decrypt GCM block
+// DecryptBlocks - Decrypt a number of blocks
+func (be *CryptFS) DecryptBlocks(ciphertext []byte) ([]byte, error) {
+	cBuf := bytes.NewBuffer(ciphertext)
+	var err error
+	var pBuf bytes.Buffer
+	for cBuf.Len() > 0 {
+		cBlock := cBuf.Next(int(be.cipherBS))
+		pBlock, err := be.DecryptBlock(cBlock)
+		if err != nil {
+			break
+		}
+		pBuf.Write(pBlock)
+	}
+	return pBuf.Bytes(), err
+}
+
+// DecryptBlock - Verify and decrypt GCM block
 func (be *CryptFS) DecryptBlock(ciphertext []byte) ([]byte, error) {
 
 	// Empty block?
@@ -91,4 +108,30 @@ func (be *CryptFS) minu64(x uint64, y uint64) uint64 {
 		return x
 	}
 	return y
+}
+
+// Get the byte range in the ciphertext corresponding to blocks
+// (full blocks!)
+func (be *CryptFS) JoinCiphertextRange(blocks []intraBlock) (uint64, uint64) {
+
+	offset, _ := blocks[0].CiphertextRange()
+	last := blocks[len(blocks)-1]
+	length := (last.BlockNo - blocks[0].BlockNo + 1) * be.cipherBS
+
+	return offset, length
+}
+
+// Crop plaintext that correspons to complete cipher blocks down to what is
+// requested according to "iblocks"
+func (be *CryptFS) CropPlaintext(plaintext []byte, blocks []intraBlock) []byte {
+	offset := blocks[0].Offset
+	last := blocks[len(blocks)-1]
+	length := (last.BlockNo - blocks[0].BlockNo + 1) * be.plainBS
+	var cropped []byte
+	if offset + length > uint64(len(plaintext)) {
+		cropped = plaintext[offset:len(plaintext)]
+	} else {
+		cropped = plaintext[offset:offset+length]
+	}
+	return cropped
 }

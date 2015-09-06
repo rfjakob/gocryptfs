@@ -67,26 +67,32 @@ func (f *File) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenR
 }
 
 func (f *File) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
+
+	fmt.Printf("Read: o=%d l=%d\n", req.Offset, req.Size)
+
+	// Read the backing ciphertext in one go
 	iblocks := f.crfs.SplitRange(uint64(req.Offset), uint64(req.Size))
-	for _, ib := range iblocks {
-		var partReq fuse.ReadRequest
-		var partResp fuse.ReadResponse
-		o, l := ib.CiphertextRange()
-		partReq.Offset = int64(o)
-		partReq.Size = int(l)
-		partResp.Data = make([]byte, int(l))
-		err := f.File.Read(ctx, &partReq, &partResp)
-		if err != nil {
-			return err
-		}
-		plaintext, err := f.crfs.DecryptBlock(partResp.Data)
-		if err != nil {
-			fmt.Printf("Read: Error reading block %d: %s\n", ib.BlockNo, err.Error())
-			return err
-		}
-		plaintext = ib.CropBlock(plaintext)
-		resp.Data = append(resp.Data, plaintext...)
+	var cipherReq fuse.ReadRequest
+	var cipherResp fuse.ReadResponse
+	o, l := f.crfs.JoinCiphertextRange(iblocks)
+	cipherResp.Data = make([]byte, int(l))
+	cipherReq.Offset = int64(o)
+	cipherReq.Size = int(l)
+	cryptfs.Debug.Printf("Read: cipherReq o=%d l=%d\n", o, l)
+	err := f.File.Read(ctx, &cipherReq, &cipherResp)
+	if err != nil {
+		return err
 	}
+
+	// Decrypt it
+	plaintext, err := f.crfs.DecryptBlocks(cipherResp.Data)
+	if err != nil {
+		resp.Data = plaintext
+		return err
+	}
+	// Crop down to relevant part
+	resp.Data = f.crfs.CropPlaintext(plaintext, iblocks)
+
 	return nil
 }
 
@@ -98,6 +104,7 @@ func (f *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wri
 	for _, ib := range iblocks {
 		if ib.IsPartial() {
 			// RMW
+			cryptfs.Debug.Printf("RMW\n")
 			blockData = make([]byte, f.crfs.PlainBS())
 			var readReq fuse.ReadRequest
 			var readResp fuse.ReadResponse
@@ -127,8 +134,9 @@ func (f *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wri
 			return err
 		}
 		// Remove written data from the front of the request
-		req.Data = req.Data[len(blockData):len(req.Data)]
-		resp.Size += len(blockData)
+		cryptfs.Debug.Printf("req.Data[%d:%d]\n", int(ib.Length), len(req.Data))
+		req.Data = req.Data[int(ib.Length):len(req.Data)]
+		resp.Size += int(ib.Length)
 	}
 	return nil
 }
