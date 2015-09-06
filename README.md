@@ -15,7 +15,7 @@ Design
  * 4096 byte blocks per default
  * 28 bytes of overhead per block (16 bytes auth tag, 12 byte nonce)
  * uses openssl through [spacemonkeygo/openssl](https://github.com/spacemonkeygo/openssl)
-   for a 3x speedup compared to `crypto/cipher`
+   for a 3x speedup compared to `crypto/cipher` (see [go-vs-openssl.md](https://github.com/rfjakob/gocryptfs/blob/master/openssl_benchmark/go-vs-openssl.md)) for details
 * Per-write unique 96 bit nonces
  * starts from a random value (generated at mount time) and counts up
 * Flename encryption using AES-CBC-128

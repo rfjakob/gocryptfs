@@ -87,5 +87,4 @@ aes instructions ( https://en.wikipedia.org/wiki/AES_instruction_set )
 	cache_alignment	: 64
 	address sizes	: 36 bits physical, 48 bits virtual
 	power management:
-	
 	[...]
