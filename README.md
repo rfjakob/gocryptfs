@@ -11,16 +11,30 @@ Inspired by [EncFS](https://github.com/vgough/encfs).
 Design
 ------
 * Authenticated encryption of file contents using AES-GCM-128
- * 96 bit nonce that starts from a random value and counts up
+ * Because GCM handles blocks of arbitrary size, there is no special handling for the last file block
+ * 4096 byte blocks per default
+ * 28 bytes of overhead per block (16 bytes auth tag, 12 byte nonce)
  * uses openssl through [spacemonkeygo/openssl](https://github.com/spacemonkeygo/openssl)
    for a 3x speedup compared to `crypto/cipher`
-* AES-CBC filename encryption
+* Per-write unique 96 bit nonces
+ * starts from a random value (generated at mount time) and counts up
+* Flename encryption using AES-CBC-128
+ * Padded to 16-byte blocks acc. to [RFC5652 section 6.3](https://tools.ietf.org/html/rfc5652#section-6.3)
+ * base64 encoded acc. to [RFC4648 section 5](https://tools.ietf.org/html/rfc4648#section-5)
 
 Current Status
 --------------
-* Work in progress
-* Key is set to static all-zero
-* Not ready for anything but testing and debugging
+Not ready for anything but testing and debugging
+
+* File and directory creation and deletion works
+* Thread-safe nonce generation works
+* Filename and content encryption works
+ * Key is set to static all-zero
+* Reading and writing works
+* Streaming performance is already reasonable
+ * But we should be able to get another 50% speedup
+* Symlinks and hard links not yet implemented
+* Memory usage is insane
 
 Install
 -------
