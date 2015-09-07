@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const tmpDir = "test_tmp_dir/"
+const tmpDir = "main_test_tmp/"
 const plainDir = tmpDir + "plain/"
 const cipherDir = tmpDir + "cipher/"
 

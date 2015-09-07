@@ -1,18 +1,29 @@
 package main
 
 import (
-	"bazil.org/fuse"
-	fusefs "bazil.org/fuse/fs"
 	"flag"
 	"fmt"
-	frontend "github.com/rfjakob/gocryptfs/cluefs_frontend"
 	"os"
 	"path/filepath"
+	"time"
+
+	"github.com/rfjakob/gocryptfs/cluefs_frontend"
+	"github.com/rfjakob/gocryptfs/pathfs_frontend"
+
+	bazilfuse "bazil.org/fuse"
+	bazilfusefs "bazil.org/fuse/fs"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 const (
+	USE_CLUEFS   = false
+	USE_OPENSSL  = false
+	PATHFS_DEBUG = false
+
 	PROGRAM_NAME = "gocryptfs"
-	USE_OPENSSL  = true
 
 	ERREXIT_USAGE  = 1
 	ERREXIT_NEWFS  = 2
@@ -29,27 +40,34 @@ func main() {
 		fmt.Printf("usage: %s CIPHERDIR MOUNTPOINT\n", PROGRAM_NAME)
 		os.Exit(ERREXIT_USAGE)
 	}
-
 	cipherdir, _ := filepath.Abs(flag.Arg(0))
-	mountpoint, err := filepath.Abs(flag.Arg(1))
+	mountpoint, _ := filepath.Abs(flag.Arg(1))
 
-	// Create the file system object
 	var key [16]byte
-	cfs, err := frontend.NewFS(key, cipherdir, USE_OPENSSL)
+
+	if USE_CLUEFS {
+		cluefsFrontend(key, cipherdir, mountpoint)
+	} else {
+		pathfsFrontend(key, cipherdir, mountpoint)
+	}
+}
+
+func cluefsFrontend(key [16]byte, cipherdir string, mountpoint string) {
+	cfs, err := cluefs_frontend.NewFS(key, cipherdir, USE_OPENSSL)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(ERREXIT_NEWFS)
 	}
 
 	// Mount the file system
-	mountOpts := []fuse.MountOption{
-		fuse.FSName(PROGRAM_NAME),
-		fuse.Subtype(PROGRAM_NAME),
-		fuse.VolumeName(PROGRAM_NAME),
-		fuse.LocalVolume(),
-		fuse.MaxReadahead(1024 * 1024),
+	mountOpts := []bazilfuse.MountOption{
+		bazilfuse.FSName(PROGRAM_NAME),
+		bazilfuse.Subtype(PROGRAM_NAME),
+		bazilfuse.VolumeName(PROGRAM_NAME),
+		bazilfuse.LocalVolume(),
+		bazilfuse.MaxReadahead(1024 * 1024),
 	}
-	conn, err := fuse.Mount(mountpoint, mountOpts...)
+	conn, err := bazilfuse.Mount(mountpoint, mountOpts...)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(ERREXIT_MOUNT)
@@ -57,7 +75,7 @@ func main() {
 	defer conn.Close()
 
 	// Start serving requests
-	if err = fusefs.Serve(conn, cfs); err != nil {
+	if err = bazilfusefs.Serve(conn, cfs); err != nil {
 		fmt.Println(err)
 		os.Exit(ERREXIT_SERVE)
 	}
@@ -71,4 +89,31 @@ func main() {
 
 	// We are done
 	os.Exit(0)
+}
+
+func pathfsFrontend(key [16]byte, cipherdir string, mountpoint string){
+
+	finalFs := pathfs_frontend.NewFS(key, cipherdir, USE_OPENSSL)
+
+	opts := &nodefs.Options{
+		// These options are to be compatible with libfuse defaults,
+		// making benchmarking easier.
+		NegativeTimeout: time.Second,
+		AttrTimeout:     time.Second,
+		EntryTimeout:    time.Second,
+	}
+	pathFs := pathfs.NewPathNodeFs(finalFs, nil)
+	conn := nodefs.NewFileSystemConnector(pathFs.Root(), opts)
+	mOpts := &fuse.MountOptions{
+		AllowOther: false,
+	}
+	state, err := fuse.NewServer(conn.RawFS(), mountpoint, mOpts)
+	if err != nil {
+		fmt.Printf("Mount fail: %v\n", err)
+		os.Exit(1)
+	}
+	state.SetDebug(PATHFS_DEBUG)
+
+	fmt.Println("Mounted!")
+	state.Serve()
 }

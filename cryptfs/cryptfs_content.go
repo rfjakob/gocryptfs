@@ -77,7 +77,7 @@ func (be *CryptFS) EncryptBlock(plaintext []byte) []byte {
 	return ciphertext
 }
 
-// Split a plaintext byte range into (possible partial) blocks
+// Split a plaintext byte range into (possibly partial) blocks
 func (be *CryptFS) SplitRange(offset uint64, length uint64) []intraBlock {
 	var b intraBlock
 	var parts []intraBlock
@@ -113,6 +113,22 @@ func (be *CryptFS) minu64(x uint64, y uint64) uint64 {
 	return y
 }
 
+// CiphertextRange - Get byte range in backing ciphertext corresponding
+// to plaintext range. Returns a range aligned to ciphertext blocks.
+func (be *CryptFS) CiphertextRange(offset uint64, length uint64) (uint64, uint64, int) {
+	// Decrypting the ciphertext will yield too many plaintext bytes. Skip this number
+	// of bytes from the front.
+	skip := offset % be.plainBS
+
+	firstBlockNo := offset / be.plainBS
+	lastBlockNo := ( offset + length - 1 ) / be.plainBS
+
+	alignedOffset := firstBlockNo * be.cipherBS
+	alignedLength := (lastBlockNo - firstBlockNo + 1) * be.cipherBS
+
+	return alignedOffset, alignedLength, int(skip)
+}
+
 // Get the byte range in the ciphertext corresponding to blocks
 // (full blocks!)
 func (be *CryptFS) JoinCiphertextRange(blocks []intraBlock) (uint64, uint64) {
@@ -137,4 +153,25 @@ func (be *CryptFS) CropPlaintext(plaintext []byte, blocks []intraBlock) []byte {
 		cropped = plaintext[offset:offset+length]
 	}
 	return cropped
+}
+
+// MergeBlocks - Merge newData into oldData at offset
+// New block may be bigger than both newData and oldData
+func (be *CryptFS) MergeBlocks(oldData []byte, newData []byte, offset int) []byte {
+
+	// Make block of maximum size
+	out := make([]byte, be.plainBS)
+
+	// Copy old and new data into it
+	copy(out, oldData)
+	l := len(newData)
+	copy(out[offset:offset + l], newData)
+
+	// Crop to length
+	outLen := len(oldData)
+	newLen := offset + len(newData)
+	if outLen < newLen {
+		outLen = newLen
+	}
+	return out[0:outLen]
 }
