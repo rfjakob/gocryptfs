@@ -1,4 +1,4 @@
-package frontend
+package cluefs_frontend
 
 // frontend sits between FUSE and ClueFS
 // and uses cryptfs for all crypto operations

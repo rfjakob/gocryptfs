@@ -1,4 +1,4 @@
-package frontend
+package cluefs_frontend
 
 // frontend sits between FUSE and ClueFS
 // and uses cryptfs for all crypto operations
@@ -22,7 +22,6 @@ import (
 
 type Dir struct {
 	*cluefs.Dir
-
 	crfs *cryptfs.CryptFS
 }
 
@@ -128,4 +127,54 @@ func (d *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.Cr
 		crfs: d.crfs,
 	}
 	return cryptFile, cryptFile, nil
+}
+func (d *Dir) Symlink(ctx context.Context, req *fuse.SymlinkRequest) (fusefs.Node, error) {
+	req.Target = d.crfs.EncryptPath(req.Target)
+	req.NewName = d.crfs.EncryptPath(req.NewName)
+	node, err := d.Dir.Symlink(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	clueDir, ok := node.(*cluefs.Dir)
+	if ok {
+		return &Dir {
+			Dir: clueDir,
+			crfs: d.crfs,
+		}, nil
+	} else {
+		clueFile := node.(*cluefs.File)
+		return &File {
+			File: clueFile,
+			crfs: d.crfs,
+		}, nil
+	}
+}
+// We need to overwrite Readlink for both Dir and File. Do both right here to keep them in sync.
+func (d *Dir) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
+	dest, err := d.Dir.Readlink(ctx, req)
+	if err != nil {
+		return "", err
+	}
+	return d.crfs.DecryptPath(dest)
+}
+func (d *File) Readlink(ctx context.Context, req *fuse.ReadlinkRequest) (string, error) {
+	dest, err := d.File.Readlink(ctx, req)
+	if err != nil {
+		return "", err
+	}
+	return d.crfs.DecryptPath(dest)
+}
+// We need to overwrite Rename for both Dir and File. Do both right here to keep them in sync.
+func (d *Dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fusefs.Node) error {
+	req.OldName = d.crfs.EncryptPath(req.OldName)
+	req.NewName = d.crfs.EncryptPath(req.NewName)
+	destDir := newDir.(*Dir)
+	return d.Dir.Rename(ctx, req, destDir.Dir)
+}
+func (d *File) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fusefs.Node) error {
+	req.OldName = d.crfs.EncryptPath(req.OldName)
+	req.NewName = d.crfs.EncryptPath(req.NewName)
+	destDir := newDir.(*Dir)
+	return d.File.Rename(ctx, req, destDir.Dir)
 }

@@ -1,4 +1,4 @@
-package frontend
+package cluefs_frontend
 
 import (
 	"bazil.org/fuse/fs"

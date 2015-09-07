@@ -5,7 +5,7 @@ import (
 	fusefs "bazil.org/fuse/fs"
 	"flag"
 	"fmt"
-	"github.com/rfjakob/gocryptfs/frontend"
+	frontend "github.com/rfjakob/gocryptfs/cluefs_frontend"
 	"os"
 	"path/filepath"
 )
