@@ -47,7 +47,7 @@ func TestMain(m *testing.M) {
 	os.Exit(r)
 }
 
-func testWriteN(t *testing.T, fn string, n int, hashWant string) {
+func testWriteN(t *testing.T, fn string, n int) string {
 	file, err := os.Create(plainDir + fn)
 	if err != nil {
 		t.FailNow()
@@ -66,28 +66,33 @@ func testWriteN(t *testing.T, fn string, n int, hashWant string) {
 		t.Fail()
 	}
 
-	rawHash := md5.Sum(buf)
-	hashActual := hex.EncodeToString(rawHash[:])
+	raw := md5.Sum(d)
+	hashWant := hex.EncodeToString(raw[:])
+
+	raw = md5.Sum(buf)
+	hashActual := hex.EncodeToString(raw[:])
 	if hashActual != hashWant {
 		fmt.Printf("hashWant=%s hashActual=%s\n", hashWant, hashActual)
 		t.Fail()
 	}
+
+	return hashActual
 }
 
 func TestWrite10(t *testing.T) {
-	testWriteN(t, "10", 10, "a63c90cc3684ad8b0a2176a6a8fe9005")
+	testWriteN(t, "10", 10)
 }
 
 func TestWrite100(t *testing.T) {
-	testWriteN(t, "100", 100, "6d0bb00954ceb7fbee436bb55a8397a9")
+	testWriteN(t, "100", 100)
 }
 
 func TestWrite1M(t *testing.T) {
-	testWriteN(t, "1M", 1024*1024, "b6d81b360a5672d80c27430f39153e2c")
+	testWriteN(t, "1M", 1024*1024)
 }
 
 func TestWrite1Mx100(t *testing.T) {
-	testWriteN(t, "1Mx100", 1024*1024, "b6d81b360a5672d80c27430f39153e2c")
+	hashWant := testWriteN(t, "1Mx100", 1024*1024)
 	// Read and check 100 times to catch race conditions
 	var i int
 	for i = 0; i < 100; i++ {
@@ -97,7 +102,7 @@ func TestWrite1Mx100(t *testing.T) {
 		}
 		rawHash := md5.Sum(buf)
 		hashActual := hex.EncodeToString(rawHash[:])
-		if hashActual != "b6d81b360a5672d80c27430f39153e2c" {
+		if hashActual != hashWant {
 			fmt.Printf("Read corruption in loop # %d\n", i)
 			t.FailNow()
 		} else {
