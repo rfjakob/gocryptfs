@@ -129,7 +129,7 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 			}
 			// Modify
 			blockData = f.cfs.MergeBlocks(oldData, blockData, int(b.Offset))
-			cryptfs.Debug.Printf("oldData=%d blockData=%d\n", len(oldData), len(blockData))
+			cryptfs.Debug.Printf("len(oldData)=%d len(blockData)=%d\n", len(oldData), len(blockData))
 		}
 		// Write
 		blockOffset, _ := b.CiphertextRange()

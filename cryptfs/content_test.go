@@ -32,3 +32,29 @@ func TestSplitRange(t *testing.T) {
 		}
 	}
 }
+
+func TestCiphertextRange(t *testing.T) {
+	var ranges []testRange
+
+	ranges = append(ranges, testRange{0, 70000},
+		testRange{0, 10},
+		testRange{234, 6511},
+		testRange{65444, 54},
+		testRange{6654, 8945})
+
+	var key [16]byte
+	f := NewCryptFS(key, true)
+
+	for _, r := range(ranges) {
+		alignedOffset, alignedLength, skipBytes := f.CiphertextRange(r.offset, r.length)
+		if alignedLength < r.length {
+			t.Fail()
+		}
+		if alignedOffset % f.cipherBS != 0 {
+			t.Fail()
+		}
+		if r.offset % f.plainBS != 0 && skipBytes == 0 {
+			t.Fail()
+		}
+	}
+}

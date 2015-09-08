@@ -115,7 +115,7 @@ func (be *CryptFS) minu64(x uint64, y uint64) uint64 {
 
 // CiphertextRange - Get byte range in backing ciphertext corresponding
 // to plaintext range. Returns a range aligned to ciphertext blocks.
-func (be *CryptFS) CiphertextRange(offset uint64, length uint64) (uint64, uint64, int) {
+func (be *CryptFS) CiphertextRange(offset uint64, length uint64) (alignedOffset uint64, alignedLength uint64, skipBytes int) {
 	// Decrypting the ciphertext will yield too many plaintext bytes. Skip this number
 	// of bytes from the front.
 	skip := offset % be.plainBS
@@ -123,10 +123,11 @@ func (be *CryptFS) CiphertextRange(offset uint64, length uint64) (uint64, uint64
 	firstBlockNo := offset / be.plainBS
 	lastBlockNo := ( offset + length - 1 ) / be.plainBS
 
-	alignedOffset := firstBlockNo * be.cipherBS
-	alignedLength := (lastBlockNo - firstBlockNo + 1) * be.cipherBS
+	alignedOffset = firstBlockNo * be.cipherBS
+	alignedLength = (lastBlockNo - firstBlockNo + 1) * be.cipherBS
 
-	return alignedOffset, alignedLength, int(skip)
+	skipBytes = int(skip)
+	return alignedOffset, alignedLength, skipBytes
 }
 
 // Get the byte range in the ciphertext corresponding to blocks
