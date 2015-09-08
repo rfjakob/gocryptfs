@@ -2,11 +2,19 @@ GoCryptFS
 =========
 A minimal encrypted overlay filesystem written in Go.
 
-Built on top of the
-native Go FUSE library [bazil.org/fuse](https://github.com/bazil/fuse)
-and the [ClueFS](https://github.com/airnandez/cluefs) loopback file system.
-
 Inspired by [EncFS](https://github.com/vgough/encfs).
+
+GoCryptFS at the moment has two FUSE frontends:
+
+* The [go-fuse](https://github.com/hanwen/go-fuse) FUSE library using its
+  LoopbackFileSystem API
+* The FUSE library [bazil.org/fuse](https://github.com/bazil/fuse) plus the
+  [ClueFS](https://github.com/airnandez/cluefs) loopback filesystem
+
+A frontend is selected on compile-time by setting `USE_CLUEFS` to true or false
+(default false).
+Once I decide that one works better for GoCryptFS, the other one
+will go away.
 
 Design
 ------

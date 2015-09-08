@@ -90,7 +90,7 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 
 // Read - FUSE call
 func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fuse.Status) {
-	cryptfs.Debug.Printf("\n\nGot read request: len=%d off=%d\n", len(buf), off)
+	cryptfs.Debug.Printf("Read: offset=%d length=%d\n", len(buf), off)
 
 	if f.writeOnly {
 		cryptfs.Warn.Printf("Tried to read from write-only file\n")

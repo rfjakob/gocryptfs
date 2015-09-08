@@ -19,12 +19,13 @@ import (
 )
 
 const (
-	USE_CLUEFS   = false
-	USE_OPENSSL  = false
+	USE_CLUEFS   = false // Use cluefs or pathfs FUSE frontend
+	USE_OPENSSL  = true // 3x speed increase
 	PATHFS_DEBUG = false
 
 	PROGRAM_NAME = "gocryptfs"
 
+	// Exit codes
 	ERREXIT_USAGE  = 1
 	ERREXIT_NEWFS  = 2
 	ERREXIT_MOUNT  = 3

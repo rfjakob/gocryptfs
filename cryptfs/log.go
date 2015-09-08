@@ -15,5 +15,5 @@ func (l logChannel) Printf(format string, args ...interface{}) {
 }
 
 
-var Debug = logChannel{true}
+var Debug = logChannel{false}
 var Warn = logChannel{true}
