@@ -134,6 +134,7 @@ func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 
 func (fs *FS) Symlink(pointedTo string, linkName string, context *fuse.Context) (code fuse.Status) {
 	// TODO symlink encryption
+	cryptfs.Debug.Printf("Symlink(\"%s\", \"%s\")\n", pointedTo, linkName)
 	return fs.FileSystem.Symlink(fs.EncryptPath(pointedTo), fs.EncryptPath(linkName), context)
 }
 

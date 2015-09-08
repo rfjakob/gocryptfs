@@ -52,7 +52,6 @@ func (be *CryptFS) encryptName(plainName string) string {
 	cbc.CryptBlocks(bin, bin)
 
 	cipherName64 := base64.URLEncoding.EncodeToString(bin)
-
 	return cipherName64
 }
 
@@ -70,6 +69,12 @@ func (be *CryptFS) translatePath(path string, op bool) (string, error) {
 	var translatedParts []string
 	parts := strings.Split(path, "/")
 	for _, part := range parts {
+		if part == "" {
+			// This happens on "/foo/bar/" on the front and on the end.
+			// Don't panic.
+			translatedParts = append(translatedParts, "")
+			continue
+		}
 		var newPart string
 		if op == ENCRYPT {
 			newPart = be.encryptName(part)
