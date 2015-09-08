@@ -51,44 +51,58 @@ func (f *file) String() string {
 	return fmt.Sprintf("cryptFile(%s)", f.fd.Name())
 }
 
-// Read - FUSE call
-func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fuse.Status) {
-	cryptfs.Debug.Printf("\n\nGot read request: len=%d off=%d\n", len(buf), off)
-
-	if f.writeOnly {
-		return nil, fuse.EBADF
-	}
+// Called by Read() and for RMW in Write()
+func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 
 	// Read the backing ciphertext in one go
-	alignedOffset, alignedLength, skip := f.cfs.CiphertextRange(uint64(off), uint64(len(buf)))
+	alignedOffset, alignedLength, skip := f.cfs.CiphertextRange(off, length)
 	ciphertext := make([]byte, int(alignedLength))
-	_, err := f.fd.ReadAt(ciphertext, int64(alignedOffset))
+	n, err := f.fd.ReadAt(ciphertext, int64(alignedOffset))
+	ciphertext = ciphertext[0:n]
+	cryptfs.Debug.Printf("ReadAt length=%d offset=%d -> n=%d len=%d\n", alignedLength, alignedOffset, n, len(ciphertext))
 	if err != nil && err != io.EOF {
-		cryptfs.Warn.Printf("Read error: %s\n", err.Error())
+		cryptfs.Warn.Printf("read: ReadAt: %s\n", err.Error())
 		return nil, fuse.ToStatus(err)
 	}
 
 	// Decrypt it
 	plaintext, err := f.cfs.DecryptBlocks(ciphertext)
 	if err != nil {
-		cryptfs.Warn.Printf("Decryption error: %s\n", err.Error())
+		cryptfs.Warn.Printf("read: DecryptBlocks: %s\n", err.Error())
 		return nil, fuse.EIO
 	}
 
 	// Crop down to the relevant part
 	var out []byte
 	lenHave := len(plaintext)
-	lenWant := skip + len(buf)
+	lenWant := skip + int(length)
 	if lenHave > lenWant {
-		out = plaintext[skip:skip + len(buf)]
+		out = plaintext[skip:skip +  int(length)]
 	} else if lenHave > skip {
 		out = plaintext[skip:lenHave]
+	} else {
+		// Out stays empty, file was smaller than the requested offset
 	}
-	// else: out stays empty
 
-	fmt.Printf("Read: returning %d bytes\n", len(plaintext))
+	return out, fuse.OK
+}
 
-	return fuse.ReadResultData(out), fuse.OK
+// Read - FUSE call
+func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fuse.Status) {
+	cryptfs.Debug.Printf("\n\nGot read request: len=%d off=%d\n", len(buf), off)
+
+	if f.writeOnly {
+		cryptfs.Warn.Printf("Tried to read from write-only file\n")
+		return nil, fuse.EBADF
+	}
+
+	out, status := f.doRead(uint64(off), uint64(len(buf)))
+	if status != fuse.OK {
+		return nil, status
+	}
+
+	cryptfs.Debug.Printf("Read: returning %d bytes\n", len(out))
+	return fuse.ReadResultData(out), status
 }
 
 // Write - FUSE call
@@ -104,11 +118,10 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 		// Incomplete block -> Read-Modify-Write
 		if b.IsPartial() {
 			// Read
-			oldData := make([]byte, f.cfs.PlainBS())
 			o, _ := b.PlaintextRange()
-			res, status := f.Read(oldData, int64(o))
-			oldData, _ = res.Bytes(oldData)
+			oldData, status := f.doRead(f.cfs.PlainBS(), o)
 			if status != fuse.OK {
+				cryptfs.Warn.Printf("RMW read failed: %s\n", status.String())
 				return written, status
 			}
 			// Modify
