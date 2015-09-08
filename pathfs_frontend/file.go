@@ -56,6 +56,7 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 
 	// Read the backing ciphertext in one go
 	alignedOffset, alignedLength, skip := f.cfs.CiphertextRange(off, length)
+	cryptfs.Debug.Printf("CiphertextRange(%d, %d) -> %d, %d, %d\n", off, length, alignedOffset, alignedLength, skip)
 	ciphertext := make([]byte, int(alignedLength))
 	n, err := f.fd.ReadAt(ciphertext, int64(alignedOffset))
 	ciphertext = ciphertext[0:n]
@@ -121,7 +122,7 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 		if b.IsPartial() {
 			// Read
 			o, _ := b.PlaintextRange()
-			oldData, status := f.doRead(f.cfs.PlainBS(), o)
+			oldData, status := f.doRead(o, f.cfs.PlainBS())
 			if status != fuse.OK {
 				cryptfs.Warn.Printf("RMW read failed: %s\n", status.String())
 				return written, status
