@@ -112,8 +112,17 @@ func (fs *FS) Utimens(path string, Atime *time.Time, Mtime *time.Time, context *
 	return fs.FileSystem.Utimens(fs.EncryptPath(path), Atime, Mtime, context)
 }
 
-func (fs *FS) Readlink(name string, context *fuse.Context) (out string, code fuse.Status) {
-	return fs.FileSystem.Readlink(fs.EncryptPath(name), context)
+func (fs *FS) Readlink(name string, context *fuse.Context) (out string, status fuse.Status) {
+	dst, status := fs.FileSystem.Readlink(fs.EncryptPath(name), context)
+	if status != fuse.OK {
+		return "", status
+	}
+	dstPlain, err := fs.DecryptPath(dst)
+	if err != nil {
+		cryptfs.Warn.Printf("Failed decrypting symlink: %s\n", err.Error())
+		return "", fuse.EIO
+	}
+	return dstPlain, status
 }
 
 func (fs *FS) Mknod(name string, mode uint32, dev uint32, context *fuse.Context) (code fuse.Status) {

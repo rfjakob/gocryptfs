@@ -58,7 +58,9 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	alignedOffset, alignedLength, skip := f.cfs.CiphertextRange(off, length)
 	cryptfs.Debug.Printf("CiphertextRange(%d, %d) -> %d, %d, %d\n", off, length, alignedOffset, alignedLength, skip)
 	ciphertext := make([]byte, int(alignedLength))
+	f.lock.Lock()
 	n, err := f.fd.ReadAt(ciphertext, int64(alignedOffset))
+	f.lock.Unlock()
 	ciphertext = ciphertext[0:n]
 	if err != nil && err != io.EOF {
 		cryptfs.Warn.Printf("read: ReadAt: %s\n", err.Error())
@@ -131,11 +133,14 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 			blockData = f.cfs.MergeBlocks(oldData, blockData, int(b.Offset))
 			cryptfs.Debug.Printf("len(oldData)=%d len(blockData)=%d\n", len(oldData), len(blockData))
 		}
+
 		// Write
 		blockOffset, _ := b.CiphertextRange()
 		blockData = f.cfs.EncryptBlock(blockData)
 		cryptfs.Debug.Printf("WriteAt offset=%d length=%d\n", blockOffset, len(blockData))
+		f.lock.Lock()
 		_, err := f.fd.WriteAt(blockData, int64(blockOffset))
+		f.lock.Unlock()
 
 		if err != nil {
 			cryptfs.Warn.Printf("Write failed: %s\n", err.Error())
@@ -213,6 +218,7 @@ func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 		return fuse.ToStatus(err)
 	}
 	a.FromStat(&st)
+	a.Size = f.cfs.PlainSize(a.Size)
 
 	return fuse.OK
 }

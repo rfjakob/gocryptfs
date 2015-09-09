@@ -9,6 +9,7 @@ import (
 
 	"github.com/rfjakob/gocryptfs/cluefs_frontend"
 	"github.com/rfjakob/gocryptfs/pathfs_frontend"
+	"github.com/rfjakob/gocryptfs/cryptfs"
 
 	bazilfuse "bazil.org/fuse"
 	bazilfusefs "bazil.org/fuse/fs"
@@ -31,11 +32,18 @@ const (
 	ERREXIT_MOUNT  = 3
 	ERREXIT_SERVE  = 4
 	ERREXIT_MOUNT2 = 5
+	ERREXIT_CIPHERDIR = 6
 )
 
 func main() {
 	// Parse command line arguments
+	var debug bool
+	flag.BoolVar(&debug, "debug", false, "Enable debug output")
 	flag.Parse()
+	if debug {
+		cryptfs.Debug.Enable()
+		cryptfs.Debug.Printf("Debug output enabled\n")
+	}
 	if flag.NArg() < 2 {
 		fmt.Printf("NArg=%d\n", flag.NArg())
 		fmt.Printf("usage: %s CIPHERDIR MOUNTPOINT\n", PROGRAM_NAME)
@@ -43,13 +51,20 @@ func main() {
 	}
 	cipherdir, _ := filepath.Abs(flag.Arg(0))
 	mountpoint, _ := filepath.Abs(flag.Arg(1))
+	cryptfs.Debug.Printf("cipherdir=%s\nmountpoint=%s\n", cipherdir, mountpoint)
+
+	_, err := os.Stat(cipherdir)
+	if err != nil {
+		fmt.Printf("Cipherdir: %s\n", err.Error())
+		os.Exit(ERREXIT_CIPHERDIR)
+	}
 
 	var key [16]byte
 
 	if USE_CLUEFS {
 		cluefsFrontend(key, cipherdir, mountpoint)
 	} else {
-		pathfsFrontend(key, cipherdir, mountpoint)
+		pathfsFrontend(key, cipherdir, mountpoint, debug)
 	}
 }
 
@@ -92,7 +107,7 @@ func cluefsFrontend(key [16]byte, cipherdir string, mountpoint string) {
 	os.Exit(0)
 }
 
-func pathfsFrontend(key [16]byte, cipherdir string, mountpoint string){
+func pathfsFrontend(key [16]byte, cipherdir string, mountpoint string, debug bool){
 
 	finalFs := pathfs_frontend.NewFS(key, cipherdir, USE_OPENSSL)
 
@@ -113,7 +128,7 @@ func pathfsFrontend(key [16]byte, cipherdir string, mountpoint string){
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
 	}
-	state.SetDebug(PATHFS_DEBUG)
+	state.SetDebug(debug)
 
 	fmt.Println("Mounted!")
 	state.Serve()
