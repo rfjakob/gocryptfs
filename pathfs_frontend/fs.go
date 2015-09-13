@@ -19,7 +19,7 @@ type FS struct {
 }
 
 // Encrypted FUSE overlay filesystem
-func NewFS(key [16]byte, backing string, useOpenssl bool) *FS {
+func NewFS(key []byte, backing string, useOpenssl bool) *FS {
 	return &FS{
 		CryptFS:     cryptfs.NewCryptFS(key, useOpenssl),
 		FileSystem:  pathfs.NewLoopbackFileSystem(backing),

@@ -55,10 +55,7 @@ func main() {
 		}
 		dir, _ := filepath.Abs(flag.Arg(0))
 		filename := filepath.Join(dir, cryptfs.ConfDefaultName)
-		r := cryptfs.RandBytes(cryptfs.KEY_LEN)
-		var key [16]byte
-		copy(key[:], r)
-		err := cryptfs.CreateConfFile(filename, key)
+		err := cryptfs.CreateConfFile(filename, "test")
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(ERREXIT_INIT)
@@ -86,20 +83,20 @@ func main() {
 		fmt.Printf("Please run \"%s --init %s\" first\n", PROGRAM_NAME, cipherdir)
 		os.Exit(ERREXIT_LOADCONF)
 	}
-	cf, err := cryptfs.LoadConfFile(cfname)
+	key, err := cryptfs.LoadConfFile(cfname, "test")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(ERREXIT_LOADCONF)
 	}
 
 	if USE_CLUEFS {
-		cluefsFrontend(cf.Key, cipherdir, mountpoint)
+		cluefsFrontend(key, cipherdir, mountpoint)
 	} else {
-		pathfsFrontend(cf.Key, cipherdir, mountpoint, debug)
+		pathfsFrontend(key, cipherdir, mountpoint, debug)
 	}
 }
 
-func cluefsFrontend(key [16]byte, cipherdir string, mountpoint string) {
+func cluefsFrontend(key []byte, cipherdir string, mountpoint string) {
 	cfs, err := cluefs_frontend.NewFS(key, cipherdir, USE_OPENSSL)
 	if err != nil {
 		fmt.Println(err)
@@ -138,7 +135,7 @@ func cluefsFrontend(key [16]byte, cipherdir string, mountpoint string) {
 	os.Exit(0)
 }
 
-func pathfsFrontend(key [16]byte, cipherdir string, mountpoint string, debug bool){
+func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool){
 
 	finalFs := pathfs_frontend.NewFS(key, cipherdir, USE_OPENSSL)
 

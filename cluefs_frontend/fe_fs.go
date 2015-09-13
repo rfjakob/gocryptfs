@@ -27,7 +27,7 @@ type nullTracer struct {}
 
 func (nullTracer) Trace(op cluefs.FsOperTracer) {}
 
-func NewFS(key [16]byte, backing string, useOpenssl bool) (*FS, error) {
+func NewFS(key []byte, backing string, useOpenssl bool) (*FS, error) {
 	var tracer nullTracer
 	clfs, err := cluefs.NewClueFS(backing, tracer)
 	if err != nil {

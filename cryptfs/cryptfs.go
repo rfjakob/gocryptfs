@@ -3,6 +3,7 @@ package cryptfs
 // CryptFS is the crypto backend of GoCryptFS
 
 import (
+	"fmt"
 	"crypto/cipher"
 	"crypto/aes"
 )
@@ -21,16 +22,22 @@ type CryptFS struct {
 	cipherBS uint64
 }
 
-func NewCryptFS(key [16]byte, useOpenssl bool) *CryptFS {
+func NewCryptFS(key []byte, useOpenssl bool) *CryptFS {
 
-	b, err := aes.NewCipher(key[:])
+	if len(key) != KEY_LEN {
+		panic(fmt.Sprintf("Unsupported key length %d", len(key)))
+	}
+
+	b, err := aes.NewCipher(key)
 	if err != nil {
 		panic(err)
 	}
 
 	var gcm cipher.AEAD
 	if useOpenssl {
-		gcm = opensslGCM{key}
+		var k16 [16]byte
+		copy(k16[:], key)
+		gcm = opensslGCM{k16}
 	} else {
 		gcm, err = cipher.NewGCM(b)
 		if err != nil {

@@ -1,7 +1,6 @@
 package cryptfs
 
 import (
-	"errors"
 	"io/ioutil"
 	"encoding/json"
 )
@@ -17,23 +16,30 @@ const (
 )
 
 type confFile struct {
-	// File the config is saved in. Lowercase => not exported to JSON.
+	// File the config is saved to. Not exported to JSON.
 	filename string
-	// Unencrypted AES key
-	Key [16]byte
-	// GCM ciphertext with auth tag to verify the key is correct
-	TestBlock []byte
+	// Encrypted AES key, unlocked using a password hashed with scrypt
+	EncryptedKey []byte
+	// Stores parameters for scrypt hashing (key derivation)
+	ScryptObject scryptKdf
 }
 
-// CreateConfFile - create a new config file with "key" and write to "filename"
-func CreateConfFile(filename string, key [16]byte) error {
+// CreateConfFile - create a new config with a random key encrypted with
+// "password" and write it to "filename"
+func CreateConfFile(filename string, password string) error {
 	var cf confFile
 	cf.filename = filename
-	cf.Key = key
 
-	// Generate test block
-	cfs := NewCryptFS(cf.Key, false)
-	cf.TestBlock = cfs.EncryptBlock([]byte(testBlockData))
+	// Generate new random master key
+	key := RandBytes(KEY_LEN)
+
+	// Generate derived key from password
+	cf.ScryptObject = NewScryptKdf()
+	scryptHash := cf.ScryptObject.DeriveKey(password)
+
+	// Lock master key using password-based key
+	cfs := NewCryptFS(scryptHash, false)
+	cf.EncryptedKey = cfs.EncryptBlock(key)
 
 	// Write file to disk
 	err := cf.WriteFile()
@@ -41,34 +47,39 @@ func CreateConfFile(filename string, key [16]byte) error {
 	return err
 }
 
-// LoadConfFile - read config file from disk and verify the key using the
-// embedded TestBlock
-func LoadConfFile(filename string) (*confFile, error) {
+// LoadConfFile - read config file from disk and decrypt the
+// contained key using password
+func LoadConfFile(filename string, password string) ([]byte, error) {
+	var cf confFile
+	cf.filename = filename
+
 	// Read from disk
 	js, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
-	var cf confFile
+
+	// Unmarshal
 	err = json.Unmarshal(js, &cf)
 	if err != nil {
+		Warn.Printf("Failed to unmarshal config file\n")
 		return nil, err
 	}
-	cf.filename = filename
 
-	// Try to decrypt the test block to see if the key is correct
-	//
-	// Speed does not matter here. Use built-in crypto.
-	cfs := NewCryptFS(cf.Key, false)
-	d, err := cfs.DecryptBlock(cf.TestBlock)
+	// Generate derived key from password
+	scryptHash := cf.ScryptObject.DeriveKey(password)
+
+	// Unlock master key using password-based key
+	// We use stock go GCM instead of OpenSSL here as speed is not important
+	// and we get better error messages
+	cfs := NewCryptFS(scryptHash, false)
+	key, err := cfs.DecryptBlock(cf.EncryptedKey)
 	if err != nil {
+		Warn.Printf("Failed to unlock master key: %s\n", err.Error())
 		return nil, err
 	}
-	ds := string(d)
-	if ds != testBlockData {
-		return nil, errors.New("Invalid test block content: " + ds)
-	}
-	return &cf, nil
+
+	return key, nil
 }
 
 // WriteFile - write out config in JSON format to file "filename.tmp"
