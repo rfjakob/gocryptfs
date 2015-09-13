@@ -43,19 +43,22 @@ func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Stat
 	return a, status
 }
 
-func (fs *FS) OpenDir(name string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
-	cipherEntries, status := fs.FileSystem.OpenDir(fs.EncryptPath(name), context);
+func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
+	cipherEntries, status := fs.FileSystem.OpenDir(fs.EncryptPath(dirName), context);
 	var plain []fuse.DirEntry
-	var skipped int
 	if cipherEntries != nil {
 		for i := range cipherEntries {
-			n, err := fs.DecryptPath(cipherEntries[i].Name)
+			cName := cipherEntries[i].Name
+			name, err := fs.DecryptPath(cName)
 			if err != nil {
-				fmt.Printf("Skipping invalid filename \"%s\": %s\n", cipherEntries[i].Name, err)
-				skipped++
+				if dirName == "" && cName == cryptfs.ConfDefaultName {
+					// Silently ignore "gocryptfs.conf" in the top level dir
+					continue
+				}
+				fmt.Printf("Invalid name \"%s\" in dir \"%s\": %s\n", cName, name, err)
 				continue
 			}
-			cipherEntries[i].Name = n
+			cipherEntries[i].Name = name
 			plain = append(plain, cipherEntries[i])
 		}
 	}
