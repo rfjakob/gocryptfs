@@ -90,7 +90,7 @@ func (cf *confFile) WriteFile() error {
 	if err != nil {
 		return err
 	}
-	js, err := json.Marshal(cf)
+	js, err := json.MarshalIndent(cf, "", "\t")
 	if err != nil {
 		return err
 	}
