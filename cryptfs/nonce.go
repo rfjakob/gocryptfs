@@ -16,8 +16,9 @@ type nonce96 struct {
 
 var gcmNonce nonce96
 
-func (n *nonce96) randBytes(len int) []byte {
-	b := make([]byte, len)
+// Get "n" random bytes from /dev/urandom or panic
+func RandBytes(n int) []byte {
+	b := make([]byte, n)
 	_, err := rand.Read(b)
 	if err != nil {
 		panic("Could not get random bytes for nonce")
@@ -26,9 +27,9 @@ func (n *nonce96) randBytes(len int) []byte {
 }
 
 func (n *nonce96) init() {
-	b := n.randBytes(8)
+	b := RandBytes(8)
 	n.low64 = binary.BigEndian.Uint64(b)
-	b = n.randBytes(4)
+	b = RandBytes(4)
 	n.high32 = binary.BigEndian.Uint32(b)
 	n.ready = 1
 	return

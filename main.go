@@ -33,19 +33,39 @@ const (
 	ERREXIT_SERVE  = 4
 	ERREXIT_MOUNT2 = 5
 	ERREXIT_CIPHERDIR = 6
+	ERREXIT_INIT = 7
+	ERREXIT_LOADCONF = 8
 )
 
 func main() {
 	// Parse command line arguments
 	var debug bool
+	var init bool
 	flag.BoolVar(&debug, "debug", false, "Enable debug output")
+	flag.BoolVar(&init, "init", false, "Initialize encrypted directory")
 	flag.Parse()
 	if debug {
 		cryptfs.Debug.Enable()
 		cryptfs.Debug.Printf("Debug output enabled\n")
 	}
+	if init {
+		if flag.NArg() != 1 {
+			fmt.Printf("usage: %s --init CIPHERDIR\n", PROGRAM_NAME)
+			os.Exit(ERREXIT_USAGE)
+		}
+		dir, _ := filepath.Abs(flag.Arg(0))
+		filename := filepath.Join(dir, cryptfs.ConfDefaultName)
+		r := cryptfs.RandBytes(cryptfs.KEY_LEN)
+		var key [16]byte
+		copy(key[:], r)
+		err := cryptfs.CreateConfFile(filename, key)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(ERREXIT_INIT)
+		}
+		os.Exit(0)
+	}
 	if flag.NArg() < 2 {
-		fmt.Printf("NArg=%d\n", flag.NArg())
 		fmt.Printf("usage: %s CIPHERDIR MOUNTPOINT\n", PROGRAM_NAME)
 		os.Exit(ERREXIT_USAGE)
 	}
@@ -59,12 +79,17 @@ func main() {
 		os.Exit(ERREXIT_CIPHERDIR)
 	}
 
-	var key [16]byte
+	cfname := filepath.Join(cipherdir, cryptfs.ConfDefaultName)
+	cf, err := cryptfs.LoadConfFile(cfname)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(ERREXIT_LOADCONF)
+	}
 
 	if USE_CLUEFS {
-		cluefsFrontend(key, cipherdir, mountpoint)
+		cluefsFrontend(cf.Key, cipherdir, mountpoint)
 	} else {
-		pathfsFrontend(key, cipherdir, mountpoint, debug)
+		pathfsFrontend(cf.Key, cipherdir, mountpoint, debug)
 	}
 }
 

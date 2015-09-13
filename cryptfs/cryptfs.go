@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	KEY_LEN = 16
 	NONCE_LEN = 12
 	AUTH_TAG_LEN = 16
 	DEFAULT_PLAINBS = 4096
