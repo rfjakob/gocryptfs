@@ -80,6 +80,12 @@ func main() {
 	}
 
 	cfname := filepath.Join(cipherdir, cryptfs.ConfDefaultName)
+	_, err = os.Stat(cfname)
+	if err != nil {
+		fmt.Printf("Error: %s not found in CIPHERDIR\n", cryptfs.ConfDefaultName)
+		fmt.Printf("Please run \"%s --init %s\" first\n", PROGRAM_NAME, cipherdir)
+		os.Exit(ERREXIT_LOADCONF)
+	}
 	cf, err := cryptfs.LoadConfFile(cfname)
 	if err != nil {
 		fmt.Println(err)
