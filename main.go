@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"flag"
 	"fmt"
 	"os"
@@ -149,6 +150,17 @@ func readPassword() string {
 		os.Exit(ERREXIT_PASSWORD)
 	}
 	return string(p)
+}
+
+func dirEmpty(dir string) {
+	entries, err := ioutil.ReadDir(dir)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(ERREXIT_CIPHERDIR)
+	}
+	for _, e := range(entries) {
+		fmt.Println(e.Name())
+	}
 }
 
 func cluefsFrontend(key []byte, cipherdir string, mountpoint string) {
