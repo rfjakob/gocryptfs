@@ -6,10 +6,13 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"encoding/hex"
 
 	"github.com/rfjakob/gocryptfs/cluefs_frontend"
 	"github.com/rfjakob/gocryptfs/pathfs_frontend"
 	"github.com/rfjakob/gocryptfs/cryptfs"
+
+	"golang.org/x/crypto/ssh/terminal"
 
 	bazilfuse "bazil.org/fuse"
 	bazilfusefs "bazil.org/fuse/fs"
@@ -35,6 +38,7 @@ const (
 	ERREXIT_CIPHERDIR = 6
 	ERREXIT_INIT = 7
 	ERREXIT_LOADCONF = 8
+	ERREXIT_PASSWORD = 9
 )
 
 func main() {
@@ -55,11 +59,14 @@ func main() {
 		}
 		dir, _ := filepath.Abs(flag.Arg(0))
 		filename := filepath.Join(dir, cryptfs.ConfDefaultName)
-		err := cryptfs.CreateConfFile(filename, "test")
+		fmt.Printf("Choose a password for protecting your files.\n")
+		password := readPasswordTwice()
+		err := cryptfs.CreateConfFile(filename, password)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(ERREXIT_INIT)
 		}
+		fmt.Printf("The filesystem is now ready for mounting.\n")
 		os.Exit(0)
 	}
 	if flag.NArg() < 2 {
@@ -80,20 +87,68 @@ func main() {
 	_, err = os.Stat(cfname)
 	if err != nil {
 		fmt.Printf("Error: %s not found in CIPHERDIR\n", cryptfs.ConfDefaultName)
-		fmt.Printf("Please run \"%s --init %s\" first\n", PROGRAM_NAME, cipherdir)
+		fmt.Printf("Please run \"%s --init %s\" first\n", PROGRAM_NAME, flag.Arg(0))
 		os.Exit(ERREXIT_LOADCONF)
 	}
-	key, err := cryptfs.LoadConfFile(cfname, "test")
+
+	fmt.Printf("Password: ")
+	password := readPassword()
+	fmt.Printf("\nDecrypting master key... ")
+	key, err := cryptfs.LoadConfFile(cfname, password)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(ERREXIT_LOADCONF)
 	}
+	fmt.Printf("Success\n")
+	printMasterKey(key)
 
 	if USE_CLUEFS {
 		cluefsFrontend(key, cipherdir, mountpoint)
 	} else {
 		pathfsFrontend(key, cipherdir, mountpoint, debug)
 	}
+}
+
+// printMasterKey - remind the user that he should store the master key in
+// a safe place
+func printMasterKey(key []byte) {
+	h := hex.EncodeToString(key)
+	// Make it less scary by splitting it up in chunks
+	h = h[0:8] + "-" + h[8:16] + "-" + h[16:24] + "-" + h[24:32]
+
+	fmt.Printf(`
+WARNING:
+  If the gocryptfs config file becomes corrupted or you ever
+  forget your password, there is only one hope for recovery:
+  The master key. Print it to a piece of paper and store it in a drawer.
+
+  Master key: %s
+
+`, h)
+}
+
+func readPasswordTwice() string {
+	fmt.Printf("Password: ")
+	p1 := readPassword()
+	fmt.Printf("\nRepeat: ")
+	p2 := readPassword()
+	fmt.Printf("\n")
+	if p1 != p2 {
+		fmt.Printf("Passwords do not match\n")
+		os.Exit(ERREXIT_PASSWORD)
+	}
+	return p1
+}
+
+// Get password from terminal
+func readPassword() string {
+	fd := int(os.Stdin.Fd())
+	p, err := terminal.ReadPassword(fd)
+	if err != nil {
+		fmt.Printf("Error: Could not read password: %s\n")
+		os.Exit(ERREXIT_PASSWORD)
+	}
+	return string(p)
 }
 
 func cluefsFrontend(key []byte, cipherdir string, mountpoint string) {
@@ -158,6 +213,6 @@ func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool)
 	}
 	state.SetDebug(debug)
 
-	fmt.Println("Mounted!")
+	fmt.Println("Mounted.")
 	state.Serve()
 }
