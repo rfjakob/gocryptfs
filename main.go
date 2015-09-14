@@ -25,7 +25,7 @@ import (
 
 const (
 	USE_CLUEFS   = false // Use cluefs or pathfs FUSE frontend
-	USE_OPENSSL  = true // 3x speed increase
+	USE_OPENSSL  = true // 3x speed increase compared to Go's built-in GCM
 	PATHFS_DEBUG = false
 
 	PROGRAM_NAME = "gocryptfs"
@@ -41,6 +41,26 @@ const (
 	ERREXIT_LOADCONF = 8
 	ERREXIT_PASSWORD = 9
 )
+
+func initDir(dirArg string) {
+		dir, _ := filepath.Abs(dirArg)
+
+		if dirEmpty(dir) == false {
+			fmt.Printf("Error: Directory \"%s\" is not empty\n", dirArg)
+			os.Exit(ERREXIT_INIT)
+		}
+
+		confName := filepath.Join(dir, cryptfs.ConfDefaultName)
+		fmt.Printf("Choose a password for protecting your files.\n")
+		password := readPasswordTwice()
+		err := cryptfs.CreateConfFile(confName, password)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(ERREXIT_INIT)
+		}
+		fmt.Printf("The filesystem is now ready for mounting.\n")
+		os.Exit(0)
+}
 
 func main() {
 	// Parse command line arguments
@@ -58,17 +78,7 @@ func main() {
 			fmt.Printf("usage: %s --init CIPHERDIR\n", PROGRAM_NAME)
 			os.Exit(ERREXIT_USAGE)
 		}
-		dir, _ := filepath.Abs(flag.Arg(0))
-		filename := filepath.Join(dir, cryptfs.ConfDefaultName)
-		fmt.Printf("Choose a password for protecting your files.\n")
-		password := readPasswordTwice()
-		err := cryptfs.CreateConfFile(filename, password)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(ERREXIT_INIT)
-		}
-		fmt.Printf("The filesystem is now ready for mounting.\n")
-		os.Exit(0)
+		initDir(flag.Arg(0))
 	}
 	if flag.NArg() < 2 {
 		fmt.Printf("usage: %s CIPHERDIR MOUNTPOINT\n", PROGRAM_NAME)
@@ -152,15 +162,16 @@ func readPassword() string {
 	return string(p)
 }
 
-func dirEmpty(dir string) {
+func dirEmpty(dir string) bool {
 	entries, err := ioutil.ReadDir(dir)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(ERREXIT_CIPHERDIR)
 	}
-	for _, e := range(entries) {
-		fmt.Println(e.Name())
+	if len(entries) == 0 {
+		return true
 	}
+	return false
 }
 
 func cluefsFrontend(key []byte, cipherdir string, mountpoint string) {
