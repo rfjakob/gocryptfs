@@ -66,8 +66,10 @@ func main() {
 	// Parse command line arguments
 	var debug bool
 	var init bool
+	var zerokey bool
 	flag.BoolVar(&debug, "debug", false, "Enable debug output")
 	flag.BoolVar(&init, "init", false, "Initialize encrypted directory")
+	flag.BoolVar(&zerokey, "zerokey", false, "Use all-zero dummy master key")
 	flag.Parse()
 	if debug {
 		cryptfs.Debug.Enable()
@@ -81,7 +83,7 @@ func main() {
 		initDir(flag.Arg(0))
 	}
 	if flag.NArg() < 2 {
-		fmt.Printf("usage: %s CIPHERDIR MOUNTPOINT\n", PROGRAM_NAME)
+		fmt.Printf("usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT\n", PROGRAM_NAME)
 		os.Exit(ERREXIT_USAGE)
 	}
 	cipherdir, _ := filepath.Abs(flag.Arg(0))
@@ -94,24 +96,29 @@ func main() {
 		os.Exit(ERREXIT_CIPHERDIR)
 	}
 
-	cfname := filepath.Join(cipherdir, cryptfs.ConfDefaultName)
-	_, err = os.Stat(cfname)
-	if err != nil {
-		fmt.Printf("Error: %s not found in CIPHERDIR\n", cryptfs.ConfDefaultName)
-		fmt.Printf("Please run \"%s --init %s\" first\n", PROGRAM_NAME, flag.Arg(0))
-		os.Exit(ERREXIT_LOADCONF)
+	key := make([]byte, cryptfs.KEY_LEN)
+	if zerokey {
+		fmt.Printf("Zerokey mode active: using all-zero dummy master key.\n")
+		fmt.Printf("ZEROKEY MODE PROVIDES NO SECURITY AT ALL.\n")
+	} else {
+		cfname := filepath.Join(cipherdir, cryptfs.ConfDefaultName)
+		_, err = os.Stat(cfname)
+		if err != nil {
+			fmt.Printf("Error: %s not found in CIPHERDIR\n", cryptfs.ConfDefaultName)
+			fmt.Printf("Please run \"%s --init %s\" first\n", PROGRAM_NAME, flag.Arg(0))
+			os.Exit(ERREXIT_LOADCONF)
+		}
+		fmt.Printf("Password: ")
+		password := readPassword()
+		fmt.Printf("\nDecrypting master key... ")
+		key, err = cryptfs.LoadConfFile(cfname, password)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(ERREXIT_LOADCONF)
+		}
+		fmt.Printf("Success\n")
+		printMasterKey(key)
 	}
-
-	fmt.Printf("Password: ")
-	password := readPassword()
-	fmt.Printf("\nDecrypting master key... ")
-	key, err := cryptfs.LoadConfFile(cfname, password)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(ERREXIT_LOADCONF)
-	}
-	fmt.Printf("Success\n")
-	printMasterKey(key)
 
 	if USE_CLUEFS {
 		cluefsFrontend(key, cipherdir, mountpoint)

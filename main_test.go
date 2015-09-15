@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 		panic("Could not create cipherDir")
 	}
 
-	c := exec.Command("./gocryptfs", cipherDir, plainDir)
+	c := exec.Command("./gocryptfs", "--zerokey", cipherDir, plainDir)
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
 	go c.Run()
