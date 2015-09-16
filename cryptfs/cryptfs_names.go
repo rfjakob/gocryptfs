@@ -19,6 +19,12 @@ const (
 // DecryptName - decrypt filename
 func (be *CryptFS) decryptName(cipherName string) (string, error) {
 
+	// Make sure relative symlinks still work after encryption
+	// by passing these trough unchanged
+	if cipherName == "." || cipherName == ".." {
+		return cipherName, nil
+	}
+
 	bin, err := base64.URLEncoding.DecodeString(cipherName)
 	if err != nil {
 		return "", err
@@ -43,6 +49,12 @@ func (be *CryptFS) decryptName(cipherName string) (string, error) {
 
 // EncryptName - encrypt filename
 func (be *CryptFS) encryptName(plainName string) string {
+
+	// Make sure relative symlinks still work after encryption
+	// by passing these trough unchanged
+	if plainName == "." || plainName == ".." {
+		return plainName
+	}
 
 	bin := []byte(plainName)
 	bin = be.pad16(bin)
