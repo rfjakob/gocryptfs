@@ -64,10 +64,10 @@ func initDir(dirArg string) {
 
 func main() {
 	// Parse command line arguments
-	var debug bool
-	var init bool
-	var zerokey bool
+	var debug, init, zerokey, fusedebug bool
+
 	flag.BoolVar(&debug, "debug", false, "Enable debug output")
+	flag.BoolVar(&fusedebug, "fusedebug", false, "Enable fuse library debug output")
 	flag.BoolVar(&init, "init", false, "Initialize encrypted directory")
 	flag.BoolVar(&zerokey, "zerokey", false, "Use all-zero dummy master key")
 	flag.Parse()
@@ -123,7 +123,7 @@ func main() {
 	if USE_CLUEFS {
 		cluefsFrontend(key, cipherdir, mountpoint)
 	} else {
-		pathfsFrontend(key, cipherdir, mountpoint, debug)
+		pathfsFrontend(key, cipherdir, mountpoint, fusedebug)
 	}
 }
 

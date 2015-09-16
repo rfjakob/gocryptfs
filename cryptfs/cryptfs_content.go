@@ -97,12 +97,20 @@ func (be *CryptFS) SplitRange(offset uint64, length uint64) []intraBlock {
 
 // PlainSize - calculate plaintext size from ciphertext size
 func (be *CryptFS) PlainSize(size uint64) uint64 {
+
 	// Zero sized files stay zero-sized
-	if size > 0 {
-		overhead := be.cipherBS - be.plainBS
-		nBlocks := (size + be.cipherBS - 1) / be.cipherBS
-		size -= nBlocks * overhead
+	if size == 0 {
+		return 0
 	}
+
+	overhead := be.cipherBS - be.plainBS
+	nBlocks := (size + be.cipherBS - 1) / be.cipherBS
+	if nBlocks * overhead > size {
+		Warn.Printf("PlainSize: Negative size, returning 0 instead\n")
+		return 0
+	}
+	size -= nBlocks * overhead
+
 	return size
 }
 

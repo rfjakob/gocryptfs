@@ -26,4 +26,5 @@ func (l *logChannel) Enable() {
 
 
 var Debug = logChannel{false}
+var Notice = logChannel{true}
 var Warn = logChannel{true}

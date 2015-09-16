@@ -34,16 +34,24 @@ func (fs *FS) GetPath(relPath string) string {
 }
 
 func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
-	a, status := fs.FileSystem.GetAttr(fs.EncryptPath(name), context)
+	cryptfs.Debug.Printf("FS.GetAttr('%s')\n", name)
+	cName := fs.EncryptPath(name)
+	a, status := fs.FileSystem.GetAttr(cName, context)
 	if a == nil {
+		cryptfs.Notice.Printf("FS.GetAttr failed: %s\n", status.String())
 		return a, status
 	}
-
-	a.Size = fs.PlainSize(a.Size)
+	if a.IsRegular() {
+		a.Size = fs.PlainSize(a.Size)
+	} else if a.IsSymlink() {
+		target, _ := fs.Readlink(name, context)
+		a.Size = uint64(len(target))
+	}
 	return a, status
 }
 
 func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
+	cryptfs.Debug.Printf("OpenDir(%s)\n", dirName)
 	cipherEntries, status := fs.FileSystem.OpenDir(fs.EncryptPath(dirName), context);
 	var plain []fuse.DirEntry
 	if cipherEntries != nil {
@@ -137,7 +145,12 @@ func (fs *FS) Mkdir(path string, mode uint32, context *fuse.Context) (code fuse.
 }
 
 func (fs *FS) Unlink(name string, context *fuse.Context) (code fuse.Status) {
-	return fs.FileSystem.Unlink(fs.EncryptPath(name), context)
+	cName := fs.EncryptPath(name)
+	code = fs.FileSystem.Unlink(cName, context)
+	if code != fuse.OK {
+		cryptfs.Notice.Printf("Unlink failed on %s [%s], code=%s\n", name, cName, code.String())
+	}
+	return code
 }
 
 func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {

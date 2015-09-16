@@ -210,6 +210,7 @@ func (f *file) Chown(uid uint32, gid uint32) fuse.Status {
 }
 
 func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
+	cryptfs.Debug.Printf("file.GetAttr()\n")
 	st := syscall.Stat_t{}
 	f.lock.Lock()
 	err := syscall.Fstat(int(f.fd.Fd()), &st)
