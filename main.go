@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 	"encoding/hex"
+	"runtime"
 
 	"github.com/rfjakob/gocryptfs/cluefs_frontend"
 	"github.com/rfjakob/gocryptfs/pathfs_frontend"
@@ -63,6 +64,8 @@ func initDir(dirArg string) {
 }
 
 func main() {
+	runtime.GOMAXPROCS(4)
+
 	// Parse command line arguments
 	var debug, init, zerokey, fusedebug bool
 
