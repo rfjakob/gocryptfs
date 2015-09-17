@@ -129,11 +129,30 @@ func BenchmarkStreamWrite(t *testing.B) {
 			t.FailNow()
 		}
 	}
+	file.Close()
 }
 
 func BenchmarkStreamRead(t *testing.B) {
 	buf := make([]byte, 1024*1024)
 	t.SetBytes(int64(len(buf)))
+
+	if t.N > 100 {
+		// Grow file so we can satisfy the test
+		f2, err := os.OpenFile(plainDir + "BenchmarkWrite", os.O_WRONLY | os.O_APPEND, 0666)
+		if err != nil {
+			fmt.Println(err)
+			t.FailNow()
+		}
+		for h := 0; h < t.N - 100 ; h++ {
+			_, err = f2.Write(buf)
+			if err != nil {
+				fmt.Println(err)
+				t.FailNow()
+			}
+		}
+		f2.Close()
+	}
+
 	file, err := os.Open(plainDir + "BenchmarkWrite")
 	if err != nil {
 		t.FailNow()
@@ -150,4 +169,5 @@ func BenchmarkStreamRead(t *testing.B) {
 			t.FailNow()
 		}
 	}
+	file.Close()
 }

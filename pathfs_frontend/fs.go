@@ -38,7 +38,7 @@ func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Stat
 	cName := fs.EncryptPath(name)
 	a, status := fs.FileSystem.GetAttr(cName, context)
 	if a == nil {
-		cryptfs.Notice.Printf("FS.GetAttr failed: %s\n", status.String())
+		cryptfs.Debug.Printf("FS.GetAttr failed: %s\n", status.String())
 		return a, status
 	}
 	if a.IsRegular() {
