@@ -16,12 +16,16 @@ const tmpDir = "main_test_tmp/"
 const plainDir = tmpDir + "plain/"
 const cipherDir = tmpDir + "cipher/"
 
-func TestMain(m *testing.M) {
-
+func unmount() error {
 	fu := exec.Command("fusermount", "-u", plainDir)
 	fu.Stdout = os.Stdout
 	fu.Stderr = os.Stderr
-	fu.Run()
+	return fu.Run()
+}
+
+func TestMain(m *testing.M) {
+
+	unmount()
 	os.RemoveAll(tmpDir)
 
 	err := os.MkdirAll(plainDir, 0777)
@@ -34,6 +38,7 @@ func TestMain(m *testing.M) {
 		panic("Could not create cipherDir")
 	}
 
+	//c := exec.Command("./gocryptfs", "--zerokey", "--cpuprofile", "/tmp/gcfs.cpu", cipherDir, plainDir)
 	c := exec.Command("./gocryptfs", "--zerokey", cipherDir, plainDir)
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
@@ -43,7 +48,7 @@ func TestMain(m *testing.M) {
 
 	r := m.Run()
 
-	fu.Run()
+	unmount()
 	os.Exit(r)
 }
 
@@ -142,7 +147,7 @@ func BenchmarkStreamRead(t *testing.B) {
 
 	if t.N > mb {
 		// Grow file so we can satisfy the test
-		fmt.Printf("Growing file to %d MB\n", t.N)
+		fmt.Printf("Growing file to %d MB... ", t.N)
 		f2, err := os.OpenFile(fn, os.O_WRONLY | os.O_APPEND, 0666)
 		if err != nil {
 			fmt.Println(err)
@@ -156,6 +161,7 @@ func BenchmarkStreamRead(t *testing.B) {
 			}
 		}
 		f2.Close()
+		fmt.Printf("done\n")
 	}
 
 	file, err := os.Open(plainDir + "BenchmarkWrite")

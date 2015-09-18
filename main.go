@@ -1,6 +1,7 @@
 package main
 
 import (
+	"runtime/pprof"
 	"io/ioutil"
 	"flag"
 	"fmt"
@@ -73,7 +74,19 @@ func main() {
 	flag.BoolVar(&fusedebug, "fusedebug", false, "Enable fuse library debug output")
 	flag.BoolVar(&init, "init", false, "Initialize encrypted directory")
 	flag.BoolVar(&zerokey, "zerokey", false, "Use all-zero dummy master key")
+	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+
 	flag.Parse()
+	if *cpuprofile != "" {
+        f, err := os.Create(*cpuprofile)
+        if err != nil {
+            fmt.Println(err)
+			os.Exit(ERREXIT_INIT)
+        }
+		fmt.Printf("Writing CPU profile to %s\n", *cpuprofile)
+        pprof.StartCPUProfile(f)
+        defer pprof.StopCPUProfile()
+    }
 	if debug {
 		cryptfs.Debug.Enable()
 		cryptfs.Debug.Printf("Debug output enabled\n")
@@ -102,7 +115,7 @@ func main() {
 	key := make([]byte, cryptfs.KEY_LEN)
 	if zerokey {
 		fmt.Printf("Zerokey mode active: using all-zero dummy master key.\n")
-		fmt.Printf("ZEROKEY MODE PROVIDES NO SECURITY AT ALL.\n")
+		fmt.Printf("ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING.\n")
 	} else {
 		cfname := filepath.Join(cipherdir, cryptfs.ConfDefaultName)
 		_, err = os.Stat(cfname)
@@ -218,9 +231,6 @@ func cluefsFrontend(key []byte, cipherdir string, mountpoint string) {
 		fmt.Println(err)
 		os.Exit(ERREXIT_MOUNT2)
 	}
-
-	// We are done
-	os.Exit(0)
 }
 
 func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool){
