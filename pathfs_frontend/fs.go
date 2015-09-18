@@ -112,7 +112,11 @@ func (fs *FS) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.
 }
 
 func (fs *FS) Chown(path string, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status) {
-	return fs.FileSystem.Chmod(fs.EncryptPath(path), gid, context)
+	return fs.FileSystem.Chown(fs.EncryptPath(path), uid, gid, context)
+}
+
+func (fs *FS) Mknod(name string, mode uint32, dev uint32, context *fuse.Context) (code fuse.Status) {
+	return fs.FileSystem.Mknod(fs.EncryptPath(name), mode, dev, context)
 }
 
 func (fs *FS) Truncate(path string, offset uint64, context *fuse.Context) (code fuse.Status) {
@@ -134,10 +138,6 @@ func (fs *FS) Readlink(name string, context *fuse.Context) (out string, status f
 		return "", fuse.EIO
 	}
 	return dstPlain, status
-}
-
-func (fs *FS) Mknod(name string, mode uint32, dev uint32, context *fuse.Context) (code fuse.Status) {
-	return fs.FileSystem.Mknod(fs.EncryptPath(name), mode, dev, context)
 }
 
 func (fs *FS) Mkdir(path string, mode uint32, context *fuse.Context) (code fuse.Status) {
