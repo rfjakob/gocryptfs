@@ -246,10 +246,15 @@ func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool)
 	}
 	pathFs := pathfs.NewPathNodeFs(finalFs, nil)
 	conn := nodefs.NewFileSystemConnector(pathFs.Root(), opts)
-	mOpts := &fuse.MountOptions{
-		AllowOther: false,
-	}
-	state, err := fuse.NewServer(conn.RawFS(), mountpoint, mOpts)
+	var mOpts fuse.MountOptions
+	mOpts.AllowOther = false
+	// Set values shown in "df -T" and friends
+	// First column, "Filesystem"
+	mOpts.Options = append(mOpts.Options, "fsname=" + cipherdir)
+	// Second column, "Type", will be shown as "fuse." + Name
+	mOpts.Name="gocryptfs"
+
+	state, err := fuse.NewServer(conn.RawFS(), mountpoint, &mOpts)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
