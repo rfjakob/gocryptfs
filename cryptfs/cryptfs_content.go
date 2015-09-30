@@ -115,6 +115,15 @@ func (be *CryptFS) PlainSize(size uint64) uint64 {
 	return size
 }
 
+// CipherSize - calculate ciphertext size from plaintext size
+func (be *CryptFS) CipherSize(size uint64) uint64 {
+	overhead := be.cipherBS - be.plainBS
+	nBlocks := (size + be.plainBS - 1) / be.plainBS
+	size += nBlocks * overhead
+
+	return size
+}
+
 func (be *CryptFS) minu64(x uint64, y uint64) uint64 {
 	if x < y {
 		return x

@@ -17,10 +17,21 @@ const plainDir = tmpDir + "plain/"
 const cipherDir = tmpDir + "cipher/"
 
 func unmount() error {
-	fu := exec.Command("fusermount", "-u", plainDir)
+	fu := exec.Command("fusermount", "-z", "-u", plainDir)
 	fu.Stdout = os.Stdout
 	fu.Stderr = os.Stderr
 	return fu.Run()
+}
+
+func md5fn(filename string) string {
+	buf, err := ioutil.ReadFile(filename)
+	if err != nil {
+		fmt.Printf("ReadFile: %v\n", err)
+		return ""
+	}
+	rawHash := md5.Sum(buf)
+	hash := hex.EncodeToString(rawHash[:])
+	return hash
 }
 
 func TestMain(m *testing.M) {
@@ -66,16 +77,11 @@ func testWriteN(t *testing.T, fn string, n int) string {
 	}
 	file.Close()
 
-	buf, err := ioutil.ReadFile(plainDir + fn)
-	if err != nil {
-		t.Fail()
-	}
+	bin := md5.Sum(d)
+	hashWant := hex.EncodeToString(bin[:])
 
-	raw := md5.Sum(d)
-	hashWant := hex.EncodeToString(raw[:])
+	hashActual := md5fn(plainDir + fn)
 
-	raw = md5.Sum(buf)
-	hashActual := hex.EncodeToString(raw[:])
 	if hashActual != hashWant {
 		fmt.Printf("hashWant=%s hashActual=%s\n", hashWant, hashActual)
 		t.Fail()
@@ -101,18 +107,41 @@ func TestWrite1Mx100(t *testing.T) {
 	// Read and check 100 times to catch race conditions
 	var i int
 	for i = 0; i < 100; i++ {
-		buf, err := ioutil.ReadFile(plainDir + "1M")
-		if err != nil {
-			t.Fail()
-		}
-		rawHash := md5.Sum(buf)
-		hashActual := hex.EncodeToString(rawHash[:])
+		hashActual := md5fn(plainDir + "1M")
 		if hashActual != hashWant {
 			fmt.Printf("Read corruption in loop # %d\n", i)
 			t.FailNow()
 		} else {
 			//fmt.Print(".")
 		}
+	}
+}
+
+func TestTruncate(t *testing.T) {
+	fn := plainDir + "truncate"
+	file, err := os.Create(fn)
+	if err != nil {
+		t.FailNow()
+	}
+	// Grow to two blocks
+	file.Truncate(7000)
+	if md5fn(fn) != "95d4ec7038e3e4fdbd5f15c34c3f0b34" {
+		t.Fail()
+	}
+	// Shrink - needs RMW
+	file.Truncate(6999)
+	if md5fn(fn) != "35fd15873ec6c35380064a41b9b9683b" {
+		t.Fail()
+	}
+	// Shrink to one partial block
+	file.Truncate(465)
+	if md5fn(fn) != "a1534d6e98a6b21386456a8f66c55260" {
+		t.Fail()
+	}
+	// Grow to exactly one block
+	file.Truncate(4096)
+	if md5fn(fn) != "620f0b67a91f7f74151bc5be745b7110" {
+		t.Fail()
 	}
 }
 
