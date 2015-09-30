@@ -21,7 +21,8 @@ func (be *CryptFS) DecryptBlocks(ciphertext []byte) ([]byte, error) {
 	var pBuf bytes.Buffer
 	for cBuf.Len() > 0 {
 		cBlock := cBuf.Next(int(be.cipherBS))
-		pBlock, err := be.DecryptBlock(cBlock)
+		var pBlock []byte
+		pBlock, err = be.DecryptBlock(cBlock)
 		if err != nil {
 			break
 		}
