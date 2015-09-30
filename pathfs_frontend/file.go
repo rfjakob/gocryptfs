@@ -71,7 +71,7 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	// Decrypt it
 	plaintext, err := f.cfs.DecryptBlocks(ciphertext)
 	if err != nil {
-		cryptfs.Warn.Printf("read: DecryptBlocks: %s\n", err.Error())
+		cryptfs.Warn.Printf("doRead: returning IO error\n")
 		return nil, fuse.EIO
 	}
 
@@ -92,7 +92,7 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 
 // Read - FUSE call
 func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fuse.Status) {
-	cryptfs.Debug.Printf("Read: offset=%d length=%d\n", len(buf), off)
+	cryptfs.Debug.Printf("Read %s: offset=%d length=%d\n", f.fd.Name(), len(buf), off)
 
 	if f.writeOnly {
 		cryptfs.Warn.Printf("Tried to read from write-only file\n")
@@ -100,17 +100,21 @@ func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 	}
 
 	out, status := f.doRead(uint64(off), uint64(len(buf)))
+
+	if status == fuse.EIO {
+		cryptfs.Warn.Printf("Read failed with EIO: file %s, offset=%d, length=%d\n", f.fd.Name(), len(buf), off)
+	}
 	if status != fuse.OK {
 		return nil, status
 	}
 
-	cryptfs.Debug.Printf("Read: returning %d bytes\n", len(out))
+	cryptfs.Debug.Printf("Read: status %v, returning %d bytes\n", status, len(out))
 	return fuse.ReadResultData(out), status
 }
 
 // Write - FUSE call
 func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
-	cryptfs.Debug.Printf("Write: offset=%d length=%d\n", off, len(data))
+	cryptfs.Debug.Printf("Write %s: offset=%d length=%d\n", f.fd.Name(), off, len(data))
 
 	var written uint32
 	var status fuse.Status
