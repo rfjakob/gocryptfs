@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -142,6 +143,38 @@ func TestTruncate(t *testing.T) {
 	file.Truncate(4096)
 	if md5fn(fn) != "620f0b67a91f7f74151bc5be745b7110" {
 		t.Fail()
+	}
+}
+
+func TestAppend(t *testing.T) {
+	fn := plainDir + "append"
+	file, err := os.Create(fn)
+	if err != nil {
+		t.FailNow()
+	}
+	data := []byte("testdata123456789") // length 17
+	var buf bytes.Buffer
+	var hashWant string
+	for i := 0; i <= 500; i++ {
+		file.Write(data)
+		buf.Write(data)
+		bin := md5.Sum(buf.Bytes())
+		hashWant = hex.EncodeToString(bin[:])
+		hashActual := md5fn(fn)
+		if hashWant != hashActual {
+			t.FailNow()
+		}
+	}
+
+	// Overwrite with the same data
+	// Hash must stay the same
+	file.Seek(0, 0)
+	for i := 0; i <= 500; i++ {
+		file.Write(data)
+		hashActual := md5fn(fn)
+		if hashWant != hashActual {
+			t.FailNow()
+		}
 	}
 }
 
