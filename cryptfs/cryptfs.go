@@ -58,6 +58,12 @@ func NewCryptFS(key []byte, useOpenssl bool) *CryptFS {
 	}
 }
 
+// Get plaintext block size
 func (be *CryptFS) PlainBS() uint64 {
 	return be.plainBS
+}
+
+// Get ciphertext block size
+func (be *CryptFS) CipherBS() uint64 {
+	return be.cipherBS
 }

@@ -7,7 +7,21 @@ import (
 	"os"
 	"errors"
 	"crypto/cipher"
+	"crypto/md5"
+	"encoding/hex"
 )
+
+const (
+	// A block of 4124 zero bytes has this md5
+	ZeroBlockMd5 = "64331af89bd15a987b39855338336237"
+)
+
+// md5sum - debug helper, return md5 hex string
+func md5sum(buf []byte) string {
+	rawHash := md5.Sum(buf)
+	hash := hex.EncodeToString(rawHash[:])
+	return hash
+}
 
 type CryptFile struct {
 	file *os.File
@@ -55,6 +69,7 @@ func (be *CryptFS) DecryptBlock(ciphertext []byte) ([]byte, error) {
 
 	// Extract nonce
 	nonce := ciphertext[:NONCE_LEN]
+	ciphertextOrig := ciphertext
 	ciphertext = ciphertext[NONCE_LEN:]
 
 	// Decrypt
@@ -63,7 +78,7 @@ func (be *CryptFS) DecryptBlock(ciphertext []byte) ([]byte, error) {
 	plaintext, err := be.gcm.Open(plaintext, nonce, ciphertext, nil)
 
 	if err != nil {
-		Warn.Printf("DecryptBlock: %s\n", err.Error())
+		Warn.Printf("DecryptBlock: %s, len=%d, md5=%s\n", err.Error(), len(ciphertextOrig), Warn.Md5sum(ciphertextOrig))
 		return nil, err
 	}
 

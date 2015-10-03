@@ -30,13 +30,20 @@ type file struct {
 
 	// Parent CryptFS
 	cfs *cryptfs.CryptFS
+
+	// Inode number
+	ino uint64
 }
 
 func NewFile(fd *os.File, writeOnly bool, cfs *cryptfs.CryptFS) nodefs.File {
+	var st syscall.Stat_t
+	syscall.Fstat(int(fd.Fd()), &st)
+
 	return &file{
 		fd: fd,
 		writeOnly: writeOnly,
 		cfs: cfs,
+		ino: st.Ino,
 	}
 }
 
@@ -51,11 +58,13 @@ func (f *file) String() string {
 	return fmt.Sprintf("cryptFile(%s)", f.fd.Name())
 }
 
-// doRead - returns "length" plaintext bytes from plaintext offset "offset".
-// Reads the corresponding ciphertext from disk, decryptfs it, returns the relevant
-// part.
+// doRead - returns "length" plaintext bytes from plaintext offset "off".
+// Arguments "length" and "off" do not have to be aligned.
 //
-// Called by Read(), for RMW in Write() and Truncate()
+// doRead reads the corresponding ciphertext blocks from disk, decryptfs them and
+// returns the requested part of the plaintext.
+//
+// Called by Read() and by Write() and Truncate() for RMW
 func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 
 	// Read the backing ciphertext in one go
@@ -65,18 +74,25 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	f.lock.Lock()
 	n, err := f.fd.ReadAt(ciphertext, int64(alignedOffset))
 	f.lock.Unlock()
-	ciphertext = ciphertext[0:n]
 	if err != nil && err != io.EOF {
 		cryptfs.Warn.Printf("read: ReadAt: %s\n", err.Error())
 		return nil, fuse.ToStatus(err)
 	}
-	cryptfs.Debug.Printf("ReadAt offset=%d length=%d -> n=%d len=%d\n", alignedLength, alignedOffset, n, len(ciphertext))
+	// Truncate ciphertext buffer down to actually read bytes
+	ciphertext = ciphertext[0:n]
+	{
+		blockNo := alignedOffset / f.cfs.CipherBS()
+		cryptfs.Debug.Printf("ReadAt offset=%d bytes (%d blocks), want=%d, got=%d\n", alignedOffset, blockNo, alignedLength, n)
+	}
 
 	// Decrypt it
 	plaintext, err := f.cfs.DecryptBlocks(ciphertext)
 	if err != nil {
-		cryptfs.Warn.Printf("Corrupt block at offset=%d\n", off + uint64(len(plaintext)))
-		cryptfs.Warn.Printf("doRead: returning IO error\n")
+		blockNo := (alignedOffset + uint64(len(plaintext))) / f.cfs.PlainBS()
+		cipherOff := blockNo * f.cfs.CipherBS()
+		plainOff := blockNo * f.cfs.PlainBS()
+		cryptfs.Warn.Printf("ino%d: doRead: corrupt block #%d (plainOff=%d/%d, cipherOff=%d/%d)\n",
+			f.ino, blockNo, plainOff, f.cfs.PlainBS(), cipherOff, f.cfs.CipherBS())
 		return nil, fuse.EIO
 	}
 
@@ -97,29 +113,29 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 
 // Read - FUSE call
 func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fuse.Status) {
-	cryptfs.Debug.Printf("Read %s: offset=%d length=%d\n", f.fd.Name(), len(buf), off)
+	cryptfs.Debug.Printf("ino%d: Read: offset=%d length=%d\n", f.ino, len(buf), off)
 
 	if f.writeOnly {
-		cryptfs.Warn.Printf("Tried to read from write-only file\n")
+		cryptfs.Warn.Printf("ino%d: Tried to read from write-only file\n", f.ino)
 		return nil, fuse.EBADF
 	}
 
 	out, status := f.doRead(uint64(off), uint64(len(buf)))
 
 	if status == fuse.EIO {
-		cryptfs.Warn.Printf("Read failed with EIO: file %s, offset=%d, length=%d\n", f.fd.Name(), len(buf), off)
+		cryptfs.Warn.Printf("ino%d: Read failed with EIO, offset=%d, length=%d\n", f.ino, len(buf), off)
 	}
 	if status != fuse.OK {
 		return nil, status
 	}
 
-	cryptfs.Debug.Printf("Read: status %v, returning %d bytes\n", status, len(out))
+	cryptfs.Debug.Printf("ino%d: Read: status %v, returning %d bytes\n", f.ino, status, len(out))
 	return fuse.ReadResultData(out), status
 }
 
 // Write - FUSE call
 func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
-	cryptfs.Debug.Printf("Write %s: offset=%d length=%d\n", f.fd.Name(), off, len(data))
+	cryptfs.Debug.Printf("ino%d: Write %s: offset=%d length=%d\n", f.ino, off, len(data))
 
 	var written uint32
 	status := fuse.OK
@@ -146,7 +162,10 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 		// Write
 		blockOffset, _ := b.CiphertextRange()
 		blockData = f.cfs.EncryptBlock(blockData)
-		cryptfs.Debug.Printf("WriteAt offset=%d length=%d\n", blockOffset, len(blockData))
+		cryptfs.Debug.Printf("ino%d: Writing %d bytes to block #%d, md5=%s\n", f.ino, len(blockData), b.BlockNo, cryptfs.Debug.Md5sum(blockData))
+		if len(blockData) != int(f.cfs.CipherBS()) {
+			cryptfs.Debug.Printf("ino%d: Writing partial block #%d (%d bytes)\n", b.BlockNo, len(blockData))
+		}
 		f.lock.Lock()
 		_, err := f.fd.WriteAt(blockData, int64(blockOffset))
 		f.lock.Unlock()
