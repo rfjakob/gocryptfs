@@ -34,7 +34,7 @@ func (l *logChannel) Enable() {
 // CPU cycles
 func (l *logChannel) Md5sum(buf []byte) string {
 	if l.enabled == false {
-		return ""
+		return "disabled"
 	}
 	return md5sum(buf)
 }

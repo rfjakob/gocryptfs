@@ -79,6 +79,7 @@ func (be *CryptFS) DecryptBlock(ciphertext []byte) ([]byte, error) {
 
 	if err != nil {
 		Warn.Printf("DecryptBlock: %s, len=%d, md5=%s\n", err.Error(), len(ciphertextOrig), Warn.Md5sum(ciphertextOrig))
+		Debug.Println(hex.Dump(ciphertextOrig))
 		return nil, err
 	}
 

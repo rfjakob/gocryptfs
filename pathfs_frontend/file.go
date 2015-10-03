@@ -164,7 +164,7 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 		blockData = f.cfs.EncryptBlock(blockData)
 		cryptfs.Debug.Printf("ino%d: Writing %d bytes to block #%d, md5=%s\n", f.ino, len(blockData), b.BlockNo, cryptfs.Debug.Md5sum(blockData))
 		if len(blockData) != int(f.cfs.CipherBS()) {
-			cryptfs.Debug.Printf("ino%d: Writing partial block #%d (%d bytes)\n", b.BlockNo, len(blockData))
+			cryptfs.Debug.Printf("ino%d: Writing partial block #%d (%d bytes)\n", f.ino, b.BlockNo, len(blockData))
 		}
 		f.lock.Lock()
 		_, err := f.fd.WriteAt(blockData, int64(blockOffset))
@@ -230,8 +230,12 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 		cryptfs.Warn.Printf("Truncate: fstat failed: %v\n", err)
 		return fuse.ToStatus(err)
 	}
-	oldSize := uint64(fi.Size())
-
+	oldSize := f.cfs.PlainSize(uint64(fi.Size()))
+	{
+		oldB := (oldSize + f.cfs.PlainBS() - 1) / f.cfs.PlainBS()
+		newB := (newSize + f.cfs.PlainBS() - 1) / f.cfs.PlainBS()
+		cryptfs.Debug.Printf("ino%d: truncate from %d to %d blocks (%d to %d bytes)\n", f.ino, oldB, newB, oldSize, newSize)
+	}
 	// Grow file by appending zeros
 	if newSize > oldSize {
 		remaining := newSize - oldSize
@@ -259,7 +263,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 		}
 		return fuse.OK
 	}
-
+	// else:
 	// Shrink file by truncating
 	newBlockLen := int(newSize % f.cfs.PlainBS())
 	// New file size is aligned to block size - just truncate
@@ -271,6 +275,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 		return fuse.ToStatus(err)
 	}
 	// New file size is not aligned - need to do RMW on the last block
+	cryptfs.Debug.Printf("Truncate: Shrink RMW\n")
 	var blockOffset, blockLen uint64
 	{
 		// Get the block the last byte belongs to.
