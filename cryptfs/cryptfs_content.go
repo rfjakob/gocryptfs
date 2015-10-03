@@ -32,11 +32,20 @@ func (be *CryptFS) DecryptBlocks(ciphertext []byte) ([]byte, error) {
 }
 
 // DecryptBlock - Verify and decrypt GCM block
+//
+// Corner case: A full-sized block of all-zero ciphertext bytes is translated
+// to an all-zero plaintext block, i.e. file hole passtrough.
 func (be *CryptFS) DecryptBlock(ciphertext []byte) ([]byte, error) {
 
 	// Empty block?
 	if len(ciphertext) == 0 {
 		return ciphertext, nil
+	}
+
+	// All-zero block?
+	if bytes.Equal(ciphertext, be.allZeroBlock) {
+		Debug.Printf("DecryptBlock: file hole encountered\n")
+		return make([]byte, be.plainBS), nil
 	}
 
 	if len(ciphertext) < NONCE_LEN {

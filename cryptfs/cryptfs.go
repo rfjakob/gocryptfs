@@ -20,6 +20,8 @@ type CryptFS struct {
 	gcm cipher.AEAD
 	plainBS	uint64
 	cipherBS uint64
+	// Stores an all-zero block of size cipherBS
+	allZeroBlock []byte
 }
 
 func NewCryptFS(key []byte, useOpenssl bool) *CryptFS {
@@ -45,11 +47,14 @@ func NewCryptFS(key []byte, useOpenssl bool) *CryptFS {
 		}
 	}
 
+	cipherBS := DEFAULT_PLAINBS + NONCE_LEN + AUTH_TAG_LEN
+
 	return &CryptFS{
 		blockCipher: b,
 		gcm: gcm,
 		plainBS: DEFAULT_PLAINBS,
-		cipherBS: DEFAULT_PLAINBS + NONCE_LEN + AUTH_TAG_LEN,
+		cipherBS: uint64(cipherBS),
+		allZeroBlock: make([]byte, cipherBS),
 	}
 }
 
