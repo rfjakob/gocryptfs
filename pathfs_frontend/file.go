@@ -270,29 +270,30 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 			}
 		}
 		return fuse.OK
-		// File shrinks
 	} else {
+		// File shrinks
 		blockNo := f.cfs.BlockNoPlainOff(newSize)
-		lastBlockOff := blockNo * f.cfs.CipherBS()
-		lastBlockLen := newSize - blockNo * f.cfs.PlainBS()
+		cipherOff := blockNo * f.cfs.CipherBS()
+		plainOff := blockNo * f.cfs.PlainBS()
+		lastBlockLen := newSize - plainOff
 		var data []byte
 		if lastBlockLen > 0 {
 			var status fuse.Status
-			data, status = f.doRead(lastBlockOff, lastBlockLen)
+			data, status = f.doRead(plainOff, lastBlockLen)
 			if status != fuse.OK {
 				cryptfs.Warn.Printf("shrink doRead returned error: %v", err)
 				return status
 			}
 		}
 		f.lock.Lock()
-		err = syscall.Ftruncate(int(f.fd.Fd()), int64(lastBlockOff))
+		err = syscall.Ftruncate(int(f.fd.Fd()), int64(cipherOff))
 		f.lock.Unlock()
 		if err != nil {
 			cryptfs.Warn.Printf("shrink Ftruncate returned error: %v", err)
 			return fuse.ToStatus(err)
 		}
 		if lastBlockLen > 0 {
-			_, status := f.doWrite(data, int64(lastBlockOff))
+			_, status := f.doWrite(data, int64(plainOff))
 			return status
 		}
 		return fuse.OK

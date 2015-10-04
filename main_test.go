@@ -127,22 +127,22 @@ func TestTruncate(t *testing.T) {
 	// Grow to two blocks
 	file.Truncate(7000)
 	if md5fn(fn) != "95d4ec7038e3e4fdbd5f15c34c3f0b34" {
-		t.Fail()
+		t.Errorf("Fail 7000")
 	}
 	// Shrink - needs RMW
 	file.Truncate(6999)
 	if md5fn(fn) != "35fd15873ec6c35380064a41b9b9683b" {
-		t.Fail()
+		t.Errorf("Fail 6999")
 	}
 	// Shrink to one partial block
 	file.Truncate(465)
 	if md5fn(fn) != "a1534d6e98a6b21386456a8f66c55260" {
-		t.Fail()
+		t.Errorf("Fail 465")
 	}
 	// Grow to exactly one block
 	file.Truncate(4096)
 	if md5fn(fn) != "620f0b67a91f7f74151bc5be745b7110" {
-		t.Fail()
+		t.Errorf("Fail 4096")
 	}
 }
 
