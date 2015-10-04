@@ -6,6 +6,8 @@ package benchmark
 // go test -bench=.
 
 import (
+	"fmt"
+	"os"
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
@@ -13,7 +15,19 @@ import (
 	"testing"
 )
 
-func BenchmarkAESGCMSeal4K(b *testing.B) {
+func TestMain(m *testing.M) {
+
+	fmt.Printf("Benchmarking AES-GCM-128 with 4kB block size\n")
+
+	r := m.Run()
+	os.Exit(r)
+}
+
+// This gets rid of the "testing: warning: no tests to run" message
+func TestDummy(t *testing.T) {
+}
+
+func BenchmarkGoEnc4K(b *testing.B) {
 	buf := make([]byte, 1024*4)
 	b.SetBytes(int64(len(buf)))
 
@@ -29,7 +43,7 @@ func BenchmarkAESGCMSeal4K(b *testing.B) {
 	}
 }
 
-func BenchmarkAESGCMOpen4K(b *testing.B) {
+func BenchmarkGoDec4K(b *testing.B) {
 	buf := make([]byte, 1024*4)
 	b.SetBytes(int64(len(buf)))
 
@@ -49,7 +63,7 @@ func BenchmarkAESGCMOpen4K(b *testing.B) {
 	}
 }
 
-func BenchmarkOpensslGCMenc4K(b *testing.B) {
+func BenchmarkOpensslEnc4K(b *testing.B) {
 	buf := make([]byte, 1024*4)
 	b.SetBytes(int64(len(buf)))
 
@@ -84,7 +98,7 @@ func BenchmarkOpensslGCMenc4K(b *testing.B) {
 	}
 }
 
-func BenchmarkOpensslGCMdec4K(b *testing.B) {
+func BenchmarkOpensslDec4K(b *testing.B) {
 	buf := makeOpensslCiphertext()
 	b.SetBytes(int64(1024 * 4))
 
