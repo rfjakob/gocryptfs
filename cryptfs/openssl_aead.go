@@ -23,13 +23,15 @@ func (be opensslGCM) NonceSize() int {
 // additional data and appends the result to dst, returning the updated
 // slice. The nonce must be NonceSize() bytes long and unique for all
 // time, for a given key.
-//
-// The plaintext and dst may alias exactly or not at all.
 func (be opensslGCM) Seal(dst, nonce, plaintext, data []byte) []byte {
 
 	cipherBuf := bytes.NewBuffer(dst)
 
 	ectx, err := openssl.NewGCMEncryptionCipherCtx(128, nil, be.key[:], nonce[:])
+	if err != nil {
+		panic(err)
+	}
+	err = ectx.ExtraData(data)
 	if err != nil {
 		panic(err)
 	}
@@ -88,6 +90,10 @@ func (be opensslGCM) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 		return nil, err
 	}
 	plainBuf.Write(part)
+	err = dctx.ExtraData(data)
+	if err != nil {
+		return nil, err
+	}
 
 	return plainBuf.Bytes(), nil
 }
