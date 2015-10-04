@@ -1,18 +1,18 @@
 package main
 
 import (
-	"runtime/pprof"
-	"io/ioutil"
+	"encoding/hex"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
-	"time"
-	"encoding/hex"
 	"runtime"
+	"runtime/pprof"
+	"time"
 
-	"github.com/rfjakob/gocryptfs/pathfs_frontend"
 	"github.com/rfjakob/gocryptfs/cryptfs"
+	"github.com/rfjakob/gocryptfs/pathfs_frontend"
 
 	"golang.org/x/crypto/ssh/terminal"
 
@@ -23,41 +23,41 @@ import (
 
 const (
 	USE_CLUEFS   = false // Use cluefs or pathfs FUSE frontend
-	USE_OPENSSL  = true // 3x speed increase compared to Go's built-in GCM
+	USE_OPENSSL  = true  // 3x speed increase compared to Go's built-in GCM
 	PATHFS_DEBUG = false
 
 	PROGRAM_NAME = "gocryptfs"
 
 	// Exit codes
-	ERREXIT_USAGE  = 1
-	ERREXIT_NEWFS  = 2
-	ERREXIT_MOUNT  = 3
-	ERREXIT_SERVE  = 4
-	ERREXIT_MOUNT2 = 5
+	ERREXIT_USAGE     = 1
+	ERREXIT_NEWFS     = 2
+	ERREXIT_MOUNT     = 3
+	ERREXIT_SERVE     = 4
+	ERREXIT_MOUNT2    = 5
 	ERREXIT_CIPHERDIR = 6
-	ERREXIT_INIT = 7
-	ERREXIT_LOADCONF = 8
-	ERREXIT_PASSWORD = 9
+	ERREXIT_INIT      = 7
+	ERREXIT_LOADCONF  = 8
+	ERREXIT_PASSWORD  = 9
 )
 
 func initDir(dirArg string) {
-		dir, _ := filepath.Abs(dirArg)
+	dir, _ := filepath.Abs(dirArg)
 
-		if dirEmpty(dir) == false {
-			fmt.Printf("Error: Directory \"%s\" is not empty\n", dirArg)
-			os.Exit(ERREXIT_INIT)
-		}
+	if dirEmpty(dir) == false {
+		fmt.Printf("Error: Directory \"%s\" is not empty\n", dirArg)
+		os.Exit(ERREXIT_INIT)
+	}
 
-		confName := filepath.Join(dir, cryptfs.ConfDefaultName)
-		fmt.Printf("Choose a password for protecting your files.\n")
-		password := readPasswordTwice()
-		err := cryptfs.CreateConfFile(confName, password)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(ERREXIT_INIT)
-		}
-		fmt.Printf("The filesystem is now ready for mounting.\n")
-		os.Exit(0)
+	confName := filepath.Join(dir, cryptfs.ConfDefaultName)
+	fmt.Printf("Choose a password for protecting your files.\n")
+	password := readPasswordTwice()
+	err := cryptfs.CreateConfFile(confName, password)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(ERREXIT_INIT)
+	}
+	fmt.Printf("The filesystem is now ready for mounting.\n")
+	os.Exit(0)
 }
 
 func main() {
@@ -74,15 +74,15 @@ func main() {
 
 	flag.Parse()
 	if *cpuprofile != "" {
-        f, err := os.Create(*cpuprofile)
-        if err != nil {
-            fmt.Println(err)
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			fmt.Println(err)
 			os.Exit(ERREXIT_INIT)
-        }
+		}
 		fmt.Printf("Writing CPU profile to %s\n", *cpuprofile)
-        pprof.StartCPUProfile(f)
-        defer pprof.StopCPUProfile()
-    }
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 	if debug {
 		cryptfs.Debug.Enable()
 		cryptfs.Debug.Printf("Debug output enabled\n")
@@ -206,9 +206,9 @@ func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool)
 	mOpts.AllowOther = false
 	// Set values shown in "df -T" and friends
 	// First column, "Filesystem"
-	mOpts.Options = append(mOpts.Options, "fsname=" + cipherdir)
+	mOpts.Options = append(mOpts.Options, "fsname="+cipherdir)
 	// Second column, "Type", will be shown as "fuse." + Name
-	mOpts.Name="gocryptfs"
+	mOpts.Name = "gocryptfs"
 
 	state, err := fuse.NewServer(conn.RawFS(), mountpoint, &mOpts)
 	if err != nil {

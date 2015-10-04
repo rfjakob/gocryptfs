@@ -3,12 +3,12 @@ package cryptfs
 // Filename encryption / decryption function
 
 import (
-	"crypto/cipher"
 	"crypto/aes"
-	"fmt"
-	"strings"
+	"crypto/cipher"
 	"encoding/base64"
 	"errors"
+	"fmt"
+	"strings"
 )
 
 const (
@@ -30,7 +30,7 @@ func (be *CryptFS) decryptName(cipherName string) (string, error) {
 		return "", err
 	}
 
-	if len(bin) % aes.BlockSize != 0 {
+	if len(bin)%aes.BlockSize != 0 {
 		return "", errors.New(fmt.Sprintf("Name len=%d is not a multiple of 16", len(bin)))
 	}
 
@@ -120,7 +120,7 @@ func (be *CryptFS) pad16(orig []byte) (padded []byte) {
 	if oldLen == 0 {
 		panic("Padding zero-length string makes no sense")
 	}
-	padLen := aes.BlockSize - oldLen % aes.BlockSize
+	padLen := aes.BlockSize - oldLen%aes.BlockSize
 	if padLen == 0 {
 		padLen = aes.BlockSize
 	}
@@ -137,11 +137,11 @@ func (be *CryptFS) pad16(orig []byte) (padded []byte) {
 // unPad16 - remove padding
 func (be *CryptFS) unPad16(orig []byte) ([]byte, error) {
 	oldLen := len(orig)
-	if oldLen % aes.BlockSize != 0 {
+	if oldLen%aes.BlockSize != 0 {
 		return nil, errors.New("Unaligned size")
 	}
 	// The last byte is always a padding byte
-	padByte := orig[oldLen -1]
+	padByte := orig[oldLen-1]
 	// The padding byte's value is the padding length
 	padLen := int(padByte)
 	// Padding must be at least 1 byte

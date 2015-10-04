@@ -7,10 +7,10 @@ package benchmark
 
 import (
 	"bytes"
-	"testing"
-	"github.com/spacemonkeygo/openssl"
 	"crypto/aes"
 	"crypto/cipher"
+	"github.com/spacemonkeygo/openssl"
+	"testing"
 )
 
 func BenchmarkAESGCMSeal4K(b *testing.B) {
@@ -86,7 +86,7 @@ func BenchmarkOpensslGCMenc4K(b *testing.B) {
 
 func BenchmarkOpensslGCMdec4K(b *testing.B) {
 	buf := makeOpensslCiphertext()
-	b.SetBytes(int64(1024*4))
+	b.SetBytes(int64(1024 * 4))
 
 	tag := buf[4096:]
 	buf = buf[0:4096]

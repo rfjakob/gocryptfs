@@ -1,17 +1,17 @@
 package cryptfs
 
 import (
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
 	"sync"
-	"crypto/rand"
 )
 
 type nonce96 struct {
-	lock sync.Mutex
+	lock   sync.Mutex
 	high32 uint32
-	low64 uint64
-	ready int
+	low64  uint64
+	ready  int
 }
 
 var gcmNonce nonce96

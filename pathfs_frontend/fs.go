@@ -1,10 +1,10 @@
 package pathfs_frontend
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
-	"fmt"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
@@ -14,17 +14,16 @@ import (
 
 type FS struct {
 	*cryptfs.CryptFS
-	pathfs.FileSystem    // loopbackFileSystem
-	backing string       // Backing directory
+	pathfs.FileSystem        // loopbackFileSystem
+	backing           string // Backing directory
 }
 
 // Encrypted FUSE overlay filesystem
 func NewFS(key []byte, backing string, useOpenssl bool) *FS {
 	return &FS{
-		CryptFS:     cryptfs.NewCryptFS(key, useOpenssl),
-		FileSystem:  pathfs.NewLoopbackFileSystem(backing),
-		backing:     backing,
-
+		CryptFS:    cryptfs.NewCryptFS(key, useOpenssl),
+		FileSystem: pathfs.NewLoopbackFileSystem(backing),
+		backing:    backing,
 	}
 }
 
@@ -52,7 +51,7 @@ func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Stat
 
 func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
 	cryptfs.Debug.Printf("OpenDir(%s)\n", dirName)
-	cipherEntries, status := fs.FileSystem.OpenDir(fs.EncryptPath(dirName), context);
+	cipherEntries, status := fs.FileSystem.OpenDir(fs.EncryptPath(dirName), context)
 	var plain []fuse.DirEntry
 	if cipherEntries != nil {
 		for i := range cipherEntries {
@@ -76,7 +75,7 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 // We always need read access to do read-modify-write cycles
 func (fs *FS) mangleOpenFlags(flags uint32) (newFlags int, writeOnly bool) {
 	newFlags = int(flags)
-	if newFlags & os.O_WRONLY > 0 {
+	if newFlags&os.O_WRONLY > 0 {
 		writeOnly = true
 		newFlags = newFlags ^ os.O_WRONLY | os.O_RDWR
 	}

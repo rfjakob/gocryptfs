@@ -1,8 +1,8 @@
 package cryptfs
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 type testRange struct {
@@ -22,9 +22,9 @@ func TestSplitRange(t *testing.T) {
 	key := make([]byte, 16)
 	f := NewCryptFS(key, true)
 
-	for _, r := range(ranges) {
+	for _, r := range ranges {
 		parts := f.SplitRange(r.offset, r.length)
-		for _, p := range(parts) {
+		for _, p := range parts {
 			if p.Length > DEFAULT_PLAINBS || p.Skip >= DEFAULT_PLAINBS {
 				fmt.Printf("Test fail: n=%d, length=%d, offset=%d\n", p.BlockNo, p.Length, p.Skip)
 				t.Fail()
@@ -45,15 +45,15 @@ func TestCiphertextRange(t *testing.T) {
 	key := make([]byte, 16)
 	f := NewCryptFS(key, true)
 
-	for _, r := range(ranges) {
+	for _, r := range ranges {
 		alignedOffset, alignedLength, skipBytes := f.CiphertextRange(r.offset, r.length)
 		if alignedLength < r.length {
 			t.Fail()
 		}
-		if alignedOffset % f.cipherBS != 0 {
+		if alignedOffset%f.cipherBS != 0 {
 			t.Fail()
 		}
-		if r.offset % f.plainBS != 0 && skipBytes == 0 {
+		if r.offset%f.plainBS != 0 && skipBytes == 0 {
 			t.Fail()
 		}
 	}

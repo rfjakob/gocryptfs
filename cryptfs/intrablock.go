@@ -2,10 +2,10 @@ package cryptfs
 
 // intraBlock identifies a part of a file block
 type intraBlock struct {
-	BlockNo uint64  // Block number in file
-	Skip    uint64  // Offset into block plaintext
-	Length  uint64  // Length of data from this block
-	fs    *CryptFS
+	BlockNo uint64 // Block number in file
+	Skip    uint64 // Offset into block plaintext
+	Length  uint64 // Length of data from this block
+	fs      *CryptFS
 }
 
 // isPartial - is the block partial? This means we have to do read-modify-write.
@@ -29,9 +29,9 @@ func (ib *intraBlock) PlaintextRange() (offset uint64, length uint64) {
 }
 
 // CropBlock - crop a potentially larger plaintext block down to the relevant part
-func (ib *intraBlock) CropBlock(d []byte) []byte{
+func (ib *intraBlock) CropBlock(d []byte) []byte {
 	lenHave := len(d)
-	lenWant := int(ib.Skip+ib.Length)
+	lenWant := int(ib.Skip + ib.Length)
 	if lenHave < lenWant {
 		return d[ib.Skip:lenHave]
 	}

@@ -66,8 +66,8 @@ func (be opensslGCM) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 	}
 
 	l := len(ciphertext)
-	tag := ciphertext[l-AUTH_TAG_LEN:l]
-	ciphertext = ciphertext[0:l-AUTH_TAG_LEN]
+	tag := ciphertext[l-AUTH_TAG_LEN : l]
+	ciphertext = ciphertext[0 : l-AUTH_TAG_LEN]
 	plainBuf := bytes.NewBuffer(dst)
 
 	dctx, err := openssl.NewGCMDecryptionCipherCtx(128, nil, be.key[:], nonce[:])

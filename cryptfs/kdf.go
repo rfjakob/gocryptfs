@@ -12,10 +12,10 @@ const (
 )
 
 type scryptKdf struct {
-	Salt []byte
-	N int
-	R int
-	P int
+	Salt   []byte
+	N      int
+	R      int
+	P      int
 	KeyLen int
 }
 

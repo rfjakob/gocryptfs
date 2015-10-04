@@ -1,8 +1,8 @@
 package cryptfs
 
 import (
-	"testing"
 	"bytes"
+	"testing"
 )
 
 func TestTranslatePath(t *testing.T) {
@@ -14,7 +14,7 @@ func TestTranslatePath(t *testing.T) {
 	key := make([]byte, 16)
 	fs := NewCryptFS(key, true)
 
-	for _, n := range(s) {
+	for _, n := range s {
 		c := fs.EncryptPath(n)
 		d, err := fs.DecryptPath(c)
 		if err != nil {
@@ -36,13 +36,13 @@ func TestPad16(t *testing.T) {
 	key := make([]byte, 16)
 	fs := NewCryptFS(key, true)
 
-	for i := range(s) {
+	for i := range s {
 		orig := s[i]
 		padded := fs.pad16(orig)
 		if len(padded) <= len(orig) {
 			t.Errorf("Padded length not bigger than orig: %d", len(padded))
 		}
-		if len(padded) % 16 != 0 {
+		if len(padded)%16 != 0 {
 			t.Errorf("Length is not aligend: %d", len(padded))
 		}
 		unpadded, err := fs.unPad16(padded)
@@ -52,7 +52,7 @@ func TestPad16(t *testing.T) {
 		if len(unpadded) != len(orig) {
 			t.Errorf("Size mismatch: orig=%d unpadded=%d", len(s[i]), len(unpadded))
 		}
-		if ! bytes.Equal(orig, unpadded) {
+		if !bytes.Equal(orig, unpadded) {
 			t.Error("Content mismatch orig vs unpadded")
 		}
 	}

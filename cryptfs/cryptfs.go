@@ -3,23 +3,23 @@ package cryptfs
 // CryptFS is the crypto backend of GoCryptFS
 
 import (
-	"fmt"
-	"crypto/cipher"
 	"crypto/aes"
+	"crypto/cipher"
+	"fmt"
 )
 
 const (
-	KEY_LEN = 16
-	NONCE_LEN = 12
-	AUTH_TAG_LEN = 16
+	KEY_LEN         = 16
+	NONCE_LEN       = 12
+	AUTH_TAG_LEN    = 16
 	DEFAULT_PLAINBS = 4096
 )
 
 type CryptFS struct {
 	blockCipher cipher.Block
-	gcm cipher.AEAD
-	plainBS	uint64
-	cipherBS uint64
+	gcm         cipher.AEAD
+	plainBS     uint64
+	cipherBS    uint64
 	// Stores an all-zero block of size cipherBS
 	allZeroBlock []byte
 }
@@ -50,10 +50,10 @@ func NewCryptFS(key []byte, useOpenssl bool) *CryptFS {
 	cipherBS := DEFAULT_PLAINBS + NONCE_LEN + AUTH_TAG_LEN
 
 	return &CryptFS{
-		blockCipher: b,
-		gcm: gcm,
-		plainBS: DEFAULT_PLAINBS,
-		cipherBS: uint64(cipherBS),
+		blockCipher:  b,
+		gcm:          gcm,
+		plainBS:      DEFAULT_PLAINBS,
+		cipherBS:     uint64(cipherBS),
 		allZeroBlock: make([]byte, cipherBS),
 	}
 }

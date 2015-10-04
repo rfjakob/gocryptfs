@@ -4,11 +4,11 @@ package cryptfs
 
 import (
 	"bytes"
-	"os"
-	"errors"
 	"crypto/cipher"
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
+	"os"
 )
 
 const (
@@ -25,7 +25,7 @@ func md5sum(buf []byte) string {
 
 type CryptFile struct {
 	file *os.File
-	gcm cipher.AEAD
+	gcm  cipher.AEAD
 }
 
 // DecryptBlocks - Decrypt a number of blocks
@@ -113,7 +113,7 @@ func (be *CryptFS) SplitRange(offset uint64, length uint64) []intraBlock {
 	for length > 0 {
 		b.BlockNo = offset / be.plainBS
 		b.Skip = offset % be.plainBS
-		b.Length = be.minu64(length, be.plainBS - b.Skip)
+		b.Length = be.minu64(length, be.plainBS-b.Skip)
 		parts = append(parts, b)
 		offset += b.Length
 		length -= b.Length
@@ -131,7 +131,7 @@ func (be *CryptFS) PlainSize(size uint64) uint64 {
 
 	overhead := be.cipherBS - be.plainBS
 	nBlocks := (size + be.cipherBS - 1) / be.cipherBS
-	if nBlocks * overhead > size {
+	if nBlocks*overhead > size {
 		Warn.Printf("PlainSize: Negative size, returning 0 instead\n")
 		return 0
 	}
@@ -164,7 +164,7 @@ func (be *CryptFS) CiphertextRange(offset uint64, length uint64) (alignedOffset 
 	skip := offset % be.plainBS
 
 	firstBlockNo := offset / be.plainBS
-	lastBlockNo := ( offset + length - 1 ) / be.plainBS
+	lastBlockNo := (offset + length - 1) / be.plainBS
 
 	alignedOffset = firstBlockNo * be.cipherBS
 	alignedLength = (lastBlockNo - firstBlockNo + 1) * be.cipherBS
@@ -191,10 +191,10 @@ func (be *CryptFS) CropPlaintext(plaintext []byte, blocks []intraBlock) []byte {
 	last := blocks[len(blocks)-1]
 	length := (last.BlockNo - blocks[0].BlockNo + 1) * be.plainBS
 	var cropped []byte
-	if offset + length > uint64(len(plaintext)) {
+	if offset+length > uint64(len(plaintext)) {
 		cropped = plaintext[offset:len(plaintext)]
 	} else {
-		cropped = plaintext[offset:offset+length]
+		cropped = plaintext[offset : offset+length]
 	}
 	return cropped
 }
@@ -209,7 +209,7 @@ func (be *CryptFS) MergeBlocks(oldData []byte, newData []byte, offset int) []byt
 	// Copy old and new data into it
 	copy(out, oldData)
 	l := len(newData)
-	copy(out[offset:offset + l], newData)
+	copy(out[offset:offset+l], newData)
 
 	// Crop to length
 	outLen := len(oldData)
@@ -222,10 +222,10 @@ func (be *CryptFS) MergeBlocks(oldData []byte, newData []byte, offset int) []byt
 
 // Get the block number at plain-text offset
 func (be *CryptFS) BlockNoPlainOff(plainOffset uint64) uint64 {
-		return plainOffset / be.plainBS
+	return plainOffset / be.plainBS
 }
 
 // Get the block number at ciphter-text offset
 func (be *CryptFS) BlockNoCipherOff(cipherOffset uint64) uint64 {
-		return cipherOffset / be.cipherBS
+	return cipherOffset / be.cipherBS
 }

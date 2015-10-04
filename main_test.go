@@ -227,12 +227,12 @@ func BenchmarkStreamRead(t *testing.B) {
 	if t.N > mb {
 		// Grow file so we can satisfy the test
 		fmt.Printf("Growing file to %d MB... ", t.N)
-		f2, err := os.OpenFile(fn, os.O_WRONLY | os.O_APPEND, 0666)
+		f2, err := os.OpenFile(fn, os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
 			fmt.Println(err)
 			t.FailNow()
 		}
-		for h := 0; h < t.N - mb ; h++ {
+		for h := 0; h < t.N-mb; h++ {
 			_, err = f2.Write(buf)
 			if err != nil {
 				fmt.Println(err)

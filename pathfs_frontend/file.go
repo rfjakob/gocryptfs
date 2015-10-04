@@ -1,9 +1,9 @@
 package pathfs_frontend
 
 import (
-	"io"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"sync"
 	"syscall"
@@ -40,10 +40,10 @@ func NewFile(fd *os.File, writeOnly bool, cfs *cryptfs.CryptFS) nodefs.File {
 	syscall.Fstat(int(fd.Fd()), &st)
 
 	return &file{
-		fd: fd,
+		fd:        fd,
 		writeOnly: writeOnly,
-		cfs: cfs,
-		ino: st.Ino,
+		cfs:       cfs,
+		ino:       st.Ino,
 	}
 }
 
@@ -101,7 +101,7 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	lenHave := len(plaintext)
 	lenWant := skip + int(length)
 	if lenHave > lenWant {
-		out = plaintext[skip:skip +  int(length)]
+		out = plaintext[skip : skip+int(length)]
 	} else if lenHave > skip {
 		out = plaintext[skip:lenHave]
 	} else {
@@ -139,7 +139,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 	status := fuse.OK
 	dataBuf := bytes.NewBuffer(data)
 	blocks := f.cfs.SplitRange(uint64(off), uint64(len(data)))
-	for _, b := range(blocks) {
+	for _, b := range blocks {
 
 		blockData := dataBuf.Next(int(b.Length))
 
@@ -180,7 +180,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 
 // Write - FUSE call
 func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
-	cryptfs.Debug.Printf("ino%d: FUSE Write %s: offset=%d length=%d\n", f.ino, off, len(data))
+	cryptfs.Debug.Printf("ino%d: FUSE Write: offset=%d length=%d\n", f.ino, off, len(data))
 
 	fi, err := f.fd.Stat()
 	if err != nil {
@@ -248,8 +248,8 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 
 	// File grows
 	if newSize > oldSize {
-		blocks := f.cfs.SplitRange(oldSize, newSize - oldSize)
-		for _, b := range(blocks) {
+		blocks := f.cfs.SplitRange(oldSize, newSize-oldSize)
+		for _, b := range blocks {
 			// First and last block may be partial
 			if b.IsPartial() {
 				off, _ := b.PlaintextRange()
@@ -261,7 +261,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 			} else {
 				off, length := b.CiphertextRange()
 				f.lock.Lock()
-				err := syscall.Ftruncate(int(f.fd.Fd()), int64(off + length))
+				err := syscall.Ftruncate(int(f.fd.Fd()), int64(off+length))
 				f.lock.Unlock()
 				if err != nil {
 					cryptfs.Warn.Printf("grow Ftruncate returned error: %v", err)
@@ -270,7 +270,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 			}
 		}
 		return fuse.OK
-	// File shrinks
+		// File shrinks
 	} else {
 		blockNo := f.cfs.BlockNoPlainOff(newSize)
 		lastBlockOff := blockNo * f.cfs.PlainBS()
