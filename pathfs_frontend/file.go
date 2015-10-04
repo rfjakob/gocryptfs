@@ -181,7 +181,20 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 // Write - FUSE call
 func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 	cryptfs.Debug.Printf("ino%d: FUSE Write %s: offset=%d length=%d\n", f.ino, off, len(data))
-	f.conditionalZeroPad(off)
+
+	fi, err := f.fd.Stat()
+	if err != nil {
+		cryptfs.Warn.Printf("Write: Fstat failed: %v\n", err)
+		return 0, fuse.ToStatus(err)
+	}
+	plainSize := f.cfs.PlainSize(uint64(fi.Size()))
+	if f.createsHole(plainSize, off) {
+		status := f.zeroPad(plainSize)
+		if status != fuse.OK {
+			cryptfs.Warn.Printf("zeroPad returned error %v\n", status)
+			return 0, status
+		}
+	}
 	return f.doWrite(data, off)
 }
 
@@ -219,19 +232,11 @@ func (f *file) Fsync(flags int) (code fuse.Status) {
 
 func (f *file) Truncate(newSize uint64) fuse.Status {
 
-	// Common case: Truncate to zero
-	if newSize == 0 {
-		f.lock.Lock()
-		err := syscall.Ftruncate(int(f.fd.Fd()), 0)
-		f.lock.Unlock()
-		return fuse.ToStatus(err)
-	}
-
 	// We need the old file size to determine if we are growing or shrinking
 	// the file
 	fi, err := f.fd.Stat()
 	if err != nil {
-		cryptfs.Warn.Printf("Truncate: fstat failed: %v\n", err)
+		cryptfs.Warn.Printf("Truncate: Fstat failed: %v\n", err)
 		return fuse.ToStatus(err)
 	}
 	oldSize := f.cfs.PlainSize(uint64(fi.Size()))
@@ -240,77 +245,58 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 		newB := (newSize + f.cfs.PlainBS() - 1) / f.cfs.PlainBS()
 		cryptfs.Debug.Printf("ino%d: truncate from %d to %d blocks (%d to %d bytes)\n", f.ino, oldB, newB, oldSize, newSize)
 	}
-	// Grow file by appending zeros
+
+	// File grows
 	if newSize > oldSize {
-		remaining := newSize - oldSize
-		offset := oldSize
-		var zeros []byte
-		// Append a maximum of 1MB in each iteration
-		if remaining > 1048576 {
-			zeros = make([]byte, 1048576)
-		} else {
-			zeros = make([]byte, remaining)
+		blocks := f.cfs.SplitRange(oldSize, newSize - oldSize)
+		for _, b := range(blocks) {
+			// First and last block may be partial
+			if b.IsPartial() {
+				off, _ := b.PlaintextRange()
+				off += b.Offset
+				_, status := f.doWrite(make([]byte, b.Length), int64(off))
+				if status != fuse.OK {
+					return status
+				}
+			} else {
+				off, length := b.CiphertextRange()
+				f.lock.Lock()
+				err := syscall.Ftruncate(int(f.fd.Fd()), int64(off + length))
+				f.lock.Unlock()
+				if err != nil {
+					cryptfs.Warn.Printf("grow Ftruncate returned error: %v", err)
+					return fuse.ToStatus(err)
+				}
+			}
 		}
-		for remaining >= uint64(len(zeros)) {
-			written, status := f.Write(zeros, int64(offset))
+		return fuse.OK
+	// File shrinks
+	} else {
+		blockNo := f.cfs.BlockNoPlainOff(newSize)
+		lastBlockOff := blockNo * f.cfs.PlainBS()
+		lastBlockLen := newSize - lastBlockOff
+		var data []byte
+		if lastBlockLen > 0 {
+			var status fuse.Status
+			data, status = f.doRead(lastBlockOff, lastBlockLen)
 			if status != fuse.OK {
+				cryptfs.Warn.Printf("shrink doRead returned error: %v", err)
 				return status
 			}
-			remaining -= uint64(written)
-			offset += uint64(written)
-			cryptfs.Debug.Printf("Truncate: written=%d remaining=%d offset=%d\n",
-				written, remaining, offset)
 		}
-		if remaining > 0 {
-			_, status := f.Write(zeros[0:remaining], int64(offset))
+		f.lock.Lock()
+		err = syscall.Ftruncate(int(f.fd.Fd()), int64(lastBlockOff))
+		f.lock.Unlock()
+		if err != nil {
+			cryptfs.Warn.Printf("shrink Ftruncate returned error: %v", err)
+			return fuse.ToStatus(err)
+		}
+		if lastBlockLen > 0 {
+			_, status := f.doWrite(data, int64(lastBlockOff))
 			return status
 		}
 		return fuse.OK
 	}
-	// else:
-	// Shrink file by truncating
-	newBlockLen := int(newSize % f.cfs.PlainBS())
-	// New file size is aligned to block size - just truncate
-	if newBlockLen == 0 {
-		cSize := int64(f.cfs.CipherSize(newSize))
-		f.lock.Lock()
-		err := syscall.Ftruncate(int(f.fd.Fd()), cSize)
-		f.lock.Unlock()
-		return fuse.ToStatus(err)
-	}
-	// New file size is not aligned - need to do RMW on the last block
-	cryptfs.Debug.Printf("Truncate: Shrink RMW\n")
-	var blockOffset, blockLen uint64
-	{
-		// Get the block the last byte belongs to.
-		// This is, by definition, the last block.
-		blockList := f.cfs.SplitRange(newSize - 1, 1)
-		lastBlock := blockList[0]
-		blockOffset, blockLen = lastBlock.PlaintextRange()
-	}
-	blockData, status := f.doRead(blockOffset, blockLen)
-	if status != fuse.OK {
-		cryptfs.Warn.Printf("Truncate: doRead failed: %v\n", err)
-		return status
-	}
-	if len(blockData) < newBlockLen {
-		cryptfs.Warn.Printf("Truncate: file has shrunk under our feet\n")
-		return fuse.OK
-	}
-	// Truncate the file down to the next block
-	{
-		nextBlockSz := int64(f.cfs.CipherSize(newSize - uint64(newBlockLen)))
-		f.lock.Lock()
-		err = syscall.Ftruncate(int(f.fd.Fd()), nextBlockSz)
-		f.lock.Unlock()
-		if err != nil {
-			cryptfs.Warn.Printf("Truncate: Intermediate Ftruncate failed: %v\n", err)
-			return fuse.ToStatus(err)
-		}
-	}
-	// Append truncated last block
-	_, status = f.Write(blockData[0:newBlockLen], int64(blockOffset))
-	return status
 }
 
 func (f *file) Chmod(mode uint32) fuse.Status {
