@@ -178,6 +178,23 @@ func TestAppend(t *testing.T) {
 	}
 }
 
+// Create a file with holes by writing to offset 0 (block #0) and
+// offset 4096 (block #1).
+func TestFileHoles(t *testing.T) {
+	fn := plainDir + "fileholes"
+	file, err := os.Create(fn)
+	if err != nil {
+		t.Errorf("file create failed")
+	}
+	foo := []byte("foo")
+	file.Write(foo)
+	file.WriteAt(foo, 4096)
+	_, err = ioutil.ReadFile(fn)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func BenchmarkStreamWrite(t *testing.B) {
 	buf := make([]byte, 1024*1024)
 	t.SetBytes(int64(len(buf)))
