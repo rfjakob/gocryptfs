@@ -331,14 +331,10 @@ func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 	return fuse.OK
 }
 
+// Allocate FUSE call, fallocate(2)
 func (f *file) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
-	f.lock.Lock()
-	err := syscall.Fallocate(int(f.fd.Fd()), mode, int64(off), int64(sz))
-	f.lock.Unlock()
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
-	return fuse.OK
+	cryptfs.Warn.Printf("Fallocate is not supported, returning ENOSYS - see https://github.com/rfjakob/gocryptfs/issues/1\n")
+	return fuse.ENOSYS
 }
 
 const _UTIME_NOW = ((1 << 30) - 1)
