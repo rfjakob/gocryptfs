@@ -11,14 +11,10 @@ import (
 	"encoding/hex"
 	"runtime"
 
-	"github.com/rfjakob/gocryptfs/cluefs_frontend"
 	"github.com/rfjakob/gocryptfs/pathfs_frontend"
 	"github.com/rfjakob/gocryptfs/cryptfs"
 
 	"golang.org/x/crypto/ssh/terminal"
-
-	bazilfuse "bazil.org/fuse"
-	bazilfusefs "bazil.org/fuse/fs"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
@@ -136,11 +132,7 @@ func main() {
 		printMasterKey(key)
 	}
 
-	if USE_CLUEFS {
-		cluefsFrontend(key, cipherdir, mountpoint)
-	} else {
-		pathfsFrontend(key, cipherdir, mountpoint, fusedebug)
-	}
+	pathfsFrontend(key, cipherdir, mountpoint, fusedebug)
 }
 
 // printMasterKey - remind the user that he should store the master key in
@@ -197,43 +189,7 @@ func dirEmpty(dir string) bool {
 	return false
 }
 
-func cluefsFrontend(key []byte, cipherdir string, mountpoint string) {
-	cfs, err := cluefs_frontend.NewFS(key, cipherdir, USE_OPENSSL)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(ERREXIT_NEWFS)
-	}
-
-	// Mount the file system
-	mountOpts := []bazilfuse.MountOption{
-		bazilfuse.FSName(PROGRAM_NAME),
-		bazilfuse.Subtype(PROGRAM_NAME),
-		bazilfuse.VolumeName(PROGRAM_NAME),
-		bazilfuse.LocalVolume(),
-		bazilfuse.MaxReadahead(1024 * 1024),
-	}
-	conn, err := bazilfuse.Mount(mountpoint, mountOpts...)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(ERREXIT_MOUNT)
-	}
-	defer conn.Close()
-
-	// Start serving requests
-	if err = bazilfusefs.Serve(conn, cfs); err != nil {
-		fmt.Println(err)
-		os.Exit(ERREXIT_SERVE)
-	}
-
-	// Check for errors when mounting the file system
-	<-conn.Ready
-	if err = conn.MountError; err != nil {
-		fmt.Println(err)
-		os.Exit(ERREXIT_MOUNT2)
-	}
-}
-
-func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool){
+func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool) {
 
 	finalFs := pathfs_frontend.NewFS(key, cipherdir, USE_OPENSSL)
 
