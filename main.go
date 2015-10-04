@@ -192,16 +192,16 @@ func dirEmpty(dir string) bool {
 func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool) {
 
 	finalFs := pathfs_frontend.NewFS(key, cipherdir, USE_OPENSSL)
-
-	opts := &nodefs.Options{
+	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
+	pathFs := pathfs.NewPathNodeFs(finalFs, pathFsOpts)
+	fuseOpts := &nodefs.Options{
 		// These options are to be compatible with libfuse defaults,
 		// making benchmarking easier.
 		NegativeTimeout: time.Second,
 		AttrTimeout:     time.Second,
 		EntryTimeout:    time.Second,
 	}
-	pathFs := pathfs.NewPathNodeFs(finalFs, nil)
-	conn := nodefs.NewFileSystemConnector(pathFs.Root(), opts)
+	conn := nodefs.NewFileSystemConnector(pathFs.Root(), fuseOpts)
 	var mOpts fuse.MountOptions
 	mOpts.AllowOther = false
 	// Set values shown in "df -T" and friends
