@@ -113,7 +113,7 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 
 // Read - FUSE call
 func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fuse.Status) {
-	cryptfs.Debug.Printf("ino%d: Read: offset=%d length=%d\n", f.ino, len(buf), off)
+	cryptfs.Debug.Printf("ino%d: FUSE Read: offset=%d length=%d\n", f.ino, len(buf), off)
 
 	if f.writeOnly {
 		cryptfs.Warn.Printf("ino%d: Tried to read from write-only file\n", f.ino)
@@ -133,10 +133,8 @@ func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 	return fuse.ReadResultData(out), status
 }
 
-// Write - FUSE call
-func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
-	cryptfs.Debug.Printf("ino%d: Write %s: offset=%d length=%d\n", f.ino, off, len(data))
-
+// Do the actual write
+func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 	var written uint32
 	status := fuse.OK
 	dataBuf := bytes.NewBuffer(data)
@@ -177,8 +175,14 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 		}
 		written += uint32(b.Length)
 	}
-
 	return written, status
+}
+
+// Write - FUSE call
+func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
+	cryptfs.Debug.Printf("ino%d: FUSE Write %s: offset=%d length=%d\n", f.ino, off, len(data))
+	f.conditionalZeroPad(off)
+	return f.doWrite(data, off)
 }
 
 // Release - FUSE call, forget file
