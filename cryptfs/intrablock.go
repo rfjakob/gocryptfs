@@ -3,14 +3,14 @@ package cryptfs
 // intraBlock identifies a part of a file block
 type intraBlock struct {
 	BlockNo uint64  // Block number in file
-	Offset  uint64  // Offset into block plaintext
+	Skip    uint64  // Offset into block plaintext
 	Length  uint64  // Length of data from this block
 	fs    *CryptFS
 }
 
 // isPartial - is the block partial? This means we have to do read-modify-write.
 func (ib *intraBlock) IsPartial() bool {
-	if ib.Offset > 0 || ib.Length < ib.fs.plainBS {
+	if ib.Skip > 0 || ib.Length < ib.fs.plainBS {
 		return true
 	}
 	return false
@@ -31,9 +31,9 @@ func (ib *intraBlock) PlaintextRange() (offset uint64, length uint64) {
 // CropBlock - crop a potentially larger plaintext block down to the relevant part
 func (ib *intraBlock) CropBlock(d []byte) []byte{
 	lenHave := len(d)
-	lenWant := int(ib.Offset+ib.Length)
+	lenWant := int(ib.Skip+ib.Length)
 	if lenHave < lenWant {
-		return d[ib.Offset:lenHave]
+		return d[ib.Skip:lenHave]
 	}
-	return d[ib.Offset:lenWant]
+	return d[ib.Skip:lenWant]
 }

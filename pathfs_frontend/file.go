@@ -153,7 +153,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 				return written, status
 			}
 			// Modify
-			blockData = f.cfs.MergeBlocks(oldData, blockData, int(b.Offset))
+			blockData = f.cfs.MergeBlocks(oldData, blockData, int(b.Skip))
 			cryptfs.Debug.Printf("len(oldData)=%d len(blockData)=%d\n", len(oldData), len(blockData))
 		}
 
@@ -253,7 +253,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 			// First and last block may be partial
 			if b.IsPartial() {
 				off, _ := b.PlaintextRange()
-				off += b.Offset
+				off += b.Skip
 				_, status := f.doWrite(make([]byte, b.Length), int64(off))
 				if status != fuse.OK {
 					return status

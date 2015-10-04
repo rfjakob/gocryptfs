@@ -112,8 +112,8 @@ func (be *CryptFS) SplitRange(offset uint64, length uint64) []intraBlock {
 
 	for length > 0 {
 		b.BlockNo = offset / be.plainBS
-		b.Offset = offset % be.plainBS
-		b.Length = be.minu64(length, be.plainBS - b.Offset)
+		b.Skip = offset % be.plainBS
+		b.Length = be.minu64(length, be.plainBS - b.Skip)
 		parts = append(parts, b)
 		offset += b.Length
 		length -= b.Length
@@ -187,7 +187,7 @@ func (be *CryptFS) JoinCiphertextRange(blocks []intraBlock) (uint64, uint64) {
 // Crop plaintext that correspons to complete cipher blocks down to what is
 // requested according to "iblocks"
 func (be *CryptFS) CropPlaintext(plaintext []byte, blocks []intraBlock) []byte {
-	offset := blocks[0].Offset
+	offset := blocks[0].Skip
 	last := blocks[len(blocks)-1]
 	length := (last.BlockNo - blocks[0].BlockNo + 1) * be.plainBS
 	var cropped []byte

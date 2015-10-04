@@ -116,8 +116,8 @@ func (f *File) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.Wri
 				return err
 			}
 			copy(blockData, readResp.Data)
-			copy(blockData[ib.Offset:ib.Offset+ib.Length], req.Data)
-			blockLen := max(len(readResp.Data), int(ib.Offset+ib.Length))
+			copy(blockData[ib.Skip:ib.Skip+ib.Length], req.Data)
+			blockLen := max(len(readResp.Data), int(ib.Skip+ib.Length))
 			blockData = blockData[0:blockLen]
 		} else {
 			blockData = req.Data[0:f.crfs.PlainBS()]
