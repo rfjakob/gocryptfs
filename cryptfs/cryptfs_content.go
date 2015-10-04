@@ -219,3 +219,13 @@ func (be *CryptFS) MergeBlocks(oldData []byte, newData []byte, offset int) []byt
 	}
 	return out[0:outLen]
 }
+
+// Get the block number at plain-text offset
+func (be *CryptFS) BlockNoPlainOff(plainOffset uint64) uint64 {
+		return plainOffset / be.plainBS
+}
+
+// Get the block number at ciphter-text offset
+func (be *CryptFS) BlockNoCipherOff(cipherOffset uint64) uint64 {
+		return cipherOffset / be.cipherBS
+}

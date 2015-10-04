@@ -19,7 +19,7 @@ func TestSplitRange(t *testing.T) {
 		testRange{65444, 54},
 		testRange{6654, 8945})
 
-	var key [16]byte
+	key := make([]byte, 16)
 	f := NewCryptFS(key, true)
 
 	for _, r := range(ranges) {
@@ -42,7 +42,7 @@ func TestCiphertextRange(t *testing.T) {
 		testRange{65444, 54},
 		testRange{6654, 8945})
 
-	var key [16]byte
+	key := make([]byte, 16)
 	f := NewCryptFS(key, true)
 
 	for _, r := range(ranges) {
@@ -56,5 +56,27 @@ func TestCiphertextRange(t *testing.T) {
 		if r.offset % f.plainBS != 0 && skipBytes == 0 {
 			t.Fail()
 		}
+	}
+}
+
+func TestBlockNo(t *testing.T) {
+	key := make([]byte, 16)
+	f := NewCryptFS(key, true)
+
+	b := f.BlockNoCipherOff(788)
+	if b != 0 {
+		t.Errorf("actual: %d", b)
+	}
+	b = f.BlockNoCipherOff(f.CipherBS())
+	if b != 1 {
+		t.Errorf("actual: %d", b)
+	}
+	b = f.BlockNoPlainOff(788)
+	if b != 0 {
+		t.Errorf("actual: %d", b)
+	}
+	b = f.BlockNoPlainOff(f.PlainBS())
+	if b != 1 {
+		t.Errorf("actual: %d", b)
 	}
 }
