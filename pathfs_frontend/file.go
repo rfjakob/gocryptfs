@@ -241,9 +241,9 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 	}
 	oldSize := f.cfs.PlainSize(uint64(fi.Size()))
 	{
-		oldB := (oldSize + f.cfs.PlainBS() - 1) / f.cfs.PlainBS()
-		newB := (newSize + f.cfs.PlainBS() - 1) / f.cfs.PlainBS()
-		cryptfs.Debug.Printf("ino%d: truncate from %d to %d blocks (%d to %d bytes)\n", f.ino, oldB, newB, oldSize, newSize)
+		oldB := float32(oldSize) / float32(f.cfs.PlainBS())
+		newB := float32(newSize) / float32(f.cfs.PlainBS())
+		cryptfs.Debug.Printf("ino%d: FUSE Truncate from %.2f to %.2f blocks (%d to %d bytes)\n", f.ino, oldB, newB, oldSize, newSize)
 	}
 
 	// File grows
