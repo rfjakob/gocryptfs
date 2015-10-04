@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const tmpDir = "main_test_tmp/"
+const tmpDir = "tmp/"
 const plainDir = tmpDir + "plain/"
 const cipherDir = tmpDir + "cipher/"
 
@@ -37,7 +37,9 @@ func md5fn(filename string) string {
 
 func TestMain(m *testing.M) {
 
-	unmount()
+	fu := exec.Command("fusermount", "-z", "-u", plainDir)
+	fu.Run()
+
 	os.RemoveAll(tmpDir)
 
 	err := os.MkdirAll(plainDir, 0777)
@@ -226,7 +228,7 @@ func BenchmarkStreamRead(t *testing.B) {
 
 	if t.N > mb {
 		// Grow file so we can satisfy the test
-		fmt.Printf("Growing file to %d MB... ", t.N)
+		//fmt.Printf("Growing file to %d MB... ", t.N)
 		f2, err := os.OpenFile(fn, os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
 			fmt.Println(err)
@@ -240,7 +242,7 @@ func BenchmarkStreamRead(t *testing.B) {
 			}
 		}
 		f2.Close()
-		fmt.Printf("done\n")
+		//fmt.Printf("done\n")
 	}
 
 	file, err := os.Open(plainDir + "BenchmarkWrite")

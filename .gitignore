@@ -1,9 +1,5 @@
-# Binary
+# binary
 /gocryptfs
 
-# Manual test mounts
-/cipherdir
-/mountpoint
-
-# main_test.go temporary files
-/main_test_tmp
+# temporary files created by the tests
+/tmp
