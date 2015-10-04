@@ -341,23 +341,23 @@ const _UTIME_NOW = ((1 << 30) - 1)
 const _UTIME_OMIT = ((1 << 30) - 2)
 
 func (f *file) Utimens(a *time.Time, m *time.Time) fuse.Status {
-	tv := make([]syscall.Timeval, 2)
+	ts := make([]syscall.Timespec, 2)
+
 	if a == nil {
-		tv[0].Usec = _UTIME_OMIT
+		ts[0].Nsec = _UTIME_OMIT
 	} else {
-		n := a.UnixNano()
-		tv[0] = syscall.NsecToTimeval(n)
+		ts[0].Sec = a.Unix()
 	}
 
 	if m == nil {
-		tv[1].Usec = _UTIME_OMIT
+		ts[1].Nsec = _UTIME_OMIT
 	} else {
-		n := a.UnixNano()
-		tv[1] = syscall.NsecToTimeval(n)
+		ts[1].Sec = m.Unix()
 	}
 
 	f.lock.Lock()
-	err := syscall.Futimes(int(f.fd.Fd()), tv)
+	fn := fmt.Sprintf("/proc/self/fd/%d", f.fd.Fd())
+	err := syscall.UtimesNano(fn, ts)
 	f.lock.Unlock()
 	return fuse.ToStatus(err)
 }
