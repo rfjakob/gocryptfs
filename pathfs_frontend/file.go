@@ -273,8 +273,8 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 		// File shrinks
 	} else {
 		blockNo := f.cfs.BlockNoPlainOff(newSize)
-		lastBlockOff := blockNo * f.cfs.PlainBS()
-		lastBlockLen := newSize - lastBlockOff
+		lastBlockOff := blockNo * f.cfs.CipherBS()
+		lastBlockLen := newSize - blockNo * f.cfs.PlainBS()
 		var data []byte
 		if lastBlockLen > 0 {
 			var status fuse.Status
