@@ -1,20 +1,64 @@
 GoCryptFS
 =========
-A minimal encrypted overlay filesystem written in Go.
+An encrypted overlay filesystem focused on security and correctness.
 
-Inspired by [EncFS](https://github.com/vgough/encfs).
+gocryptfs is built on top the excellent
+[go-fuse](https://github.com/hanwen/go-fuse) FUSE library and its
+LoopbackFileSystem API.
 
-GoCryptFS at the moment has two FUSE frontends:
+This project was inspired by [EncFS](https://github.com/vgough/encfs)
+and strives to fix its security issues (see EncFS tickets 9, 13, 14, 16).
 
-* The [go-fuse](https://github.com/hanwen/go-fuse) FUSE library using its
-  LoopbackFileSystem API
-* The FUSE library [bazil.org/fuse](https://github.com/bazil/fuse) plus the
-  [ClueFS](https://github.com/airnandez/cluefs) loopback filesystem
+"Security" can be split into "Confidentiality" and "Integrity". The
+security level gocryptfs provides for each is discussed in the next
+sections.
 
-A frontend is selected on compile-time by setting `USE_CLUEFS` to true or false
-(default false).
-Once I decide that one works better for GoCryptFS, the other one
-will go away.
+Confidentiality
+---------------
+
+Confidentiality means that information cannot be extracted from the
+encrypted data unless you know the key.
+
+### File Contents
+
+* File contents are encrypted using AES-128-GCM
+* Files are segmented into 4096 byte blocks
+* Each block gets a fresh random 96 bit IV (none) each time it is written.
+ * This means that identical blocks can not be identified
+* The size of the file is not hidden. The exact file size can be calculated
+  from the size of the encrypted file.
+
+### File Names
+
+* File names are encrypted using AES-128-CBC because it is robust even
+  without using an IV
+* The file names are padded to multiples of 16 bytes
+ * This means that the exact length of the name is hidden, only length
+  ranges (1-16 bytes, 17-32 bytes etc.) can be determined from the encrypted
+  files
+* For technical reasons, no IV is used
+ * This means that files with the same name within one gocryptfs filesystem
+   always get the same encrypted name
+
+Integrity
+---------
+
+Integrity means that the data cannot be modified in a meaningful way
+unless you have the key. The opposite of integrity is *malleability*.
+
+### File Contents
+
+* The used encryption, AES-128-GCM, is a variant of
+  *authenticated encryption*. Each block gets a 128 bit authentication
+  tag (GMAC) appended.
+ * This means that any modification inside block will be detected when reading
+   the block and decryption will be aborted. The failure is logged and an
+   I/O error is returned to the user.
+* However, blocks can be copied around in the encrypted data.
+  The block authentication tag only protects each individual block. It
+  does not protect the ordering of blocks.
+* For technical reasons (file holes), the special "all-zero" block is
+  seen as a valid block that decrypts to an all-zero block.
 
 Design
 ------
@@ -51,15 +95,14 @@ Install
 
 Testing
 -------
-Run `./main_benchmark.bash` to run the test suite and the streaming read/write
+Run `./benchmark.bash` to run the test suite and the streaming read/write
 benchmark.
 
 The output should look like this:
 
-	$ ./main_benchmark.bash
-	+ go build
-	+ go test -bench=.
-	PASS
-	BenchmarkStreamWrite	     100	  14062281 ns/op	  74.57 MB/s
-	BenchmarkStreamRead 	     100	  11267741 ns/op	  93.06 MB/s
-	ok  	github.com/rfjakob/gocryptfs	7.569s
+	$ ./benchmark.bash
+	[...]
+	BenchmarkStreamWrite	     100	  11816665 ns/op	  88.74 MB/s
+	BenchmarkStreamRead 	     200	   7848155 ns/op	 133.61 MB/s
+	ok  	github.com/rfjakob/gocryptfs	9.407s
+
