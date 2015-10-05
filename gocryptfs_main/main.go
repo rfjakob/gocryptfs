@@ -128,11 +128,20 @@ func main() {
 			fmt.Println(err)
 			os.Exit(ERREXIT_LOADCONF)
 		}
-		fmt.Printf("Success\n")
+		fmt.Printf("done.\n")
+	}
+
+	srv := pathfsFrontend(key, cipherdir, mountpoint, fusedebug)
+	fmt.Printf("Mounted.\n")
+
+	if zerokey == false {
 		printMasterKey(key)
 	}
 
-	pathfsFrontend(key, cipherdir, mountpoint, fusedebug)
+	// Send notification to our parent
+	sendSig()
+	// Jump into server loop
+	srv.Serve()
 }
 
 // printMasterKey - remind the user that he should store the master key in
@@ -143,12 +152,13 @@ func printMasterKey(key []byte) {
 	h = h[0:8] + "-" + h[8:16] + "-" + h[16:24] + "-" + h[24:32]
 
 	fmt.Printf(`
-WARNING:
-  If the gocryptfs config file becomes corrupted or you ever
-  forget your password, there is only one hope for recovery:
-  The master key. Print it to a piece of paper and store it in a drawer.
+ATTENTION:
 
-  Master key: %s
+  Your master key is: %s
+
+If the gocryptfs.conf file becomes corrupted or you ever forget your password,
+there is only one hope for recovery: The master key. Print it to a piece of
+paper and store it in a drawer.
 
 `, h)
 }
@@ -171,7 +181,7 @@ func readPassword() string {
 	fd := int(os.Stdin.Fd())
 	p, err := terminal.ReadPassword(fd)
 	if err != nil {
-		fmt.Printf("Error: Could not read password: %s\n")
+		fmt.Printf("Error: Could not read password: %v\n", err)
 		os.Exit(ERREXIT_PASSWORD)
 	}
 	return string(p)
@@ -189,7 +199,7 @@ func dirEmpty(dir string) bool {
 	return false
 }
 
-func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool) {
+func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool) *fuse.Server {
 
 	finalFs := pathfs_frontend.NewFS(key, cipherdir, USE_OPENSSL)
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
@@ -210,13 +220,12 @@ func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool)
 	// Second column, "Type", will be shown as "fuse." + Name
 	mOpts.Name = "gocryptfs"
 
-	state, err := fuse.NewServer(conn.RawFS(), mountpoint, &mOpts)
+	srv, err := fuse.NewServer(conn.RawFS(), mountpoint, &mOpts)
 	if err != nil {
-		fmt.Printf("Mount fail: %v\n", err)
+		fmt.Printf("Mount failed: %v", err)
 		os.Exit(1)
 	}
-	state.SetDebug(debug)
+	srv.SetDebug(debug)
 
-	fmt.Println("Mounted.")
-	state.Serve()
+	return srv
 }

@@ -1,8 +1,12 @@
 #!/bin/bash
 
-# Simple wrapper that runs the gocryptfs process in the background
+# Shell wrapper that runs the gocryptfs process in the background
+# and exits on SIGUSR1
 
 set -eu
+
+trap "exit 0" SIGUSR1
+shopt -u huponexit
 
 dir=$(dirname "$0")
 main="$dir/gocryptfs_main/gocryptfs_main"
@@ -12,11 +16,8 @@ if [ ! -x $main ]; then
 	exit 1
 fi
 
-# This needs user input and cannot run in the background
-if [[ $* == *--init* ]]; then
-	"$main" $*
-else
-	"$main" $* &
-	sleep 0.1
-	disown
-fi
+# A backgrounded process gets /dev/null as stdin per default.
+# Explicitly set stdin to the current stdin so we can ask the user for input.
+"$main" $* < /proc/self/fd/0 & wait
+# The "& wait" is neccessary because bash only processes signals when
+# executing internal commands
