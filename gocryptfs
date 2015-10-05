@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Simple wrapper that runs the gocryptfs process in the background
+
+set -eu
+
+dir=$(dirname "$0")
+main="$dir/gocryptfs_main/gocryptfs_main"
+
+if [ ! -x $main ]; then
+	echo "Error: gocryptfs_main executable not found. Run ./all.bash to build it."
+	exit 1
+fi
+
+# This needs user input and cannot run in the background
+if [[ $* == *--init* ]]; then
+	"$main" $*
+else
+	"$main" $* &
+	sleep 0.1
+	disown
+fi

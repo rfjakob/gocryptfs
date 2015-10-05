@@ -1,5 +1,5 @@
 # binary
-/gocryptfs
+/gocryptfs_main/gocryptfs_main
 
 # temporary files created by the tests
 /tmp

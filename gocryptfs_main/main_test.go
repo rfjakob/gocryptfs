@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const tmpDir = "tmp/"
+const tmpDir = "../tmp/"
 const plainDir = tmpDir + "plain/"
 const cipherDir = tmpDir + "cipher/"
 
@@ -53,7 +53,7 @@ func TestMain(m *testing.M) {
 	}
 
 	//c := exec.Command("./gocryptfs", "--zerokey", "--cpuprofile", "/tmp/gcfs.cpu", cipherDir, plainDir)
-	c := exec.Command("./gocryptfs", "--zerokey", cipherDir, plainDir)
+	c := exec.Command("./gocryptfs_main", "--zerokey", cipherDir, plainDir)
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
 	go c.Run()
