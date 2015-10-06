@@ -39,7 +39,7 @@ func CreateConfFile(filename string, password string) error {
 
 	// Lock master key using password-based key
 	cfs := NewCryptFS(scryptHash, false)
-	cf.EncryptedKey = cfs.EncryptBlock(key)
+	cf.EncryptedKey = cfs.EncryptBlock(key, 0)
 
 	// Write file to disk
 	err := cf.WriteFile()
@@ -73,7 +73,7 @@ func LoadConfFile(filename string, password string) ([]byte, error) {
 	// We use stock go GCM instead of OpenSSL here as speed is not important
 	// and we get better error messages
 	cfs := NewCryptFS(scryptHash, false)
-	key, err := cfs.DecryptBlock(cf.EncryptedKey)
+	key, err := cfs.DecryptBlock(cf.EncryptedKey, 0)
 	if err != nil {
 		Warn.Printf("Failed to unlock master key: %s\n", err.Error())
 		return nil, err

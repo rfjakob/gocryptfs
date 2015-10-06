@@ -80,13 +80,12 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	}
 	// Truncate ciphertext buffer down to actually read bytes
 	ciphertext = ciphertext[0:n]
-	{
-		blockNo := alignedOffset / f.cfs.CipherBS()
-		cryptfs.Debug.Printf("ReadAt offset=%d bytes (%d blocks), want=%d, got=%d\n", alignedOffset, blockNo, alignedLength, n)
-	}
+
+	blockNo := alignedOffset / f.cfs.CipherBS()
+	cryptfs.Debug.Printf("ReadAt offset=%d bytes (%d blocks), want=%d, got=%d\n", alignedOffset, blockNo, alignedLength, n)
 
 	// Decrypt it
-	plaintext, err := f.cfs.DecryptBlocks(ciphertext)
+	plaintext, err := f.cfs.DecryptBlocks(ciphertext, blockNo)
 	if err != nil {
 		blockNo := (alignedOffset + uint64(len(plaintext))) / f.cfs.PlainBS()
 		cipherOff := blockNo * f.cfs.CipherBS()
@@ -159,7 +158,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 
 		// Write
 		blockOffset, _ := b.CiphertextRange()
-		blockData = f.cfs.EncryptBlock(blockData)
+		blockData = f.cfs.EncryptBlock(blockData, b.BlockNo)
 		cryptfs.Debug.Printf("ino%d: Writing %d bytes to block #%d, md5=%s\n", f.ino, len(blockData), b.BlockNo, cryptfs.Debug.Md5sum(blockData))
 		if len(blockData) != int(f.cfs.CipherBS()) {
 			cryptfs.Debug.Printf("ino%d: Writing partial block #%d (%d bytes)\n", f.ino, b.BlockNo, len(blockData))

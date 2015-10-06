@@ -63,16 +63,16 @@ func (be opensslGCM) Seal(dst, nonce, plaintext, data []byte) []byte {
 // The ciphertext and dst may alias exactly or not at all.
 func (be opensslGCM) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 
-	if len(data) > 0 {
-		panic("Extra data is not supported")
-	}
-
 	l := len(ciphertext)
 	tag := ciphertext[l-AUTH_TAG_LEN : l]
 	ciphertext = ciphertext[0 : l-AUTH_TAG_LEN]
 	plainBuf := bytes.NewBuffer(dst)
 
 	dctx, err := openssl.NewGCMDecryptionCipherCtx(KEY_LEN*8, nil, be.key, nonce)
+	if err != nil {
+		return nil, err
+	}
+	err = dctx.ExtraData(data)
 	if err != nil {
 		return nil, err
 	}
@@ -90,10 +90,6 @@ func (be opensslGCM) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 		return nil, err
 	}
 	plainBuf.Write(part)
-	err = dctx.ExtraData(data)
-	if err != nil {
-		return nil, err
-	}
 
 	return plainBuf.Bytes(), nil
 }

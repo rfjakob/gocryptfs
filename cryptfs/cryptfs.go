@@ -13,7 +13,6 @@ const (
 	KEY_LEN         = 32 // AES-256
 	NONCE_LEN       = 12
 	AUTH_TAG_LEN    = 16
-	FILEID_LEN      = 16
 )
 
 type CryptFS struct {

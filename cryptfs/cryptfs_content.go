@@ -3,6 +3,7 @@ package cryptfs
 // File content encryption / decryption
 
 import (
+	"encoding/binary"
 	"bytes"
 	"crypto/cipher"
 	"crypto/md5"
@@ -29,18 +30,19 @@ type CryptFile struct {
 }
 
 // DecryptBlocks - Decrypt a number of blocks
-func (be *CryptFS) DecryptBlocks(ciphertext []byte) ([]byte, error) {
+func (be *CryptFS) DecryptBlocks(ciphertext []byte, firstBlockNo uint64) ([]byte, error) {
 	cBuf := bytes.NewBuffer(ciphertext)
 	var err error
 	var pBuf bytes.Buffer
 	for cBuf.Len() > 0 {
 		cBlock := cBuf.Next(int(be.cipherBS))
 		var pBlock []byte
-		pBlock, err = be.DecryptBlock(cBlock)
+		pBlock, err = be.DecryptBlock(cBlock, firstBlockNo)
 		if err != nil {
 			break
 		}
 		pBuf.Write(pBlock)
+		firstBlockNo++
 	}
 	return pBuf.Bytes(), err
 }
@@ -49,7 +51,7 @@ func (be *CryptFS) DecryptBlocks(ciphertext []byte) ([]byte, error) {
 //
 // Corner case: A full-sized block of all-zero ciphertext bytes is translated
 // to an all-zero plaintext block, i.e. file hole passtrough.
-func (be *CryptFS) DecryptBlock(ciphertext []byte) ([]byte, error) {
+func (be *CryptFS) DecryptBlock(ciphertext []byte, blockNo uint64) ([]byte, error) {
 
 	// Empty block?
 	if len(ciphertext) == 0 {
@@ -74,7 +76,8 @@ func (be *CryptFS) DecryptBlock(ciphertext []byte) ([]byte, error) {
 
 	// Decrypt
 	var plaintext []byte
-
+	aData := make([]byte, 8)
+	binary.BigEndian.PutUint64(aData, blockNo)
 	plaintext, err := be.gcm.Open(plaintext, nonce, ciphertext, nil)
 
 	if err != nil {
@@ -87,7 +90,7 @@ func (be *CryptFS) DecryptBlock(ciphertext []byte) ([]byte, error) {
 }
 
 // encryptBlock - Encrypt and add MAC using GCM
-func (be *CryptFS) EncryptBlock(plaintext []byte) []byte {
+func (be *CryptFS) EncryptBlock(plaintext []byte,  blockNo uint64) []byte {
 
 	// Empty block?
 	if len(plaintext) == 0 {
@@ -98,6 +101,8 @@ func (be *CryptFS) EncryptBlock(plaintext []byte) []byte {
 	nonce := gcmNonce.Get()
 
 	// Encrypt plaintext and append to nonce
+	aData := make([]byte, 8)
+	binary.BigEndian.PutUint64(aData, blockNo)
 	ciphertext := be.gcm.Seal(nonce, nonce, plaintext, nil)
 
 	return ciphertext
