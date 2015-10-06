@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -64,12 +63,14 @@ func main() {
 
 	// Parse command line arguments
 	var debug, init, zerokey, fusedebug, openssl bool
+	var masterkey string
 
 	flag.BoolVar(&debug, "debug", false, "Enable debug output")
 	flag.BoolVar(&fusedebug, "fusedebug", false, "Enable fuse library debug output")
 	flag.BoolVar(&init, "init", false, "Initialize encrypted directory")
 	flag.BoolVar(&zerokey, "zerokey", false, "Use all-zero dummy master key")
 	flag.BoolVar(&openssl, "openssl", true, "Use OpenSSL instead of built-in Go crypto")
+	flag.StringVar(&masterkey, "masterkey", "", "Mount with explicit master key")
 	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
 	flag.Parse()
@@ -114,7 +115,9 @@ func main() {
 	key := make([]byte, cryptfs.KEY_LEN)
 	if zerokey {
 		fmt.Printf("Zerokey mode active: using all-zero dummy master key.\n")
-		fmt.Printf("ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING.\n")
+	} else if len(masterkey) > 0 {
+		key = parseMasterKey(masterkey)
+		fmt.Printf("Using explicit master key.\n")
 	} else {
 		cfname := filepath.Join(cipherdir, cryptfs.ConfDefaultName)
 		_, err = os.Stat(cfname)
@@ -137,43 +140,18 @@ func main() {
 	srv := pathfsFrontend(key, cipherdir, mountpoint, fusedebug, openssl)
 	fmt.Printf("Mounted.\n")
 
-	if zerokey == false {
+	if zerokey == false && len(masterkey) == 0 {
 		printMasterKey(key)
+	} else if zerokey == true {
+		fmt.Printf("ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING.\n")
+	} else if len(masterkey) > 0 {
+		fmt.Printf("THE MASTER KEY IS VISIBLE VIA \"ps -auxwww\", ONLY USE THIS MODE FOR EMERGENCIES.\n")
 	}
 
 	// Send notification to our parent
 	sendSig()
 	// Jump into server loop
 	srv.Serve()
-}
-
-// printMasterKey - remind the user that he should store the master key in
-// a safe place
-func printMasterKey(key []byte) {
-	h := hex.EncodeToString(key)
-	var hChunked string
-
-	// Try to make it less scary by splitting it up in chunks
-	for i := 0; i < len(h); i+=8 {
-		hChunked += h[i:i+8]
-		if i < 52 {
-			hChunked += "-"
-		}
-		if i == 24 {
-			hChunked += "\n                      "
-		}
-	}
-
-	fmt.Printf(`
-ATTENTION:
-
-  Your master key is: %s
-
-If the gocryptfs.conf file becomes corrupted or you ever forget your password,
-there is only one hope for recovery: The master key. Print it to a piece of
-paper and store it in a drawer.
-
-`, hChunked)
 }
 
 func readPasswordTwice() string {
