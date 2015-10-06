@@ -10,7 +10,7 @@ import (
 
 const (
 	DEFAULT_PLAINBS = 4096
-	KEY_LEN         = 16
+	KEY_LEN         = 32 // AES-256
 	NONCE_LEN       = 12
 	AUTH_TAG_LEN    = 16
 	FILEID_LEN      = 16
@@ -38,9 +38,7 @@ func NewCryptFS(key []byte, useOpenssl bool) *CryptFS {
 
 	var gcm cipher.AEAD
 	if useOpenssl {
-		var k16 [16]byte
-		copy(k16[:], key)
-		gcm = opensslGCM{k16}
+		gcm = opensslGCM{key}
 	} else {
 		gcm, err = cipher.NewGCM(b)
 		if err != nil {

@@ -8,7 +8,7 @@ import (
 )
 
 type opensslGCM struct {
-	key [16]byte
+	key []byte
 }
 
 func (be opensslGCM) Overhead() int {
@@ -27,7 +27,7 @@ func (be opensslGCM) Seal(dst, nonce, plaintext, data []byte) []byte {
 
 	cipherBuf := bytes.NewBuffer(dst)
 
-	ectx, err := openssl.NewGCMEncryptionCipherCtx(128, nil, be.key[:], nonce[:])
+	ectx, err := openssl.NewGCMEncryptionCipherCtx(KEY_LEN*8, nil, be.key, nonce)
 	if err != nil {
 		panic(err)
 	}
@@ -72,7 +72,7 @@ func (be opensslGCM) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 	ciphertext = ciphertext[0 : l-AUTH_TAG_LEN]
 	plainBuf := bytes.NewBuffer(dst)
 
-	dctx, err := openssl.NewGCMDecryptionCipherCtx(128, nil, be.key[:], nonce[:])
+	dctx, err := openssl.NewGCMDecryptionCipherCtx(KEY_LEN*8, nil, be.key, nonce)
 	if err != nil {
 		return nil, err
 	}

@@ -151,8 +151,18 @@ func main() {
 // a safe place
 func printMasterKey(key []byte) {
 	h := hex.EncodeToString(key)
-	// Make it less scary by splitting it up in chunks
-	h = h[0:8] + "-" + h[8:16] + "-" + h[16:24] + "-" + h[24:32]
+	var hChunked string
+
+	// Try to make it less scary by splitting it up in chunks
+	for i := 0; i < len(h); i+=8 {
+		hChunked += h[i:i+8]
+		if i < 52 {
+			hChunked += "-"
+		}
+		if i == 24 {
+			hChunked += "\n                      "
+		}
+	}
 
 	fmt.Printf(`
 ATTENTION:
@@ -163,7 +173,7 @@ If the gocryptfs.conf file becomes corrupted or you ever forget your password,
 there is only one hope for recovery: The master key. Print it to a piece of
 paper and store it in a drawer.
 
-`, h)
+`, hChunked)
 }
 
 func readPasswordTwice() string {
