@@ -71,7 +71,7 @@ func main() {
 	flag.BoolVar(&zerokey, "zerokey", false, "Use all-zero dummy master key")
 	flag.BoolVar(&openssl, "openssl", true, "Use OpenSSL instead of built-in Go crypto")
 	flag.StringVar(&masterkey, "masterkey", "", "Mount with explicit master key")
-	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+	var cpuprofile = flag.String("cpuprofile", "", "Write cpu profile to specified file")
 
 	flag.Parse()
 	if *cpuprofile != "" {

@@ -15,7 +15,7 @@ document.
 Current Status
 --------------
 * First public release
-* Feature-Complete
+* Feature-complete
 * Passes the xfstests "generic" tests
 
 Install
