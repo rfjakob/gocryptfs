@@ -10,12 +10,26 @@ import (
 	"os"
 	"os/exec"
 	"testing"
-	"time"
 )
 
 const tmpDir = "../tmp/"
 const plainDir = tmpDir + "plain/"
 const cipherDir = tmpDir + "cipher/"
+
+func mount(extraArgs ...string) {
+	var args []string
+	args = append(args, extraArgs...)
+	args = append(args, cipherDir)
+	args = append(args, plainDir)
+	c := exec.Command("../gocryptfs", args...)
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	err := c.Run()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
 
 func unmount() error {
 	fu := exec.Command("fusermount", "-z", "-u", plainDir)
@@ -35,6 +49,7 @@ func md5fn(filename string) string {
 	return hash
 }
 
+// This is the entry point for the tests
 func TestMain(m *testing.M) {
 
 	fu := exec.Command("fusermount", "-z", "-u", plainDir)
@@ -52,17 +67,14 @@ func TestMain(m *testing.M) {
 		panic("Could not create cipherDir")
 	}
 
-	//c := exec.Command("./gocryptfs", "--zerokey", "--cpuprofile", "/tmp/gcfs.cpu", cipherDir, plainDir)
-	c := exec.Command("./gocryptfs_main", "--zerokey", cipherDir, plainDir)
-	c.Stdout = os.Stdout
-	c.Stderr = os.Stderr
-	go c.Run()
-
-	time.Sleep(3 * time.Second)
-
+	mount("--zerokey", "--openssl=false")
 	r := m.Run()
-
 	unmount()
+
+	mount("--zerokey")
+	r = m.Run()
+	unmount()
+
 	os.Exit(r)
 }
 

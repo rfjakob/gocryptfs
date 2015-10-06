@@ -21,3 +21,6 @@ fi
 "$main" $* < /proc/self/fd/0 & wait
 # The "& wait" is neccessary because bash only processes signals when
 # executing internal commands
+
+# We did not get USR1 - something went wrong
+exit 1

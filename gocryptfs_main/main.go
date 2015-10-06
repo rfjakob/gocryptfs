@@ -22,8 +22,7 @@ import (
 )
 
 const (
-	USE_CLUEFS   = false // Use cluefs or pathfs FUSE frontend
-	USE_OPENSSL  = true  // 3x speed increase compared to Go's built-in GCM
+	USE_OPENSSL  = true
 	PATHFS_DEBUG = false
 
 	PROGRAM_NAME = "gocryptfs"
@@ -64,12 +63,13 @@ func main() {
 	runtime.GOMAXPROCS(4)
 
 	// Parse command line arguments
-	var debug, init, zerokey, fusedebug bool
+	var debug, init, zerokey, fusedebug, openssl bool
 
 	flag.BoolVar(&debug, "debug", false, "Enable debug output")
 	flag.BoolVar(&fusedebug, "fusedebug", false, "Enable fuse library debug output")
 	flag.BoolVar(&init, "init", false, "Initialize encrypted directory")
 	flag.BoolVar(&zerokey, "zerokey", false, "Use all-zero dummy master key")
+	flag.BoolVar(&openssl, "openssl", true, "Use OpenSSL instead of built-in Go crypto")
 	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
 	flag.Parse()
@@ -86,6 +86,9 @@ func main() {
 	if debug {
 		cryptfs.Debug.Enable()
 		cryptfs.Debug.Printf("Debug output enabled\n")
+	}
+	if openssl == false {
+		fmt.Printf("Openssl disabled\n")
 	}
 	if init {
 		if flag.NArg() != 1 {
@@ -131,7 +134,7 @@ func main() {
 		fmt.Printf("done.\n")
 	}
 
-	srv := pathfsFrontend(key, cipherdir, mountpoint, fusedebug)
+	srv := pathfsFrontend(key, cipherdir, mountpoint, fusedebug, openssl)
 	fmt.Printf("Mounted.\n")
 
 	if zerokey == false {
@@ -199,9 +202,9 @@ func dirEmpty(dir string) bool {
 	return false
 }
 
-func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool) *fuse.Server {
+func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool, openssl bool) *fuse.Server {
 
-	finalFs := pathfs_frontend.NewFS(key, cipherdir, USE_OPENSSL)
+	finalFs := pathfs_frontend.NewFS(key, cipherdir, openssl)
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
 	pathFs := pathfs.NewPathNodeFs(finalFs, pathFsOpts)
 	fuseOpts := &nodefs.Options{
