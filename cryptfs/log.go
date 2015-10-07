@@ -30,6 +30,10 @@ func (l *logChannel) Enable() {
 	l.enabled = true
 }
 
+func (l *logChannel) Disable() {
+	l.enabled = false
+}
+
 // Only actually calculate the md5sum if the log channel is enabled to save
 // CPU cycles
 func (l *logChannel) Md5sum(buf []byte) string {

@@ -7,15 +7,12 @@ import (
 import "os"
 
 const (
-	// Changing this string breaks backward compatability
-	testBlockData = "gocryptfs test block"
-
 	// The dot "." is not used in base64url (RFC4648), hence
 	// we can never clash with an encrypted file.
 	ConfDefaultName = "gocryptfs.conf"
 )
 
-type confFile struct {
+type ConfFile struct {
 	// File the config is saved to. Not exported to JSON.
 	filename string
 	// Encrypted AES key, unlocked using a password hashed with scrypt
@@ -27,19 +24,14 @@ type confFile struct {
 // CreateConfFile - create a new config with a random key encrypted with
 // "password" and write it to "filename"
 func CreateConfFile(filename string, password string) error {
-	var cf confFile
+	var cf ConfFile
 	cf.filename = filename
 
 	// Generate new random master key
 	key := RandBytes(KEY_LEN)
 
-	// Generate derived key from password
-	cf.ScryptObject = NewScryptKdf()
-	scryptHash := cf.ScryptObject.DeriveKey(password)
-
-	// Lock master key using password-based key
-	cfs := NewCryptFS(scryptHash, false)
-	cf.EncryptedKey = cfs.EncryptBlock(key, 0)
+	// Encrypt it using the password
+	cf.EncryptKey(key, password)
 
 	// Write file to disk
 	err := cf.WriteFile()
@@ -49,21 +41,21 @@ func CreateConfFile(filename string, password string) error {
 
 // LoadConfFile - read config file from disk and decrypt the
 // contained key using password
-func LoadConfFile(filename string, password string) ([]byte, error) {
-	var cf confFile
+func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
+	var cf ConfFile
 	cf.filename = filename
 
 	// Read from disk
 	js, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Unmarshal
 	err = json.Unmarshal(js, &cf)
 	if err != nil {
 		Warn.Printf("Failed to unmarshal config file\n")
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Generate derived key from password
@@ -76,15 +68,27 @@ func LoadConfFile(filename string, password string) ([]byte, error) {
 	key, err := cfs.DecryptBlock(cf.EncryptedKey, 0)
 	if err != nil {
 		Warn.Printf("Failed to unlock master key: %s\n", err.Error())
-		return nil, err
+		return nil, nil, err
 	}
 
-	return key, nil
+	return key, &cf, nil
+}
+
+// EncryptKey - encrypt "key" using an scrypt hash generated from "password"
+// and store it in cf.EncryptedKey
+func (cf *ConfFile) EncryptKey(key []byte, password string) {
+	// Generate derived key from password
+	cf.ScryptObject = NewScryptKdf()
+	scryptHash := cf.ScryptObject.DeriveKey(password)
+
+	// Lock master key using password-based key
+	cfs := NewCryptFS(scryptHash, false)
+	cf.EncryptedKey = cfs.EncryptBlock(key, 0)
 }
 
 // WriteFile - write out config in JSON format to file "filename.tmp"
 // then rename over "filename"
-func (cf *confFile) WriteFile() error {
+func (cf *ConfFile) WriteFile() error {
 	tmp := cf.filename + ".tmp"
 	fd, err := os.Create(tmp)
 	if err != nil {

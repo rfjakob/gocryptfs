@@ -13,8 +13,6 @@ import (
 	"github.com/rfjakob/gocryptfs/cryptfs"
 	"github.com/rfjakob/gocryptfs/pathfs_frontend"
 
-	"golang.org/x/crypto/ssh/terminal"
-
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
@@ -62,7 +60,7 @@ func main() {
 	runtime.GOMAXPROCS(4)
 
 	// Parse command line arguments
-	var debug, init, zerokey, fusedebug, openssl bool
+	var debug, init, zerokey, fusedebug, openssl, passwd bool
 	var masterkey string
 
 	flag.BoolVar(&debug, "debug", false, "Enable debug output")
@@ -70,6 +68,7 @@ func main() {
 	flag.BoolVar(&init, "init", false, "Initialize encrypted directory")
 	flag.BoolVar(&zerokey, "zerokey", false, "Use all-zero dummy master key")
 	flag.BoolVar(&openssl, "openssl", true, "Use OpenSSL instead of built-in Go crypto")
+	flag.BoolVar(&passwd, "passwd", false, "Change password")
 	flag.StringVar(&masterkey, "masterkey", "", "Mount with explicit master key")
 	var cpuprofile = flag.String("cpuprofile", "", "Write cpu profile to specified file")
 
@@ -97,8 +96,12 @@ func main() {
 			os.Exit(ERREXIT_USAGE)
 		}
 		initDir(flag.Arg(0))
-	}
-	if flag.NArg() < 2 {
+	} else if passwd {
+		if flag.NArg() != 1 {
+			fmt.Printf("usage: %s --passwd CIPHERDIR\n", PROGRAM_NAME)
+			os.Exit(ERREXIT_USAGE)
+		}
+	} else if flag.NArg() < 2 {
 		fmt.Printf("usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT\n", PROGRAM_NAME)
 		os.Exit(ERREXIT_USAGE)
 	}
@@ -112,6 +115,8 @@ func main() {
 		os.Exit(ERREXIT_CIPHERDIR)
 	}
 
+	var cf *cryptfs.ConfFile
+	var currentPassword string
 	key := make([]byte, cryptfs.KEY_LEN)
 	if zerokey {
 		fmt.Printf("Zerokey mode active: using all-zero dummy master key.\n")
@@ -126,15 +131,38 @@ func main() {
 			fmt.Printf("Please run \"%s --init %s\" first\n", PROGRAM_NAME, flag.Arg(0))
 			os.Exit(ERREXIT_LOADCONF)
 		}
-		fmt.Printf("Password: ")
-		password := readPassword()
+		if passwd == true {
+			fmt.Printf("Old password: ")
+		} else {
+			fmt.Printf("Password: ")
+		}
+		currentPassword = readPassword()
 		fmt.Printf("\nDecrypting master key... ")
-		key, err = cryptfs.LoadConfFile(cfname, password)
+		cryptfs.Warn.Disable() // Silence DecryptBlock() error messages on incorrect password
+		key, cf, err = cryptfs.LoadConfFile(cfname, currentPassword)
+		cryptfs.Warn.Enable()
 		if err != nil {
 			fmt.Println(err)
+			fmt.Println("Password incorrect.")
 			os.Exit(ERREXIT_LOADCONF)
 		}
 		fmt.Printf("done.\n")
+	}
+	if passwd == true {
+		fmt.Printf("Please enter the new password.\n")
+		newPassword := readPasswordTwice()
+		if newPassword == currentPassword {
+			fmt.Printf("New and old passwords are identical\n")
+			os.Exit(1)
+		}
+		cf.EncryptKey(key, newPassword)
+		err := cf.WriteFile()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(ERREXIT_INIT)
+		}
+		fmt.Printf("Password changed.\n")
+		os.Exit(0)
 	}
 
 	srv := pathfsFrontend(key, cipherdir, mountpoint, fusedebug, openssl)
@@ -152,30 +180,6 @@ func main() {
 	sendSig()
 	// Jump into server loop
 	srv.Serve()
-}
-
-func readPasswordTwice() string {
-	fmt.Printf("Password: ")
-	p1 := readPassword()
-	fmt.Printf("\nRepeat: ")
-	p2 := readPassword()
-	fmt.Printf("\n")
-	if p1 != p2 {
-		fmt.Printf("Passwords do not match\n")
-		os.Exit(ERREXIT_PASSWORD)
-	}
-	return p1
-}
-
-// Get password from terminal
-func readPassword() string {
-	fd := int(os.Stdin.Fd())
-	p, err := terminal.ReadPassword(fd)
-	if err != nil {
-		fmt.Printf("Error: Could not read password: %v\n", err)
-		os.Exit(ERREXIT_PASSWORD)
-	}
-	return string(p)
 }
 
 func dirEmpty(dir string) bool {
