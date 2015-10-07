@@ -21,6 +21,7 @@ Current Status
  * The one exceptions generic/035. This is a limitation in go-fuse,
    check out https://github.com/hanwen/go-fuse/issues/55 for details.
 * However, gocryptfs needs more real-world testing - please report any issues via github.
+* Only Linux operation has been tested. Help wanted for a Mac OS X port.
 
 Install
 -------
