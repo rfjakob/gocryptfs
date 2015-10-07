@@ -56,6 +56,12 @@ func initDir(dirArg string) {
 	os.Exit(0)
 }
 
+func usageText() {
+	fmt.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT\n", PROGRAM_NAME)
+	fmt.Printf("\nOptions:\n")
+	flag.PrintDefaults()
+}
+
 func main() {
 	runtime.GOMAXPROCS(4)
 
@@ -63,6 +69,7 @@ func main() {
 	var debug, init, zerokey, fusedebug, openssl, passwd bool
 	var masterkey string
 
+	flag.Usage = usageText
 	flag.BoolVar(&debug, "debug", false, "Enable debug output")
 	flag.BoolVar(&fusedebug, "fusedebug", false, "Enable fuse library debug output")
 	flag.BoolVar(&init, "init", false, "Initialize encrypted directory")
@@ -92,17 +99,17 @@ func main() {
 	}
 	if init {
 		if flag.NArg() != 1 {
-			fmt.Printf("usage: %s --init CIPHERDIR\n", PROGRAM_NAME)
+			fmt.Printf("Usage: %s --init CIPHERDIR\n", PROGRAM_NAME)
 			os.Exit(ERREXIT_USAGE)
 		}
 		initDir(flag.Arg(0))
 	} else if passwd {
 		if flag.NArg() != 1 {
-			fmt.Printf("usage: %s --passwd CIPHERDIR\n", PROGRAM_NAME)
+			fmt.Printf("Usage: %s --passwd CIPHERDIR\n", PROGRAM_NAME)
 			os.Exit(ERREXIT_USAGE)
 		}
 	} else if flag.NArg() < 2 {
-		fmt.Printf("usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT\n", PROGRAM_NAME)
+		usageText()
 		os.Exit(ERREXIT_USAGE)
 	}
 	cipherdir, _ := filepath.Abs(flag.Arg(0))
