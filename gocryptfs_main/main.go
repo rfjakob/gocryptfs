@@ -173,7 +173,6 @@ func main() {
 	}
 
 	srv := pathfsFrontend(key, cipherdir, mountpoint, fusedebug, openssl)
-	fmt.Printf("Mounted.\n")
 
 	if zerokey == false && len(masterkey) == 0 {
 		printMasterKey(key)
@@ -183,6 +182,7 @@ func main() {
 		fmt.Printf("THE MASTER KEY IS VISIBLE VIA \"ps -auxwww\", ONLY USE THIS MODE FOR EMERGENCIES.\n")
 	}
 
+	fmt.Println("Filesystem ready.")
 	// Send notification to our parent
 	sendSig()
 	// Jump into server loop
