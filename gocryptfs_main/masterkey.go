@@ -1,13 +1,12 @@
 package main
 
 import (
-	"os"
-	"fmt"
 	"encoding/hex"
-	"strings"
+	"fmt"
 	"github.com/rfjakob/gocryptfs/cryptfs"
+	"os"
+	"strings"
 )
-
 
 // printMasterKey - remind the user that he should store the master key in
 // a safe place
@@ -16,8 +15,8 @@ func printMasterKey(key []byte) {
 	var hChunked string
 
 	// Try to make it less scary by splitting it up in chunks
-	for i := 0; i < len(h); i+=8 {
-		hChunked += h[i:i+8]
+	for i := 0; i < len(h); i += 8 {
+		hChunked += h[i : i+8]
 		if i < 52 {
 			hChunked += "-"
 		}

@@ -3,10 +3,10 @@ package cryptfs
 // File content encryption / decryption
 
 import (
-	"encoding/binary"
 	"bytes"
 	"crypto/cipher"
 	"crypto/md5"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"os"
@@ -90,7 +90,7 @@ func (be *CryptFS) DecryptBlock(ciphertext []byte, blockNo uint64) ([]byte, erro
 }
 
 // encryptBlock - Encrypt and add MAC using GCM
-func (be *CryptFS) EncryptBlock(plaintext []byte,  blockNo uint64) []byte {
+func (be *CryptFS) EncryptBlock(plaintext []byte, blockNo uint64) []byte {
 
 	// Empty block?
 	if len(plaintext) == 0 {
@@ -197,7 +197,7 @@ func (be *CryptFS) CropPlaintext(plaintext []byte, blocks []intraBlock) []byte {
 	length := (last.BlockNo - blocks[0].BlockNo + 1) * be.plainBS
 	var cropped []byte
 	if offset+length > uint64(len(plaintext)) {
-		cropped = plaintext[offset:len(plaintext)]
+		cropped = plaintext[offset:]
 	} else {
 		cropped = plaintext[offset : offset+length]
 	}

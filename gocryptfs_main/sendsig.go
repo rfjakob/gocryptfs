@@ -1,16 +1,16 @@
 package main
 
 import (
-	"syscall"
 	"bytes"
 	"fmt"
-	"os"
 	"io/ioutil"
+	"os"
+	"syscall"
 )
 
 // cmdline looks like this: /bin/bash \0 /path/to/gocryptfs \0 --zerokey \0 ...
 const (
-	WRAPPER_PREFIX =  "/bin/bash\000"
+	WRAPPER_PREFIX   = "/bin/bash\000"
 	WRAPPER_CONTAINS = "gocryptfs\000"
 )
 

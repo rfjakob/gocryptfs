@@ -2,9 +2,9 @@ package cryptfs
 
 import (
 	"bytes"
-	"fmt"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 )
 
 // Get "n" random bytes from /dev/urandom or panic

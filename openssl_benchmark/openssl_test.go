@@ -6,14 +6,14 @@ package benchmark
 // go test -bench=.
 
 import (
-	"fmt"
-	"os"
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"github.com/spacemonkeygo/openssl"
-	"testing"
+	"fmt"
 	"github.com/rfjakob/gocryptfs/cryptfs"
+	"github.com/spacemonkeygo/openssl"
+	"os"
+	"testing"
 )
 
 func TestMain(m *testing.M) {
