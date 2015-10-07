@@ -11,7 +11,7 @@ func TestTranslatePath(t *testing.T) {
 	s = append(s, "foo12312312312312312313123123123")
 	s = append(s, "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890")
 
-	key := make([]byte, 16)
+	key := make([]byte, KEY_LEN)
 	fs := NewCryptFS(key, true)
 
 	for _, n := range s {
@@ -33,7 +33,7 @@ func TestPad16(t *testing.T) {
 	s = append(s, []byte("12345678901234567"))
 	s = append(s, []byte("12345678901234567abcdefg"))
 
-	key := make([]byte, 16)
+	key := make([]byte, KEY_LEN)
 	fs := NewCryptFS(key, true)
 
 	for i := range s {
