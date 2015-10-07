@@ -26,7 +26,7 @@ Current Status
 Install
 -------
 
-	$ go get github.com/rfjakob/gocryptfs/...
+	$ go get github.com/rfjakob/gocryptfs/gocryptfs_main
 
 (The dots are important!)
 

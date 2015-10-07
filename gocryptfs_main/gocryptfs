@@ -1,7 +1,9 @@
 #!/bin/bash
 
-# Shell wrapper that runs the gocryptfs process in the background
+# Wrapper that runs the gocryptfs process in the background
 # and exits on SIGUSR1
+#
+# Written in shell because Go does not support daemonization natively
 
 set -eu
 
@@ -11,8 +13,10 @@ shopt -u huponexit
 dir=$(dirname $(readlink -f "$0"))
 main="$dir/gocryptfs_main"
 
-# echo "0=$0 dir=$dir main=$main"
-
+if [ ! -x "$main" ]
+then
+	main="$GOPATH/bin/gocryptfs_main"
+fi
 if [ ! -x "$main" ]
 then
 	echo "Error: gocryptfs_main executable not found. Run ./all.bash to build it."
