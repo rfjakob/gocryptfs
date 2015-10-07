@@ -3,3 +3,6 @@
 
 # temporary files created by the tests
 /tmp
+
+# binary releases
+/*.tar.gz
