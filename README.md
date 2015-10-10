@@ -28,8 +28,6 @@ Install
 
 	$ go get github.com/rfjakob/gocryptfs/gocryptfs_main
 
-(The dots are important!)
-
 Use
 ---
 
