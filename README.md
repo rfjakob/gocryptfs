@@ -26,22 +26,22 @@ Current Status
 Install
 -------
 
-	$ go get github.com/rfjakob/gocryptfs/gocryptfs_main
+	$ go get github.com/rfjakob/gocryptfs
 
 Use
 ---
 
 	$ mkdir cipher plain
-	$ alias gocryptfs="$GOPATH/src/github.com/rfjakob/gocryptfs/gocryptfs"
-	$ gocryptfs --init cipher
+	$ $GOPATH/bin/gocryptfs --init cipher
 	  [...]
-	$ gocryptfs cipher plain
+	$ $GOPATH/bin/gocryptfs cipher plain
 	  [...]
 	$ echo test > plain/test.txt
 	$ ls -l cipher
 	  total 8
 	  -rw-rw-r--. 1 user  user   33  7. Okt 23:23 0ao8Hyyf1A-A88sfNvkUxA==
 	  -rw-rw-r--. 1 user  user  233  7. Okt 23:23 gocryptfs.conf
+	$ fusermount -u plain
 
 Performance
 -----------
