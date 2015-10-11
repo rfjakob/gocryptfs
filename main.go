@@ -66,7 +66,7 @@ func main() {
 	runtime.GOMAXPROCS(4)
 
 	// Parse command line arguments
-	var debug, init, zerokey, fusedebug, openssl, passwd bool
+	var debug, init, zerokey, fusedebug, openssl, passwd, foreground bool
 	var masterkey string
 
 	flag.Usage = usageText
@@ -76,10 +76,14 @@ func main() {
 	flag.BoolVar(&zerokey, "zerokey", false, "Use all-zero dummy master key")
 	flag.BoolVar(&openssl, "openssl", true, "Use OpenSSL instead of built-in Go crypto")
 	flag.BoolVar(&passwd, "passwd", false, "Change password")
+	flag.BoolVar(&foreground, "f", false, "Stay in the foreground")
 	flag.StringVar(&masterkey, "masterkey", "", "Mount with explicit master key")
 	var cpuprofile = flag.String("cpuprofile", "", "Write cpu profile to specified file")
 
 	flag.Parse()
+	if ! foreground {
+		daemonize() // does not return
+	}
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
