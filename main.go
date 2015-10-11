@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -29,25 +28,26 @@ const (
 	ERREXIT_NEWFS     = 2
 	ERREXIT_MOUNT     = 3
 	ERREXIT_SERVE     = 4
-	ERREXIT_MOUNT2    = 5
 	ERREXIT_CIPHERDIR = 6
 	ERREXIT_INIT      = 7
 	ERREXIT_LOADCONF  = 8
 	ERREXIT_PASSWORD  = 9
+	ERREXIT_MOUNTPOINT = 10
 )
 
 func initDir(dirArg string) {
 	dir, _ := filepath.Abs(dirArg)
 
-	if dirEmpty(dir) == false {
-		fmt.Printf("Error: Directory \"%s\" is not empty\n", dirArg)
+	err := checkDirEmpty(dir)
+	if err != nil {
+		fmt.Printf("Error: \"%s\": %v\n", dirArg, err)
 		os.Exit(ERREXIT_INIT)
 	}
 
 	confName := filepath.Join(dir, cryptfs.ConfDefaultName)
 	fmt.Printf("Choose a password for protecting your files.\n")
 	password := readPasswordTwice()
-	err := cryptfs.CreateConfFile(confName, password)
+	err = cryptfs.CreateConfFile(confName, password)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(ERREXIT_INIT)
@@ -67,7 +67,7 @@ func main() {
 
 	// Parse command line arguments
 	var debug, init, zerokey, fusedebug, openssl, passwd, foreground bool
-	var masterkey string
+	var masterkey, mountpoint, cipherdir string
 
 	flag.Usage = usageText
 	flag.BoolVar(&debug, "debug", false, "Enable debug output")
@@ -106,23 +106,30 @@ func main() {
 			fmt.Printf("Usage: %s --init CIPHERDIR\n", PROGRAM_NAME)
 			os.Exit(ERREXIT_USAGE)
 		}
-		initDir(flag.Arg(0))
-	} else if passwd {
+		initDir(flag.Arg(0)) // does not return
+	}
+	if passwd {
 		if flag.NArg() != 1 {
 			fmt.Printf("Usage: %s --passwd CIPHERDIR\n", PROGRAM_NAME)
 			os.Exit(ERREXIT_USAGE)
 		}
-	} else if flag.NArg() < 2 {
-		usageText()
-		os.Exit(ERREXIT_USAGE)
+	} else {
+		// Normal mount
+		if flag.NArg() < 2 {
+			usageText()
+			os.Exit(ERREXIT_USAGE)
+		}
+		mountpoint, _ = filepath.Abs(flag.Arg(1))
+		err := checkDirEmpty(mountpoint)
+		if err != nil {
+			fmt.Printf("Invalid MOUNTPOINT: %v\n", err)
+			os.Exit(ERREXIT_MOUNTPOINT)
+		}
 	}
-	cipherdir, _ := filepath.Abs(flag.Arg(0))
-	mountpoint, _ := filepath.Abs(flag.Arg(1))
-	cryptfs.Debug.Printf("cipherdir=%s\nmountpoint=%s\n", cipherdir, mountpoint)
-
-	_, err := os.Stat(cipherdir)
+	cipherdir, _ = filepath.Abs(flag.Arg(0))
+	err := checkDir(cipherdir)
 	if err != nil {
-		fmt.Printf("Cipherdir: %s\n", err.Error())
+		fmt.Printf("Invalid CIPHERDIR: %v\n", err)
 		os.Exit(ERREXIT_CIPHERDIR)
 	}
 
@@ -139,7 +146,7 @@ func main() {
 		_, err = os.Stat(cfname)
 		if err != nil {
 			fmt.Printf("Error: %s not found in CIPHERDIR\n", cryptfs.ConfDefaultName)
-			fmt.Printf("Please run \"%s --init %s\" first\n", PROGRAM_NAME, flag.Arg(0))
+			fmt.Printf("Please run \"%s --init %s\" first\n", os.Args[0], flag.Arg(0))
 			os.Exit(ERREXIT_LOADCONF)
 		}
 		if passwd == true {
@@ -154,7 +161,6 @@ func main() {
 		cryptfs.Warn.Enable()
 		if err != nil {
 			fmt.Println(err)
-			fmt.Println("Password incorrect.")
 			os.Exit(ERREXIT_LOADCONF)
 		}
 		fmt.Printf("done.\n")
@@ -164,7 +170,7 @@ func main() {
 		newPassword := readPasswordTwice()
 		if newPassword == currentPassword {
 			fmt.Printf("New and old passwords are identical\n")
-			os.Exit(1)
+			os.Exit(ERREXIT_PASSWORD)
 		}
 		cf.EncryptKey(key, newPassword)
 		err := cf.WriteFile()
@@ -193,18 +199,6 @@ func main() {
 	srv.Serve()
 }
 
-func dirEmpty(dir string) bool {
-	entries, err := ioutil.ReadDir(dir)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(ERREXIT_CIPHERDIR)
-	}
-	if len(entries) == 0 {
-		return true
-	}
-	return false
-}
-
 func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool, openssl bool) *fuse.Server {
 
 	finalFs := pathfs_frontend.NewFS(key, cipherdir, openssl)
@@ -229,7 +223,7 @@ func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool,
 	srv, err := fuse.NewServer(conn.RawFS(), mountpoint, &mOpts)
 	if err != nil {
 		fmt.Printf("Mount failed: %v", err)
-		os.Exit(1)
+		os.Exit(ERREXIT_MOUNT)
 	}
 	srv.SetDebug(debug)
 

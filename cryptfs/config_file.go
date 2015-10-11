@@ -67,7 +67,8 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	cfs := NewCryptFS(scryptHash, false)
 	key, err := cfs.DecryptBlock(cf.EncryptedKey, 0)
 	if err != nil {
-		Warn.Printf("Failed to unlock master key: %s\n", err.Error())
+		Warn.Printf("failed to unlock master key: %s\n", err.Error())
+		Warn.Printf("Password incorrect.\n")
 		return nil, nil, err
 	}
 
