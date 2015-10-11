@@ -1,4 +1,4 @@
-These are the results of running (fuse-xfstests)[https://github.com/rfjakob/fuse-xfstests]
+These are the results of running [fuse-xfstests](https://github.com/rfjakob/fuse-xfstests)
 against gocryptfs:
 
 ```
