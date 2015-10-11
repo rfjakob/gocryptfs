@@ -1,0 +1,14 @@
+language: go
+
+go:
+  - 1.4.3
+  - 1.5.1
+  - tip
+
+install:
+  - go get .
+
+# Travis does not support FUSE, so we can't just run "go test ./..."
+script:
+  - go build
+  - go test ./cryptfs
