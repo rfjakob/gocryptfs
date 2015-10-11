@@ -1,5 +1,5 @@
-GoCryptFS
-=========
+GoCryptFS [![Build Status](https://travis-ci.org/rfjakob/gocryptfs.svg?branch=master)](https://travis-ci.org/rfjakob/gocryptfs)
+==============
 An encrypted overlay filesystem focused on security and correctness.
 
 gocryptfs is built on top the excellent
