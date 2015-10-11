@@ -1,8 +1,8 @@
 package main
 
 import (
-	"io/ioutil"
 	"fmt"
+	"io/ioutil"
 	"os"
 )
 
@@ -26,7 +26,7 @@ func checkDir(dir string) error {
 	if err != nil {
 		return err
 	}
-	if ! fi.IsDir() {
+	if !fi.IsDir() {
 		return fmt.Errorf("%s is not a directory")
 	}
 	return nil

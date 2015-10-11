@@ -1,11 +1,11 @@
 package main
 
 import (
-	"syscall"
-	"os/exec"
-	"os"
 	"fmt"
+	"os"
+	"os/exec"
 	"os/signal"
+	"syscall"
 )
 
 // The child sends us USR1 if the mount was successful
@@ -36,8 +36,8 @@ func daemonize() {
 	if err != nil {
 		if exiterr, ok := err.(*exec.ExitError); ok {
 			if waitstat, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-                os.Exit(waitstat.ExitStatus())
-            }
+				os.Exit(waitstat.ExitStatus())
+			}
 		}
 		fmt.Printf("daemonize: wait returned an unknown error: %v\n", err)
 		os.Exit(1)
