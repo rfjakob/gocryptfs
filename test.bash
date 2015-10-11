@@ -2,10 +2,9 @@
 
 set -eux
 
-cd cryptfs
 go build
 go test
 
-cd ../gocryptfs_main
+cd cryptfs
 go build
 go test

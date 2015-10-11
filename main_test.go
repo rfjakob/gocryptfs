@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-const tmpDir = "../tmp/"
+const tmpDir = "tmp/"
 const plainDir = tmpDir + "plain/"
 const cipherDir = tmpDir + "cipher/"
 
@@ -21,7 +21,7 @@ func mount(extraArgs ...string) {
 	args = append(args, extraArgs...)
 	args = append(args, cipherDir)
 	args = append(args, plainDir)
-	c := exec.Command("../gocryptfs", args...)
+	c := exec.Command("./gocryptfs", args...)
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
 	err := c.Run()
