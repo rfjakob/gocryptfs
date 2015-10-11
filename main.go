@@ -184,7 +184,7 @@ func main() {
 
 	fmt.Println("Filesystem ready.")
 	// Send notification to our parent
-	sendSig()
+	sendUsr1()
 	// Jump into server loop
 	srv.Serve()
 }
