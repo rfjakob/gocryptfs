@@ -78,7 +78,7 @@ func (be *CryptFS) DecryptBlock(ciphertext []byte, blockNo uint64) ([]byte, erro
 	var plaintext []byte
 	aData := make([]byte, 8)
 	binary.BigEndian.PutUint64(aData, blockNo)
-	plaintext, err := be.gcm.Open(plaintext, nonce, ciphertext, nil)
+	plaintext, err := be.gcm.Open(plaintext, nonce, ciphertext, aData)
 
 	if err != nil {
 		Warn.Printf("DecryptBlock: %s, len=%d, md5=%s\n", err.Error(), len(ciphertextOrig), Warn.Md5sum(ciphertextOrig))
@@ -103,7 +103,7 @@ func (be *CryptFS) EncryptBlock(plaintext []byte, blockNo uint64) []byte {
 	// Encrypt plaintext and append to nonce
 	aData := make([]byte, 8)
 	binary.BigEndian.PutUint64(aData, blockNo)
-	ciphertext := be.gcm.Seal(nonce, nonce, plaintext, nil)
+	ciphertext := be.gcm.Seal(nonce, nonce, plaintext, aData)
 
 	return ciphertext
 }
