@@ -58,13 +58,23 @@ func md5hex(buf []byte) string {
 	return hash
 }
 
-// Read the whole file and return number of bytes read
-func readSize(fn string) int {
-	buf, err := ioutil.ReadFile(fn)
+// Verify that the file size equals "want". This checks:
+// 1) Size reported by Stat()
+// 2) Number of bytes returned when reading the whole file
+func verifySize(t *testing.T, path string, want int) {
+	buf, err := ioutil.ReadFile(path)
 	if err != nil {
-		fmt.Printf("ReadFile: %v\n", err)
+		t.Errorf("ReadFile failed: %v", err)
+	} else if len(buf) != want {
+		t.Errorf("wrong read size: got=%d want=%d", len(buf), want)
 	}
-	return len(buf)
+
+	fi, err := os.Stat(path)
+	if err != nil {
+		t.Errorf("Stat failed: %v", err)
+	} else if fi.Size() != int64(want) {
+		t.Errorf("wrong stat file size, got=%d want=%d", fi.Size(), want)
+	}
 }
 
 // This is the entry point for the tests
@@ -111,20 +121,7 @@ func testWriteN(t *testing.T, fn string, n int) string {
 	}
 	file.Close()
 
-	fi, err := os.Stat(plainDir + fn)
-	if err != nil {
-		t.Errorf("Stat on file %s failed: %v", fn, err)
-	} else {
-		if fi.Size() != int64(n) {
-			t.Errorf("Wrong stat file size, got=%d want=%d", fi.Size(), n)
-		}
-	}
-
-	rs := readSize(plainDir + fn)
-	if rs != n {
-		t.Errorf("Wrong read file fize, got=%d want=%d", rs, n)
-	}
-
+	verifySize(t, plainDir + fn, n)
 
 	bin := md5.Sum(d)
 	hashWant := hex.EncodeToString(bin[:])
@@ -173,23 +170,27 @@ func TestTruncate(t *testing.T) {
 	}
 	// Grow to two blocks
 	file.Truncate(7000)
+	verifySize(t, fn, 7000)
 	if md5fn(fn) != "95d4ec7038e3e4fdbd5f15c34c3f0b34" {
-		t.Errorf("Fail 7000")
+		t.Errorf("wrong content")
 	}
 	// Shrink - needs RMW
 	file.Truncate(6999)
+	verifySize(t, fn, 6999)
 	if md5fn(fn) != "35fd15873ec6c35380064a41b9b9683b" {
-		t.Errorf("Fail 6999")
+		t.Errorf("wrong content")
 	}
 	// Shrink to one partial block
 	file.Truncate(465)
+	verifySize(t, fn, 465)
 	if md5fn(fn) != "a1534d6e98a6b21386456a8f66c55260" {
-		t.Errorf("Fail 465")
+		t.Errorf("wrong content")
 	}
 	// Grow to exactly one block
 	file.Truncate(4096)
+	verifySize(t, fn, 4096)
 	if md5fn(fn) != "620f0b67a91f7f74151bc5be745b7110" {
-		t.Errorf("Fail 4096")
+		t.Errorf("wrong content")
 	}
 }
 
