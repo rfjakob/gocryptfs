@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-const tmpDir = "/tmp/"
+const tmpDir = "/tmp/gocryptfs_main_test/"
 const plainDir = tmpDir + "plain/"
 const cipherDir = tmpDir + "cipher/"
 
