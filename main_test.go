@@ -232,11 +232,11 @@ func TestRmwRace(t *testing.T) {
 	fn := plainDir + "rmwrace"
 	f1, err := os.Create(fn)
 	if err != nil {
-		t.Errorf("file create failed")
+		t.Fatalf("file create failed")
 	}
 	f2, err := os.Create(fn)
 	if err != nil {
-		t.Errorf("file create failed")
+		t.Fatalf("file create failed")
 	}
 
 	oldBlock := bytes.Repeat([]byte("o"), 4096)
@@ -255,7 +255,7 @@ func TestRmwRace(t *testing.T) {
 		// Reset to [ooooooooo]
 		_, err = f1.WriteAt(oldBlock, 0)
 		if err != nil {
-			t.Errorf("Write failed")
+			t.Fatalf("Write failed")
 		}
 
 		var wg sync.WaitGroup
