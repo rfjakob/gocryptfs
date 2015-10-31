@@ -85,6 +85,7 @@ func TestMain(m *testing.M) {
 	os.Exit(r)
 }
 
+// Write "n" zero bytes to filename "fn", read again, compare hash
 func testWriteN(t *testing.T, fn string, n int) string {
 	file, err := os.Create(plainDir + fn)
 	if err != nil {
@@ -99,13 +100,23 @@ func testWriteN(t *testing.T, fn string, n int) string {
 	}
 	file.Close()
 
+	fi, err := os.Stat(plainDir + fn)
+	if err != nil {
+		t.Errorf("Stat on file %s failed: %v", fn, err)
+	} else {
+		if fi.Size() != int64(n) {
+			t.Errorf("Wrong file fize, got=%d want=%d", fi.Size(), n)
+		}
+	}
+
+
 	bin := md5.Sum(d)
 	hashWant := hex.EncodeToString(bin[:])
 
 	hashActual := md5fn(plainDir + fn)
 
 	if hashActual != hashWant {
-		fmt.Printf("hashWant=%s hashActual=%s\n", hashWant, hashActual)
+		fmt.Printf("Content corruption in file %s: hashWant=%s hashActual=%s\n", fn, hashWant, hashActual)
 		t.Fail()
 	}
 
