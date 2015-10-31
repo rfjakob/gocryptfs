@@ -41,6 +41,7 @@ func unmount() error {
 	return fu.Run()
 }
 
+// Return md5 string for file "filename"
 func md5fn(filename string) string {
 	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -50,10 +51,20 @@ func md5fn(filename string) string {
 	return md5hex(buf)
 }
 
+// Return md5 string for "buf"
 func md5hex(buf []byte) string {
 	rawHash := md5.Sum(buf)
 	hash := hex.EncodeToString(rawHash[:])
 	return hash
+}
+
+// Read the whole file and return number of bytes read
+func readSize(fn string) int {
+	buf, err := ioutil.ReadFile(fn)
+	if err != nil {
+		fmt.Printf("ReadFile: %v\n", err)
+	}
+	return len(buf)
 }
 
 // This is the entry point for the tests
@@ -105,8 +116,13 @@ func testWriteN(t *testing.T, fn string, n int) string {
 		t.Errorf("Stat on file %s failed: %v", fn, err)
 	} else {
 		if fi.Size() != int64(n) {
-			t.Errorf("Wrong file fize, got=%d want=%d", fi.Size(), n)
+			t.Errorf("Wrong stat file size, got=%d want=%d", fi.Size(), n)
 		}
+	}
+
+	rs := readSize(plainDir + fn)
+	if rs != n {
+		t.Errorf("Wrong read file fize, got=%d want=%d", rs, n)
 	}
 
 
@@ -116,8 +132,7 @@ func testWriteN(t *testing.T, fn string, n int) string {
 	hashActual := md5fn(plainDir + fn)
 
 	if hashActual != hashWant {
-		fmt.Printf("Content corruption in file %s: hashWant=%s hashActual=%s\n", fn, hashWant, hashActual)
-		t.Fail()
+		t.Errorf("Wrong content, hashWant=%s hashActual=%s\n", hashWant, hashActual)
 	}
 
 	return hashActual
