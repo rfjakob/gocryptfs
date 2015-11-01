@@ -2,6 +2,9 @@
 
 set -eux
 
-tag=$(git describe --tags)
-go build
-tar czvf gocryptfs_$tag.tar.gz gocryptfs
+source build.bash
+
+TARGZ=gocryptfs_$GITVERSION.tar.gz
+
+tar czf $TARGZ gocryptfs
+ls -lh $TARGZ
