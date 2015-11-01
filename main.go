@@ -33,6 +33,8 @@ const (
 	ERREXIT_MOUNTPOINT = 10
 )
 
+var GitVersion = "[version not set - please compile using ./build.bash]"
+
 func initDir(dirArg string) {
 	dir, _ := filepath.Abs(dirArg)
 
@@ -64,7 +66,7 @@ func main() {
 	runtime.GOMAXPROCS(4)
 
 	// Parse command line arguments
-	var debug, init, zerokey, fusedebug, openssl, passwd, foreground bool
+	var debug, init, zerokey, fusedebug, openssl, passwd, foreground, version bool
 	var masterkey, mountpoint, cipherdir string
 
 	flag.Usage = usageText
@@ -75,10 +77,16 @@ func main() {
 	flag.BoolVar(&openssl, "openssl", true, "Use OpenSSL instead of built-in Go crypto")
 	flag.BoolVar(&passwd, "passwd", false, "Change password")
 	flag.BoolVar(&foreground, "f", false, "Stay in the foreground")
+	flag.BoolVar(&version, "version", false, "Print version and exit")
 	flag.StringVar(&masterkey, "masterkey", "", "Mount with explicit master key")
 	var cpuprofile = flag.String("cpuprofile", "", "Write cpu profile to specified file")
 
 	flag.Parse()
+	if version {
+		fmt.Printf("%s %s; ", PROGRAM_NAME, GitVersion)
+		fmt.Printf("on-disk format %d\n", cryptfs.HEADER_CURRENT_VERSION)
+		os.Exit(0)
+	}
 	if !foreground {
 		daemonize() // does not return
 	}
