@@ -10,15 +10,15 @@ import (
 )
 
 const (
-	HEADER_CURRENT_VERSION  = 1 // Current on-disk-format version
-	HEADER_VERSION_LEN = 2 // uint16
-	HEADER_ID_LEN = 16 // 128 bit random file id
-	HEADER_LEN = HEADER_VERSION_LEN + HEADER_ID_LEN // Total header length
+	HEADER_CURRENT_VERSION = 1                                  // Current on-disk-format version
+	HEADER_VERSION_LEN     = 2                                  // uint16
+	HEADER_ID_LEN          = 16                                 // 128 bit random file id
+	HEADER_LEN             = HEADER_VERSION_LEN + HEADER_ID_LEN // Total header length
 )
 
 type FileHeader struct {
 	Version uint16
-	Id []byte
+	Id      []byte
 }
 
 // Pack - serialize fileHeader object

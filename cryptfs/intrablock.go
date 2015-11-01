@@ -19,13 +19,13 @@ func (ib *intraBlock) IsPartial() bool {
 // CiphertextRange - get byte range in ciphertext file corresponding to BlockNo
 // (complete block)
 func (ib *intraBlock) CiphertextRange() (offset uint64, length uint64) {
-	return HEADER_LEN + ib.BlockNo * ib.fs.cipherBS, ib.fs.cipherBS
+	return ib.fs.BlockNoToCipherOff(ib.BlockNo), ib.fs.cipherBS
 }
 
 // PlaintextRange - get byte range in plaintext corresponding to BlockNo
 // (complete block)
 func (ib *intraBlock) PlaintextRange() (offset uint64, length uint64) {
-	return ib.BlockNo * ib.fs.plainBS, ib.fs.plainBS
+	return ib.fs.BlockNoToPlainOff(ib.BlockNo), ib.fs.plainBS
 }
 
 // CropBlock - crop a potentially larger plaintext block down to the relevant part
@@ -36,4 +36,16 @@ func (ib *intraBlock) CropBlock(d []byte) []byte {
 		return d[ib.Skip:lenHave]
 	}
 	return d[ib.Skip:lenWant]
+}
+
+// Ciphertext range corresponding to the sum of all "blocks" (complete blocks)
+func (ib *intraBlock) JointCiphertextRange(blocks []intraBlock) (offset uint64, length uint64) {
+	firstBlock := blocks[0]
+	lastBlock := blocks[len(blocks)-1]
+
+	offset = ib.fs.BlockNoToCipherOff(firstBlock.BlockNo)
+	offsetLast := ib.fs.BlockNoToCipherOff(lastBlock.BlockNo)
+	length = offsetLast + ib.fs.cipherBS - offset
+
+	return offset, length
 }

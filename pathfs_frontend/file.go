@@ -128,8 +128,10 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	}
 
 	// Read the backing ciphertext in one go
-	alignedOffset, alignedLength, skip := f.cfs.CiphertextRange(off, length)
-	cryptfs.Debug.Printf("CiphertextRange(%d, %d) -> %d, %d, %d\n", off, length, alignedOffset, alignedLength, skip)
+	blocks := f.cfs.ExplodePlainRange(off, length)
+	alignedOffset, alignedLength := blocks[0].JointCiphertextRange(blocks)
+	skip := blocks[0].Skip
+	cryptfs.Debug.Printf("JointCiphertextRange(%d, %d) -> %d, %d, %d\n", off, length, alignedOffset, alignedLength, skip)
 	ciphertext := make([]byte, int(alignedLength))
 	f.fdLock.Lock()
 	n, err := f.fd.ReadAt(ciphertext, int64(alignedOffset))
@@ -141,27 +143,27 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	// Truncate ciphertext buffer down to actually read bytes
 	ciphertext = ciphertext[0:n]
 
-	blockNo := (alignedOffset - cryptfs.HEADER_LEN) / f.cfs.CipherBS()
-	cryptfs.Debug.Printf("ReadAt offset=%d bytes (%d blocks), want=%d, got=%d\n", alignedOffset, blockNo, alignedLength, n)
+	firstBlockNo := blocks[0].BlockNo
+	cryptfs.Debug.Printf("ReadAt offset=%d bytes (%d blocks), want=%d, got=%d\n", alignedOffset, firstBlockNo, alignedLength, n)
 
 	// Decrypt it
-	plaintext, err := f.cfs.DecryptBlocks(ciphertext, blockNo, f.header.Id)
+	plaintext, err := f.cfs.DecryptBlocks(ciphertext, firstBlockNo, f.header.Id)
 	if err != nil {
-		blockNo := (alignedOffset + uint64(len(plaintext))) / f.cfs.PlainBS()
-		cipherOff := cryptfs.HEADER_LEN + blockNo * f.cfs.CipherBS()
-		plainOff := blockNo * f.cfs.PlainBS()
-		cryptfs.Warn.Printf("ino%d: doRead: corrupt block #%d (plainOff=%d/%d, cipherOff=%d/%d)\n",
-			f.ino, blockNo, plainOff, f.cfs.PlainBS(), cipherOff, f.cfs.CipherBS())
+		curruptBlockNo := firstBlockNo + f.cfs.PlainOffToBlockNo(uint64(len(plaintext)))
+		cipherOff := f.cfs.BlockNoToCipherOff(curruptBlockNo)
+		plainOff := f.cfs.BlockNoToPlainOff(curruptBlockNo)
+		cryptfs.Warn.Printf("ino%d: doRead: corrupt block #%d (plainOff=%d, cipherOff=%d)\n",
+			f.ino, curruptBlockNo, plainOff, cipherOff)
 		return nil, fuse.EIO
 	}
 
 	// Crop down to the relevant part
 	var out []byte
 	lenHave := len(plaintext)
-	lenWant := skip + int(length)
+	lenWant := int(skip + length)
 	if lenHave > lenWant {
-		out = plaintext[skip : skip+int(length)]
-	} else if lenHave > skip {
+		out = plaintext[skip:lenWant]
+	} else if lenHave > int(skip) {
 		out = plaintext[skip:lenHave]
 	}
 	// else: out stays empty, file was smaller than the requested offset
@@ -216,7 +218,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 	var written uint32
 	status := fuse.OK
 	dataBuf := bytes.NewBuffer(data)
-	blocks := f.cfs.SplitRange(uint64(off), uint64(len(data)))
+	blocks := f.cfs.ExplodePlainRange(uint64(off), uint64(len(data)))
 	for _, b := range blocks {
 
 		blockData := dataBuf.Next(int(b.Length))
@@ -239,11 +241,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 		blockOffset, _ := b.CiphertextRange()
 		blockData = f.cfs.EncryptBlock(blockData, b.BlockNo, f.header.Id)
 		cryptfs.Debug.Printf("ino%d: Writing %d bytes to block #%d, md5=%s\n",
-			f.ino, len(blockData) - cryptfs.BLOCK_OVERHEAD, b.BlockNo, cryptfs.Debug.Md5sum(blockData))
-		if len(blockData) != int(f.cfs.CipherBS()) {
-			cryptfs.Debug.Printf("ino%d: Writing partial block #%d (%d bytes)\n",
-				f.ino, b.BlockNo, len(blockData) - cryptfs.BLOCK_OVERHEAD)
-		}
+			f.ino, len(blockData)-cryptfs.BLOCK_OVERHEAD, b.BlockNo, cryptfs.Debug.Md5sum(blockData))
 		f.fdLock.Lock()
 		_, err := f.fd.WriteAt(blockData, int64(blockOffset))
 		f.fdLock.Unlock()
@@ -267,7 +265,7 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 		cryptfs.Warn.Printf("Write: Fstat failed: %v\n", err)
 		return 0, fuse.ToStatus(err)
 	}
-	plainSize := f.cfs.PlainSize(uint64(fi.Size()))
+	plainSize := f.cfs.CipherSizeToPlainSize(uint64(fi.Size()))
 	if f.createsHole(plainSize, off) {
 		status := f.zeroPad(plainSize)
 		if status != fuse.OK {
@@ -332,7 +330,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 		cryptfs.Warn.Printf("Truncate: Fstat failed: %v\n", err)
 		return fuse.ToStatus(err)
 	}
-	oldSize := f.cfs.PlainSize(uint64(fi.Size()))
+	oldSize := f.cfs.CipherSizeToPlainSize(uint64(fi.Size()))
 	{
 		oldB := float32(oldSize) / float32(f.cfs.PlainBS())
 		newB := float32(newSize) / float32(f.cfs.PlainBS())
@@ -350,7 +348,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 			}
 		}
 
-		blocks := f.cfs.SplitRange(oldSize, newSize-oldSize)
+		blocks := f.cfs.ExplodePlainRange(oldSize, newSize-oldSize)
 		for _, b := range blocks {
 			// First and last block may be partial
 			if b.IsPartial() {
@@ -374,9 +372,9 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 		return fuse.OK
 	} else {
 		// File shrinks
-		blockNo := f.cfs.BlockNoPlainOff(newSize)
-		cipherOff := cryptfs.HEADER_LEN + blockNo * f.cfs.CipherBS()
-		plainOff := blockNo * f.cfs.PlainBS()
+		blockNo := f.cfs.PlainOffToBlockNo(newSize)
+		cipherOff := f.cfs.BlockNoToCipherOff(blockNo)
+		plainOff := f.cfs.BlockNoToPlainOff(blockNo)
 		lastBlockLen := newSize - plainOff
 		var data []byte
 		if lastBlockLen > 0 {
@@ -430,7 +428,7 @@ func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 		return fuse.ToStatus(err)
 	}
 	a.FromStat(&st)
-	a.Size = f.cfs.PlainSize(a.Size)
+	a.Size = f.cfs.CipherSizeToPlainSize(a.Size)
 
 	return fuse.OK
 }

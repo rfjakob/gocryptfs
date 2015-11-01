@@ -1,8 +1,8 @@
 package cryptfs
 
 import (
-	"fmt"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 )
 import "os"

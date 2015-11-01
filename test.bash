@@ -2,11 +2,10 @@
 
 set -eux
 
-cd cryptfs
-go build
-go test
-cd ..
+for i in ./cryptfs .
+do
 
-go build
-go test
+	go build $i
+	go test $i
+done
 

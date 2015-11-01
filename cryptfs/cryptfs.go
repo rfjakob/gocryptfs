@@ -13,7 +13,7 @@ const (
 	KEY_LEN         = 32 // AES-256
 	NONCE_LEN       = 12
 	AUTH_TAG_LEN    = 16
-	BLOCK_OVERHEAD = NONCE_LEN + AUTH_TAG_LEN
+	BLOCK_OVERHEAD  = NONCE_LEN + AUTH_TAG_LEN
 )
 
 type CryptFS struct {
@@ -60,9 +60,4 @@ func NewCryptFS(key []byte, useOpenssl bool) *CryptFS {
 // Get plaintext block size
 func (be *CryptFS) PlainBS() uint64 {
 	return be.plainBS
-}
-
-// Get ciphertext block size
-func (be *CryptFS) CipherBS() uint64 {
-	return be.cipherBS
 }

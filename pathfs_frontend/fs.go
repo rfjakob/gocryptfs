@@ -41,7 +41,7 @@ func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Stat
 		return a, status
 	}
 	if a.IsRegular() {
-		a.Size = fs.PlainSize(a.Size)
+		a.Size = fs.CipherSizeToPlainSize(a.Size)
 	} else if a.IsSymlink() {
 		target, _ := fs.Readlink(name, context)
 		a.Size = uint64(len(target))

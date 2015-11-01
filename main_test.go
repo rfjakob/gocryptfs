@@ -1,8 +1,6 @@
 package main
 
 import (
-	"runtime"
-	"sync"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
@@ -11,6 +9,8 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"runtime"
+	"sync"
 	"testing"
 )
 
@@ -121,7 +121,7 @@ func testWriteN(t *testing.T, fn string, n int) string {
 	}
 	file.Close()
 
-	verifySize(t, plainDir + fn, n)
+	verifySize(t, plainDir+fn, n)
 
 	bin := md5.Sum(d)
 	hashWant := hex.EncodeToString(bin[:])
@@ -244,12 +244,12 @@ func TestFileHoles(t *testing.T) {
 }
 
 func sContains(haystack []string, needle string) bool {
-    for _, element := range haystack {
-        if element == needle {
-            return true
-        }
-    }
-    return false
+	for _, element := range haystack {
+		if element == needle {
+			return true
+		}
+	}
+	return false
 }
 
 func TestRmwRace(t *testing.T) {
@@ -313,10 +313,10 @@ func TestRmwRace(t *testing.T) {
 		goodMd5[m] = goodMd5[m] + 1
 
 		/*
-		if m == "6c1660fdabccd448d1359f27b3db3c99" {
-			fmt.Println(hex.Dump(buf))
-			t.FailNow()
-		}
+			if m == "6c1660fdabccd448d1359f27b3db3c99" {
+				fmt.Println(hex.Dump(buf))
+				t.FailNow()
+			}
 		*/
 	}
 	fmt.Println(goodMd5)

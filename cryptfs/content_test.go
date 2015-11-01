@@ -16,7 +16,7 @@ func TestSplitRange(t *testing.T) {
 		testRange{0, 10},
 		testRange{234, 6511},
 		testRange{65444, 54},
-		testRange{0, 1024*1024},
+		testRange{0, 1024 * 1024},
 		testRange{0, 65536},
 		testRange{6654, 8945})
 
@@ -24,8 +24,8 @@ func TestSplitRange(t *testing.T) {
 	f := NewCryptFS(key, true)
 
 	for _, r := range ranges {
-		parts := f.SplitRange(r.offset, r.length)
-		var lastBlockNo uint64 = 1<<63
+		parts := f.ExplodePlainRange(r.offset, r.length)
+		var lastBlockNo uint64 = 1 << 63
 		for _, p := range parts {
 			if p.BlockNo == lastBlockNo {
 				t.Errorf("Duplicate block number %d", p.BlockNo)
@@ -51,11 +51,15 @@ func TestCiphertextRange(t *testing.T) {
 	f := NewCryptFS(key, true)
 
 	for _, r := range ranges {
-		alignedOffset, alignedLength, skipBytes := f.CiphertextRange(r.offset, r.length)
+
+		blocks := f.ExplodePlainRange(r.offset, r.length)
+		alignedOffset, alignedLength := blocks[0].JointCiphertextRange(blocks)
+		skipBytes := blocks[0].Skip
+
 		if alignedLength < r.length {
 			t.Errorf("alignedLength=%s is smaller than length=%d", alignedLength, r.length)
 		}
-		if (alignedOffset - HEADER_LEN)%f.cipherBS != 0 {
+		if (alignedOffset-HEADER_LEN)%f.cipherBS != 0 {
 			t.Errorf("alignedOffset=%d is not aligned", alignedOffset)
 		}
 		if r.offset%f.plainBS != 0 && skipBytes == 0 {
@@ -68,19 +72,19 @@ func TestBlockNo(t *testing.T) {
 	key := make([]byte, KEY_LEN)
 	f := NewCryptFS(key, true)
 
-	b := f.BlockNoCipherOff(788)
+	b := f.CipherOffToBlockNo(788)
 	if b != 0 {
 		t.Errorf("actual: %d", b)
 	}
-	b = f.BlockNoCipherOff(HEADER_LEN + f.CipherBS())
+	b = f.CipherOffToBlockNo(HEADER_LEN + f.cipherBS)
 	if b != 1 {
 		t.Errorf("actual: %d", b)
 	}
-	b = f.BlockNoPlainOff(788)
+	b = f.PlainOffToBlockNo(788)
 	if b != 0 {
 		t.Errorf("actual: %d", b)
 	}
-	b = f.BlockNoPlainOff(f.PlainBS())
+	b = f.PlainOffToBlockNo(f.plainBS)
 	if b != 1 {
 		t.Errorf("actual: %d", b)
 	}

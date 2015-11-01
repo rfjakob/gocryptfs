@@ -12,11 +12,6 @@ import (
 	"os"
 )
 
-const (
-	// A block of 4124 zero bytes has this md5
-	ZeroBlockMd5 = "64331af89bd15a987b39855338336237"
-)
-
 // md5sum - debug helper, return md5 hex string
 func md5sum(buf []byte) string {
 	rawHash := md5.Sum(buf)
@@ -110,106 +105,6 @@ func (be *CryptFS) EncryptBlock(plaintext []byte, blockNo uint64, fileId []byte)
 	return ciphertext
 }
 
-// Split a plaintext byte range into (possibly partial) blocks
-func (be *CryptFS) SplitRange(offset uint64, length uint64) []intraBlock {
-	var b intraBlock
-	var parts []intraBlock
-
-	b.fs = be
-
-	for length > 0 {
-		b.BlockNo = offset / be.plainBS
-		b.Skip = offset % be.plainBS
-		// Minimum of remaining data and remaining space in the block
-		b.Length = be.minu64(length, be.plainBS-b.Skip)
-		parts = append(parts, b)
-		offset += b.Length
-		length -= b.Length
-	}
-	return parts
-}
-
-// PlainSize - calculate plaintext size from ciphertext size
-func (be *CryptFS) PlainSize(size uint64) uint64 {
-
-	// Zero sized files stay zero-sized
-	if size == 0 {
-		return 0
-	}
-
-	// Account for header
-	size -= HEADER_LEN
-
-	overhead := be.cipherBS - be.plainBS
-	nBlocks := (size + be.cipherBS - 1) / be.cipherBS
-	if nBlocks*overhead > size {
-		Warn.Printf("PlainSize: Negative size, returning 0 instead\n")
-		return 0
-	}
-	size -= nBlocks * overhead
-
-	return size
-}
-
-// CipherSize - calculate ciphertext size from plaintext size
-func (be *CryptFS) CipherSize(size uint64) uint64 {
-	overhead := be.cipherBS - be.plainBS
-	nBlocks := (size + be.plainBS - 1) / be.plainBS
-	size += nBlocks * overhead
-
-	return size
-}
-
-func (be *CryptFS) minu64(x uint64, y uint64) uint64 {
-	if x < y {
-		return x
-	}
-	return y
-}
-
-// CiphertextRange - Get byte range in backing ciphertext corresponding
-// to plaintext range. Returns a range aligned to ciphertext blocks.
-func (be *CryptFS) CiphertextRange(offset uint64, length uint64) (alignedOffset uint64, alignedLength uint64, skipBytes int) {
-	// Decrypting the ciphertext will yield too many plaintext bytes. Skip this number
-	// of bytes from the front.
-	skip := offset % be.plainBS
-
-	firstBlockNo := offset / be.plainBS
-	lastBlockNo := (offset + length - 1) / be.plainBS
-
-	alignedOffset = HEADER_LEN + firstBlockNo * be.cipherBS
-	alignedLength = (lastBlockNo - firstBlockNo + 1) * be.cipherBS
-
-	skipBytes = int(skip)
-	return alignedOffset, alignedLength, skipBytes
-}
-
-// Get the byte range in the ciphertext corresponding to blocks
-// (full blocks!)
-func (be *CryptFS) JoinCiphertextRange(blocks []intraBlock) (uint64, uint64) {
-
-	offset, _ := blocks[0].CiphertextRange()
-	last := blocks[len(blocks)-1]
-	length := (last.BlockNo - blocks[0].BlockNo + 1) * be.cipherBS
-
-	return offset, length
-}
-
-// Crop plaintext that correspons to complete cipher blocks down to what is
-// requested according to "iblocks"
-func (be *CryptFS) CropPlaintext(plaintext []byte, blocks []intraBlock) []byte {
-	offset := blocks[0].Skip
-	last := blocks[len(blocks)-1]
-	length := (last.BlockNo - blocks[0].BlockNo + 1) * be.plainBS
-	var cropped []byte
-	if offset+length > uint64(len(plaintext)) {
-		cropped = plaintext[offset:]
-	} else {
-		cropped = plaintext[offset : offset+length]
-	}
-	return cropped
-}
-
 // MergeBlocks - Merge newData into oldData at offset
 // New block may be bigger than both newData and oldData
 func (be *CryptFS) MergeBlocks(oldData []byte, newData []byte, offset int) []byte {
@@ -229,14 +124,4 @@ func (be *CryptFS) MergeBlocks(oldData []byte, newData []byte, offset int) []byt
 		outLen = newLen
 	}
 	return out[0:outLen]
-}
-
-// Get the block number at plain-text offset
-func (be *CryptFS) BlockNoPlainOff(plainOffset uint64) uint64 {
-	return plainOffset / be.plainBS
-}
-
-// Get the block number at ciphter-text offset
-func (be *CryptFS) BlockNoCipherOff(cipherOffset uint64) uint64 {
-	return (cipherOffset - HEADER_LEN) / be.cipherBS
 }

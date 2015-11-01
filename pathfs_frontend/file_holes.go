@@ -7,8 +7,8 @@ import (
 
 // Will a write to offset "off" create a file hole?
 func (f *file) createsHole(plainSize uint64, off int64) bool {
-	nextBlock := f.cfs.BlockNoPlainOff(plainSize)
-	targetBlock := f.cfs.BlockNoPlainOff(uint64(off))
+	nextBlock := f.cfs.PlainOffToBlockNo(plainSize)
+	targetBlock := f.cfs.PlainOffToBlockNo(uint64(off))
 	if targetBlock > nextBlock {
 		return true
 	}
