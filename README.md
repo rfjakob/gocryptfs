@@ -70,9 +70,10 @@ The output should look like this:
 Changelog
 ---------
 
-v0.3 (in progress)
+v0.3
 * Add file header that contains a random id to authenticate blocks
  * This is an on-disk-format change
+* On-disk format 1
 
 v0.2
 * Replace bash daemonization wrapper with native Go implementation
@@ -80,6 +81,7 @@ v0.2
 
 v0.1
 * First release
+* On-disk format 0
 
 See https://github.com/rfjakob/gocryptfs/releases for the release dates
 and associated tags.
