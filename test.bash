@@ -2,10 +2,8 @@
 
 set -eux
 
-for i in ./cryptfs .
-do
+go build ./cryptfs
+go test ./cryptfs
 
-	go build $i
-	go test $i
-done
-
+source build.bash
+go test
