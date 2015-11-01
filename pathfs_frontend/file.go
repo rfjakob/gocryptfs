@@ -439,7 +439,6 @@ func (f *file) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
 	return fuse.ENOSYS
 }
 
-const _UTIME_NOW = ((1 << 30) - 1)
 const _UTIME_OMIT = ((1 << 30) - 2)
 
 func (f *file) Utimens(a *time.Time, m *time.Time) fuse.Status {

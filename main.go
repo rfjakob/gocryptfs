@@ -18,16 +18,11 @@ import (
 )
 
 const (
-	USE_OPENSSL  = true
-	PATHFS_DEBUG = false
-
 	PROGRAM_NAME = "gocryptfs"
 
 	// Exit codes
 	ERREXIT_USAGE      = 1
-	ERREXIT_NEWFS      = 2
 	ERREXIT_MOUNT      = 3
-	ERREXIT_SERVE      = 4
 	ERREXIT_CIPHERDIR  = 6
 	ERREXIT_INIT       = 7
 	ERREXIT_LOADCONF   = 8
