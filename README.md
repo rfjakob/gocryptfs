@@ -62,3 +62,19 @@ The output should look like this:
 	BenchmarkStreamRead 	     200	   7848155 ns/op	 133.61 MB/s
 	ok  	github.com/rfjakob/gocryptfs	9.407s
 
+Changelog
+---------
+
+v0.3 (in progress)
+* Add file header that contains a random id to authenticate blocks
+ * This is an on-disk-format change
+
+v0.2
+* Replace bash daemonization wrapper with native Go implementation
+* Better user feedback on mount failures
+
+v0.1
+* First release
+
+See https://github.com/rfjakob/gocryptfs/releases for the release dates
+and associated tags.

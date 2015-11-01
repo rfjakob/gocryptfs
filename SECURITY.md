@@ -52,12 +52,11 @@ unless you have the key. The opposite of integrity is *malleability*.
  * This means that any modification inside a block will be detected when reading
    the block and decryption will be aborted. The failure is logged and an
    I/O error is returned to the user.
-* Each block uses its block number as GCM *authentication data*
+* Every file has a header that contains a 16-byte random *file id*
+* Each block uses the file id and its block number as GCM *authentication data*
  * This means the position of the blocks is protected as well. The blocks
-   can not be reordered without causing an decryption error.
-* However, proper affiliation of a block to the file is can not be verified.
- * This means that blocks can be copied between different files provided
-   that they stay at the same position. 
+   can not be reordered or copied between different files without
+   causing an decryption error.
 * For technical reasons (sparse files), the special "all-zero" block is
   always seen as a valid block that decrypts to all-zero plaintext.
  * This means that whole blocks can be zeroed out

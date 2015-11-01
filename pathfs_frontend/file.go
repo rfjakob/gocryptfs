@@ -23,7 +23,7 @@ type file struct {
 	// reuse the fd number after it is closed. When open races
 	// with another close, they may lead to confusion as which
 	// file gets written in the end.
-	lock sync.Mutex
+	fdLock sync.Mutex
 
 	// Was the file opened O_WRONLY?
 	writeOnly bool
@@ -33,6 +33,9 @@ type file struct {
 
 	// Inode number
 	ino uint64
+
+	// File header
+	header *cryptfs.FileHeader
 }
 
 func NewFile(fd *os.File, writeOnly bool, cfs *cryptfs.CryptFS) nodefs.File {
@@ -54,26 +57,83 @@ func (f *file) InnerFile() nodefs.File {
 func (f *file) SetInode(n *nodefs.Inode) {
 }
 
+// Ensure that all modifications to the file contents are serialized and no
+// reads happen concurrently.
+//
+// This prevents several races:
+// * getFileId vs Truncate
+// * zeroPad vs Read
+// * RMW vs Write
+func (f *file) wlock() {
+}
+func (f *file) rlock() {
+}
+func (f *file) unlock() {
+}
+
+// readHeader - load the file header from disk
+//
+// Returns io.EOF if the file is empty
+func (f *file) readHeader() error {
+	buf := make([]byte, cryptfs.HEADER_LEN)
+	_, err := f.fd.ReadAt(buf, 0)
+	if err != nil {
+		return err
+	}
+	h, err := cryptfs.ParseHeader(buf)
+	if err != nil {
+		return err
+	}
+	f.header = h
+
+	return nil
+}
+
+// createHeader - create a new random header and write it to disk
+func (f *file) createHeader() error {
+	h := cryptfs.RandomHeader()
+	buf := h.Pack()
+	_, err := f.fd.WriteAt(buf, 0)
+	if err != nil {
+		return err
+	}
+	f.header = h
+
+	return nil
+}
+
 func (f *file) String() string {
 	return fmt.Sprintf("cryptFile(%s)", f.fd.Name())
 }
 
 // doRead - returns "length" plaintext bytes from plaintext offset "off".
-// Arguments "length" and "off" do not have to be aligned.
+// Arguments "length" and "off" do not have to be block-aligned.
 //
-// doRead reads the corresponding ciphertext blocks from disk, decryptfs them and
+// doRead reads the corresponding ciphertext blocks from disk, decrypts them and
 // returns the requested part of the plaintext.
 //
-// Called by Read() and by Write() and Truncate() for RMW
+// Called by Read() for normal reading,
+// by Write() and Truncate() for Read-Modify-Write
 func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
+
+	// Read file header
+	if f.header == nil {
+		err := f.readHeader()
+		if err == io.EOF {
+			return nil, fuse.OK
+		}
+		if err != nil {
+			return nil, fuse.ToStatus(err)
+		}
+	}
 
 	// Read the backing ciphertext in one go
 	alignedOffset, alignedLength, skip := f.cfs.CiphertextRange(off, length)
 	cryptfs.Debug.Printf("CiphertextRange(%d, %d) -> %d, %d, %d\n", off, length, alignedOffset, alignedLength, skip)
 	ciphertext := make([]byte, int(alignedLength))
-	f.lock.Lock()
+	f.fdLock.Lock()
 	n, err := f.fd.ReadAt(ciphertext, int64(alignedOffset))
-	f.lock.Unlock()
+	f.fdLock.Unlock()
 	if err != nil && err != io.EOF {
 		cryptfs.Warn.Printf("read: ReadAt: %s\n", err.Error())
 		return nil, fuse.ToStatus(err)
@@ -81,14 +141,14 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	// Truncate ciphertext buffer down to actually read bytes
 	ciphertext = ciphertext[0:n]
 
-	blockNo := alignedOffset / f.cfs.CipherBS()
+	blockNo := (alignedOffset - cryptfs.HEADER_LEN) / f.cfs.CipherBS()
 	cryptfs.Debug.Printf("ReadAt offset=%d bytes (%d blocks), want=%d, got=%d\n", alignedOffset, blockNo, alignedLength, n)
 
 	// Decrypt it
-	plaintext, err := f.cfs.DecryptBlocks(ciphertext, blockNo)
+	plaintext, err := f.cfs.DecryptBlocks(ciphertext, blockNo, f.header.Id)
 	if err != nil {
 		blockNo := (alignedOffset + uint64(len(plaintext))) / f.cfs.PlainBS()
-		cipherOff := blockNo * f.cfs.CipherBS()
+		cipherOff := cryptfs.HEADER_LEN + blockNo * f.cfs.CipherBS()
 		plainOff := blockNo * f.cfs.PlainBS()
 		cryptfs.Warn.Printf("ino%d: doRead: corrupt block #%d (plainOff=%d/%d, cipherOff=%d/%d)\n",
 			f.ino, blockNo, plainOff, f.cfs.PlainBS(), cipherOff, f.cfs.CipherBS())
@@ -103,15 +163,15 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 		out = plaintext[skip : skip+int(length)]
 	} else if lenHave > skip {
 		out = plaintext[skip:lenHave]
-	} else {
-		// Out stays empty, file was smaller than the requested offset
 	}
+	// else: out stays empty, file was smaller than the requested offset
 
 	return out, fuse.OK
 }
 
 // Read - FUSE call
 func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fuse.Status) {
+
 	cryptfs.Debug.Printf("ino%d: FUSE Read: offset=%d length=%d\n", f.ino, len(buf), off)
 
 	if f.writeOnly {
@@ -132,8 +192,27 @@ func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 	return fuse.ReadResultData(out), status
 }
 
-// Do the actual write
+// doWrite - encrypt "data" and write it to plaintext offset "off"
+//
+// Arguments do not have to be block-aligned, read-modify-write is
+// performed internally as neccessary
+//
+// Called by Write() for normal writing,
+// and by Truncate() to rewrite the last file block.
 func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
+
+	// Read header from disk, create a new one if the file is empty
+	if f.header == nil {
+		err := f.readHeader()
+		if err == io.EOF {
+			err = f.createHeader()
+
+		}
+		if err != nil {
+			return 0, fuse.ToStatus(err)
+		}
+	}
+
 	var written uint32
 	status := fuse.OK
 	dataBuf := bytes.NewBuffer(data)
@@ -158,14 +237,16 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 
 		// Write
 		blockOffset, _ := b.CiphertextRange()
-		blockData = f.cfs.EncryptBlock(blockData, b.BlockNo)
-		cryptfs.Debug.Printf("ino%d: Writing %d bytes to block #%d, md5=%s\n", f.ino, len(blockData), b.BlockNo, cryptfs.Debug.Md5sum(blockData))
+		blockData = f.cfs.EncryptBlock(blockData, b.BlockNo, f.header.Id)
+		cryptfs.Debug.Printf("ino%d: Writing %d bytes to block #%d, md5=%s\n",
+			f.ino, len(blockData) - cryptfs.BLOCK_OVERHEAD, b.BlockNo, cryptfs.Debug.Md5sum(blockData))
 		if len(blockData) != int(f.cfs.CipherBS()) {
-			cryptfs.Debug.Printf("ino%d: Writing partial block #%d (%d bytes)\n", f.ino, b.BlockNo, len(blockData))
+			cryptfs.Debug.Printf("ino%d: Writing partial block #%d (%d bytes)\n",
+				f.ino, b.BlockNo, len(blockData) - cryptfs.BLOCK_OVERHEAD)
 		}
-		f.lock.Lock()
+		f.fdLock.Lock()
 		_, err := f.fd.WriteAt(blockData, int64(blockOffset))
-		f.lock.Unlock()
+		f.fdLock.Unlock()
 
 		if err != nil {
 			cryptfs.Warn.Printf("Write failed: %s\n", err.Error())
@@ -199,20 +280,20 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 
 // Release - FUSE call, forget file
 func (f *file) Release() {
-	f.lock.Lock()
+	f.fdLock.Lock()
 	f.fd.Close()
-	f.lock.Unlock()
+	f.fdLock.Unlock()
 }
 
 // Flush - FUSE call
 func (f *file) Flush() fuse.Status {
-	f.lock.Lock()
+	f.fdLock.Lock()
 
 	// Since Flush() may be called for each dup'd fd, we don't
 	// want to really close the file, we just want to flush. This
 	// is achieved by closing a dup'd fd.
 	newFd, err := syscall.Dup(int(f.fd.Fd()))
-	f.lock.Unlock()
+	f.fdLock.Unlock()
 
 	if err != nil {
 		return fuse.ToStatus(err)
@@ -222,14 +303,27 @@ func (f *file) Flush() fuse.Status {
 }
 
 func (f *file) Fsync(flags int) (code fuse.Status) {
-	f.lock.Lock()
+	f.fdLock.Lock()
 	r := fuse.ToStatus(syscall.Fsync(int(f.fd.Fd())))
-	f.lock.Unlock()
+	f.fdLock.Unlock()
 
 	return r
 }
 
 func (f *file) Truncate(newSize uint64) fuse.Status {
+	// Common case first: Truncate to zero
+	if newSize == 0 {
+		f.fdLock.Lock()
+		err := syscall.Ftruncate(int(f.fd.Fd()), 0)
+		f.fdLock.Unlock()
+		if err != nil {
+			cryptfs.Warn.Printf("Ftruncate(fd, 0) returned error: %v", err)
+			return fuse.ToStatus(err)
+		}
+		// A truncate to zero kills the file header
+		f.header = nil
+		return fuse.OK
+	}
 
 	// We need the old file size to determine if we are growing or shrinking
 	// the file
@@ -247,6 +341,15 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 
 	// File grows
 	if newSize > oldSize {
+
+		// File was empty, create new header
+		if oldSize == 0 {
+			err := f.createHeader()
+			if err != nil {
+				return fuse.ToStatus(err)
+			}
+		}
+
 		blocks := f.cfs.SplitRange(oldSize, newSize-oldSize)
 		for _, b := range blocks {
 			// First and last block may be partial
@@ -259,9 +362,9 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 				}
 			} else {
 				off, length := b.CiphertextRange()
-				f.lock.Lock()
+				f.fdLock.Lock()
 				err := syscall.Ftruncate(int(f.fd.Fd()), int64(off+length))
-				f.lock.Unlock()
+				f.fdLock.Unlock()
 				if err != nil {
 					cryptfs.Warn.Printf("grow Ftruncate returned error: %v", err)
 					return fuse.ToStatus(err)
@@ -272,7 +375,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 	} else {
 		// File shrinks
 		blockNo := f.cfs.BlockNoPlainOff(newSize)
-		cipherOff := blockNo * f.cfs.CipherBS()
+		cipherOff := cryptfs.HEADER_LEN + blockNo * f.cfs.CipherBS()
 		plainOff := blockNo * f.cfs.PlainBS()
 		lastBlockLen := newSize - plainOff
 		var data []byte
@@ -284,13 +387,15 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 				return status
 			}
 		}
-		f.lock.Lock()
+		// Truncate down to last complete block
+		f.fdLock.Lock()
 		err = syscall.Ftruncate(int(f.fd.Fd()), int64(cipherOff))
-		f.lock.Unlock()
+		f.fdLock.Unlock()
 		if err != nil {
 			cryptfs.Warn.Printf("shrink Ftruncate returned error: %v", err)
 			return fuse.ToStatus(err)
 		}
+		// Append partial block
 		if lastBlockLen > 0 {
 			_, status := f.doWrite(data, int64(plainOff))
 			return status
@@ -300,17 +405,17 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 }
 
 func (f *file) Chmod(mode uint32) fuse.Status {
-	f.lock.Lock()
+	f.fdLock.Lock()
 	r := fuse.ToStatus(f.fd.Chmod(os.FileMode(mode)))
-	f.lock.Unlock()
+	f.fdLock.Unlock()
 
 	return r
 }
 
 func (f *file) Chown(uid uint32, gid uint32) fuse.Status {
-	f.lock.Lock()
+	f.fdLock.Lock()
 	r := fuse.ToStatus(f.fd.Chown(int(uid), int(gid)))
-	f.lock.Unlock()
+	f.fdLock.Unlock()
 
 	return r
 }
@@ -318,9 +423,9 @@ func (f *file) Chown(uid uint32, gid uint32) fuse.Status {
 func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 	cryptfs.Debug.Printf("file.GetAttr()\n")
 	st := syscall.Stat_t{}
-	f.lock.Lock()
+	f.fdLock.Lock()
 	err := syscall.Fstat(int(f.fd.Fd()), &st)
-	f.lock.Unlock()
+	f.fdLock.Unlock()
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
@@ -330,7 +435,7 @@ func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 	return fuse.OK
 }
 
-// Allocate FUSE call, fallocate(2)
+// Allocate - FUSE call, fallocate(2)
 func (f *file) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
 	cryptfs.Warn.Printf("Fallocate is not supported, returning ENOSYS - see https://github.com/rfjakob/gocryptfs/issues/1\n")
 	return fuse.ENOSYS
@@ -354,9 +459,9 @@ func (f *file) Utimens(a *time.Time, m *time.Time) fuse.Status {
 		ts[1].Sec = m.Unix()
 	}
 
-	f.lock.Lock()
+	f.fdLock.Lock()
 	fn := fmt.Sprintf("/proc/self/fd/%d", f.fd.Fd())
 	err := syscall.UtimesNano(fn, ts)
-	f.lock.Unlock()
+	f.fdLock.Unlock()
 	return fuse.ToStatus(err)
 }

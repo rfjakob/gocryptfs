@@ -19,7 +19,7 @@ func (ib *intraBlock) IsPartial() bool {
 // CiphertextRange - get byte range in ciphertext file corresponding to BlockNo
 // (complete block)
 func (ib *intraBlock) CiphertextRange() (offset uint64, length uint64) {
-	return ib.BlockNo * ib.fs.cipherBS, ib.fs.cipherBS
+	return HEADER_LEN + ib.BlockNo * ib.fs.cipherBS, ib.fs.cipherBS
 }
 
 // PlaintextRange - get byte range in plaintext corresponding to BlockNo

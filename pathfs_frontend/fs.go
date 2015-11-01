@@ -119,7 +119,8 @@ func (fs *FS) Mknod(name string, mode uint32, dev uint32, context *fuse.Context)
 }
 
 func (fs *FS) Truncate(path string, offset uint64, context *fuse.Context) (code fuse.Status) {
-	return fs.FileSystem.Truncate(fs.EncryptPath(path), offset, context)
+	cryptfs.Warn.Printf("Truncate of a closed file is not supported, returning ENOSYS\n")
+	return fuse.ENOSYS
 }
 
 func (fs *FS) Utimens(path string, Atime *time.Time, Mtime *time.Time, context *fuse.Context) (code fuse.Status) {

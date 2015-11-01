@@ -30,14 +30,14 @@ type CryptFile struct {
 }
 
 // DecryptBlocks - Decrypt a number of blocks
-func (be *CryptFS) DecryptBlocks(ciphertext []byte, firstBlockNo uint64) ([]byte, error) {
+func (be *CryptFS) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, fileId []byte) ([]byte, error) {
 	cBuf := bytes.NewBuffer(ciphertext)
 	var err error
 	var pBuf bytes.Buffer
 	for cBuf.Len() > 0 {
 		cBlock := cBuf.Next(int(be.cipherBS))
 		var pBlock []byte
-		pBlock, err = be.DecryptBlock(cBlock, firstBlockNo)
+		pBlock, err = be.DecryptBlock(cBlock, firstBlockNo, fileId)
 		if err != nil {
 			break
 		}
@@ -51,7 +51,7 @@ func (be *CryptFS) DecryptBlocks(ciphertext []byte, firstBlockNo uint64) ([]byte
 //
 // Corner case: A full-sized block of all-zero ciphertext bytes is translated
 // to an all-zero plaintext block, i.e. file hole passtrough.
-func (be *CryptFS) DecryptBlock(ciphertext []byte, blockNo uint64) ([]byte, error) {
+func (be *CryptFS) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []byte) ([]byte, error) {
 
 	// Empty block?
 	if len(ciphertext) == 0 {
@@ -77,6 +77,7 @@ func (be *CryptFS) DecryptBlock(ciphertext []byte, blockNo uint64) ([]byte, erro
 	// Decrypt
 	var plaintext []byte
 	aData := make([]byte, 8)
+	aData = append(aData, fileId...)
 	binary.BigEndian.PutUint64(aData, blockNo)
 	plaintext, err := be.gcm.Open(plaintext, nonce, ciphertext, aData)
 
@@ -89,8 +90,8 @@ func (be *CryptFS) DecryptBlock(ciphertext []byte, blockNo uint64) ([]byte, erro
 	return plaintext, nil
 }
 
-// encryptBlock - Encrypt and add MAC using GCM
-func (be *CryptFS) EncryptBlock(plaintext []byte, blockNo uint64) []byte {
+// encryptBlock - Encrypt and add IV and MAC
+func (be *CryptFS) EncryptBlock(plaintext []byte, blockNo uint64, fileId []byte) []byte {
 
 	// Empty block?
 	if len(plaintext) == 0 {
@@ -103,6 +104,7 @@ func (be *CryptFS) EncryptBlock(plaintext []byte, blockNo uint64) []byte {
 	// Encrypt plaintext and append to nonce
 	aData := make([]byte, 8)
 	binary.BigEndian.PutUint64(aData, blockNo)
+	aData = append(aData, fileId...)
 	ciphertext := be.gcm.Seal(nonce, nonce, plaintext, aData)
 
 	return ciphertext
@@ -118,6 +120,7 @@ func (be *CryptFS) SplitRange(offset uint64, length uint64) []intraBlock {
 	for length > 0 {
 		b.BlockNo = offset / be.plainBS
 		b.Skip = offset % be.plainBS
+		// Minimum of remaining data and remaining space in the block
 		b.Length = be.minu64(length, be.plainBS-b.Skip)
 		parts = append(parts, b)
 		offset += b.Length
@@ -133,6 +136,9 @@ func (be *CryptFS) PlainSize(size uint64) uint64 {
 	if size == 0 {
 		return 0
 	}
+
+	// Account for header
+	size -= HEADER_LEN
 
 	overhead := be.cipherBS - be.plainBS
 	nBlocks := (size + be.cipherBS - 1) / be.cipherBS
@@ -171,7 +177,7 @@ func (be *CryptFS) CiphertextRange(offset uint64, length uint64) (alignedOffset 
 	firstBlockNo := offset / be.plainBS
 	lastBlockNo := (offset + length - 1) / be.plainBS
 
-	alignedOffset = firstBlockNo * be.cipherBS
+	alignedOffset = HEADER_LEN + firstBlockNo * be.cipherBS
 	alignedLength = (lastBlockNo - firstBlockNo + 1) * be.cipherBS
 
 	skipBytes = int(skip)
@@ -232,5 +238,5 @@ func (be *CryptFS) BlockNoPlainOff(plainOffset uint64) uint64 {
 
 // Get the block number at ciphter-text offset
 func (be *CryptFS) BlockNoCipherOff(cipherOffset uint64) uint64 {
-	return cipherOffset / be.cipherBS
+	return (cipherOffset - HEADER_LEN) / be.cipherBS
 }

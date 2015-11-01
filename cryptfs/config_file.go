@@ -1,6 +1,7 @@
 package cryptfs
 
 import (
+	"fmt"
 	"encoding/json"
 	"io/ioutil"
 )
@@ -19,6 +20,8 @@ type ConfFile struct {
 	EncryptedKey []byte
 	// Stores parameters for scrypt hashing (key derivation)
 	ScryptObject scryptKdf
+	// The On-Disk-Format version this filesystem uses
+	Version uint16
 }
 
 // CreateConfFile - create a new config with a random key encrypted with
@@ -31,7 +34,10 @@ func CreateConfFile(filename string, password string) error {
 	key := RandBytes(KEY_LEN)
 
 	// Encrypt it using the password
+	// This sets ScryptObject and EncryptedKey
 	cf.EncryptKey(key, password)
+
+	cf.Version = HEADER_CURRENT_VERSION
 
 	// Write file to disk
 	err := cf.WriteFile()
@@ -58,6 +64,10 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 		return nil, nil, err
 	}
 
+	if cf.Version != HEADER_CURRENT_VERSION {
+		return nil, nil, fmt.Errorf("Unsupported version %d", cf.Version)
+	}
+
 	// Generate derived key from password
 	scryptHash := cf.ScryptObject.DeriveKey(password)
 
@@ -65,7 +75,7 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	// We use stock go GCM instead of OpenSSL here as speed is not important
 	// and we get better error messages
 	cfs := NewCryptFS(scryptHash, false)
-	key, err := cfs.DecryptBlock(cf.EncryptedKey, 0)
+	key, err := cfs.DecryptBlock(cf.EncryptedKey, 0, nil)
 	if err != nil {
 		Warn.Printf("failed to unlock master key: %s\n", err.Error())
 		Warn.Printf("Password incorrect.\n")
@@ -84,7 +94,7 @@ func (cf *ConfFile) EncryptKey(key []byte, password string) {
 
 	// Lock master key using password-based key
 	cfs := NewCryptFS(scryptHash, false)
-	cf.EncryptedKey = cfs.EncryptBlock(key, 0)
+	cf.EncryptedKey = cfs.EncryptBlock(key, 0, nil)
 }
 
 // WriteFile - write out config in JSON format to file "filename.tmp"
