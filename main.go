@@ -4,9 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"syscall"
 	"time"
 
 	"github.com/rfjakob/gocryptfs/cryptfs"
@@ -188,10 +191,16 @@ func main() {
 	}
 
 	fmt.Println("Filesystem ready.")
-	// Send notification to our parent
-	sendUsr1()
-	// Jump into server loop
+	if !foreground {
+		// Send notification to our parent
+		sendUsr1()
+	}
+	// Wait for SIGING in the background and unmount ourselves if we get it
+	// This prevents a dangling "Transport endpoint is not connected" mountpoint
+	handleSigint(srv, mountpoint)
+	// Jump into server loop. Returns when it gets an umount request from the kernel.
 	srv.Serve()
+	// main returns with code 0
 }
 
 func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool, openssl bool) *fuse.Server {
@@ -223,4 +232,23 @@ func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool,
 	srv.SetDebug(debug)
 
 	return srv
+}
+
+func handleSigint(srv *fuse.Server, mountpoint string) {
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+	signal.Notify(ch, syscall.SIGTERM)
+	go func() {
+		<-ch
+		err := srv.Unmount()
+		if err != nil {
+			fmt.Print(err)
+			fmt.Printf("Trying lazy unmount\n")
+			cmd := exec.Command("fusermount", "-u", "-z", mountpoint)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Run()
+		}
+		os.Exit(1)
+	}()
 }
