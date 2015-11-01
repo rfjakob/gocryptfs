@@ -27,7 +27,7 @@ func checkDir(dir string) error {
 		return err
 	}
 	if !fi.IsDir() {
-		return fmt.Errorf("%s is not a directory")
+		return fmt.Errorf("%s is not a directory", dir)
 	}
 	return nil
 }

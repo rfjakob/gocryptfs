@@ -29,7 +29,7 @@ func daemonize() {
 	c.Stdin = os.Stdin
 	err := c.Start()
 	if err != nil {
-		fmt.Printf("daemonize: starting %s failed: %v\n", name)
+		fmt.Printf("daemonize: starting %s failed: %v\n", name, err)
 		os.Exit(1)
 	}
 	err = c.Wait()
