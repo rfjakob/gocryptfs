@@ -199,10 +199,8 @@ func main() {
 	}
 
 	fmt.Println("Filesystem ready.")
-	if !foreground {
-		// Send notification to our parent
-		sendUsr1()
-	}
+	// Send notification to our parent
+	sendUsr1()
 	// Wait for SIGING in the background and unmount ourselves if we get it
 	// This prevents a dangling "Transport endpoint is not connected" mountpoint
 	handleSigint(srv, mountpoint)
