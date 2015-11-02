@@ -70,6 +70,11 @@ The output should look like this:
 Changelog
 ---------
 
+v0.4 (in progress)
+* Add "--plaintextnames option"
+ * This adds the PlainTextNames parameter to the config file, hence format++
+* On-disk format 2
+
 v0.3
 * Add file header that contains a random id to authenticate blocks
  * This is an on-disk-format change
