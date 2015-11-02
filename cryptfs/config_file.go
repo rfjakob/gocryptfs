@@ -76,7 +76,7 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	// Unlock master key using password-based key
 	// We use stock go GCM instead of OpenSSL here as speed is not important
 	// and we get better error messages
-	cfs := NewCryptFS(scryptHash, false)
+	cfs := NewCryptFS(scryptHash, false, false)
 	key, err := cfs.DecryptBlock(cf.EncryptedKey, 0, nil)
 	if err != nil {
 		Warn.Printf("failed to unlock master key: %s\n", err.Error())
@@ -95,7 +95,7 @@ func (cf *ConfFile) EncryptKey(key []byte, password string) {
 	scryptHash := cf.ScryptObject.DeriveKey(password)
 
 	// Lock master key using password-based key
-	cfs := NewCryptFS(scryptHash, false)
+	cfs := NewCryptFS(scryptHash, false, false)
 	cf.EncryptedKey = cfs.EncryptBlock(key, 0, nil)
 }
 

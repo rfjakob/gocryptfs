@@ -23,9 +23,10 @@ type CryptFS struct {
 	cipherBS    uint64
 	// Stores an all-zero block of size cipherBS
 	allZeroBlock []byte
+	plaintextNames bool
 }
 
-func NewCryptFS(key []byte, useOpenssl bool) *CryptFS {
+func NewCryptFS(key []byte, useOpenssl bool, plaintextNames bool) *CryptFS {
 
 	if len(key) != KEY_LEN {
 		panic(fmt.Sprintf("Unsupported key length %d", len(key)))
@@ -54,6 +55,7 @@ func NewCryptFS(key []byte, useOpenssl bool) *CryptFS {
 		plainBS:      DEFAULT_PLAINBS,
 		cipherBS:     uint64(cipherBS),
 		allZeroBlock: make([]byte, cipherBS),
+		plaintextNames: plaintextNames,
 	}
 }
 

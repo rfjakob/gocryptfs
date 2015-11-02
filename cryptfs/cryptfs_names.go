@@ -102,14 +102,20 @@ func (be *CryptFS) translatePath(path string, op bool) (string, error) {
 	return strings.Join(translatedParts, "/"), err
 }
 
-// EncryptPath - encrypt filename or path. Just hands it to TranslatePath().
+// EncryptPath - encrypt filename or path. Just hands it to translatePath().
 func (be *CryptFS) EncryptPath(path string) string {
+	if be.plaintextNames {
+		return path
+	}
 	newPath, _ := be.translatePath(path, ENCRYPT)
 	return newPath
 }
 
-// DecryptPath - decrypt filename or path. Just hands it to TranslatePath().
+// DecryptPath - decrypt filename or path. Just hands it to translatePath().
 func (be *CryptFS) DecryptPath(path string) (string, error) {
+	if be.plaintextNames {
+		return path, nil
+	}
 	return be.translatePath(path, DECRYPT)
 }
 

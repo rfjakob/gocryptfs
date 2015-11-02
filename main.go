@@ -41,7 +41,7 @@ func initDir(dirArg string, plaintextNames bool) {
 
 	err := checkDirEmpty(dir)
 	if err != nil {
-		fmt.Printf("Error: \"%s\": %v\n", dirArg, err)
+		fmt.Printf("Invalid CIPHERDIR: %v\n", err)
 		os.Exit(ERREXIT_INIT)
 	}
 
@@ -114,8 +114,8 @@ func main() {
 		fmt.Printf("Openssl disabled\n")
 	}
 	if args.init {
-		if flag.NArg() != 1 {
-			fmt.Printf("Usage: %s --init CIPHERDIR\n", PROGRAM_NAME)
+		if flag.NArg() != 1 && args.plaintextnames == false {
+			fmt.Printf("Usage: %s --init [--plaintextnames] CIPHERDIR\n", PROGRAM_NAME)
 			os.Exit(ERREXIT_USAGE)
 		}
 		initDir(flag.Arg(0), args.plaintextnames) // does not return
@@ -154,6 +154,7 @@ func main() {
 		key = parseMasterKey(args.masterkey)
 		fmt.Printf("Using explicit master key.\n")
 	} else {
+		// Load config file
 		cfname := filepath.Join(args.cipherdir, cryptfs.ConfDefaultName)
 		_, err = os.Stat(cfname)
 		if err != nil {
@@ -194,7 +195,11 @@ func main() {
 		os.Exit(0)
 	}
 
-	srv := pathfsFrontend(key, args.cipherdir, args.mountpoint, args.fusedebug, args.openssl)
+	var plaintextNames bool
+	if cf != nil {
+		plaintextNames = cf.PlaintextNames
+	}
+	srv := pathfsFrontend(key, args.cipherdir, args.mountpoint, args.fusedebug, args.openssl, plaintextNames)
 
 	if args.zerokey == false && len(args.masterkey) == 0 {
 		printMasterKey(key)
@@ -215,9 +220,10 @@ func main() {
 	// main returns with code 0
 }
 
-func pathfsFrontend(key []byte, cipherdir string, mountpoint string, debug bool, openssl bool) *fuse.Server {
+func pathfsFrontend(key []byte, cipherdir string, mountpoint string,
+	debug bool, openssl bool, plaintextNames bool) *fuse.Server {
 
-	finalFs := pathfs_frontend.NewFS(key, cipherdir, openssl)
+	finalFs := pathfs_frontend.NewFS(key, cipherdir, openssl, plaintextNames)
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
 	pathFs := pathfs.NewPathNodeFs(finalFs, pathFsOpts)
 	fuseOpts := &nodefs.Options{
