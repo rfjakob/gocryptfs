@@ -16,6 +16,8 @@ Options:
     	Use OpenSSL instead of built-in Go crypto (default true)
   -passwd
     	Change password
+  -plaintextnames
+    	Do not encrypt file names - can only be used together with -init
   -version
     	Print version and exit
   -zerokey

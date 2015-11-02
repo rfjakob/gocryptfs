@@ -58,8 +58,8 @@ func initDir(dirArg string, plaintextNames bool) {
 }
 
 func usageText() {
-	fmt.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT\n", PROGRAM_NAME)
-	fmt.Printf("\nOptions:\n")
+	fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT\n", PROGRAM_NAME)
+	fmt.Fprintf(os.Stderr, "\nOptions:\n")
 	flag.PrintDefaults()
 }
 
@@ -83,7 +83,8 @@ func main() {
 	flag.BoolVar(&args.passwd, "passwd", false, "Change password")
 	flag.BoolVar(&args.foreground, "f", false, "Stay in the foreground")
 	flag.BoolVar(&args.version, "version", false, "Print version and exit")
-	flag.BoolVar(&args.plaintextnames, "plaintextnames", false, "Do not encrypt file names")
+	flag.BoolVar(&args.plaintextnames, "plaintextnames", false,
+		"Do not encrypt file names - can only be used together with -init")
 	flag.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	args.cpuprofile = flag.String("cpuprofile", "", "Write cpu profile to specified file")
 
