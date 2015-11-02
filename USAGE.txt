@@ -1,0 +1,22 @@
+Usage: gocryptfs [OPTIONS] CIPHERDIR MOUNTPOINT
+
+Options:
+  -cpuprofile string
+    	Write cpu profile to specified file
+  -debug
+    	Enable debug output
+  -f	Stay in the foreground
+  -fusedebug
+    	Enable fuse library debug output
+  -init
+    	Initialize encrypted directory
+  -masterkey string
+    	Mount with explicit master key
+  -openssl
+    	Use OpenSSL instead of built-in Go crypto (default true)
+  -passwd
+    	Change password
+  -version
+    	Print version and exit
+  -zerokey
+    	Use all-zero dummy master key
