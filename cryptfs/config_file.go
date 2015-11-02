@@ -22,11 +22,13 @@ type ConfFile struct {
 	ScryptObject scryptKdf
 	// The On-Disk-Format version this filesystem uses
 	Version uint16
+	// Do not encrypt filenames
+	PlaintextNames bool
 }
 
 // CreateConfFile - create a new config with a random key encrypted with
 // "password" and write it to "filename"
-func CreateConfFile(filename string, password string) error {
+func CreateConfFile(filename string, password string, plaintextNames bool) error {
 	var cf ConfFile
 	cf.filename = filename
 
@@ -39,10 +41,10 @@ func CreateConfFile(filename string, password string) error {
 
 	cf.Version = HEADER_CURRENT_VERSION
 
-	// Write file to disk
-	err := cf.WriteFile()
+	cf.PlaintextNames = plaintextNames
 
-	return err
+	// Write file to disk
+	return cf.WriteFile()
 }
 
 // LoadConfFile - read config file from disk and decrypt the
