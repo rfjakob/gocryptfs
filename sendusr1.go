@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	WRAPPER_CONTAINS = "gocryptfs\000"
+	wrapperContains = "gocryptfs\000"
 )
 
 // Send USR1 to the parent process. This notifies it that the
@@ -24,7 +24,7 @@ func sendUsr1() {
 		fmt.Printf("sendUsr1: ReadFile: %v\n", err)
 		return
 	}
-	if bytes.Contains(cmdline, []byte(WRAPPER_CONTAINS)) {
+	if bytes.Contains(cmdline, []byte(wrapperContains)) {
 		p, err := os.FindProcess(ppid)
 		if err != nil {
 			fmt.Printf("sendUsr1: FindProcess: %v\n", err)

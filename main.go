@@ -33,6 +33,7 @@ const (
 	ERREXIT_MOUNTPOINT = 10
 )
 
+// GitVersion will be set by the build script "build.bash"
 var GitVersion = "[version not set - please compile using ./build.bash]"
 
 func initDir(dirArg string) {
