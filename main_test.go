@@ -15,8 +15,26 @@ import (
 )
 
 const tmpDir = "/tmp/gocryptfs_main_test/"
+// Mountpoint
 const plainDir = tmpDir + "plain/"
 const cipherDir = tmpDir + "cipher/"
+
+func resetTmpDir() {
+	fu := exec.Command("fusermount", "-z", "-u", plainDir)
+	fu.Run()
+
+	os.RemoveAll(tmpDir)
+
+	err := os.MkdirAll(plainDir, 0777)
+	if err != nil {
+		panic("Could not create plainDir")
+	}
+
+	err = os.MkdirAll(cipherDir, 0777)
+	if err != nil {
+		panic("Could not create cipherDir")
+	}
+}
 
 func mount(extraArgs ...string) {
 	var args []string
@@ -25,8 +43,10 @@ func mount(extraArgs ...string) {
 	args = append(args, cipherDir)
 	args = append(args, plainDir)
 	c := exec.Command("./gocryptfs", args...)
-	c.Stdout = os.Stdout
-	c.Stderr = os.Stderr
+	// Warning messages clutter the test output. Uncomment if you want to debug
+	// failures.
+	//c.Stdout = os.Stdout
+	//c.Stderr = os.Stderr
 	err := c.Run()
 	if err != nil {
 		fmt.Println(err)
@@ -77,29 +97,33 @@ func verifySize(t *testing.T, path string, want int) {
 	}
 }
 
+var plaintextNames bool
+
 // This is the entry point for the tests
 func TestMain(m *testing.M) {
-
-	fu := exec.Command("fusermount", "-z", "-u", plainDir)
-	fu.Run()
-
-	os.RemoveAll(tmpDir)
-
-	err := os.MkdirAll(plainDir, 0777)
-	if err != nil {
-		panic("Could not create plainDir")
+	if testing.Verbose() {
+		// First printf does not show up. Verbose() always return false before "m.Run()"?
+		fmt.Printf("***** Testing with native Go crypto\n")
 	}
-
-	err = os.MkdirAll(cipherDir, 0777)
-	if err != nil {
-		panic("Could not create cipherDir")
-	}
-
+	resetTmpDir()
 	mount("--zerokey", "--openssl=false")
 	r := m.Run()
 	unmount()
 
+	if testing.Verbose() {
+		fmt.Printf("***** Testing with OpenSSL\n")
+	}
+	resetTmpDir()
 	mount("--zerokey")
+	r = m.Run()
+	unmount()
+
+	if testing.Verbose() {
+		fmt.Printf("***** Testing \"--plaintextnames\"\n")
+	}
+	resetTmpDir()
+	mount("--zerokey", "--plaintextnames")
+	plaintextNames = true
 	r = m.Run()
 	unmount()
 
@@ -323,6 +347,42 @@ func TestRmwRace(t *testing.T) {
 		fmt.Println(goodMd5)
 	}
 }
+
+// With "--plaintextnames", the name "/gocryptfs.conf" is reserved.
+// Otherwise there should be no restrictions.
+func TestFiltered(t *testing.T) {
+	filteredFile := plainDir + "gocryptfs.conf"
+	file, err := os.Create(filteredFile)
+	if plaintextNames == true && err == nil {
+		fmt.Errorf("should have failed but didn't")
+	} else if plaintextNames == false && err != nil {
+		t.Error(err)
+	}
+	file.Close()
+
+	err = os.Remove(filteredFile)
+	if plaintextNames == true && err == nil {
+		fmt.Errorf("should have failed but didn't")
+	} else if plaintextNames == false && err != nil {
+		t.Error(err)
+	}
+}
+
+func TestFilenameEncryption(t *testing.T) {
+	file, err := os.Create(plainDir + "TestFilenameEncryption.txt")
+	file.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = os.Stat(cipherDir + "TestFilenameEncryption.txt")
+	if plaintextNames == true && err != nil {
+		t.Errorf("plaintextnames not working: %v", err)
+	} else if plaintextNames == false && err == nil {
+		t.Errorf("file name encryption not working")
+	}
+}
+
 func BenchmarkStreamWrite(t *testing.B) {
 	buf := make([]byte, 1024*1024)
 	t.SetBytes(int64(len(buf)))

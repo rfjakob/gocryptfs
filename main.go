@@ -146,11 +146,13 @@ func main() {
 		os.Exit(ERREXIT_CIPHERDIR)
 	}
 
+	var plaintextNames bool
 	var cf *cryptfs.ConfFile
 	var currentPassword string
 	key := make([]byte, cryptfs.KEY_LEN)
 	if args.zerokey {
 		fmt.Printf("Zerokey mode active: using all-zero dummy master key.\n")
+		plaintextNames = args.plaintextnames
 	} else if len(args.masterkey) > 0 {
 		key = parseMasterKey(args.masterkey)
 		fmt.Printf("Using explicit master key.\n")
@@ -196,7 +198,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	var plaintextNames bool
 	if cf != nil {
 		plaintextNames = cf.PlaintextNames()
 	}
