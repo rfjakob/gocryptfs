@@ -198,7 +198,7 @@ func main() {
 
 	var plaintextNames bool
 	if cf != nil {
-		plaintextNames = cf.PlaintextNames
+		plaintextNames = cf.PlaintextNames()
 	}
 	srv := pathfsFrontend(key, args.cipherdir, args.mountpoint, args.fusedebug, args.openssl, plaintextNames)
 

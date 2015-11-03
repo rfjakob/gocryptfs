@@ -11,6 +11,7 @@ const (
 	// The dot "." is not used in base64url (RFC4648), hence
 	// we can never clash with an encrypted file.
 	ConfDefaultName = "gocryptfs.conf"
+	FlagPlaintextNames = "PlaintextNames"
 )
 
 type ConfFile struct {
@@ -22,8 +23,11 @@ type ConfFile struct {
 	ScryptObject scryptKdf
 	// The On-Disk-Format version this filesystem uses
 	Version uint16
-	// Do not encrypt filenames
-	PlaintextNames bool
+	// List of feature flags this filesystem has enabled.
+	// If gocryptfs encounters a feature flag it does not support, it will refuse
+	// mounting. This mechanism is analogous to the ext4 feature flags that are
+	// stored in the superblock.
+	FeatureFlags []string
 }
 
 // CreateConfFile - create a new config with a random key encrypted with
@@ -41,14 +45,18 @@ func CreateConfFile(filename string, password string, plaintextNames bool) error
 
 	cf.Version = HEADER_CURRENT_VERSION
 
-	cf.PlaintextNames = plaintextNames
+	if plaintextNames {
+		cf.FeatureFlags = append(cf.FeatureFlags, FlagPlaintextNames)
+	}
 
 	// Write file to disk
 	return cf.WriteFile()
 }
 
 // LoadConfFile - read config file from disk and decrypt the
-// contained key using password
+// contained key using password.
+//
+// Returns the decrypted key and the ConfFile object
 func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	var cf ConfFile
 	cf.filename = filename
@@ -67,7 +75,17 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	}
 
 	if cf.Version != HEADER_CURRENT_VERSION {
-		return nil, nil, fmt.Errorf("Unsupported version %d", cf.Version)
+		return nil, nil, fmt.Errorf("Unsupported on-disk format %d\n", cf.Version)
+	}
+
+	// Verify that we know all feature flags
+	for _, flag := range(cf.FeatureFlags) {
+		switch(flag) {
+			case FlagPlaintextNames:
+				continue
+			default:
+				return nil, nil, fmt.Errorf("Unsupported feature flag %s\n", flag)
+		}
 	}
 
 	// Generate derived key from password
@@ -129,4 +147,18 @@ func (cf *ConfFile) WriteFile() error {
 	}
 
 	return nil
+}
+
+// isFeatureFlagSet - is the feature flag "flagWant" enabled?
+func (cf *ConfFile) isFeatureFlagSet(flagWant string) bool {
+	for _, flag := range(cf.FeatureFlags) {
+		if flag == flagWant {
+			return true
+		}
+	}
+	return false
+}
+
+func (cf *ConfFile) PlaintextNames() bool {
+	return cf.isFeatureFlagSet(FlagPlaintextNames)
 }
