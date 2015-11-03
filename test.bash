@@ -1,9 +1,9 @@
 #!/bin/bash
 
-set -eux
+set -eu
 
 go build ./cryptfs
-go test ./cryptfs
+go test ./cryptfs $*
 
 source build.bash
-go test
+go test $*

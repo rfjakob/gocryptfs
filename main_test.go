@@ -319,7 +319,9 @@ func TestRmwRace(t *testing.T) {
 			}
 		*/
 	}
-	fmt.Println(goodMd5)
+	if testing.Verbose() {
+		fmt.Println(goodMd5)
+	}
 }
 func BenchmarkStreamWrite(t *testing.B) {
 	buf := make([]byte, 1024*1024)
