@@ -71,8 +71,13 @@ Changelog
 ---------
 
 v0.4 (in progress)
-* Add "--plaintextnames option"
- * This adds the PlainTextNames parameter to the config file, hence format++
+* Add `--plaintextnames` command line option
+ * Can only be used in conjunction with `--init` and disables filename encryption
+   (added on user request)
+* Add `FeatureFlags` config file paramter
+ * This is a config format change, hence the on-disk format is incremented
+ * Used for ext4-style filesystem feature flags. This should help avoid future
+   format changes.
 * On-disk format 2
 
 v0.3
