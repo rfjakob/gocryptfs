@@ -194,6 +194,8 @@ func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 	return fuse.ReadResultData(out), status
 }
 
+const FALLOC_FL_KEEP_SIZE = 0x01
+
 // doWrite - encrypt "data" and write it to plaintext offset "off"
 //
 // Arguments do not have to be block-aligned, read-modify-write is
@@ -238,16 +240,25 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 		}
 
 		// Write
-		blockOffset, _ := b.CiphertextRange()
+		blockOffset, blockLen := b.CiphertextRange()
 		blockData = f.cfs.EncryptBlock(blockData, b.BlockNo, f.header.Id)
 		cryptfs.Debug.Printf("ino%d: Writing %d bytes to block #%d, md5=%s\n",
 			f.ino, len(blockData)-cryptfs.BLOCK_OVERHEAD, b.BlockNo, cryptfs.Debug.Md5sum(blockData))
-		f.fdLock.Lock()
-		_, err := f.fd.WriteAt(blockData, int64(blockOffset))
-		f.fdLock.Unlock()
 
+		// Prevent partially written (=corrupt) blocks by preallocating the space beforehand
+		f.fdLock.Lock()
+		err := syscall.Fallocate(int(f.fd.Fd()), FALLOC_FL_KEEP_SIZE, int64(blockOffset), int64(blockLen))
+		f.fdLock.Unlock()
 		if err != nil {
-			cryptfs.Warn.Printf("Write failed: %s\n", err.Error())
+			cryptfs.Warn.Printf("doWrite: Fallocate failed: %s\n", err.Error())
+			status = fuse.ToStatus(err)
+			break
+		}
+		f.fdLock.Lock()
+		_, err = f.fd.WriteAt(blockData, int64(blockOffset))
+		f.fdLock.Unlock()
+		if err != nil {
+			cryptfs.Warn.Printf("doWrite: Write failed: %s\n", err.Error())
 			status = fuse.ToStatus(err)
 			break
 		}
