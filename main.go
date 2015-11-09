@@ -60,36 +60,42 @@ func initDir(dirArg string, plaintextNames bool) {
 func usageText() {
 	fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT\n", PROGRAM_NAME)
 	fmt.Fprintf(os.Stderr, "\nOptions:\n")
-	flag.PrintDefaults()
+	flagSet.PrintDefaults()
 }
+
+type argContainer struct {
+		debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
+			plaintextnames, quiet bool
+		masterkey, mountpoint, cipherdir string
+		cpuprofile *string
+		sendusr1 int
+}
+
+var flagSet *flag.FlagSet
 
 func main() {
 	runtime.GOMAXPROCS(4)
 
 	// Parse command line arguments
-	var args struct {
-		debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
-			plaintextnames, quiet bool
-		masterkey, mountpoint, cipherdir string
-		cpuprofile *string
-	}
-
-	flag.Usage = usageText
-	flag.BoolVar(&args.debug, "debug", false, "Enable debug output")
-	flag.BoolVar(&args.fusedebug, "fusedebug", false, "Enable fuse library debug output")
-	flag.BoolVar(&args.init, "init", false, "Initialize encrypted directory")
-	flag.BoolVar(&args.zerokey, "zerokey", false, "Use all-zero dummy master key")
-	flag.BoolVar(&args.openssl, "openssl", true, "Use OpenSSL instead of built-in Go crypto")
-	flag.BoolVar(&args.passwd, "passwd", false, "Change password")
-	flag.BoolVar(&args.foreground, "f", false, "Stay in the foreground")
-	flag.BoolVar(&args.version, "version", false, "Print version and exit")
-	flag.BoolVar(&args.plaintextnames, "plaintextnames", false,
+	var args argContainer
+	flagSet = flag.NewFlagSet(PROGRAM_NAME, flag.ExitOnError)
+	flagSet.Usage = usageText
+	flagSet.BoolVar(&args.debug, "debug", false, "Enable debug output")
+	flagSet.BoolVar(&args.fusedebug, "fusedebug", false, "Enable fuse library debug output")
+	flagSet.BoolVar(&args.init, "init", false, "Initialize encrypted directory")
+	flagSet.BoolVar(&args.zerokey, "zerokey", false, "Use all-zero dummy master key")
+	flagSet.BoolVar(&args.openssl, "openssl", true, "Use OpenSSL instead of built-in Go crypto")
+	flagSet.BoolVar(&args.passwd, "passwd", false, "Change password")
+	flagSet.BoolVar(&args.foreground, "f", false, "Stay in the foreground")
+	flagSet.BoolVar(&args.version, "version", false, "Print version and exit")
+	flagSet.BoolVar(&args.plaintextnames, "plaintextnames", false,
 		"Do not encrypt file names - can only be used together with -init")
-	flag.BoolVar(&args.quiet, "q", false, "Quiet - silence informational messages")
-	flag.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
-	args.cpuprofile = flag.String("cpuprofile", "", "Write cpu profile to specified file")
-
-	flag.Parse()
+	flagSet.BoolVar(&args.quiet, "q", false, "Quiet - silence informational messages")
+	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
+	args.cpuprofile = flagSet.String("cpuprofile", "", "Write cpu profile to specified file")
+	flagSet.IntVar(&args.sendusr1, "sendusr1", 0,
+		"Send USR1 to the specified process after successful mount - used internally for daemonization")
+	flagSet.Parse(os.Args[1:])
 	if args.version {
 		fmt.Printf("%s %s; on-disk format %d\n", PROGRAM_NAME, GitVersion, cryptfs.HEADER_CURRENT_VERSION)
 		os.Exit(0)
@@ -118,31 +124,31 @@ func main() {
 		cryptfs.Info.Printf("Openssl disabled\n")
 	}
 	if args.init {
-		if flag.NArg() != 1 && args.plaintextnames == false {
+		if flagSet.NArg() != 1 && args.plaintextnames == false {
 			fmt.Printf("Usage: %s --init [--plaintextnames] CIPHERDIR\n", PROGRAM_NAME)
 			os.Exit(ERREXIT_USAGE)
 		}
-		initDir(flag.Arg(0), args.plaintextnames) // does not return
+		initDir(flagSet.Arg(0), args.plaintextnames) // does not return
 	}
 	if args.passwd {
-		if flag.NArg() != 1 {
+		if flagSet.NArg() != 1 {
 			fmt.Printf("Usage: %s --passwd CIPHERDIR\n", PROGRAM_NAME)
 			os.Exit(ERREXIT_USAGE)
 		}
 	} else {
 		// Normal mount
-		if flag.NArg() < 2 {
+		if flagSet.NArg() < 2 {
 			usageText()
 			os.Exit(ERREXIT_USAGE)
 		}
-		args.mountpoint, _ = filepath.Abs(flag.Arg(1))
+		args.mountpoint, _ = filepath.Abs(flagSet.Arg(1))
 		err := checkDirEmpty(args.mountpoint)
 		if err != nil {
 			fmt.Printf("Invalid MOUNTPOINT: %v\n", err)
 			os.Exit(ERREXIT_MOUNTPOINT)
 		}
 	}
-	args.cipherdir, _ = filepath.Abs(flag.Arg(0))
+	args.cipherdir, _ = filepath.Abs(flagSet.Arg(0))
 	err := checkDir(args.cipherdir)
 	if err != nil {
 		fmt.Printf("Invalid CIPHERDIR: %v\n", err)
@@ -165,7 +171,7 @@ func main() {
 		_, err = os.Stat(cfname)
 		if err != nil {
 			fmt.Printf("Error: %s not found in CIPHERDIR\n", cryptfs.ConfDefaultName)
-			fmt.Printf("Please run \"%s --init %s\" first\n", os.Args[0], flag.Arg(0))
+			fmt.Printf("Please run \"%s --init %s\" first\n", os.Args[0], flagSet.Arg(0))
 			os.Exit(ERREXIT_LOADCONF)
 		}
 		if args.passwd == true {
