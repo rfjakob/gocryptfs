@@ -25,7 +25,7 @@ func printMasterKey(key []byte) {
 		}
 	}
 
-	fmt.Printf(`
+	cryptfs.Info.Printf(`
 ATTENTION:
 
   Your master key is: %s

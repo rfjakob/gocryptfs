@@ -180,7 +180,7 @@ func main() {
 			fmt.Printf("Password: ")
 		}
 		currentPassword = readPassword()
-		cryptfs.Info.Printf("\nDecrypting master key... ")
+		cryptfs.Info.Printf("Decrypting master key... ")
 		cryptfs.Warn.Disable() // Silence DecryptBlock() error messages on incorrect password
 		key, cf, err = cryptfs.LoadConfFile(cfname, currentPassword)
 		cryptfs.Warn.Enable()

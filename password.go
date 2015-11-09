@@ -9,9 +9,8 @@ import (
 func readPasswordTwice() string {
 	fmt.Printf("Password: ")
 	p1 := readPassword()
-	fmt.Printf("\nRepeat: ")
+	fmt.Printf("Repeat: ")
 	p2 := readPassword()
-	fmt.Printf("\n")
 	if p1 != p2 {
 		fmt.Printf("Passwords do not match\n")
 		os.Exit(ERREXIT_PASSWORD)
@@ -23,6 +22,7 @@ func readPasswordTwice() string {
 func readPassword() string {
 	fd := int(os.Stdin.Fd())
 	p, err := terminal.ReadPassword(fd)
+	fmt.Printf("\n")
 	if err != nil {
 		fmt.Printf("Error: Could not read password: %v\n", err)
 		os.Exit(ERREXIT_PASSWORD)
