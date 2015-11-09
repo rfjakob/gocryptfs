@@ -43,6 +43,11 @@ func (l *logChannel) Md5sum(buf []byte) string {
 	return md5sum(buf)
 }
 
+// As defined by http://elinux.org/Debugging_by_printing#Log_Levels
+
+// Debug messages
 var Debug = logChannel{false}
-var Notice = logChannel{true}
+// Informational message e.g. startup information
+var Info = logChannel{true}
+// A warning, meaning nothing serious by itself but might indicate problems
 var Warn = logChannel{true}

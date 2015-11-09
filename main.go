@@ -46,14 +46,14 @@ func initDir(dirArg string, plaintextNames bool) {
 	}
 
 	confName := filepath.Join(dir, cryptfs.ConfDefaultName)
-	fmt.Printf("Choose a password for protecting your files.\n")
+	cryptfs.Info.Printf("Choose a password for protecting your files.\n")
 	password := readPasswordTwice()
 	err = cryptfs.CreateConfFile(confName, password, plaintextNames)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(ERREXIT_INIT)
 	}
-	fmt.Printf("The filesystem is now ready for mounting.\n")
+	cryptfs.Info.Printf("The filesystem is now ready for mounting.\n")
 	os.Exit(0)
 }
 
@@ -69,7 +69,7 @@ func main() {
 	// Parse command line arguments
 	var args struct {
 		debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
-			plaintextnames bool
+			plaintextnames, quiet bool
 		masterkey, mountpoint, cipherdir string
 		cpuprofile *string
 	}
@@ -85,14 +85,17 @@ func main() {
 	flag.BoolVar(&args.version, "version", false, "Print version and exit")
 	flag.BoolVar(&args.plaintextnames, "plaintextnames", false,
 		"Do not encrypt file names - can only be used together with -init")
+	flag.BoolVar(&args.quiet, "q", false, "Quiet - silence informational messages")
 	flag.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	args.cpuprofile = flag.String("cpuprofile", "", "Write cpu profile to specified file")
 
 	flag.Parse()
 	if args.version {
-		fmt.Printf("%s %s; ", PROGRAM_NAME, GitVersion)
-		fmt.Printf("on-disk format %d\n", cryptfs.HEADER_CURRENT_VERSION)
+		fmt.Printf("%s %s; on-disk format %d\n", PROGRAM_NAME, GitVersion, cryptfs.HEADER_CURRENT_VERSION)
 		os.Exit(0)
+	}
+	if args.quiet {
+		cryptfs.Info.Disable()
 	}
 	if !args.foreground {
 		daemonize() // does not return
@@ -103,7 +106,7 @@ func main() {
 			fmt.Println(err)
 			os.Exit(ERREXIT_INIT)
 		}
-		fmt.Printf("Writing CPU profile to %s\n", *args.cpuprofile)
+		cryptfs.Info.Printf("Writing CPU profile to %s\n", *args.cpuprofile)
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
@@ -112,7 +115,7 @@ func main() {
 		cryptfs.Debug.Printf("Debug output enabled\n")
 	}
 	if args.openssl == false {
-		fmt.Printf("Openssl disabled\n")
+		cryptfs.Info.Printf("Openssl disabled\n")
 	}
 	if args.init {
 		if flag.NArg() != 1 && args.plaintextnames == false {
@@ -151,11 +154,11 @@ func main() {
 	var currentPassword string
 	key := make([]byte, cryptfs.KEY_LEN)
 	if args.zerokey {
-		fmt.Printf("Zerokey mode active: using all-zero dummy master key.\n")
+		cryptfs.Info.Printf("Zerokey mode active: using all-zero dummy master key.\n")
 		plaintextNames = args.plaintextnames
 	} else if len(args.masterkey) > 0 {
 		key = parseMasterKey(args.masterkey)
-		fmt.Printf("Using explicit master key.\n")
+		cryptfs.Info.Printf("Using explicit master key.\n")
 	} else {
 		// Load config file
 		cfname := filepath.Join(args.cipherdir, cryptfs.ConfDefaultName)
@@ -171,7 +174,7 @@ func main() {
 			fmt.Printf("Password: ")
 		}
 		currentPassword = readPassword()
-		fmt.Printf("\nDecrypting master key... ")
+		cryptfs.Info.Printf("\nDecrypting master key... ")
 		cryptfs.Warn.Disable() // Silence DecryptBlock() error messages on incorrect password
 		key, cf, err = cryptfs.LoadConfFile(cfname, currentPassword)
 		cryptfs.Warn.Enable()
@@ -179,7 +182,7 @@ func main() {
 			fmt.Println(err)
 			os.Exit(ERREXIT_LOADCONF)
 		}
-		fmt.Printf("done.\n")
+		cryptfs.Info.Printf("done.\n")
 	}
 	if args.passwd == true {
 		fmt.Printf("Please enter the new password.\n")
@@ -194,7 +197,7 @@ func main() {
 			fmt.Println(err)
 			os.Exit(ERREXIT_INIT)
 		}
-		fmt.Printf("Password changed.\n")
+		cryptfs.Info.Printf("Password changed.\n")
 		os.Exit(0)
 	}
 
@@ -206,12 +209,12 @@ func main() {
 	if args.zerokey == false && len(args.masterkey) == 0 {
 		printMasterKey(key)
 	} else if args.zerokey == true {
-		fmt.Printf("ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING.\n")
+		cryptfs.Info.Printf("ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING.\n")
 	} else if len(args.masterkey) > 0 {
-		fmt.Printf("THE MASTER KEY IS VISIBLE VIA \"ps -auxwww\", ONLY USE THIS MODE FOR EMERGENCIES.\n")
+		cryptfs.Info.Printf("THE MASTER KEY IS VISIBLE VIA \"ps -auxwww\", ONLY USE THIS MODE FOR EMERGENCIES.\n")
 	}
 
-	fmt.Println("Filesystem ready.")
+	cryptfs.Info.Println("Filesystem ready.")
 	// Send notification to our parent
 	sendUsr1()
 	// Wait for SIGING in the background and unmount ourselves if we get it
@@ -263,7 +266,7 @@ func handleSigint(srv *fuse.Server, mountpoint string) {
 		err := srv.Unmount()
 		if err != nil {
 			fmt.Print(err)
-			fmt.Printf("Trying lazy unmount\n")
+			cryptfs.Info.Printf("Trying lazy unmount\n")
 			cmd := exec.Command("fusermount", "-u", "-z", mountpoint)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr

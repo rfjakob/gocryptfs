@@ -174,7 +174,7 @@ func (fs *FS) Unlink(name string, context *fuse.Context) (code fuse.Status) {
 	cName := fs.EncryptPath(name)
 	code = fs.FileSystem.Unlink(cName, context)
 	if code != fuse.OK {
-		cryptfs.Notice.Printf("Unlink failed on %s [%s], code=%s\n", name, cName, code.String())
+		cryptfs.Warn.Printf("Unlink failed on %s [%s], code=%s\n", name, cName, code.String())
 	}
 	return code
 }
