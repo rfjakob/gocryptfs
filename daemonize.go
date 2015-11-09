@@ -21,7 +21,8 @@ func waitForUsr1() {
 func daemonize() {
 	go waitForUsr1()
 	name := os.Args[0]
-	newArgs := []string{"-f"}
+	notifyArg := fmt.Sprintf("-notifypid=%d", os.Getpid())
+	newArgs := []string{"-f", notifyArg}
 	newArgs = append(newArgs, os.Args[1:]...)
 	c := exec.Command(name, newArgs...)
 	c.Stdout = os.Stdout

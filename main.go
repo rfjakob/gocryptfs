@@ -68,7 +68,7 @@ type argContainer struct {
 			plaintextnames, quiet bool
 		masterkey, mountpoint, cipherdir string
 		cpuprofile *string
-		sendusr1 int
+		notifypid int
 }
 
 var flagSet *flag.FlagSet
@@ -93,7 +93,7 @@ func main() {
 	flagSet.BoolVar(&args.quiet, "q", false, "Quiet - silence informational messages")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	args.cpuprofile = flagSet.String("cpuprofile", "", "Write cpu profile to specified file")
-	flagSet.IntVar(&args.sendusr1, "sendusr1", 0,
+	flagSet.IntVar(&args.notifypid, "notifypid", 0,
 		"Send USR1 to the specified process after successful mount - used internally for daemonization")
 	flagSet.Parse(os.Args[1:])
 	if args.version {
@@ -221,8 +221,10 @@ func main() {
 	}
 
 	cryptfs.Info.Println("Filesystem ready.")
-	// Send notification to our parent
-	sendUsr1()
+	// Send USR1 notification
+	if args.notifypid > 0 {
+		sendUsr1(args.notifypid)
+	}
 	// Wait for SIGING in the background and unmount ourselves if we get it
 	// This prevents a dangling "Transport endpoint is not connected" mountpoint
 	handleSigint(srv, args.mountpoint)
