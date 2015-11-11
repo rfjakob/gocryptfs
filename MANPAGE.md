@@ -5,7 +5,7 @@
 NAME
 ====
 
-gocryptfs - mount and encrypted directory
+gocryptfs - mount an encrypted directory
 
 SYNOPSIS
 ========

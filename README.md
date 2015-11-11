@@ -30,6 +30,8 @@ Install
 Use
 ---
 
+Quickstart:
+
 	$ mkdir cipher plain
 	$ $GOPATH/bin/gocryptfs --init cipher
 	  [...]
@@ -41,6 +43,8 @@ Use
 	  -rw-rw-r--. 1 user  user   33  7. Okt 23:23 0ao8Hyyf1A-A88sfNvkUxA==
 	  -rw-rw-r--. 1 user  user  233  7. Okt 23:23 gocryptfs.conf
 	$ fusermount -u plain
+
+See [MANPAGE.md](MANPAGE.md) for a description of available options.
 
 Storage Overhead
 ----------------
