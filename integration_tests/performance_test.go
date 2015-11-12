@@ -1,8 +1,8 @@
 package integration_tests
 
 import (
+	"io/ioutil"
 	"os"
-	"os/exec"
 	"fmt"
 	"io"
 	"testing"
@@ -75,14 +75,25 @@ func BenchmarkStreamRead(t *testing.B) {
 	file.Close()
 }
 
-func BenchmarkUntar(t *testing.B) {
-	t.SetBytes(422229778)
-	c := exec.Command("tar", "xf", "/tmp/linux-3.0.tar.gz", "-C", plainDir)
-	c.Stdout = os.Stdout
-	c.Stderr = os.Stderr
-	t.ResetTimer()
-	err := c.Run()
+func BenchmarkCreate10B(t *testing.B) {
+	dir := plainDir + "BenchmarkCreate10B"
+	err := os.RemoveAll(dir)
 	if err != nil {
 		t.Fatal(err)
+	}
+	err = os.Mkdir(dir, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	buf := []byte("1234567890")
+	t.SetBytes(int64(len(buf)))
+	t.ResetTimer()
+	var i int
+	for i = 0; i < t.N; i++ {
+		file := fmt.Sprintf("%s/%d", dir, i)
+		err = ioutil.WriteFile(file, buf, 0666)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }
