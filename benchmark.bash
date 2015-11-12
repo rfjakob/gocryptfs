@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -eux
+set -eu
 
-go build
-go test -bench=.
+source build.bash
+
+go test ./integration_tests -bench=. -defaultonly

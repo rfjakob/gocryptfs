@@ -1,120 +1,44 @@
-package main
+package integration_tests
 
 import (
+	"flag"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"runtime"
 	"sync"
 	"testing"
 )
 
-const tmpDir = "/tmp/gocryptfs_main_test/"
-// Mountpoint
-const plainDir = tmpDir + "plain/"
-const cipherDir = tmpDir + "cipher/"
-
-func resetTmpDir() {
-	fu := exec.Command("fusermount", "-z", "-u", plainDir)
-	fu.Run()
-
-	os.RemoveAll(tmpDir)
-
-	err := os.MkdirAll(plainDir, 0777)
-	if err != nil {
-		panic("Could not create plainDir")
-	}
-
-	err = os.MkdirAll(cipherDir, 0777)
-	if err != nil {
-		panic("Could not create cipherDir")
-	}
-}
-
-func mount(extraArgs ...string) {
-	var args []string
-	args = append(args, extraArgs...)
-	//args = append(args, "--fusedebug")
-	args = append(args, cipherDir)
-	args = append(args, plainDir)
-	c := exec.Command("./gocryptfs", args...)
-	// Warning messages clutter the test output. Uncomment if you want to debug
-	// failures.
-	//c.Stdout = os.Stdout
-	//c.Stderr = os.Stderr
-	err := c.Run()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-}
-
-func unmount() error {
-	fu := exec.Command("fusermount", "-z", "-u", plainDir)
-	fu.Stdout = os.Stdout
-	fu.Stderr = os.Stderr
-	return fu.Run()
-}
-
-// Return md5 string for file "filename"
-func md5fn(filename string) string {
-	buf, err := ioutil.ReadFile(filename)
-	if err != nil {
-		fmt.Printf("ReadFile: %v\n", err)
-		return ""
-	}
-	return md5hex(buf)
-}
-
-// Return md5 string for "buf"
-func md5hex(buf []byte) string {
-	rawHash := md5.Sum(buf)
-	hash := hex.EncodeToString(rawHash[:])
-	return hash
-}
-
-// Verify that the file size equals "want". This checks:
-// 1) Size reported by Stat()
-// 2) Number of bytes returned when reading the whole file
-func verifySize(t *testing.T, path string, want int) {
-	buf, err := ioutil.ReadFile(path)
-	if err != nil {
-		t.Errorf("ReadFile failed: %v", err)
-	} else if len(buf) != want {
-		t.Errorf("wrong read size: got=%d want=%d", len(buf), want)
-	}
-
-	fi, err := os.Stat(path)
-	if err != nil {
-		t.Errorf("Stat failed: %v", err)
-	} else if fi.Size() != int64(want) {
-		t.Errorf("wrong stat file size, got=%d want=%d", fi.Size(), want)
-	}
-}
-
 var plaintextNames bool
 
 // This is the entry point for the tests
 func TestMain(m *testing.M) {
-	if testing.Verbose() {
-		// First printf does not show up. Verbose() always return false before "m.Run()"?
-		fmt.Printf("***** Testing with native Go crypto\n")
-	}
-	resetTmpDir()
-	mount("--zerokey", "--openssl=false")
-	r := m.Run()
-	unmount()
+	var defaultonly bool
+	flag.BoolVar(&defaultonly, "defaultonly", false, "Only test default configuration (openssl=true, plaintextnames=false)")
+	flag.Parse()
 
 	if testing.Verbose() {
 		fmt.Printf("***** Testing with OpenSSL\n")
 	}
 	resetTmpDir()
 	mount("--zerokey")
+	r := m.Run()
+	unmount()
+
+	if defaultonly {
+		os.Exit(r)
+	}
+
+
+	if testing.Verbose() {
+		fmt.Printf("***** Testing with native Go crypto\n")
+	}
+	resetTmpDir()
+	mount("--zerokey", "--openssl=false")
 	r = m.Run()
 	unmount()
 
@@ -381,71 +305,4 @@ func TestFilenameEncryption(t *testing.T) {
 	} else if plaintextNames == false && err == nil {
 		t.Errorf("file name encryption not working")
 	}
-}
-
-func BenchmarkStreamWrite(t *testing.B) {
-	buf := make([]byte, 1024*1024)
-	t.SetBytes(int64(len(buf)))
-
-	file, err := os.Create(plainDir + "BenchmarkWrite")
-	if err != nil {
-		t.FailNow()
-	}
-
-	t.ResetTimer()
-	var i int
-	for i = 0; i < t.N; i++ {
-		written, err := file.Write(buf)
-		if err != nil {
-			fmt.Printf("err=\"%s\", written=%d\n", err.Error(), written)
-			t.FailNow()
-		}
-	}
-	file.Close()
-}
-
-func BenchmarkStreamRead(t *testing.B) {
-	buf := make([]byte, 1024*1024)
-	t.SetBytes(int64(len(buf)))
-
-	fn := plainDir + "BenchmarkWrite"
-	fi, _ := os.Stat(fn)
-	mb := int(fi.Size() / 1024 / 1024)
-
-	if t.N > mb {
-		// Grow file so we can satisfy the test
-		//fmt.Printf("Growing file to %d MB... ", t.N)
-		f2, err := os.OpenFile(fn, os.O_WRONLY|os.O_APPEND, 0666)
-		if err != nil {
-			fmt.Println(err)
-			t.FailNow()
-		}
-		for h := 0; h < t.N-mb; h++ {
-			_, err = f2.Write(buf)
-			if err != nil {
-				fmt.Println(err)
-				t.FailNow()
-			}
-		}
-		f2.Close()
-		//fmt.Printf("done\n")
-	}
-
-	file, err := os.Open(plainDir + "BenchmarkWrite")
-	if err != nil {
-		t.FailNow()
-	}
-	t.ResetTimer()
-	var i int
-	for i = 0; i < t.N; i++ {
-		_, err := file.Read(buf)
-		if err == io.EOF {
-			fmt.Printf("Test file too small\n")
-			t.SkipNow()
-		} else if err != nil {
-			fmt.Println(err)
-			t.FailNow()
-		}
-	}
-	file.Close()
 }
