@@ -10,5 +10,5 @@ install:
 
 # Travis does not support FUSE, so we can't just run "go test ./..."
 script:
-  - go build
+  - ./build.bash
   - go test ./cryptfs
