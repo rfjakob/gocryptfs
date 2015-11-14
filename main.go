@@ -134,7 +134,7 @@ func main() {
 	flagSet.BoolVar(&args.foreground, "f", false, "Stay in the foreground")
 	flagSet.BoolVar(&args.version, "version", false, "Print version and exit")
 	flagSet.BoolVar(&args.plaintextnames, "plaintextnames", false, "Do not encrypt "+
-		"file names - can only be used together with -init")
+		"file names")
 	flagSet.BoolVar(&args.quiet, "q", false, "Quiet - silence informational messages")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")

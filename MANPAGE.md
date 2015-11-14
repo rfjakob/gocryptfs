@@ -30,6 +30,9 @@ DESCRIPTION
 
 Options:
 
+**-config string**
+:	Use specified config file instead of CIPHERDIR/gocryptfs.conf
+
 **-cpuprofile string**
 :	Write cpu profile to specified file
 
@@ -58,7 +61,7 @@ Options:
 :	Change password
 
 **-plaintextnames**
-:	Do not encrypt file names - can only be used together with -init
+:	Do not encrypt file names
 
 **-q**
 :	Quiet - silence informational messages
