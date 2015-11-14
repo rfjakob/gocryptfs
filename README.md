@@ -13,14 +13,30 @@ For details on the security of gocryptfs see the
 
 Current Status
 --------------
-* Feature-complete and working
-* Passes the fuse-xfstests "generic" tests with one exception, results: [XFSTESTS.md](XFSTESTS.md)
- * A lot of work has gone into this. The testing has found bugs in gocryptfs
-   as well as in go-fuse.
- * The one exception is generic/035. This is a limitation in go-fuse,
-   check out https://github.com/hanwen/go-fuse/issues/55 for details.
-* However, gocryptfs needs more real-world testing - please report any issues via github.
-* Only Linux operation has been tested. Help wanted for Mac OS X verification.
+
+Beta. You are advised to keep a backup of your data outside of gocryptfs, in
+addition to storing the *master key* in a safe place (the master key is printed
+when mounting).
+
+That said, I am dogfooding on gocryptfs for some time now. In fact, all gocryptfs
+development happens inside a mounted gocryptfs filesystem, with no issues so far.
+
+Only Linux is supported at the moment. Help wanted for a Mac OS X port.
+
+Testing
+-------
+
+gocryptfs comes with is own test suite, run it using `./test.bash`.
+
+In addition, i have ported `xfstests` to FUSE, the result is the
+[fuse-xfstests](https://github.com/rfjakob/fuse-xfstests) project. gocryptfs
+passes the "generic" tests with one exception, results:  [XFSTESTS.md](XFSTESTS.md)
+
+A lot of work has gone into this. The testing has found bugs in gocryptfs
+as well as in go-fuse.
+
+The one exception is generic/035, see [go-fuse issue 55](https://github.com/hanwen/go-fuse/issues/55)
+for details. While this is a POSIX violation, I do not see any real-world impact.
 
 Install
 -------
@@ -44,7 +60,9 @@ Quickstart:
 	  -rw-rw-r--. 1 user  user  233  7. Okt 23:23 gocryptfs.conf
 	$ fusermount -u plain
 
-See [MANPAGE.md](MANPAGE.md) for a description of available options.
+See [MANPAGE.md](MANPAGE.md) for a description of available options. If you already
+have gocryptfs installed, run `./MANPAGE-render.bash` to bring up the rendered manpage in
+the pager (requires pandoc).
 
 Storage Overhead
 ----------------
@@ -56,27 +74,33 @@ Storage Overhead
 Performance
 -----------
 
-* uses openssl through [spacemonkeygo/openssl](https://github.com/spacemonkeygo/openssl)
-  for a 3x speedup compared to `crypto/cipher` (see [go-vs-openssl.md](openssl_benchmark/go-vs-openssl.md) for details
+gocryptfs uses openssl through
+[spacemonkeygo/openssl](https://github.com/spacemonkeygo/openssl)
+for a 3x speedup compared to Go's builtin AES-GCM implementation (see
+[go-vs-openssl.md](openssl_benchmark/go-vs-openssl.md) for details).
 
-Run `./benchmark.bash` to run the test suite and the streaming read/write
-benchmark. The benchmark is run twice, first with native Go crypto and
-second using openssl.
+Run `./benchmark.bash` to run the benchmarks.
 
 The output should look like this:
 
-	$ ./benchmark.bash
-	[...]
-	BenchmarkStreamWrite	     100	  11816665 ns/op	  88.74 MB/s
-	BenchmarkStreamRead 	     200	   7848155 ns/op	 133.61 MB/s
-	ok  	github.com/rfjakob/gocryptfs	9.407s
+	./benchmark.bash
+	gocryptfs v0.3.1-30-gd69e0df-dirty; on-disk format 2
+	PASS
+	BenchmarkStreamWrite-2	     100	  12246070 ns/op	  85.63 MB/s
+	BenchmarkStreamRead-2 	     200	   9125990 ns/op	 114.90 MB/s
+	BenchmarkCreate0B-2   	   10000	    101284 ns/op
+	BenchmarkCreate1B-2   	   10000	    178356 ns/op	   0.01 MB/s
+	BenchmarkCreate100B-2 	    5000	    361014 ns/op	   0.28 MB/s
+	BenchmarkCreate4kB-2  	    5000	    375035 ns/op	  10.92 MB/s
+	BenchmarkCreate10kB-2 	    3000	    491071 ns/op	  20.85 MB/s
+	ok  	github.com/rfjakob/gocryptfs/integration_tests	17.216s
 
 Changelog
 ---------
 
 v0.4 (in progress)
-* Add `--plaintextnames` command line option
- * Can only be used in conjunction with `--init` and disables filename encryption
+* Add `-plaintextnames` command line option
+ * Can only be used in conjunction with `-init` and disables filename encryption
    (added on user request)
 * Add `FeatureFlags` config file paramter
  * This is a config format change, hence the on-disk format is incremented

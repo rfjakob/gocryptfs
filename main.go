@@ -58,7 +58,8 @@ func initDir(dirArg string, plaintextNames bool) {
 }
 
 func usageText() {
-	fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT\n", PROGRAM_NAME)
+	fmt.Fprintf(os.Stderr, "Usage: %s -init [OPTIONS] CIPHERDIR\n", PROGRAM_NAME)
+	fmt.Fprintf(os.Stderr, "       %s [OPTIONS] CIPHERDIR MOUNTPOINT\n", PROGRAM_NAME)
 	fmt.Fprintf(os.Stderr, "\nOptions:\n")
 	flagSet.PrintDefaults()
 }
@@ -95,6 +96,7 @@ func main() {
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")
 	flagSet.Parse(os.Args[1:])
+
 	if args.version {
 		fmt.Printf("%s %s; on-disk format %d\n", PROGRAM_NAME, GitVersion, cryptfs.HEADER_CURRENT_VERSION)
 		os.Exit(0)
