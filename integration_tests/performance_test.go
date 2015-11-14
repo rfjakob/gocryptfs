@@ -34,7 +34,10 @@ func BenchmarkStreamRead(t *testing.B) {
 	t.SetBytes(int64(len(buf)))
 
 	fn := plainDir + "BenchmarkWrite"
-	fi, _ := os.Stat(fn)
+	fi, err := os.Stat(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
 	mb := int(fi.Size() / 1024 / 1024)
 
 	if t.N > mb {
@@ -56,7 +59,7 @@ func BenchmarkStreamRead(t *testing.B) {
 		//fmt.Printf("done\n")
 	}
 
-	file, err := os.Open(plainDir + "BenchmarkWrite")
+	file, err := os.Open(fn)
 	if err != nil {
 		t.FailNow()
 	}
@@ -75,25 +78,50 @@ func BenchmarkStreamRead(t *testing.B) {
 	file.Close()
 }
 
-func BenchmarkCreate10B(t *testing.B) {
-	dir := plainDir + "BenchmarkCreate10B"
-	err := os.RemoveAll(dir)
+// createFiles - create "count" files of size "size" bytes each
+func createFiles(t *testing.B, count int, size int) {
+	dir := fmt.Sprintf("%s/createFiles_%d_%d", plainDir, count, size)
+	err := os.Mkdir(dir, 0777)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = os.Mkdir(dir, 0777)
-	if err != nil {
-		t.Fatal(err)
-	}
-	buf := []byte("1234567890")
+	buf := make([]byte, size)
 	t.SetBytes(int64(len(buf)))
 	t.ResetTimer()
 	var i int
-	for i = 0; i < t.N; i++ {
+	for i = 0; i < count; i++ {
 		file := fmt.Sprintf("%s/%d", dir, i)
-		err = ioutil.WriteFile(file, buf, 0666)
+		if size > 0 {
+			err = ioutil.WriteFile(file, buf, 0666)
+		} else {
+			var fh *os.File
+			fh, err = os.Create(file)
+			fh.Close()
+		}
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
+	t.StopTimer()
+	os.RemoveAll(dir)
+}
+
+func BenchmarkCreate0B(t *testing.B) {
+	createFiles(t, t.N, 0)
+}
+
+func BenchmarkCreate1B(t *testing.B) {
+	createFiles(t, t.N, 1)
+}
+
+func BenchmarkCreate100B(t *testing.B) {
+	createFiles(t, t.N, 100)
+}
+
+func BenchmarkCreate4kB(t *testing.B) {
+	createFiles(t, t.N, 4*1024)
+}
+
+func BenchmarkCreate10kB(t *testing.B) {
+	createFiles(t, t.N, 10*1024)
 }
