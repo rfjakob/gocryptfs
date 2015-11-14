@@ -10,7 +10,7 @@ import "os"
 const (
 	// The dot "." is not used in base64url (RFC4648), hence
 	// we can never clash with an encrypted file.
-	ConfDefaultName = "gocryptfs.conf"
+	ConfDefaultName    = "gocryptfs.conf"
 	FlagPlaintextNames = "PlaintextNames"
 )
 
@@ -79,12 +79,12 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	}
 
 	// Verify that we know all feature flags
-	for _, flag := range(cf.FeatureFlags) {
-		switch(flag) {
-			case FlagPlaintextNames:
-				continue
-			default:
-				return nil, nil, fmt.Errorf("Unsupported feature flag %s\n", flag)
+	for _, flag := range cf.FeatureFlags {
+		switch flag {
+		case FlagPlaintextNames:
+			continue
+		default:
+			return nil, nil, fmt.Errorf("Unsupported feature flag %s\n", flag)
 		}
 	}
 
@@ -151,7 +151,7 @@ func (cf *ConfFile) WriteFile() error {
 
 // isFeatureFlagSet - is the feature flag "flagWant" enabled?
 func (cf *ConfFile) isFeatureFlagSet(flagWant string) bool {
-	for _, flag := range(cf.FeatureFlags) {
+	for _, flag := range cf.FeatureFlags {
 		if flag == flagWant {
 			return true
 		}

@@ -1,10 +1,10 @@
 package integration_tests
 
 import (
-	"flag"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -32,7 +32,6 @@ func TestMain(m *testing.M) {
 	if defaultonly {
 		os.Exit(r)
 	}
-
 
 	if testing.Verbose() {
 		fmt.Printf("***** Testing with native Go crypto\n")
@@ -278,7 +277,7 @@ func TestFiltered(t *testing.T) {
 	filteredFile := plainDir + "gocryptfs.conf"
 	file, err := os.Create(filteredFile)
 	if plaintextNames == true && err == nil {
-		fmt.Errorf("should have failed but didn't")
+		t.Errorf("should have failed but didn't")
 	} else if plaintextNames == false && err != nil {
 		t.Error(err)
 	}
@@ -286,7 +285,7 @@ func TestFiltered(t *testing.T) {
 
 	err = os.Remove(filteredFile)
 	if plaintextNames == true && err == nil {
-		fmt.Errorf("should have failed but didn't")
+		t.Errorf("should have failed but didn't")
 	} else if plaintextNames == false && err != nil {
 		t.Error(err)
 	}

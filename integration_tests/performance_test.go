@@ -1,10 +1,10 @@
 package integration_tests
 
 import (
-	"io/ioutil"
-	"os"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
 	"testing"
 )
 

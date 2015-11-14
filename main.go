@@ -64,11 +64,10 @@ func usageText() {
 }
 
 type argContainer struct {
-		debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
-			plaintextnames, quiet bool
-		masterkey, mountpoint, cipherdir string
-		cpuprofile *string
-		notifypid int
+	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
+	plaintextnames, quiet bool
+	masterkey, mountpoint, cipherdir, cpuprofile string
+	notifypid                                    int
 }
 
 var flagSet *flag.FlagSet
@@ -88,13 +87,13 @@ func main() {
 	flagSet.BoolVar(&args.passwd, "passwd", false, "Change password")
 	flagSet.BoolVar(&args.foreground, "f", false, "Stay in the foreground")
 	flagSet.BoolVar(&args.version, "version", false, "Print version and exit")
-	flagSet.BoolVar(&args.plaintextnames, "plaintextnames", false,
-		"Do not encrypt file names - can only be used together with -init")
+	flagSet.BoolVar(&args.plaintextnames, "plaintextnames", false, "Do not encrypt "+
+		"file names - can only be used together with -init")
 	flagSet.BoolVar(&args.quiet, "q", false, "Quiet - silence informational messages")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
-	args.cpuprofile = flagSet.String("cpuprofile", "", "Write cpu profile to specified file")
-	flagSet.IntVar(&args.notifypid, "notifypid", 0,
-		"Send USR1 to the specified process after successful mount - used internally for daemonization")
+	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
+	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
+		"successful mount - used internally for daemonization")
 	flagSet.Parse(os.Args[1:])
 	if args.version {
 		fmt.Printf("%s %s; on-disk format %d\n", PROGRAM_NAME, GitVersion, cryptfs.HEADER_CURRENT_VERSION)
@@ -106,13 +105,13 @@ func main() {
 	if !args.foreground {
 		daemonize() // does not return
 	}
-	if *args.cpuprofile != "" {
-		f, err := os.Create(*args.cpuprofile)
+	if args.cpuprofile != "" {
+		f, err := os.Create(args.cpuprofile)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(ERREXIT_INIT)
 		}
-		cryptfs.Info.Printf("Writing CPU profile to %s\n", *args.cpuprofile)
+		cryptfs.Info.Printf("Writing CPU profile to %s\n", args.cpuprofile)
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}

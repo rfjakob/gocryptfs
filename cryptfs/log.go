@@ -47,7 +47,9 @@ func (l *logChannel) Md5sum(buf []byte) string {
 
 // Debug messages
 var Debug = logChannel{false}
+
 // Informational message e.g. startup information
 var Info = logChannel{true}
+
 // A warning, meaning nothing serious by itself but might indicate problems
 var Warn = logChannel{true}

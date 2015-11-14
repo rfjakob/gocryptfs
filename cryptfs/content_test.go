@@ -57,7 +57,7 @@ func TestCiphertextRange(t *testing.T) {
 		skipBytes := blocks[0].Skip
 
 		if alignedLength < r.length {
-			t.Errorf("alignedLength=%s is smaller than length=%d", alignedLength, r.length)
+			t.Errorf("alignedLength=%d is smaller than length=%d", alignedLength, r.length)
 		}
 		if (alignedOffset-HEADER_LEN)%f.cipherBS != 0 {
 			t.Errorf("alignedOffset=%d is not aligned", alignedOffset)

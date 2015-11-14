@@ -26,13 +26,13 @@ func TestLoadV2(t *testing.T) {
 	}
 
 	elapsed := time.Since(t1)
-	if elapsed < 100 *time.Millisecond {
-		t.Errorf("scrypt calculation runs too fast: %d ms", elapsed / time.Millisecond)
+	if elapsed < 100*time.Millisecond {
+		t.Errorf("scrypt calculation runs too fast: %d ms", elapsed/time.Millisecond)
 	}
 }
 
 func TestLoadV2PwdError(t *testing.T) {
-	if ! testing.Verbose() {
+	if !testing.Verbose() {
 		Warn.Disable()
 	}
 	_, _, err := LoadConfFile("config_test/v2.conf", "wrongpassword")

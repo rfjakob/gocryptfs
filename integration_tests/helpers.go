@@ -1,17 +1,19 @@
 package integration_tests
 
 import (
-	"os"
-	"os/exec"
-	"fmt"
-	"io/ioutil"
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
 	"testing"
 )
 
 const tmpDir = "/tmp/gocryptfs_main_test/"
+
 // Mountpoint
+// Note: the code assumes that both have a trailing slash!
 const plainDir = tmpDir + "plain/"
 const cipherDir = tmpDir + "cipher/"
 
