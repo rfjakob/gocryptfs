@@ -6,6 +6,7 @@ import (
 	"os"
 )
 
+// checkDirEmpty - check if "dir" exists and is an empty directory
 func checkDirEmpty(dir string) error {
 	err := checkDir(dir)
 	if err != nil {
@@ -21,6 +22,7 @@ func checkDirEmpty(dir string) error {
 	return fmt.Errorf("directory %s not empty", dir)
 }
 
+// checkDir - check if "dir" exists and is a directory
 func checkDir(dir string) error {
 	fi, err := os.Stat(dir)
 	if err != nil {

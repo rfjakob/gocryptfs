@@ -9,17 +9,18 @@ import (
 )
 
 // The child sends us USR1 if the mount was successful
-func waitForUsr1() {
+func exitOnUsr1() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGUSR1)
 	<-c
 	os.Exit(0)
 }
 
-// daemonize - execute ourselves once again, this time with the "-f" flag, and
-// wait for SIGUSR1.
-func daemonize() {
-	go waitForUsr1()
+// forkChild - execute ourselves once again, this time with the "-f" flag, and
+// wait for SIGUSR1 or child exit.
+// This is a workaround for the missing true fork function in Go.
+func forkChild() {
+	go exitOnUsr1()
 	name := os.Args[0]
 	notifyArg := fmt.Sprintf("-notifypid=%d", os.Getpid())
 	newArgs := []string{"-f", notifyArg}
@@ -30,7 +31,7 @@ func daemonize() {
 	c.Stdin = os.Stdin
 	err := c.Start()
 	if err != nil {
-		fmt.Printf("daemonize: starting %s failed: %v\n", name, err)
+		fmt.Printf("forkChild: starting %s failed: %v\n", name, err)
 		os.Exit(1)
 	}
 	err = c.Wait()
@@ -40,7 +41,7 @@ func daemonize() {
 				os.Exit(waitstat.ExitStatus())
 			}
 		}
-		fmt.Printf("daemonize: wait returned an unknown error: %v\n", err)
+		fmt.Printf("forkChild: wait returned an unknown error: %v\n", err)
 		os.Exit(1)
 	}
 	// The child exited with 0 - let's do the same.

@@ -37,7 +37,8 @@ paper and store it in a drawer.
 `, hChunked)
 }
 
-// Parse a hex-encoded master key that was passed on the command line
+// parseMasterKey - Parse a hex-encoded master key that was passed on the command line
+// Calls os.Exit on failure
 func parseMasterKey(masterkey string) []byte {
 	masterkey = strings.Replace(masterkey, "-", "", -1)
 	key, err := hex.DecodeString(masterkey)

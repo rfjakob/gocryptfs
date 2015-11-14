@@ -23,7 +23,7 @@ gocryptfs [OPTIONS] CIPHERDIR MOUNTPOINT
 Change password
 ---------------
 
-gocryptfs -passwd CIPHERDIR
+gocryptfs -passwd [OPTIONS] CIPHERDIR
 
 DESCRIPTION
 ===========
