@@ -124,5 +124,5 @@ v0.1
 * First release
 * On-disk format 0
 
-See https://github.com/rfjakob/gocryptfs/releases for the release dates
-and associated tags.
+See https://github.com/rfjakob/gocryptfs/tags for the release dates and associated
+git tags.
