@@ -25,9 +25,9 @@ func TestMain(m *testing.M) {
 		fmt.Printf("***** Testing with OpenSSL\n")
 	}
 	resetTmpDir()
-	mount("--zerokey")
+	mount(defaultCipherDir, defaultPlainDir, "--zerokey")
 	r := m.Run()
-	unmount()
+	unmount(defaultPlainDir)
 
 	if defaultonly {
 		os.Exit(r)
@@ -37,25 +37,25 @@ func TestMain(m *testing.M) {
 		fmt.Printf("***** Testing with native Go crypto\n")
 	}
 	resetTmpDir()
-	mount("--zerokey", "--openssl=false")
+	mount(defaultCipherDir, defaultPlainDir, "--zerokey", "--openssl=false")
 	r = m.Run()
-	unmount()
+	unmount(defaultPlainDir)
 
 	if testing.Verbose() {
 		fmt.Printf("***** Testing \"--plaintextnames\"\n")
 	}
 	resetTmpDir()
-	mount("--zerokey", "--plaintextnames")
+	mount(defaultCipherDir, defaultPlainDir, "--zerokey", "--plaintextnames")
 	plaintextNames = true
 	r = m.Run()
-	unmount()
+	unmount(defaultPlainDir)
 
 	os.Exit(r)
 }
 
 // Write "n" zero bytes to filename "fn", read again, compare hash
 func testWriteN(t *testing.T, fn string, n int) string {
-	file, err := os.Create(plainDir + fn)
+	file, err := os.Create(defaultPlainDir + fn)
 	if err != nil {
 		t.FailNow()
 	}
@@ -68,12 +68,12 @@ func testWriteN(t *testing.T, fn string, n int) string {
 	}
 	file.Close()
 
-	verifySize(t, plainDir+fn, n)
+	verifySize(t, defaultPlainDir+fn, n)
 
 	bin := md5.Sum(d)
 	hashWant := hex.EncodeToString(bin[:])
 
-	hashActual := md5fn(plainDir + fn)
+	hashActual := md5fn(defaultPlainDir + fn)
 
 	if hashActual != hashWant {
 		t.Errorf("Wrong content, hashWant=%s hashActual=%s\n", hashWant, hashActual)
@@ -99,7 +99,7 @@ func TestWrite1Mx100(t *testing.T) {
 	// Read and check 100 times to catch race conditions
 	var i int
 	for i = 0; i < 100; i++ {
-		hashActual := md5fn(plainDir + "1M")
+		hashActual := md5fn(defaultPlainDir + "1M")
 		if hashActual != hashWant {
 			fmt.Printf("Read corruption in loop # %d\n", i)
 			t.FailNow()
@@ -110,7 +110,7 @@ func TestWrite1Mx100(t *testing.T) {
 }
 
 func TestTruncate(t *testing.T) {
-	fn := plainDir + "truncate"
+	fn := defaultPlainDir + "truncate"
 	file, err := os.Create(fn)
 	if err != nil {
 		t.FailNow()
@@ -142,7 +142,7 @@ func TestTruncate(t *testing.T) {
 }
 
 func TestAppend(t *testing.T) {
-	fn := plainDir + "append"
+	fn := defaultPlainDir + "append"
 	file, err := os.Create(fn)
 	if err != nil {
 		t.FailNow()
@@ -176,7 +176,7 @@ func TestAppend(t *testing.T) {
 // Create a file with holes by writing to offset 0 (block #0) and
 // offset 4096 (block #1).
 func TestFileHoles(t *testing.T) {
-	fn := plainDir + "fileholes"
+	fn := defaultPlainDir + "fileholes"
 	file, err := os.Create(fn)
 	if err != nil {
 		t.Errorf("file create failed")
@@ -203,7 +203,7 @@ func TestRmwRace(t *testing.T) {
 
 	runtime.GOMAXPROCS(10)
 
-	fn := plainDir + "rmwrace"
+	fn := defaultPlainDir + "rmwrace"
 	f1, err := os.Create(fn)
 	if err != nil {
 		t.Fatalf("file create failed")
@@ -274,7 +274,7 @@ func TestRmwRace(t *testing.T) {
 // With "--plaintextnames", the name "/gocryptfs.conf" is reserved.
 // Otherwise there should be no restrictions.
 func TestFiltered(t *testing.T) {
-	filteredFile := plainDir + "gocryptfs.conf"
+	filteredFile := defaultPlainDir + "gocryptfs.conf"
 	file, err := os.Create(filteredFile)
 	if plaintextNames == true && err == nil {
 		t.Errorf("should have failed but didn't")
@@ -292,13 +292,13 @@ func TestFiltered(t *testing.T) {
 }
 
 func TestFilenameEncryption(t *testing.T) {
-	file, err := os.Create(plainDir + "TestFilenameEncryption.txt")
+	file, err := os.Create(defaultPlainDir + "TestFilenameEncryption.txt")
 	file.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = os.Stat(cipherDir + "TestFilenameEncryption.txt")
+	_, err = os.Stat(defaultCipherDir + "TestFilenameEncryption.txt")
 	if plaintextNames == true && err != nil {
 		t.Errorf("plaintextnames not working: %v", err)
 	} else if plaintextNames == false && err == nil {

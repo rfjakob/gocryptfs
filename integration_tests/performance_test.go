@@ -12,7 +12,7 @@ func BenchmarkStreamWrite(t *testing.B) {
 	buf := make([]byte, 1024*1024)
 	t.SetBytes(int64(len(buf)))
 
-	file, err := os.Create(plainDir + "BenchmarkWrite")
+	file, err := os.Create(defaultPlainDir + "BenchmarkWrite")
 	if err != nil {
 		t.FailNow()
 	}
@@ -33,7 +33,7 @@ func BenchmarkStreamRead(t *testing.B) {
 	buf := make([]byte, 1024*1024)
 	t.SetBytes(int64(len(buf)))
 
-	fn := plainDir + "BenchmarkWrite"
+	fn := defaultPlainDir + "BenchmarkWrite"
 	fi, err := os.Stat(fn)
 	if err != nil {
 		t.Fatal(err)
@@ -80,7 +80,7 @@ func BenchmarkStreamRead(t *testing.B) {
 
 // createFiles - create "count" files of size "size" bytes each
 func createFiles(t *testing.B, count int, size int) {
-	dir := fmt.Sprintf("%s/createFiles_%d_%d", plainDir, count, size)
+	dir := fmt.Sprintf("%s/createFiles_%d_%d", defaultPlainDir, count, size)
 	err := os.Mkdir(dir, 0777)
 	if err != nil {
 		t.Fatal(err)

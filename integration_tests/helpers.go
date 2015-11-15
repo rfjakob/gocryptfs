@@ -12,51 +12,63 @@ import (
 
 // Note: the code assumes that all have a trailing slash
 const tmpDir = "/tmp/gocryptfs_main_test/"
-const plainDir = tmpDir + "plain/"
-const cipherDir = tmpDir + "cipher/"
+const defaultPlainDir = tmpDir + "plain/"
+const defaultCipherDir = tmpDir + "cipher/"
 
 const gocryptfsBinary = "../gocryptfs"
 
 func resetTmpDir() {
-	fu := exec.Command("fusermount", "-z", "-u", plainDir)
+	fu := exec.Command("fusermount", "-z", "-u", defaultPlainDir)
 	fu.Run()
 
-	os.RemoveAll(tmpDir)
-
-	err := os.MkdirAll(plainDir, 0777)
+	err := os.RemoveAll(tmpDir)
 	if err != nil {
-		panic("Could not create plainDir")
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
-	err = os.MkdirAll(cipherDir, 0777)
+	err = os.MkdirAll(defaultPlainDir, 0777)
 	if err != nil {
-		panic("Could not create cipherDir")
+		fmt.Println(err)
+		os.Exit(1)
 	}
-}
 
-func mount(extraArgs ...string) {
-	var args []string
-	args = append(args, extraArgs...)
-	//args = append(args, "--fusedebug")
-	args = append(args, cipherDir)
-	args = append(args, plainDir)
-	c := exec.Command(gocryptfsBinary, args...)
-	if testing.Verbose() {
-		c.Stdout = os.Stdout
-		c.Stderr = os.Stderr
-	}
-	err := c.Run()
+	err = os.MkdirAll(defaultCipherDir, 0777)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 }
 
-func unmount() error {
-	fu := exec.Command("fusermount", "-z", "-u", plainDir)
+// mount CIPHERDIR "c" on PLAINDIR "p"
+func mount(c string, p string, extraArgs ...string) {
+	var args []string
+	args = append(args, extraArgs...)
+	//args = append(args, "--fusedebug")
+	args = append(args, c)
+	args = append(args, p)
+	cmd := exec.Command(gocryptfsBinary, args...)
+	if testing.Verbose() {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+// unmount PLAINDIR "p"
+func unmount(p string) error {
+	fu := exec.Command("fusermount", "-u", "-z", p)
 	fu.Stdout = os.Stdout
 	fu.Stderr = os.Stderr
-	return fu.Run()
+	err := fu.Run()
+	if err != nil {
+		fmt.Println(err)
+	}
+	return err
 }
 
 // Return md5 string for file "filename"
