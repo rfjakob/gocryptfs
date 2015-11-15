@@ -39,6 +39,11 @@ Options:
 **-debug**
 :	Enable debug output
 
+**-extpass string**
+:	Use an external program (like ssh-askpass) for the password prompt.
+The program should return the password on stdout, a trailing newline is
+stripped by gocryptfs.
+
 **-f**
 :	Stay in the foreground
 

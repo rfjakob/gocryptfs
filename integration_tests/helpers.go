@@ -10,12 +10,12 @@ import (
 	"testing"
 )
 
+// Note: the code assumes that all have a trailing slash
 const tmpDir = "/tmp/gocryptfs_main_test/"
-
-// Mountpoint
-// Note: the code assumes that both have a trailing slash!
 const plainDir = tmpDir + "plain/"
 const cipherDir = tmpDir + "cipher/"
+
+const gocryptfsBinary = "../gocryptfs"
 
 func resetTmpDir() {
 	fu := exec.Command("fusermount", "-z", "-u", plainDir)
@@ -40,11 +40,11 @@ func mount(extraArgs ...string) {
 	//args = append(args, "--fusedebug")
 	args = append(args, cipherDir)
 	args = append(args, plainDir)
-	c := exec.Command("../gocryptfs", args...)
-	// Warning messages clutter the test output. Uncomment if you want to debug
-	// failures.
-	//c.Stdout = os.Stdout
-	//c.Stderr = os.Stderr
+	c := exec.Command(gocryptfsBinary, args...)
+	if testing.Verbose() {
+		c.Stdout = os.Stdout
+		c.Stderr = os.Stderr
+	}
 	err := c.Run()
 	if err != nil {
 		fmt.Println(err)

@@ -44,7 +44,7 @@ func initDir(args *argContainer) {
 	}
 
 	cryptfs.Info.Printf("Choose a password for protecting your files.\n")
-	password := readPasswordTwice()
+	password := readPasswordTwice(args.extpass)
 	err = cryptfs.CreateConfFile(args.config, password, args.plaintextnames)
 	if err != nil {
 		fmt.Println(err)
@@ -66,25 +66,25 @@ func usageText() {
 type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
 	plaintextnames, quiet bool
-	masterkey, mountpoint, cipherdir, cpuprofile, config string
-	notifypid                                    int
+	masterkey, mountpoint, cipherdir, cpuprofile, config, extpass string
+	notifypid                                                     int
 }
 
 var flagSet *flag.FlagSet
 
 // loadConfig - load the config file "filename", prompting the user for the password
-func loadConfig(filename string) (masterkey []byte, confFile *cryptfs.ConfFile) {
+func loadConfig(args *argContainer) (masterkey []byte, confFile *cryptfs.ConfFile) {
 	// Check if the file exists at all before prompting for a password
-	_, err := os.Stat(filename)
+	_, err := os.Stat(args.config)
 	if err != nil {
 		fmt.Print(err)
 		os.Exit(ERREXIT_LOADCONF)
 	}
 	fmt.Printf("Password: ")
-	pw := readPassword()
+	pw := readPassword(args.extpass)
 	cryptfs.Info.Printf("Decrypting master key... ")
 	cryptfs.Warn.Disable() // Silence DecryptBlock() error messages on incorrect password
-	masterkey, confFile, err = cryptfs.LoadConfFile(filename, pw)
+	masterkey, confFile, err = cryptfs.LoadConfFile(args.config, pw)
 	cryptfs.Warn.Enable()
 	if err != nil {
 		fmt.Println(err)
@@ -97,10 +97,10 @@ func loadConfig(filename string) (masterkey []byte, confFile *cryptfs.ConfFile) 
 }
 
 // changePassword - change the password of config file "filename"
-func changePassword(filename string) {
-	masterkey, confFile := loadConfig(filename)
+func changePassword(args *argContainer) {
+	masterkey, confFile := loadConfig(args)
 	fmt.Printf("Please enter your new password.\n")
-	newPw := readPasswordTwice()
+	newPw := readPasswordTwice(args.extpass)
 	confFile.EncryptKey(masterkey, newPw)
 	err := confFile.WriteFile()
 	if err != nil {
@@ -139,6 +139,7 @@ func main() {
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.config, "config", "", "Use specified config file instead of CIPHERDIR/gocryptfs.conf")
+	flagSet.StringVar(&args.extpass, "extpass", "", "Use external program for the password prompt")
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")
 	flagSet.Parse(os.Args[1:])
@@ -215,7 +216,7 @@ func main() {
 			fmt.Printf("Usage: %s -passwd [OPTIONS] CIPHERDIR\n", PROGRAM_NAME)
 			os.Exit(ERREXIT_USAGE)
 		}
-		changePassword(args.config) // does not return
+		changePassword(&args) // does not return
 	}
 	// Mount
 	// Check mountpoint
@@ -248,7 +249,7 @@ func main() {
 	} else {
 		// Load master key from config file
 		var confFile *cryptfs.ConfFile
-		masterkey, confFile = loadConfig(args.config)
+		masterkey, confFile = loadConfig(&args)
 		printMasterKey(masterkey)
 		args.plaintextnames = confFile.PlaintextNames()
 	}
