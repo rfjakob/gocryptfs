@@ -144,10 +144,6 @@ func main() {
 		"successful mount - used internally for daemonization")
 	flagSet.Parse(os.Args[1:])
 
-	if args.debug {
-		cryptfs.Debug.Enable()
-		cryptfs.Debug.Printf("Debug output enabled\n")
-	}
 	// By default, let the child handle everything.
 	// The parent *could* handle operations that do not require backgrounding by
 	// itself, but that would make the code paths more complicated.
@@ -159,6 +155,10 @@ func main() {
 	if args.version {
 		printVersion()
 		os.Exit(0)
+	}
+	if args.debug {
+		cryptfs.Debug.Enable()
+		cryptfs.Debug.Printf("Debug output enabled\n")
 	}
 	// Every operation below requires CIPHERDIR. Check that we have it.
 	if flagSet.NArg() >= 1 {
