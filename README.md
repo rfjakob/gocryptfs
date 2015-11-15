@@ -26,9 +26,11 @@ Only Linux is supported at the moment. Help wanted for a Mac OS X port.
 Testing
 -------
 
-gocryptfs comes with is own test suite, run it using `./test.bash`.
+gocryptfs comes with is own test suite that is constantly expanded as features are
+added. Run it using `./test.bash`. It takes about 30 seconds and requires FUSE
+as it mounts several test filesystems.
 
-In addition, i have ported `xfstests` to FUSE, the result is the
+In addition, I have ported `xfstests` to FUSE, the result is the
 [fuse-xfstests](https://github.com/rfjakob/fuse-xfstests) project. gocryptfs
 passes the "generic" tests with one exception, results:  [XFSTESTS.md](XFSTESTS.md)
 
@@ -98,14 +100,15 @@ The output should look like this:
 Changelog
 ---------
 
-v0.4 (in progress)
-* Add `-plaintextnames` command line option
- * Can only be used in conjunction with `-init` and disables filename encryption
-   (added on user request)
-* Add `FeatureFlags` config file paramter
+v0.4
+* New command-line options:
+ * `-plaintextnames`: disables filename encryption, added on user request
+ * `-extpass`: calls an external program for prompting for the password
+ * `-config`: allows to specify a custom gocryptfs.conf path
+* Add `FeatureFlags` gocryptfs.conf paramter
  * This is a config format change, hence the on-disk format is incremented
  * Used for ext4-style filesystem feature flags. This should help avoid future
-   format changes.
+   format changes. The first user is `-plaintextnames`.
 * On-disk format 2
 
 v0.3

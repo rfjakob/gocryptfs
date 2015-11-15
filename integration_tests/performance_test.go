@@ -1,5 +1,7 @@
 package integration_tests
 
+// Benchmarks
+
 import (
 	"fmt"
 	"io"
