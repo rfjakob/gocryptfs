@@ -30,6 +30,16 @@ func (be *CryptFS) CipherSizeToPlainSize(cipherSize uint64) uint64 {
 		return 0
 	}
 
+	if cipherSize == HEADER_LEN {
+		Warn.Printf("cipherSize %d == header size: interrupted write?\n", cipherSize)
+		return 0
+	}
+
+	if cipherSize < HEADER_LEN {
+		Warn.Printf("cipherSize %d < header size: corrupt file\n", cipherSize)
+		return 0
+	}
+
 	// Block number at last byte
 	blockNo := be.CipherOffToBlockNo(cipherSize - 1)
 	blockCount := blockNo + 1
