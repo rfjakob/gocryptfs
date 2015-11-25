@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"flag"
 	"fmt"
 	"os"
@@ -43,6 +44,18 @@ func initDir(args *argContainer) {
 		os.Exit(ERREXIT_INIT)
 	}
 
+	// Create gocryptfs.diriv in the root dir
+	diriv := cryptfs.RandBytes(cryptfs.DIRIV_LEN)
+	dirivPath := filepath.Join(args.cipherdir, cryptfs.DIRIV_FILENAME)
+	cryptfs.Debug.Printf("Creating %s\n", dirivPath)
+	// 0444 permissions: the file is not secret but should not be written to
+	err = ioutil.WriteFile(dirivPath, diriv, 0444)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(ERREXIT_INIT)
+	}
+
+	// Create gocryptfs.conf
 	cryptfs.Info.Printf("Choose a password for protecting your files.\n")
 	password := readPasswordTwice(args.extpass)
 	err = cryptfs.CreateConfFile(args.config, password, args.plaintextnames)

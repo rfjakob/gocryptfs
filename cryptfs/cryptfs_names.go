@@ -31,7 +31,7 @@ func (be *CryptFS) decryptName(cipherName string) (string, error) {
 	}
 
 	if len(bin)%aes.BlockSize != 0 {
-		return "", errors.New(fmt.Sprintf("Name len=%d is not a multiple of 16", len(bin)))
+		return "", fmt.Errorf("Decoded length %d is not a multiple of the AES block size", len(bin))
 	}
 
 	iv := make([]byte, aes.BlockSize) // TODO ?

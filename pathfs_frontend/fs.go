@@ -1,7 +1,8 @@
 package pathfs_frontend
 
 import (
-	"fmt"
+	"syscall"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -14,7 +15,7 @@ import (
 
 type FS struct {
 	*cryptfs.CryptFS
-	pathfs.FileSystem        // loopbackFileSystem
+	pathfs.FileSystem        // loopbackFileSystem, see go-fuse/fuse/pathfs/loopback.go
 	backing           string // Backing directory
 }
 
@@ -27,7 +28,8 @@ func NewFS(key []byte, backing string, useOpenssl bool, plaintextNames bool) *FS
 	}
 }
 
-// GetPath - get the absolute path of the backing file
+// GetPath - get the absolute encrypted path of the backing file
+// from the relative plaintext path "relPath"
 func (fs *FS) GetPath(relPath string) string {
 	return filepath.Join(fs.backing, fs.EncryptPath(relPath))
 }
@@ -63,9 +65,13 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 				// silently ignore "gocryptfs.conf" in the top level dir
 				continue
 			}
+			if cName == cryptfs.DIRIV_FILENAME {
+				// silently ignore "gocryptfs.diriv" everywhere
+				continue
+			}
 			name, err := fs.DecryptPath(cName)
 			if err != nil {
-				fmt.Printf("Invalid name \"%s\" in dir \"%s\": %s\n", cName, name, err)
+				cryptfs.Warn.Printf("Invalid name \"%s\" in dir \"%s\": %s\n", cName, dirName, err)
 				continue
 			}
 			cipherEntries[i].Name = name
@@ -160,11 +166,30 @@ func (fs *FS) Readlink(name string, context *fuse.Context) (out string, status f
 	return dstPlain, status
 }
 
-func (fs *FS) Mkdir(path string, mode uint32, context *fuse.Context) (code fuse.Status) {
-	if fs.CryptFS.IsFiltered(path) {
+func (fs *FS) Mkdir(relPath string, mode uint32, context *fuse.Context) (code fuse.Status) {
+	if fs.CryptFS.IsFiltered(relPath) {
 		return fuse.EPERM
 	}
-	return fs.FileSystem.Mkdir(fs.EncryptPath(path), mode, context)
+	encPath := fs.GetPath(relPath)
+	diriv := cryptfs.RandBytes(cryptfs.DIRIV_LEN)
+	dirivPath := filepath.Join(encPath, cryptfs.DIRIV_FILENAME)
+	// Create directory
+	err := os.Mkdir(encPath, os.FileMode(mode))
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	// Create gocryptfs.diriv inside
+	// 0444 permissions: the file is not secret but should not be written to
+	err = ioutil.WriteFile(dirivPath, diriv, 0444)
+	if err != nil {
+		cryptfs.Warn.Printf("Creating %s in dir %s failed: %v\n", cryptfs.DIRIV_FILENAME, encPath, err)
+		err2 := syscall.Rmdir(encPath)
+		if err2 != nil {
+			cryptfs.Warn.Printf("Removing broken directory failed: %v\n", err2)
+		}
+		return fuse.ToStatus(err)
+	}
+	return fuse.OK
 }
 
 func (fs *FS) Unlink(name string, context *fuse.Context) (code fuse.Status) {

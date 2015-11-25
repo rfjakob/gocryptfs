@@ -14,6 +14,8 @@ const (
 	NONCE_LEN       = 12
 	AUTH_TAG_LEN    = 16
 	BLOCK_OVERHEAD  = NONCE_LEN + AUTH_TAG_LEN
+	DIRIV_LEN       = 16 // identical to AES block size
+	DIRIV_FILENAME  = "gocryptfs.diriv"
 )
 
 type CryptFS struct {

@@ -12,7 +12,7 @@ import (
 func readPasswordTwice(extpass string) string {
 	fmt.Printf("Password: ")
 	p1 := readPassword(extpass)
-	fmt.Printf("Repeat:   ")
+	fmt.Printf("Repeat: ")
 	p2 := readPassword(extpass)
 	if p1 != p2 {
 		fmt.Printf("Passwords do not match\n")
