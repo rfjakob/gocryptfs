@@ -3,6 +3,7 @@ package integration_tests
 // File reading, writing, modification, truncate
 
 import (
+	"syscall"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
@@ -192,6 +193,7 @@ func TestFileHoles(t *testing.T) {
 	}
 }
 
+// sContains - does the slice of strings "haystack" contain "needle"?
 func sContains(haystack []string, needle string) bool {
 	for _, element := range haystack {
 		if element == needle {
@@ -305,5 +307,18 @@ func TestFilenameEncryption(t *testing.T) {
 		t.Errorf("plaintextnames not working: %v", err)
 	} else if plaintextNames == false && err == nil {
 		t.Errorf("file name encryption not working")
+	}
+}
+
+// Test Mkdir and Rmdir
+func TestMkdirRmdir(t *testing.T) {
+	dir := defaultPlainDir + "dir1"
+	err := os.Mkdir(dir, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = syscall.Rmdir(dir)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
