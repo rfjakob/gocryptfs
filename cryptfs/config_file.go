@@ -118,10 +118,12 @@ func (cf *ConfFile) EncryptKey(key []byte, password string) {
 }
 
 // WriteFile - write out config in JSON format to file "filename.tmp"
-// then rename over "filename"
+// then rename over "filename".
+// This way a password change atomically replaces the file.
 func (cf *ConfFile) WriteFile() error {
 	tmp := cf.filename + ".tmp"
-	fd, err := os.Create(tmp)
+	// 0400 permissions: gocryptfs.conf should be kept secret and never be written to.
+	fd, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0400)
 	if err != nil {
 		return err
 	}
