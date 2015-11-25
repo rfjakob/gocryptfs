@@ -77,7 +77,7 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *cryptfs.ConfFil
 	// Check if the file exists at all before prompting for a password
 	_, err := os.Stat(args.config)
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 		os.Exit(ERREXIT_LOADCONF)
 	}
 	fmt.Printf("Password: ")
