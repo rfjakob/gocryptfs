@@ -15,8 +15,8 @@ func TestTranslatePath(t *testing.T) {
 	fs := NewCryptFS(key, true, false)
 
 	for _, n := range s {
-		c := fs.EncryptPath(n)
-		d, err := fs.DecryptPath(c)
+		c, err := fs.TranslatePathZeroIV(n, OpEncrypt)
+		d, err := fs.TranslatePathZeroIV(c, OpDecrypt)
 		if err != nil {
 			t.Errorf("Got error from DecryptName: %s", err)
 		}

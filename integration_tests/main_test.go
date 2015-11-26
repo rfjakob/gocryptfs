@@ -60,16 +60,18 @@ func TestMain(m *testing.M) {
 func testWriteN(t *testing.T, fn string, n int) string {
 	file, err := os.Create(defaultPlainDir + fn)
 	if err != nil {
-		t.FailNow()
+		t.Fatal(err)
 	}
 
 	d := make([]byte, n)
 	written, err := file.Write(d)
 	if err != nil || written != len(d) {
-		fmt.Printf("err=\"%s\", written=%d\n", err, written)
-		t.Fail()
+		t.Errorf("err=\"%s\", written=%d\n", err, written)
 	}
-	file.Close()
+	err = file.Close()
+	if err != nil {
+		t.Error(err)
+	}
 
 	verifySize(t, defaultPlainDir+fn, n)
 

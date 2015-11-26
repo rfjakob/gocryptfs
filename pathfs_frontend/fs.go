@@ -1,6 +1,7 @@
 package pathfs_frontend
 
 import (
+	"encoding/base64"
 	"fmt"
 	"sync"
 	"syscall"
@@ -17,9 +18,9 @@ import (
 
 type FS struct {
 	*cryptfs.CryptFS
-	pathfs.FileSystem        // loopbackFileSystem, see go-fuse/fuse/pathfs/loopback.go
-	backing           string // Backing directory
-	dirivLock sync.RWMutex   // Global lock that is taken if any "gocryptfs.diriv" file is modified
+	pathfs.FileSystem           // loopbackFileSystem, see go-fuse/fuse/pathfs/loopback.go
+	backingDir           string // Backing directory, cipherdir
+	dirivLock sync.RWMutex      // Global lock that is taken if any "gocryptfs.diriv" file is modified
 }
 
 // Encrypted FUSE overlay filesystem
@@ -27,14 +28,18 @@ func NewFS(key []byte, backing string, useOpenssl bool, plaintextNames bool) *FS
 	return &FS{
 		CryptFS:    cryptfs.NewCryptFS(key, useOpenssl, plaintextNames),
 		FileSystem: pathfs.NewLoopbackFileSystem(backing),
-		backing:    backing,
+		backingDir:    backing,
 	}
 }
 
-// GetPath - get the absolute encrypted path of the backing file
+// GetBackingPath - get the absolute encrypted path of the backing file
 // from the relative plaintext path "relPath"
-func (fs *FS) GetPath(relPath string) string {
-	return filepath.Join(fs.backing, fs.EncryptPath(relPath))
+func (fs *FS) getBackingPath(relPath string) (string, error) {
+	encrypted, err := fs.encryptPath(relPath)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(fs.backingDir, encrypted), nil
 }
 
 func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
@@ -42,7 +47,10 @@ func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Stat
 	if fs.CryptFS.IsFiltered(name) {
 		return nil, fuse.EPERM
 	}
-	cName := fs.EncryptPath(name)
+	cName, err := fs.encryptPath(name)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
 	a, status := fs.FileSystem.GetAttr(cName, context)
 	if a == nil {
 		cryptfs.Debug.Printf("FS.GetAttr failed: %s\n", status.String())
@@ -59,7 +67,11 @@ func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Stat
 
 func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
 	cryptfs.Debug.Printf("OpenDir(%s)\n", dirName)
-	cipherEntries, status := fs.FileSystem.OpenDir(fs.EncryptPath(dirName), context)
+	cDirName, err := fs.encryptPath(dirName)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	cipherEntries, status := fs.FileSystem.OpenDir(cDirName, context)
 	var plain []fuse.DirEntry
 	if cipherEntries != nil {
 		for i := range cipherEntries {
@@ -72,7 +84,7 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 				// silently ignore "gocryptfs.diriv" everywhere
 				continue
 			}
-			name, err := fs.DecryptPath(cName)
+			name, err := fs.decryptPath(cName)
 			if err != nil {
 				cryptfs.Warn.Printf("Invalid name \"%s\" in dir \"%s\": %s\n", cName, dirName, err)
 				continue
@@ -103,7 +115,11 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 		return nil, fuse.EPERM
 	}
 	iflags, writeOnly := fs.mangleOpenFlags(flags)
-	f, err := os.OpenFile(fs.GetPath(path), iflags, 0666)
+	cPath, err := fs.getBackingPath(path)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	f, err := os.OpenFile(cPath, iflags, 0666)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
@@ -116,7 +132,11 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 		return nil, fuse.EPERM
 	}
 	iflags, writeOnly := fs.mangleOpenFlags(flags)
-	f, err := os.OpenFile(fs.GetPath(path), iflags|os.O_CREATE, os.FileMode(mode))
+	cPath, err := fs.getBackingPath(path)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	f, err := os.OpenFile(cPath, iflags|os.O_CREATE, os.FileMode(mode))
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
@@ -127,21 +147,33 @@ func (fs *FS) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.
 	if fs.CryptFS.IsFiltered(path) {
 		return fuse.EPERM
 	}
-	return fs.FileSystem.Chmod(fs.EncryptPath(path), mode, context)
+	cPath, err := fs.encryptPath(path)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	return fs.FileSystem.Chmod(cPath, mode, context)
 }
 
 func (fs *FS) Chown(path string, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status) {
 	if fs.CryptFS.IsFiltered(path) {
 		return fuse.EPERM
 	}
-	return fs.FileSystem.Chown(fs.EncryptPath(path), uid, gid, context)
+	cPath, err := fs.encryptPath(path)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	return fs.FileSystem.Chown(cPath, uid, gid, context)
 }
 
-func (fs *FS) Mknod(name string, mode uint32, dev uint32, context *fuse.Context) (code fuse.Status) {
-	if fs.CryptFS.IsFiltered(name) {
+func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context) (code fuse.Status) {
+	if fs.CryptFS.IsFiltered(path) {
 		return fuse.EPERM
 	}
-	return fs.FileSystem.Mknod(fs.EncryptPath(name), mode, dev, context)
+	cPath, err := fs.encryptPath(path)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	return fs.FileSystem.Mknod(cPath, mode, dev, context)
 }
 
 func (fs *FS) Truncate(path string, offset uint64, context *fuse.Context) (code fuse.Status) {
@@ -153,15 +185,23 @@ func (fs *FS) Utimens(path string, Atime *time.Time, Mtime *time.Time, context *
 	if fs.CryptFS.IsFiltered(path) {
 		return fuse.EPERM
 	}
-	return fs.FileSystem.Utimens(fs.EncryptPath(path), Atime, Mtime, context)
+	cPath, err := fs.encryptPath(path)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	return fs.FileSystem.Utimens(cPath, Atime, Mtime, context)
 }
 
-func (fs *FS) Readlink(name string, context *fuse.Context) (out string, status fuse.Status) {
-	dst, status := fs.FileSystem.Readlink(fs.EncryptPath(name), context)
+func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status fuse.Status) {
+	cPath, err := fs.encryptPath(path)
+	if err != nil {
+		return "", fuse.ToStatus(err)
+	}
+	dst, status := fs.FileSystem.Readlink(cPath, context)
 	if status != fuse.OK {
 		return "", status
 	}
-	dstPlain, err := fs.DecryptPath(dst)
+	dstPlain, err := fs.decryptPath(dst)
 	if err != nil {
 		cryptfs.Warn.Printf("Failed decrypting symlink: %s\n", err.Error())
 		return "", fuse.EIO
@@ -173,11 +213,14 @@ func (fs *FS) Mkdir(relPath string, mode uint32, context *fuse.Context) (code fu
 	if fs.CryptFS.IsFiltered(relPath) {
 		return fuse.EPERM
 	}
-	encPath := fs.GetPath(relPath)
+	encPath, err := fs.getBackingPath(relPath)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
 	diriv := cryptfs.RandBytes(cryptfs.DIRIV_LEN)
 	dirivPath := filepath.Join(encPath, cryptfs.DIRIV_FILENAME)
 	// Create directory
-	err := os.Mkdir(encPath, os.FileMode(mode))
+	err = os.Mkdir(encPath, os.FileMode(mode))
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
@@ -196,20 +239,22 @@ func (fs *FS) Mkdir(relPath string, mode uint32, context *fuse.Context) (code fu
 	return fuse.OK
 }
 
-func (fs *FS) Unlink(name string, context *fuse.Context) (code fuse.Status) {
-	if fs.CryptFS.IsFiltered(name) {
+func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
+	if fs.CryptFS.IsFiltered(path) {
 		return fuse.EPERM
 	}
-	cName := fs.EncryptPath(name)
-	code = fs.FileSystem.Unlink(cName, context)
-	if code != fuse.OK {
-		cryptfs.Debug.Printf("Unlink failed on %s [%s], code=%s\n", name, cName, code.String())
+	cPath, err := fs.getBackingPath(path)
+	if err != nil {
+		return fuse.ToStatus(err)
 	}
-	return code
+	return fuse.ToStatus(syscall.Unlink(cPath))
 }
 
 func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
-	encPath := fs.GetPath(name)
+	encPath, err := fs.getBackingPath(name)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
 
 	// If the directory is not empty besides gocryptfs.diriv, do not even
 	// attempt the dance around gocryptfs.diriv.
@@ -264,34 +309,61 @@ func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 	return fuse.OK
 }
 
-func (fs *FS) Symlink(pointedTo string, linkName string, context *fuse.Context) (code fuse.Status) {
+func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (code fuse.Status) {
+	cryptfs.Debug.Printf("Symlink(\"%s\", \"%s\")\n", target, linkName)
 	if fs.CryptFS.IsFiltered(linkName) {
 		return fuse.EPERM
 	}
-	// TODO symlink encryption
-	cryptfs.Debug.Printf("Symlink(\"%s\", \"%s\")\n", pointedTo, linkName)
-	return fs.FileSystem.Symlink(fs.EncryptPath(pointedTo), fs.EncryptPath(linkName), context)
+	cName, err := fs.encryptPath(linkName)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+
+	cBinTarget := fs.CryptFS.EncryptBlock([]byte(target), 0, nil)
+	cTarget := base64.URLEncoding.EncodeToString(cBinTarget)
+
+	return fuse.ToStatus(os.Symlink(cTarget, cName))
 }
 
 func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (code fuse.Status) {
 	if fs.CryptFS.IsFiltered(newPath) {
 		return fuse.EPERM
 	}
-	return fs.FileSystem.Rename(fs.EncryptPath(oldPath), fs.EncryptPath(newPath), context)
+	cOldPath, err := fs.getBackingPath(oldPath)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	cNewPath, err := fs.getBackingPath(newPath)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	return fs.FileSystem.Rename(cOldPath, cNewPath, context)
 }
 
-func (fs *FS) Link(orig string, newName string, context *fuse.Context) (code fuse.Status) {
-	if fs.CryptFS.IsFiltered(newName) {
+func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code fuse.Status) {
+	if fs.CryptFS.IsFiltered(newPath) {
 		return fuse.EPERM
 	}
-	return fs.FileSystem.Link(fs.EncryptPath(orig), fs.EncryptPath(newName), context)
+	cOldPath, err := fs.getBackingPath(oldPath)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	cNewPath, err := fs.getBackingPath(newPath)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	return fuse.ToStatus(os.Link(cOldPath, cNewPath))
 }
 
-func (fs *FS) Access(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
-	if fs.CryptFS.IsFiltered(name) {
+func (fs *FS) Access(path string, mode uint32, context *fuse.Context) (code fuse.Status) {
+	if fs.CryptFS.IsFiltered(path) {
 		return fuse.EPERM
 	}
-	return fs.FileSystem.Access(fs.EncryptPath(name), mode, context)
+	cPath, err := fs.getBackingPath(path)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	return fuse.ToStatus(syscall.Access(cPath, mode))
 }
 
 func (fs *FS) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {

@@ -12,15 +12,15 @@ import (
 )
 
 const (
-	ENCRYPT = true
-	DECRYPT = false
+	OpEncrypt = iota
+	OpDecrypt
 )
 
-// DecryptName - decrypt filename
-func (be *CryptFS) decryptName(cipherName string) (string, error) {
+// DecryptName - decrypt base64-encoded encrypted filename "cipherName"
+func (be *CryptFS) decryptName(cipherName string, iv []byte) (string, error) {
 
 	// Make sure relative symlinks still work after encryption
-	// by passing these trough unchanged
+	// by passing these through unchanged
 	if cipherName == "." || cipherName == ".." {
 		return cipherName, nil
 	}
@@ -34,7 +34,6 @@ func (be *CryptFS) decryptName(cipherName string) (string, error) {
 		return "", fmt.Errorf("Decoded length %d is not a multiple of the AES block size", len(bin))
 	}
 
-	iv := make([]byte, aes.BlockSize) // TODO ?
 	cbc := cipher.NewCBCDecrypter(be.blockCipher, iv)
 	cbc.CryptBlocks(bin, bin)
 
@@ -48,7 +47,7 @@ func (be *CryptFS) decryptName(cipherName string) (string, error) {
 }
 
 // EncryptName - encrypt filename
-func (be *CryptFS) encryptName(plainName string) string {
+func (be *CryptFS) encryptName(plainName string, iv []byte) string {
 
 	// Make sure relative symlinks still work after encryption
 	// by passing these trough unchanged
@@ -59,7 +58,6 @@ func (be *CryptFS) encryptName(plainName string) string {
 	bin := []byte(plainName)
 	bin = be.pad16(bin)
 
-	iv := make([]byte, 16) // TODO ?
 	cbc := cipher.NewCBCEncrypter(be.blockCipher, iv)
 	cbc.CryptBlocks(bin, bin)
 
@@ -67,15 +65,18 @@ func (be *CryptFS) encryptName(plainName string) string {
 	return cipherName64
 }
 
-// TranslatePath - encrypt or decrypt path. Just splits the string on "/"
-// and hands the parts to EncryptName() / DecryptName()
-func (be *CryptFS) translatePath(path string, op bool) (string, error) {
+
+// TranslatePathZeroIV - encrypt or decrypt path using CBC with a constant all-zero IV.
+// Just splits the string on "/" and hands the parts to encryptName() / decryptName()
+func (be *CryptFS) TranslatePathZeroIV(path string, op int) (string, error) {
 	var err error
 
 	// Empty string means root directory
 	if path == "" {
 		return path, err
 	}
+
+	zeroIV := make([]byte, DIRIV_LEN)
 
 	// Run operation on each path component
 	var translatedParts []string
@@ -88,10 +89,10 @@ func (be *CryptFS) translatePath(path string, op bool) (string, error) {
 			continue
 		}
 		var newPart string
-		if op == ENCRYPT {
-			newPart = be.encryptName(part)
+		if op == OpEncrypt {
+			newPart = be.encryptName(part, zeroIV)
 		} else {
-			newPart, err = be.decryptName(part)
+			newPart, err = be.decryptName(part, zeroIV)
 			if err != nil {
 				return "", err
 			}
@@ -100,23 +101,6 @@ func (be *CryptFS) translatePath(path string, op bool) (string, error) {
 	}
 
 	return strings.Join(translatedParts, "/"), err
-}
-
-// EncryptPath - encrypt filename or path. Just hands it to translatePath().
-func (be *CryptFS) EncryptPath(path string) string {
-	if be.plaintextNames {
-		return path
-	}
-	newPath, _ := be.translatePath(path, ENCRYPT)
-	return newPath
-}
-
-// DecryptPath - decrypt filename or path. Just hands it to translatePath().
-func (be *CryptFS) DecryptPath(path string) (string, error) {
-	if be.plaintextNames {
-		return path, nil
-	}
-	return be.translatePath(path, DECRYPT)
 }
 
 // pad16 - pad filename to 16 byte blocks using standard PKCS#7 padding
@@ -171,3 +155,5 @@ func (be *CryptFS) unPad16(orig []byte) ([]byte, error) {
 	}
 	return orig[0:newLen], nil
 }
+
+
