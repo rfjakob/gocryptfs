@@ -10,6 +10,7 @@ import (
 // readDirIV - read the "gocryptfs.diriv" file from "dir" (absolute path)
 func (be *CryptFS) readDirIV(dir string) (iv []byte, err error) {
 	ivfile := filepath.Join(dir, DIRIV_FILENAME)
+	Debug.Printf("readDirIV: reading %s\n", ivfile)
 	iv, err = ioutil.ReadFile(ivfile)
 	if err != nil {
 		Warn.Printf("readDirIV: %v\n", err)
@@ -63,6 +64,7 @@ func (be *CryptFS) DecryptPathDirIV(encryptedPath string, rootDir string) (strin
 	var wd = rootDir
 	var plainNames []string
 	encryptedNames := strings.Split(encryptedPath, "/")
+	Debug.Printf("DecryptPathDirIV: decrypting %v\n", encryptedNames)
 	for _, encryptedName := range encryptedNames {
 		iv, err := be.readDirIV(wd)
 		if err != nil {

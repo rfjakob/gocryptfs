@@ -89,7 +89,15 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 				// silently ignore "gocryptfs.diriv" everywhere if dirIV is enabled
 				continue
 			}
-			name, err := fs.decryptPath(cName)
+			var name string
+			if !fs.dirIV {
+				name, err = fs.decryptPath(cName)
+			} else {
+				// When dirIV is enabled we need the full path to be able to decrypt it
+				cPath := filepath.Join(cDirName, cName)
+				name, err = fs.decryptPath(cPath)
+				name = filepath.Base(name)
+			}
 			if err != nil {
 				cryptfs.Warn.Printf("Invalid name \"%s\" in dir \"%s\": %s\n", cName, dirName, err)
 				continue
