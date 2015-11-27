@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 	"syscall"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -20,7 +19,11 @@ type FS struct {
 	*cryptfs.CryptFS
 	pathfs.FileSystem           // loopbackFileSystem, see go-fuse/fuse/pathfs/loopback.go
 	backingDir           string // Backing directory, cipherdir
-	dirivLock sync.RWMutex      // Global lock that is taken if any "gocryptfs.diriv" file is modified
+	// dirIVLock: Lock()ed if any "gocryptfs.diriv" file is modified
+	// Readers must RLock() it to prevent them from seeing intermediate
+	// states
+	dirIVLock sync.RWMutex
+
 }
 
 // Encrypted FUSE overlay filesystem
@@ -217,16 +220,15 @@ func (fs *FS) Mkdir(relPath string, mode uint32, context *fuse.Context) (code fu
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	diriv := cryptfs.RandBytes(cryptfs.DIRIV_LEN)
-	dirivPath := filepath.Join(encPath, cryptfs.DIRIV_FILENAME)
 	// Create directory
+	fs.dirIVLock.Lock()
+	defer fs.dirIVLock.Unlock()
 	err = os.Mkdir(encPath, os.FileMode(mode))
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
 	// Create gocryptfs.diriv inside
-	// 0444 permissions: the file is not secret but should not be written to
-	err = ioutil.WriteFile(dirivPath, diriv, 0444)
+	err = fs.CryptFS.WriteDirIV(encPath)
 	if err != nil {
 		// This should not happen
 		cryptfs.Warn.Printf("Creating %s in dir %s failed: %v\n", cryptfs.DIRIV_FILENAME, encPath, err)
@@ -282,8 +284,8 @@ func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 	tmpName := fmt.Sprintf("gocryptfs.diriv.rmdir.%d", st.Ino)
 	tmpDirivPath := filepath.Join(parentDir, tmpName)
 	cryptfs.Debug.Printf("Rmdir: Renaming %s to %s\n", cryptfs.DIRIV_FILENAME, tmpDirivPath)
-	fs.dirivLock.Lock() // directory will be in an inconsistent state after the rename
-	defer fs.dirivLock.Unlock()
+	fs.dirIVLock.Lock() // directory will be in an inconsistent state after the rename
+	defer fs.dirIVLock.Unlock()
 	err = os.Rename(dirivPath, tmpDirivPath)
 	if err != nil {
 		cryptfs.Warn.Printf("Rmdir: Renaming %s to %s failed: %v\n", cryptfs.DIRIV_FILENAME, tmpDirivPath, err)

@@ -21,6 +21,15 @@ func (be *CryptFS) readDirIV(dir string) (iv []byte, err error) {
 		return iv, nil
 }
 
+// WriteDirIV - create diriv file inside "dir" (absolute path)
+// This function is exported because it is used from pathfs_frontend
+func (be *CryptFS) WriteDirIV(dir string) error {
+	iv := RandBytes(DIRIV_LEN)
+	file := filepath.Join(dir, DIRIV_FILENAME)
+	// 0444 permissions: the file is not secret but should not be written to
+	return ioutil.WriteFile(file, iv, 0444)
+}
+
 // EncryptPathDirIV - encrypt path using CBC with DirIV
 func (be *CryptFS) EncryptPathDirIV(plainPath string, rootDir string) (string, error) {
 	if be.plaintextNames {
