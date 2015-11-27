@@ -36,7 +36,7 @@ func TestExampleFsNormal(t *testing.T) {
 	checkStatusTxt(t, pDir+"status.txt")
 	unmount(pDir)
 	mount(cDir, pDir, "-masterkey", "74676e34-0b47c145-00dac61a-17a92316-"+
-		"bb57044c-e205b71f-65f4fdca-7cabd4b3")
+		"bb57044c-e205b71f-65f4fdca-7cabd4b3", "-diriv=false")
 	checkStatusTxt(t, pDir+"status.txt")
 	unmount(pDir)
 	err = os.Remove(pDir)

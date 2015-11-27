@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -34,6 +33,15 @@ const (
 	ERREXIT_MOUNTPOINT = 10
 )
 
+type argContainer struct {
+	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
+	plaintextnames, quiet, diriv bool
+	masterkey, mountpoint, cipherdir, cpuprofile, config, extpass string
+	notifypid                                                     int
+}
+
+var flagSet *flag.FlagSet
+
 // GitVersion will be set by the build script "build.bash"
 var GitVersion = "[version not set - please compile using ./build.bash]"
 
@@ -45,11 +53,7 @@ func initDir(args *argContainer) {
 	}
 
 	// Create gocryptfs.diriv in the root dir
-	diriv := cryptfs.RandBytes(cryptfs.DIRIV_LEN)
-	dirivPath := filepath.Join(args.cipherdir, cryptfs.DIRIV_FILENAME)
-	cryptfs.Debug.Printf("Creating %s\n", dirivPath)
-	// 0444 permissions: the file is not secret but should not be written to
-	err = ioutil.WriteFile(dirivPath, diriv, 0444)
+	err = cryptfs.WriteDirIV(args.cipherdir)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(ERREXIT_INIT)
@@ -75,15 +79,6 @@ func usageText() {
 	fmt.Printf("\nOptions:\n")
 	flagSet.PrintDefaults()
 }
-
-type argContainer struct {
-	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
-	plaintextnames, quiet bool
-	masterkey, mountpoint, cipherdir, cpuprofile, config, extpass string
-	notifypid                                                     int
-}
-
-var flagSet *flag.FlagSet
 
 // loadConfig - load the config file "filename", prompting the user for the password
 func loadConfig(args *argContainer) (masterkey []byte, confFile *cryptfs.ConfFile) {
@@ -133,9 +128,9 @@ func printVersion() {
 func main() {
 	runtime.GOMAXPROCS(4)
 	var err error
+	var args argContainer
 
 	// Parse command line arguments
-	var args argContainer
 	flagSet = flag.NewFlagSet(PROGRAM_NAME, flag.ExitOnError)
 	flagSet.Usage = usageText
 	flagSet.BoolVar(&args.debug, "debug", false, "Enable debug output")
@@ -149,6 +144,7 @@ func main() {
 	flagSet.BoolVar(&args.plaintextnames, "plaintextnames", false, "Do not encrypt "+
 		"file names")
 	flagSet.BoolVar(&args.quiet, "q", false, "Quiet - silence informational messages")
+	flagSet.BoolVar(&args.diriv, "diriv", true, "Use per-directory file name IV")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.config, "config", "", "Use specified config file instead of CIPHERDIR/gocryptfs.conf")
@@ -264,7 +260,9 @@ func main() {
 		var confFile *cryptfs.ConfFile
 		masterkey, confFile = loadConfig(&args)
 		printMasterKey(masterkey)
+		// Settings from the config file override command line args
 		args.plaintextnames = confFile.IsFeatureFlagSet(cryptfs.FlagPlaintextNames)
+		args.diriv = confFile.IsFeatureFlagSet(cryptfs.FlagDirIV)
 	}
 	// Initialize FUSE server
 	srv := pathfsFrontend(masterkey, args)
@@ -285,7 +283,7 @@ func main() {
 // Calls os.Exit on errors
 func pathfsFrontend(key []byte, args argContainer) *fuse.Server {
 
-	finalFs := pathfs_frontend.NewFS(key, args.cipherdir, args.openssl, args.plaintextnames)
+	finalFs := pathfs_frontend.NewFS(key, args.cipherdir, args.openssl, args.plaintextnames, args.diriv)
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
 	pathFs := pathfs.NewPathNodeFs(finalFs, pathFsOpts)
 	fuseOpts := &nodefs.Options{
@@ -309,7 +307,7 @@ func pathfsFrontend(key []byte, args argContainer) *fuse.Server {
 		fmt.Printf("Mount failed: %v", err)
 		os.Exit(ERREXIT_MOUNT)
 	}
-	srv.SetDebug(args.debug)
+	srv.SetDebug(args.fusedebug)
 
 	return srv
 }

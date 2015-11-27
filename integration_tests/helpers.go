@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/exec"
 	"testing"
+
+	"github.com/rfjakob/gocryptfs/cryptfs"
 )
 
 // Note: the code assumes that all have a trailing slash
@@ -38,8 +40,7 @@ func resetTmpDir() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	dirIV := make([]byte, 16)
-	err = ioutil.WriteFile(defaultCipherDir+"gocryptfs.diriv", dirIV, 0444)
+	err = cryptfs.WriteDirIV(defaultCipherDir)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

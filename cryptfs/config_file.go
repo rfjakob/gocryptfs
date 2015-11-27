@@ -47,8 +47,11 @@ func CreateConfFile(filename string, password string, plaintextNames bool) error
 	// This sets ScryptObject and EncryptedKey
 	cf.EncryptKey(key, password)
 
+	// Set defaults
 	cf.Version = HEADER_CURRENT_VERSION
+	cf.FeatureFlags = []string{FlagDirIV}
 
+	// Set values chosen by the user
 	if plaintextNames {
 		cf.FeatureFlags = append(cf.FeatureFlags, FlagPlaintextNames)
 	}

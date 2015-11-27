@@ -19,6 +19,8 @@ type FS struct {
 	*cryptfs.CryptFS
 	pathfs.FileSystem        // loopbackFileSystem, see go-fuse/fuse/pathfs/loopback.go
 	backingDir        string // Backing directory, cipherdir
+	// Are per-directory filename IVs enabled?
+	dirIV bool
 	// dirIVLock: Lock()ed if any "gocryptfs.diriv" file is modified
 	// Readers must RLock() it to prevent them from seeing intermediate
 	// states
@@ -26,10 +28,11 @@ type FS struct {
 }
 
 // Encrypted FUSE overlay filesystem
-func NewFS(key []byte, backing string, useOpenssl bool, plaintextNames bool) *FS {
+func NewFS(key []byte, backing string, useOpenssl bool, plaintextNames bool, dirIV bool) *FS {
 	return &FS{
 		CryptFS:    cryptfs.NewCryptFS(key, useOpenssl, plaintextNames),
 		FileSystem: pathfs.NewLoopbackFileSystem(backing),
+		dirIV:      dirIV,
 		backingDir: backing,
 	}
 }
@@ -82,8 +85,8 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 				// silently ignore "gocryptfs.conf" in the top level dir
 				continue
 			}
-			if cName == cryptfs.DIRIV_FILENAME {
-				// silently ignore "gocryptfs.diriv" everywhere
+			if fs.dirIV && cName == cryptfs.DIRIV_FILENAME {
+				// silently ignore "gocryptfs.diriv" everywhere if dirIV is enabled
 				continue
 			}
 			name, err := fs.decryptPath(cName)
@@ -227,7 +230,7 @@ func (fs *FS) Mkdir(relPath string, mode uint32, context *fuse.Context) (code fu
 		return fuse.ToStatus(err)
 	}
 	// Create gocryptfs.diriv inside
-	err = fs.CryptFS.WriteDirIV(encPath)
+	err = cryptfs.WriteDirIV(encPath)
 	if err != nil {
 		// This should not happen
 		cryptfs.Warn.Printf("Creating %s in dir %s failed: %v\n", cryptfs.DIRIV_FILENAME, encPath, err)
