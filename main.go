@@ -267,7 +267,7 @@ func main() {
 		args.plaintextnames = confFile.IsFeatureFlagSet(cryptfs.FlagPlaintextNames)
 	}
 	// Initialize FUSE server
-	srv := pathfsFrontend(masterkey, args.cipherdir, args.mountpoint, args.fusedebug, args.openssl, args.plaintextnames)
+	srv := pathfsFrontend(masterkey, args)
 	cryptfs.Info.Println("Filesystem ready.")
 	// We are ready - send USR1 signal to our parent
 	if args.notifypid > 0 {
@@ -281,12 +281,11 @@ func main() {
 	// main exits with code 0
 }
 
-// pathfsFrontend - initialize FUSE server based on go-fuse's PathFS
+// pathfsFrontend - initialize FUSE server based on go-fuse's PathFS.
 // Calls os.Exit on errors
-func pathfsFrontend(key []byte, cipherdir string, mountpoint string,
-	debug bool, openssl bool, plaintextNames bool) *fuse.Server {
+func pathfsFrontend(key []byte, args argContainer) *fuse.Server {
 
-	finalFs := pathfs_frontend.NewFS(key, cipherdir, openssl, plaintextNames)
+	finalFs := pathfs_frontend.NewFS(key, args.cipherdir, args.openssl, args.plaintextnames)
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
 	pathFs := pathfs.NewPathNodeFs(finalFs, pathFsOpts)
 	fuseOpts := &nodefs.Options{
@@ -301,16 +300,16 @@ func pathfsFrontend(key []byte, cipherdir string, mountpoint string,
 	mOpts.AllowOther = false
 	// Set values shown in "df -T" and friends
 	// First column, "Filesystem"
-	mOpts.Options = append(mOpts.Options, "fsname="+cipherdir)
+	mOpts.Options = append(mOpts.Options, "fsname="+args.cipherdir)
 	// Second column, "Type", will be shown as "fuse." + Name
 	mOpts.Name = "gocryptfs"
 
-	srv, err := fuse.NewServer(conn.RawFS(), mountpoint, &mOpts)
+	srv, err := fuse.NewServer(conn.RawFS(), args.mountpoint, &mOpts)
 	if err != nil {
 		fmt.Printf("Mount failed: %v", err)
 		os.Exit(ERREXIT_MOUNT)
 	}
-	srv.SetDebug(debug)
+	srv.SetDebug(args.debug)
 
 	return srv
 }
