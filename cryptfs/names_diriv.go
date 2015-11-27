@@ -9,16 +9,16 @@ import (
 
 // readDirIV - read the "gocryptfs.diriv" file from "dir" (absolute path)
 func (be *CryptFS) readDirIV(dir string) (iv []byte, err error) {
-		ivfile := filepath.Join(dir, DIRIV_FILENAME)
-		iv, err = ioutil.ReadFile(ivfile)
-		if err != nil {
-			Warn.Printf("readDirIV: %v\n", err)
-			return nil, err
-		}
-		if len(iv) != DIRIV_LEN {
-			return nil, fmt.Errorf("readDirIV: Invalid length %d\n", len(iv))
-		}
-		return iv, nil
+	ivfile := filepath.Join(dir, DIRIV_FILENAME)
+	iv, err = ioutil.ReadFile(ivfile)
+	if err != nil {
+		Warn.Printf("readDirIV: %v\n", err)
+		return nil, err
+	}
+	if len(iv) != DIRIV_LEN {
+		return nil, fmt.Errorf("readDirIV: Invalid length %d\n", len(iv))
+	}
+	return iv, nil
 }
 
 // WriteDirIV - create diriv file inside "dir" (absolute path)

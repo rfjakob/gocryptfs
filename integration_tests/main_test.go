@@ -3,7 +3,6 @@ package integration_tests
 // File reading, writing, modification, truncate
 
 import (
-	"syscall"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
@@ -13,6 +12,7 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"syscall"
 	"testing"
 )
 

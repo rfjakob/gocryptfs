@@ -33,11 +33,11 @@ func TestExampleFsNormal(t *testing.T) {
 		t.Fatal(err)
 	}
 	mount(cDir, pDir, "-extpass", "echo test")
-	checkStatusTxt(t, pDir + "status.txt")
+	checkStatusTxt(t, pDir+"status.txt")
 	unmount(pDir)
 	mount(cDir, pDir, "-masterkey", "74676e34-0b47c145-00dac61a-17a92316-"+
 		"bb57044c-e205b71f-65f4fdca-7cabd4b3")
-	checkStatusTxt(t, pDir + "status.txt")
+	checkStatusTxt(t, pDir+"status.txt")
 	unmount(pDir)
 	err = os.Remove(pDir)
 	if err != nil {

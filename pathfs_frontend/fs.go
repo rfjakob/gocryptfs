@@ -3,10 +3,10 @@ package pathfs_frontend
 import (
 	"encoding/base64"
 	"fmt"
-	"sync"
-	"syscall"
 	"os"
 	"path/filepath"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -17,13 +17,12 @@ import (
 
 type FS struct {
 	*cryptfs.CryptFS
-	pathfs.FileSystem           // loopbackFileSystem, see go-fuse/fuse/pathfs/loopback.go
-	backingDir           string // Backing directory, cipherdir
+	pathfs.FileSystem        // loopbackFileSystem, see go-fuse/fuse/pathfs/loopback.go
+	backingDir        string // Backing directory, cipherdir
 	// dirIVLock: Lock()ed if any "gocryptfs.diriv" file is modified
 	// Readers must RLock() it to prevent them from seeing intermediate
 	// states
 	dirIVLock sync.RWMutex
-
 }
 
 // Encrypted FUSE overlay filesystem
@@ -31,7 +30,7 @@ func NewFS(key []byte, backing string, useOpenssl bool, plaintextNames bool) *FS
 	return &FS{
 		CryptFS:    cryptfs.NewCryptFS(key, useOpenssl, plaintextNames),
 		FileSystem: pathfs.NewLoopbackFileSystem(backing),
-		backingDir:    backing,
+		backingDir: backing,
 	}
 }
 
