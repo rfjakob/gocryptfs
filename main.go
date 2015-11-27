@@ -264,7 +264,7 @@ func main() {
 		var confFile *cryptfs.ConfFile
 		masterkey, confFile = loadConfig(&args)
 		printMasterKey(masterkey)
-		args.plaintextnames = confFile.PlaintextNames()
+		args.plaintextnames = confFile.IsFeatureFlagSet(cryptfs.FlagPlaintextNames)
 	}
 	// Initialize FUSE server
 	srv := pathfsFrontend(masterkey, args.cipherdir, args.mountpoint, args.fusedebug, args.openssl, args.plaintextnames)

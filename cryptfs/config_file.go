@@ -4,14 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 )
 import "os"
 
 const (
 	// The dot "." is not used in base64url (RFC4648), hence
 	// we can never clash with an encrypted file.
-	ConfDefaultName    = "gocryptfs.conf"
+	ConfDefaultName = "gocryptfs.conf"
+	// Understood Feature Flags
+	// Also teach isFeatureFlagKnown() about any additions
 	FlagPlaintextNames = "PlaintextNames"
+	FlagDirIV          = "DirIV"
 )
 
 type ConfFile struct {
@@ -78,12 +82,8 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 		return nil, nil, fmt.Errorf("Unsupported on-disk format %d\n", cf.Version)
 	}
 
-	// Verify that we know all feature flags
 	for _, flag := range cf.FeatureFlags {
-		switch flag {
-		case FlagPlaintextNames:
-			continue
-		default:
+		if cf.isFeatureFlagKnown(flag) == false {
 			return nil, nil, fmt.Errorf("Unsupported feature flag %s\n", flag)
 		}
 	}
@@ -151,16 +151,25 @@ func (cf *ConfFile) WriteFile() error {
 	return nil
 }
 
+// Verify that we understand a feature flag
+func (cf *ConfFile) isFeatureFlagKnown(flag string) bool {
+	switch flag {
+	case FlagPlaintextNames, FlagDirIV:
+		return true
+	default:
+		return false
+	}
+}
+
 // isFeatureFlagSet - is the feature flag "flagWant" enabled?
-func (cf *ConfFile) isFeatureFlagSet(flagWant string) bool {
+func (cf *ConfFile) IsFeatureFlagSet(flagWant string) bool {
+	if !cf.isFeatureFlagKnown(flagWant) {
+		log.Panicf("BUG: Tried to use unsupported feature flag %s", flagWant)
+	}
 	for _, flag := range cf.FeatureFlags {
 		if flag == flagWant {
 			return true
 		}
 	}
 	return false
-}
-
-func (cf *ConfFile) PlaintextNames() bool {
-	return cf.isFeatureFlagSet(FlagPlaintextNames)
 }

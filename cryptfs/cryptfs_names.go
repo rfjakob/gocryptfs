@@ -65,7 +65,6 @@ func (be *CryptFS) encryptName(plainName string, iv []byte) string {
 	return cipherName64
 }
 
-
 // TranslatePathZeroIV - encrypt or decrypt path using CBC with a constant all-zero IV.
 // Just splits the string on "/" and hands the parts to encryptName() / decryptName()
 func (be *CryptFS) TranslatePathZeroIV(path string, op int) (string, error) {
@@ -155,5 +154,3 @@ func (be *CryptFS) unPad16(orig []byte) ([]byte, error) {
 	}
 	return orig[0:newLen], nil
 }
-
-

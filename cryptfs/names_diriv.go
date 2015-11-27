@@ -1,9 +1,9 @@
 package cryptfs
 
 import (
-	"path/filepath"
-	"io/ioutil"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"strings"
 )
 

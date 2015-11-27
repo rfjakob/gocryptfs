@@ -69,3 +69,16 @@ func TestCreateConfFile(t *testing.T) {
 	}
 
 }
+
+func TestIsFeatureFlagKnown(t *testing.T) {
+	var cf ConfFile
+	if !cf.isFeatureFlagKnown(FlagDirIV) {
+		t.Errorf("This flag should be known")
+	}
+	if !cf.isFeatureFlagKnown(FlagPlaintextNames) {
+		t.Errorf("This flag should be known")
+	}
+	if cf.isFeatureFlagKnown("StrangeFeatureFlag") {
+		t.Errorf("This flag should be NOT known")
+	}
+}
