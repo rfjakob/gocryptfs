@@ -15,7 +15,7 @@ const statusTxtContent = "It works!\n"
 func checkStatusTxt(t *testing.T, filename string) {
 	contentBytes, err := ioutil.ReadFile(filename)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	content := string(contentBytes)
 	if content != statusTxtContent {

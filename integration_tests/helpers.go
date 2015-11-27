@@ -38,6 +38,12 @@ func resetTmpDir() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	dirIV := make([]byte, 16)
+	err = ioutil.WriteFile(defaultCipherDir + "gocryptfs.diriv", dirIV, 0444)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 // mount CIPHERDIR "c" on PLAINDIR "p"
