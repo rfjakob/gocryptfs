@@ -7,19 +7,19 @@ import (
 )
 
 func (fs *FS) encryptPath(plainPath string) (string, error) {
-	if !fs.dirIV {
+	if !fs.args.DirIV {
 		return fs.CryptFS.TranslatePathZeroIV(plainPath, cryptfs.OpEncrypt)
 	}
 	fs.dirIVLock.RLock()
 	defer fs.dirIVLock.RUnlock()
-	return fs.CryptFS.EncryptPathDirIV(plainPath, fs.backingDir)
+	return fs.CryptFS.EncryptPathDirIV(plainPath, fs.args.Cipherdir)
 }
 
 func (fs *FS) decryptPath(cipherPath string) (string, error) {
-	if !fs.dirIV {
+	if !fs.args.DirIV {
 		return fs.CryptFS.TranslatePathZeroIV(cipherPath, cryptfs.OpDecrypt)
 	}
 	fs.dirIVLock.RLock()
 	defer fs.dirIVLock.RUnlock()
-	return fs.CryptFS.DecryptPathDirIV(cipherPath, fs.backingDir)
+	return fs.CryptFS.DecryptPathDirIV(cipherPath, fs.args.Cipherdir)
 }

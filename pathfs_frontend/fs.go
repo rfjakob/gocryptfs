@@ -18,9 +18,7 @@ import (
 type FS struct {
 	*cryptfs.CryptFS
 	pathfs.FileSystem        // loopbackFileSystem, see go-fuse/fuse/pathfs/loopback.go
-	backingDir        string // Backing directory, cipherdir
-	// Are per-directory filename IVs enabled?
-	dirIV bool
+	args Args                // Stores configuration arguments
 	// dirIVLock: Lock()ed if any "gocryptfs.diriv" file is modified
 	// Readers must RLock() it to prevent them from seeing intermediate
 	// states
@@ -28,23 +26,24 @@ type FS struct {
 }
 
 // Encrypted FUSE overlay filesystem
-func NewFS(key []byte, backing string, useOpenssl bool, plaintextNames bool, dirIV bool) *FS {
+func NewFS(args Args) *FS {
 	return &FS{
-		CryptFS:    cryptfs.NewCryptFS(key, useOpenssl, plaintextNames),
-		FileSystem: pathfs.NewLoopbackFileSystem(backing),
-		dirIV:      dirIV,
-		backingDir: backing,
+		CryptFS:    cryptfs.NewCryptFS(args.Masterkey, args.OpenSSL, args.PlaintextNames),
+		FileSystem: pathfs.NewLoopbackFileSystem(args.Cipherdir),
+		args: args,
 	}
 }
 
 // GetBackingPath - get the absolute encrypted path of the backing file
 // from the relative plaintext path "relPath"
 func (fs *FS) getBackingPath(relPath string) (string, error) {
-	encrypted, err := fs.encryptPath(relPath)
+	cPath, err := fs.encryptPath(relPath)
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(fs.backingDir, encrypted), nil
+	cAbsPath := filepath.Join(fs.args.Cipherdir, cPath)
+	cryptfs.Debug.Printf("getBackingPath: %s + %s -> %s\n", fs.args.Cipherdir, relPath, cAbsPath)
+	return cAbsPath, nil
 }
 
 func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
@@ -85,12 +84,12 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 				// silently ignore "gocryptfs.conf" in the top level dir
 				continue
 			}
-			if fs.dirIV && cName == cryptfs.DIRIV_FILENAME {
+			if fs.args.DirIV && cName == cryptfs.DIRIV_FILENAME {
 				// silently ignore "gocryptfs.diriv" everywhere if dirIV is enabled
 				continue
 			}
 			var name string
-			if !fs.dirIV {
+			if !fs.args.DirIV {
 				name, err = fs.decryptPath(cName)
 			} else {
 				// When dirIV is enabled we need the full path to be able to decrypt it
@@ -123,15 +122,16 @@ func (fs *FS) mangleOpenFlags(flags uint32) (newFlags int, writeOnly bool) {
 }
 
 func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
-	cryptfs.Debug.Printf("Open(%s)\n", path)
 	if fs.CryptFS.IsFiltered(path) {
 		return nil, fuse.EPERM
 	}
 	iflags, writeOnly := fs.mangleOpenFlags(flags)
 	cPath, err := fs.getBackingPath(path)
 	if err != nil {
+		cryptfs.Debug.Printf("Open: getBackingPath: %v\n", err)
 		return nil, fuse.ToStatus(err)
 	}
+	cryptfs.Debug.Printf("Open: %s\n", cPath)
 	f, err := os.OpenFile(cPath, iflags, 0666)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
@@ -214,6 +214,16 @@ func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status f
 	if status != fuse.OK {
 		return "", status
 	}
+	// Old filesystem: symlinks are encrypted like paths (CBC)
+	if !fs.args.DirIV {
+		target, err := fs.decryptPath(cTarget)
+		if err != nil {
+			cryptfs.Warn.Printf("Readlink: CBC decryption failed: %v", err)
+			return "", fuse.EIO
+		}
+		return target, fuse.OK
+	}
+	// Since gocryptfs v0.5 symlinks are encrypted like file contents (GCM)
 	cBinTarget, err := base64.URLEncoding.DecodeString(cTarget)
 	if err != nil {
 		cryptfs.Warn.Printf("Readlink: %v\n", err)
@@ -335,7 +345,17 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-
+	// Old filesystem: symlinks are encrypted like paths (CBC)
+	if !fs.args.DirIV {
+		cTarget, err := fs.encryptPath(target)
+		if err != nil {
+			cryptfs.Warn.Printf("Symlink: BUG: we should not get an error here: %v\n", err)
+			return fuse.ToStatus(err)
+		}
+		err = os.Symlink(cTarget, cPath)
+		return fuse.ToStatus(err)
+	}
+	// Since gocryptfs v0.5 symlinks are encrypted like file contents (GCM)
 	cBinTarget := fs.CryptFS.EncryptBlock([]byte(target), 0, nil)
 	cTarget := base64.URLEncoding.EncodeToString(cBinTarget)
 

@@ -245,6 +245,7 @@ func main() {
 	}
 	// Get master key
 	var masterkey []byte
+	var confFile *cryptfs.ConfFile
 	if args.masterkey != "" {
 		// "-masterkey"
 		cryptfs.Info.Printf("Using explicit master key.\n")
@@ -257,15 +258,12 @@ func main() {
 		masterkey = make([]byte, cryptfs.KEY_LEN)
 	} else {
 		// Load master key from config file
-		var confFile *cryptfs.ConfFile
 		masterkey, confFile = loadConfig(&args)
 		printMasterKey(masterkey)
-		// Settings from the config file override command line args
-		args.plaintextnames = confFile.IsFeatureFlagSet(cryptfs.FlagPlaintextNames)
-		args.diriv = confFile.IsFeatureFlagSet(cryptfs.FlagDirIV)
 	}
 	// Initialize FUSE server
-	srv := pathfsFrontend(masterkey, args)
+	cryptfs.Debug.Printf("args: %v\n", args)
+	srv := pathfsFrontend(masterkey, args, confFile)
 	cryptfs.Info.Println("Filesystem ready.")
 	// We are ready - send USR1 signal to our parent
 	if args.notifypid > 0 {
@@ -279,11 +277,27 @@ func main() {
 	// main exits with code 0
 }
 
-// pathfsFrontend - initialize FUSE server based on go-fuse's PathFS.
+// pathfsFrontend - initialize gocryptfs/pathfs_frontend
 // Calls os.Exit on errors
-func pathfsFrontend(key []byte, args argContainer) *fuse.Server {
+func pathfsFrontend(key []byte, args argContainer, confFile *cryptfs.ConfFile) *fuse.Server {
 
-	finalFs := pathfs_frontend.NewFS(key, args.cipherdir, args.openssl, args.plaintextnames, args.diriv)
+	// Reconciliate CLI and config file arguments into a Args struct that is passed to the
+	// filesystem implementation
+	frontendArgs := pathfs_frontend.Args{
+		Cipherdir: args.cipherdir,
+		Masterkey: key,
+		OpenSSL: args.openssl,
+		PlaintextNames: args.plaintextnames,
+		DirIV: args.diriv,
+	}
+	// confFile is nil when "-zerokey" or "-masterkey" was used
+	if confFile != nil {
+		// Settings from the config file override command line args
+		frontendArgs.PlaintextNames = confFile.IsFeatureFlagSet(cryptfs.FlagPlaintextNames)
+		frontendArgs.DirIV = confFile.IsFeatureFlagSet(cryptfs.FlagDirIV)
+	}
+
+	finalFs := pathfs_frontend.NewFS(frontendArgs)
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
 	pathFs := pathfs.NewPathNodeFs(finalFs, pathFsOpts)
 	fuseOpts := &nodefs.Options{
