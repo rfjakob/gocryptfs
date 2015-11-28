@@ -210,16 +210,21 @@ func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status f
 	if err != nil {
 		return "", fuse.ToStatus(err)
 	}
-	dst, status := fs.FileSystem.Readlink(cPath, context)
+	cTarget, status := fs.FileSystem.Readlink(cPath, context)
 	if status != fuse.OK {
 		return "", status
 	}
-	dstPlain, err := fs.decryptPath(dst)
+	cBinTarget, err := base64.URLEncoding.DecodeString(cTarget)
 	if err != nil {
-		cryptfs.Warn.Printf("Failed decrypting symlink: %s\n", err.Error())
+		cryptfs.Warn.Printf("Readlink: %v\n", err)
 		return "", fuse.EIO
 	}
-	return dstPlain, status
+	target, err := fs.CryptFS.DecryptBlock([]byte(cBinTarget), 0, nil)
+	if err != nil {
+		cryptfs.Warn.Printf("Readlink: %v\n", err)
+		return "", fuse.EIO
+	}
+	return string(target), fuse.OK
 }
 
 func (fs *FS) Mkdir(relPath string, mode uint32, context *fuse.Context) (code fuse.Status) {
@@ -326,7 +331,7 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	if fs.CryptFS.IsFiltered(linkName) {
 		return fuse.EPERM
 	}
-	cName, err := fs.encryptPath(linkName)
+	cPath, err := fs.getBackingPath(linkName)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
@@ -334,7 +339,9 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	cBinTarget := fs.CryptFS.EncryptBlock([]byte(target), 0, nil)
 	cTarget := base64.URLEncoding.EncodeToString(cBinTarget)
 
-	return fuse.ToStatus(os.Symlink(cTarget, cName))
+	err = os.Symlink(cTarget, cPath)
+	cryptfs.Debug.Printf("Symlink: os.Symlink(%s, %s) = %v\n", cTarget, cPath, err)
+	return fuse.ToStatus(err)
 }
 
 func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (code fuse.Status) {
