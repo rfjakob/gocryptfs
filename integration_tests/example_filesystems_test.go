@@ -44,11 +44,11 @@ func checkExampleContent(t *testing.T, dir string) {
 	}
 }
 
-// Test example_filesystems/normal
+// Test example_filesystems/v0.4
 // with password mount and -masterkey mount
-func TestExampleFsNormal(t *testing.T) {
-	pDir := tmpDir + "TestExampleFsNormal/"
-	cDir := "example_filesystems/normal"
+func TestExampleFsV04(t *testing.T) {
+	pDir := tmpDir + "TestExampleFsV04/"
+	cDir := "example_filesystems/v0.4"
 	err := os.Mkdir(pDir, 0777)
 	if err != nil {
 		t.Fatal(err)
@@ -58,6 +58,28 @@ func TestExampleFsNormal(t *testing.T) {
 	unmount(pDir)
 	mount(cDir, pDir, "-masterkey", "74676e34-0b47c145-00dac61a-17a92316-"+
 		"bb57044c-e205b71f-65f4fdca-7cabd4b3", "-diriv=false")
+	checkExampleContent(t, pDir)
+	unmount(pDir)
+	err = os.Remove(pDir)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+// Test example_filesystems/v0.5
+// with password mount and -masterkey mount
+func TestExampleFsV05(t *testing.T) {
+	pDir := tmpDir + "TestExampleFsV05/"
+	cDir := "example_filesystems/v0.5"
+	err := os.Mkdir(pDir, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mount(cDir, pDir, "-extpass", "echo test")
+	checkExampleContent(t, pDir)
+	unmount(pDir)
+	mount(cDir, pDir, "-masterkey", "e7f38c71-0da80f68-d3b2cd7d-ee4f49e5-"+
+		"f8bc98cd-d7976950-85204c54-3081b302")
 	checkExampleContent(t, pDir)
 	unmount(pDir)
 	err = os.Remove(pDir)
