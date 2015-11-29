@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// readDirIV - read the "gocryptfs.diriv" file from "dir" (absolute path)
-func (be *CryptFS) readDirIV(dir string) (iv []byte, err error) {
+// readDirIV - read the "gocryptfs.diriv" file from "dir" (absolute ciphertext path)
+func (be *CryptFS) ReadDirIV(dir string) (iv []byte, err error) {
 	ivfile := filepath.Join(dir, DIRIV_FILENAME)
 	Debug.Printf("readDirIV: reading %s\n", ivfile)
 	iv, err = ioutil.ReadFile(ivfile)
@@ -22,7 +22,7 @@ func (be *CryptFS) readDirIV(dir string) (iv []byte, err error) {
 	return iv, nil
 }
 
-// WriteDirIV - create diriv file inside "dir" (absolute path)
+// WriteDirIV - create diriv file inside "dir" (absolute ciphertext path)
 // This function is exported because it is used from pathfs_frontend, main,
 // and also the automated tests.
 func WriteDirIV(dir string) error {
@@ -45,7 +45,7 @@ func (be *CryptFS) EncryptPathDirIV(plainPath string, rootDir string) (string, e
 	var encryptedNames []string
 	plainNames := strings.Split(plainPath, "/")
 	for _, plainName := range plainNames {
-		iv, err := be.readDirIV(wd)
+		iv, err := be.ReadDirIV(wd)
 		if err != nil {
 			return "", err
 		}
@@ -66,11 +66,11 @@ func (be *CryptFS) DecryptPathDirIV(encryptedPath string, rootDir string) (strin
 	encryptedNames := strings.Split(encryptedPath, "/")
 	Debug.Printf("DecryptPathDirIV: decrypting %v\n", encryptedNames)
 	for _, encryptedName := range encryptedNames {
-		iv, err := be.readDirIV(wd)
+		iv, err := be.ReadDirIV(wd)
 		if err != nil {
 			return "", err
 		}
-		plainName, err := be.decryptName(encryptedName, iv)
+		plainName, err := be.DecryptName(encryptedName, iv)
 		if err != nil {
 			return "", err
 		}

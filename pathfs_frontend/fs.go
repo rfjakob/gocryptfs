@@ -75,35 +75,41 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
+	// Read ciphertext directory
 	cipherEntries, status := fs.FileSystem.OpenDir(cDirName, context)
-	var plain []fuse.DirEntry
-	if cipherEntries != nil {
-		for i := range cipherEntries {
-			cName := cipherEntries[i].Name
-			if dirName == "" && cName == cryptfs.ConfDefaultName {
-				// silently ignore "gocryptfs.conf" in the top level dir
-				continue
-			}
-			if fs.args.DirIV && cName == cryptfs.DIRIV_FILENAME {
-				// silently ignore "gocryptfs.diriv" everywhere if dirIV is enabled
-				continue
-			}
-			var name string
-			if !fs.args.DirIV {
-				name, err = fs.decryptPath(cName)
-			} else {
-				// When dirIV is enabled we need the full path to be able to decrypt it
-				cPath := filepath.Join(cDirName, cName)
-				name, err = fs.decryptPath(cPath)
-				name = filepath.Base(name)
-			}
-			if err != nil {
-				cryptfs.Warn.Printf("Invalid name \"%s\" in dir \"%s\": %s\n", cName, dirName, err)
-				continue
-			}
-			cipherEntries[i].Name = name
-			plain = append(plain, cipherEntries[i])
+	if cipherEntries == nil {
+		return nil, status
+	}
+	// Get DirIV (stays zero if DirIV if off)
+	cachedIV := make([]byte, cryptfs.DIRIV_LEN)
+	if fs.args.DirIV {
+		// Read the DirIV once and use it for all later name decryptions
+		cDirAbsPath := filepath.Join(fs.args.Cipherdir, cDirName)
+		cachedIV, err = fs.CryptFS.ReadDirIV(cDirAbsPath)
+		if err != nil {
+			return nil, fuse.ToStatus(err)
 		}
+	}
+	// Decrypt filenames
+	var plain []fuse.DirEntry
+	for i := range cipherEntries {
+		cName := cipherEntries[i].Name
+		if dirName == "" && cName == cryptfs.ConfDefaultName {
+			// silently ignore "gocryptfs.conf" in the top level dir
+			continue
+		}
+		if fs.args.DirIV && cName == cryptfs.DIRIV_FILENAME {
+			// silently ignore "gocryptfs.diriv" everywhere if dirIV is enabled
+			continue
+		}
+		var name string
+		name, err = fs.CryptFS.DecryptName(cName, cachedIV)
+		if err != nil {
+			cryptfs.Warn.Printf("Invalid name \"%s\" in dir \"%s\": %s\n", cName, dirName, err)
+			continue
+		}
+		cipherEntries[i].Name = name
+		plain = append(plain, cipherEntries[i])
 	}
 	return plain, status
 }

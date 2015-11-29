@@ -17,7 +17,7 @@ const (
 )
 
 // DecryptName - decrypt base64-encoded encrypted filename "cipherName"
-func (be *CryptFS) decryptName(cipherName string, iv []byte) (string, error) {
+func (be *CryptFS) DecryptName(cipherName string, iv []byte) (string, error) {
 
 	// Make sure relative symlinks still work after encryption
 	// by passing these through unchanged
@@ -91,7 +91,7 @@ func (be *CryptFS) TranslatePathZeroIV(path string, op int) (string, error) {
 		if op == OpEncrypt {
 			newPart = be.encryptName(part, zeroIV)
 		} else {
-			newPart, err = be.decryptName(part, zeroIV)
+			newPart, err = be.DecryptName(part, zeroIV)
 			if err != nil {
 				return "", err
 			}
