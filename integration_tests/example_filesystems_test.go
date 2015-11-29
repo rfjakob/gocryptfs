@@ -3,9 +3,9 @@ package integration_tests
 // Mount example filesystems and check that the file "status.txt" is there
 
 import (
-	"path/filepath"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 )
 

@@ -283,11 +283,11 @@ func pathfsFrontend(key []byte, args argContainer, confFile *cryptfs.ConfFile) *
 	// Reconciliate CLI and config file arguments into a Args struct that is passed to the
 	// filesystem implementation
 	frontendArgs := pathfs_frontend.Args{
-		Cipherdir: args.cipherdir,
-		Masterkey: key,
-		OpenSSL: args.openssl,
+		Cipherdir:      args.cipherdir,
+		Masterkey:      key,
+		OpenSSL:        args.openssl,
 		PlaintextNames: args.plaintextnames,
-		DirIV: args.diriv,
+		DirIV:          args.diriv,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {

@@ -11,15 +11,15 @@ import (
 // A simple one-entry DirIV cache
 type DirIVCache struct {
 	// Invalidated?
-	cleared       bool
+	cleared bool
 	// The DirIV
-	iv            []byte
+	iv []byte
 	// Directory the DirIV belongs to
-	dir           string
+	dir string
 	// Ecrypted version of "dir"
 	translatedDir string
 	// Synchronisation
-	lock          sync.RWMutex
+	lock sync.RWMutex
 }
 
 func (c *DirIVCache) lookup(dir string) (bool, []byte, string) {

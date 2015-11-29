@@ -17,8 +17,8 @@ import (
 
 type FS struct {
 	*cryptfs.CryptFS
-	pathfs.FileSystem        // loopbackFileSystem, see go-fuse/fuse/pathfs/loopback.go
-	args Args                // Stores configuration arguments
+	pathfs.FileSystem      // loopbackFileSystem, see go-fuse/fuse/pathfs/loopback.go
+	args              Args // Stores configuration arguments
 	// dirIVLock: Lock()ed if any "gocryptfs.diriv" file is modified
 	// Readers must RLock() it to prevent them from seeing intermediate
 	// states
@@ -30,7 +30,7 @@ func NewFS(args Args) *FS {
 	return &FS{
 		CryptFS:    cryptfs.NewCryptFS(args.Masterkey, args.OpenSSL, args.PlaintextNames),
 		FileSystem: pathfs.NewLoopbackFileSystem(args.Cipherdir),
-		args: args,
+		args:       args,
 	}
 }
 
