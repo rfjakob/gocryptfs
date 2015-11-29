@@ -155,13 +155,10 @@ func main() {
 		"Setting this to a lower value speeds up mounting but makes the password susceptible to brute-force attacks")
 	flagSet.Parse(os.Args[1:])
 
-	// By default, let the child handle everything.
-	// The parent *could* handle operations that do not require backgrounding by
-	// itself, but that would make the code paths more complicated.
-	if !args.foreground {
+	// Fork a child into the background if "-f" is not set and we are mounting a filesystem
+	if !args.foreground && flagSet.NArg() == 2 {
 		forkChild() // does not return
 	}
-	// Getting here means we *are* the child
 	// "-v"
 	if args.version {
 		printVersion()
@@ -231,7 +228,7 @@ func main() {
 	}
 	// Mount
 	// Check mountpoint
-	if flagSet.NArg() < 2 {
+	if flagSet.NArg() != 2 {
 		usageText()
 		os.Exit(ERREXIT_USAGE)
 	}
