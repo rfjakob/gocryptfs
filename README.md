@@ -100,6 +100,22 @@ The output should look like this:
 Changelog
 ---------
 
+v0.5 (in progress)
+* **Stronger filename encryption: DirIV**
+ * Each directory gets a random 128 bit file name IV on creation,
+   stored in `gocryptfs.diriv`
+ * This makes it impossible to identify identically-named files across
+   directories
+ * A single-entry IV cache brings the performance cost of DirIV close to
+   zero for common operations (see performance.txt)
+ * This is a forwards-compatible change. gocryptfs v0.5 can mount filesystems
+   created by earlier version but not the other way round.
+* New command-line option:
+ * `-diriv`: Use the new per-directory IV file name encryption (default true)
+ * `-scryptn`: allows to set the scrypt cost parameter N. This option
+   can be used for faster mounting at the cost of lower brute-force
+   resistance. It was mainly added to speed up the automated tests.
+
 v0.4
 * New command-line options:
  * `-plaintextnames`: disables filename encryption, added on user request
@@ -112,7 +128,7 @@ v0.4
 * On-disk format 2
 
 v0.3
-* Add file header that contains a random id to authenticate blocks
+* **Add a random 128 bit file header to authenticate file->block ownership**
  * This is an on-disk-format change
 * On-disk format 1
 

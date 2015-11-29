@@ -22,21 +22,20 @@ encrypted data unless you know the key.
 
 ### File Names
 
-* File names are encrypted using AES-256-CBC because it is robust even
-  without using an IV
-* The file names are padded to multiples of 16 bytes
+* File names are encrypted using AES-256-CBC with a per-directory IV
+* Each directory get a random 128 bit IV on creation
+ * Files with the same name in different directories are encrypted to
+   different filenames and can not be identified
+* File names are padded to multiples of 16 bytes
  * This means that the exact length of the name is hidden, only length
   ranges (1-16 bytes, 17-32 bytes etc.) can be determined from the encrypted
   files
-* For technical reasons, no IV is used
- * This means that files with the same name within one gocryptfs filesystem
-   always get the same encrypted name
 
 ### Metadata
 
 * The size of the file is not hidden. The exact file size can be calculated
   from the size of the encrypted file.
-* File owner, file permissions and timestamps are not hidden either
+* File owner, file permissions and timestamps are not hidden.
 
 Integrity
 ---------
