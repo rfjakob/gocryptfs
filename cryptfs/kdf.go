@@ -1,6 +1,8 @@
 package cryptfs
 
 import (
+	"os"
+	"math"
 	"fmt"
 	"golang.org/x/crypto/scrypt"
 )
@@ -8,7 +10,7 @@ import (
 const (
 	// 1 << 16 uses 64MB of memory,
 	// takes 4 seconds on my Atom Z3735F netbook
-	SCRYPT_DEFAULT_N = 1 << 16
+	SCRYPT_DEFAULT_LOGN = 16
 )
 
 type scryptKdf struct {
@@ -19,10 +21,18 @@ type scryptKdf struct {
 	KeyLen int
 }
 
-func NewScryptKdf() scryptKdf {
+func NewScryptKdf(logN int) scryptKdf {
 	var s scryptKdf
 	s.Salt = RandBytes(KEY_LEN)
-	s.N = SCRYPT_DEFAULT_N
+	if logN <= 0 {
+		s.N = 1 << SCRYPT_DEFAULT_LOGN
+	} else {
+		if logN < 10 {
+			fmt.Printf("Error: scryptn below 10 is too low to make sense. Aborting.")
+			os.Exit(1)
+		}
+		s.N = 1 << uint32(logN)
+	}
 	s.R = 8 // Always 8
 	s.P = 1 // Always 1
 	s.KeyLen = KEY_LEN
@@ -35,4 +45,10 @@ func (s *scryptKdf) DeriveKey(pw string) []byte {
 		panic(fmt.Sprintf("DeriveKey failed: %s", err.Error()))
 	}
 	return k
+}
+
+// LogN - N is saved as 2^LogN, but LogN is much easier to work with.
+// This function gives you LogN = Log2(N).
+func (s *scryptKdf) LogN() int {
+	return int(math.Log2(float64(s.N))+0.5)
 }

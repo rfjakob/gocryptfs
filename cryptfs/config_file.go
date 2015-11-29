@@ -35,8 +35,9 @@ type ConfFile struct {
 }
 
 // CreateConfFile - create a new config with a random key encrypted with
-// "password" and write it to "filename"
-func CreateConfFile(filename string, password string, plaintextNames bool) error {
+// "password" and write it to "filename".
+// Uses scrypt with cost parameter logN.
+func CreateConfFile(filename string, password string, plaintextNames bool, logN int) error {
 	var cf ConfFile
 	cf.filename = filename
 
@@ -45,7 +46,7 @@ func CreateConfFile(filename string, password string, plaintextNames bool) error
 
 	// Encrypt it using the password
 	// This sets ScryptObject and EncryptedKey
-	cf.EncryptKey(key, password)
+	cf.EncryptKey(key, password, logN)
 
 	// Set defaults
 	cf.Version = HEADER_CURRENT_VERSION
@@ -109,10 +110,12 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 }
 
 // EncryptKey - encrypt "key" using an scrypt hash generated from "password"
-// and store it in cf.EncryptedKey
-func (cf *ConfFile) EncryptKey(key []byte, password string) {
+// and store it in cf.EncryptedKey.
+// Uses scrypt with cost parameter logN and stores the scrypt parameters in
+// cf.ScryptObject.
+func (cf *ConfFile) EncryptKey(key []byte, password string, logN int) {
 	// Generate derived key from password
-	cf.ScryptObject = NewScryptKdf()
+	cf.ScryptObject = NewScryptKdf(logN)
 	scryptHash := cf.ScryptObject.DeriveKey(password)
 
 	// Lock master key using password-based key

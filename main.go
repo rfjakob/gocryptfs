@@ -37,7 +37,7 @@ type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
 	plaintextnames, quiet, diriv bool
 	masterkey, mountpoint, cipherdir, cpuprofile, config, extpass string
-	notifypid                                                     int
+	notifypid, scryptn                                            int
 }
 
 var flagSet *flag.FlagSet
@@ -62,7 +62,7 @@ func initDir(args *argContainer) {
 	// Create gocryptfs.conf
 	cryptfs.Info.Printf("Choose a password for protecting your files.\n")
 	password := readPasswordTwice(args.extpass)
-	err = cryptfs.CreateConfFile(args.config, password, args.plaintextnames)
+	err = cryptfs.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(ERREXIT_INIT)
@@ -109,7 +109,7 @@ func changePassword(args *argContainer) {
 	masterkey, confFile := loadConfig(args)
 	fmt.Printf("Please enter your new password.\n")
 	newPw := readPasswordTwice(args.extpass)
-	confFile.EncryptKey(masterkey, newPw)
+	confFile.EncryptKey(masterkey, newPw, confFile.ScryptObject.LogN())
 	err := confFile.WriteFile()
 	if err != nil {
 		fmt.Println(err)
@@ -151,6 +151,8 @@ func main() {
 	flagSet.StringVar(&args.extpass, "extpass", "", "Use external program for the password prompt")
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")
+	flagSet.IntVar(&args.scryptn, "scryptn", cryptfs.SCRYPT_DEFAULT_LOGN, "scrypt cost parameter logN. "+
+		"Setting this to a lower value speeds up mounting but makes the password susceptible to brute-force attacks")
 	flagSet.Parse(os.Args[1:])
 
 	// By default, let the child handle everything.

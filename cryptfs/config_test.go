@@ -59,7 +59,7 @@ func TestLoadV2StrangeFeature(t *testing.T) {
 }
 
 func TestCreateConfFile(t *testing.T) {
-	err := CreateConfFile("config_test/tmp.conf", "test", false)
+	err := CreateConfFile("config_test/tmp.conf", "test", false, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -17,7 +17,7 @@ func TestInit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command(gocryptfsBinary, "-init", "-extpass", "echo test", dir)
+	cmd := exec.Command(gocryptfsBinary, "-init", "-extpass", "echo test", "-scryptn=10", dir)
 	if testing.Verbose() {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -52,7 +52,7 @@ func TestInitConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	cmd := exec.Command(gocryptfsBinary, "-init", "-extpass", "echo test",
-		"-config", config, dir)
+		"-config", config, "-scryptn=10", dir)
 	if testing.Verbose() {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
