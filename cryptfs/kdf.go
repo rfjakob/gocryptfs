@@ -1,10 +1,10 @@
 package cryptfs
 
 import (
-	"os"
-	"math"
 	"fmt"
 	"golang.org/x/crypto/scrypt"
+	"math"
+	"os"
 )
 
 const (
@@ -50,5 +50,5 @@ func (s *scryptKdf) DeriveKey(pw string) []byte {
 // LogN - N is saved as 2^LogN, but LogN is much easier to work with.
 // This function gives you LogN = Log2(N).
 func (s *scryptKdf) LogN() int {
-	return int(math.Log2(float64(s.N))+0.5)
+	return int(math.Log2(float64(s.N)) + 0.5)
 }

@@ -251,6 +251,8 @@ func (fs *FS) Mkdir(relPath string, mode uint32, context *fuse.Context) (code fu
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
+	// The new directory may take the place of an older one that is still in the cache
+	fs.CryptFS.DirIVCacheEnc.Clear()
 	// Create directory
 	fs.dirIVLock.Lock()
 	defer fs.dirIVLock.Unlock()
@@ -315,7 +317,9 @@ func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 	tmpName := fmt.Sprintf("gocryptfs.diriv.rmdir.%d", st.Ino)
 	tmpDirivPath := filepath.Join(parentDir, tmpName)
 	cryptfs.Debug.Printf("Rmdir: Renaming %s to %s\n", cryptfs.DIRIV_FILENAME, tmpDirivPath)
-	fs.dirIVLock.Lock() // directory will be in an inconsistent state after the rename
+	// The directory is in an inconsistent state between rename and rmdir. Protect against
+	// concurrent readers.
+	fs.dirIVLock.Lock()
 	defer fs.dirIVLock.Unlock()
 	err = os.Rename(dirivPath, tmpDirivPath)
 	if err != nil {
@@ -338,7 +342,8 @@ func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 	if err != nil {
 		cryptfs.Warn.Printf("Rmdir: Could not clean up %s: %v\n", tmpName, err)
 	}
-
+	// The now-deleted directory may have been in the DirIV cache. Clear it.
+	fs.CryptFS.DirIVCacheEnc.Clear()
 	return fuse.OK
 }
 
@@ -382,6 +387,10 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
+	// The Rename may cause a directory to take the place of another directory.
+	// That directory may still be in the DirIV cache, clear it.
+	fs.CryptFS.DirIVCacheEnc.Clear()
+
 	return fs.FileSystem.Rename(cOldPath, cNewPath, context)
 }
 
