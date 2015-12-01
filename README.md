@@ -9,7 +9,7 @@ LoopbackFileSystem API.
 This project was inspired by [EncFS](https://github.com/vgough/encfs)
 and strives to fix its security issues (see EncFS tickets 9, 13, 14, 16).
 For details on the security of gocryptfs see the
-[SECURITY.md](SECURITY.md) document.
+[SECURITY.md](Documentation/SECURITY.md) document.
 
 Current Status
 --------------
@@ -32,7 +32,7 @@ as it mounts several test filesystems.
 
 In addition, I have ported `xfstests` to FUSE, the result is the
 [fuse-xfstests](https://github.com/rfjakob/fuse-xfstests) project. gocryptfs
-passes the "generic" tests with one exception, results:  [XFSTESTS.md](XFSTESTS.md)
+passes the "generic" tests with one exception, results:  [XFSTESTS.md](Documentation/XFSTESTS.md)
 
 A lot of work has gone into this. The testing has found bugs in gocryptfs
 as well as in go-fuse.
@@ -62,7 +62,7 @@ Quickstart:
 	  -rw-rw-r--. 1 user  user  233  7. Okt 23:23 gocryptfs.conf
 	$ fusermount -u plain
 
-See [MANPAGE.md](MANPAGE.md) for a description of available options. If you already
+See [MANPAGE.md](Documentation/MANPAGE.md) for a description of available options. If you already
 have gocryptfs installed, run `./MANPAGE-render.bash` to bring up the rendered manpage in
 the pager (requires pandoc).
 
