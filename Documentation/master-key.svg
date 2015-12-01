@@ -103,8 +103,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.4"
-     inkscape:cx="356.2081"
-     inkscape:cy="-20.641831"
+     inkscape:cx="432.9172"
+     inkscape:cy="-9.3512986"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="true"
@@ -123,8 +123,8 @@
        id="grid4153"
        dotted="true"
        units="mm"
-       spacingx="7.0866142"
-       spacingy="7.0866143"
+       spacingx="3.543307"
+       spacingy="3.543307"
        originx="-14.173228"
        originy="-940.93176" />
   </sodipodi:namedview>
@@ -183,14 +183,14 @@
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:90.10359192px;line-height:125%;font-family:Arial;-inkscape-font-specification:'Arial Bold';letter-spacing:67.72786713px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        x="66.150955"
-       y="98.171463"
+       y="96.744003"
        id="text4155-8"
        sodipodi:linespacing="125%"
-       transform="scale(0.99921743,1.0007832)"><tspan
+       transform="scale(0.99921742,1.0007832)"><tspan
          sodipodi:role="line"
          id="tspan4157-1"
          x="66.150955"
-         y="98.171463"
+         y="96.744003"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.01726532px;font-family:sans-serif;-inkscape-font-specification:sans-serif;letter-spacing:0px">User password</tspan></text>
     <text
        xml:space="preserve"
@@ -221,10 +221,10 @@
     <rect
        style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        id="rect4271"
-       width="180.77509"
-       height="21.300983"
-       x="32.295944"
-       y="82.542801" />
+       width="201.96851"
+       height="21.259884"
+       x="21.259844"
+       y="81.49601" />
     <rect
        style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        id="rect3336-9-4-2"
@@ -254,7 +254,7 @@
        sodipodi:nodetypes="cc" />
     <path
        style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#Arrow1Mend-9)"
-       d="M 216.95674,93.498458 285.25749,80.265566"
+       d="M 226.5996,93.141315 285.25749,80.265566"
        id="path4296-9"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc" />
