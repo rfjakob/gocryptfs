@@ -9,9 +9,9 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="158.73834mm"
-   height="31.410738mm"
-   viewBox="0 0 562.45868 111.29788"
+   width="158.73833mm"
+   height="39.28363mm"
+   viewBox="0 0 562.45863 139.19395"
    id="svg2"
    version="1.1"
    inkscape:version="0.91 r13725"
@@ -135,8 +135,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.979899"
-     inkscape:cx="260.73066"
-     inkscape:cy="35.861249"
+     inkscape:cx="279.63722"
+     inkscape:cy="70.50185"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="true"
@@ -161,7 +161,7 @@
        spacingx="3.543307"
        spacingy="3.5433069"
        originx="-116.36615"
-       originy="-716.05732" />
+       originy="-688.1612" />
   </sodipodi:namedview>
   <metadata
      id="metadata7">
@@ -179,14 +179,14 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-116.36615,-225.00692)">
+     transform="translate(-116.36614,-225.00693)">
     <rect
        style="opacity:1;fill:#b0b0b0;fill-opacity:1;stroke:none;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        id="rect4273-2"
        width="202.06071"
-       height="97.124649"
+       height="70.915802"
        x="469.67743"
-       y="232.09354" />
+       y="251.7364" />
     <rect
        style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        id="rect4267-1"
@@ -198,14 +198,14 @@
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:90.02054596px;line-height:125%;font-family:Arial;-inkscape-font-specification:'Arial Bold';letter-spacing:67.66544342px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        x="532.00171"
-       y="250.42708"
+       y="244.4257"
        id="text4155-7"
        sodipodi:linespacing="125%"
-       transform="scale(1.0002283,0.99977178)"><tspan
+       transform="scale(1.0002283,0.99977176)"><tspan
          sodipodi:role="line"
          id="tspan4157-2"
          x="532.00171"
-         y="250.42708"
+         y="244.4257"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.00342369px;font-family:sans-serif;-inkscape-font-specification:sans-serif;letter-spacing:0px">Directory X</tspan></text>
     <text
        xml:space="preserve"
@@ -313,16 +313,46 @@
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.00342369px;font-family:sans-serif;-inkscape-font-specification:sans-serif;letter-spacing:0px">lrpyui0m-ypX4u0PNJ...</tspan></text>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:90.02054596px;line-height:125%;font-family:Arial;-inkscape-font-specification:'Arial Bold';letter-spacing:67.66544342px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="413.38947"
-       y="263.82297"
-       id="text4155-7-4"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:90.10359192px;line-height:125%;font-family:Arial;-inkscape-font-specification:'Arial Bold';letter-spacing:67.72786713px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="326.56442"
+       y="349.97977"
+       id="text4155-8-2"
        sodipodi:linespacing="125%"
-       transform="scale(1.0002283,0.99977178)"><tspan
+       transform="scale(0.99921742,1.0007832)"><tspan
          sodipodi:role="line"
-         id="tspan4157-2-3"
-         x="413.38947"
-         y="263.82297"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.00342369px;font-family:sans-serif;-inkscape-font-specification:sans-serif;letter-spacing:0px">IV</tspan></text>
+         id="tspan4157-1-2"
+         x="326.56442"
+         y="349.97977"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.01726532px;font-family:sans-serif;-inkscape-font-specification:sans-serif;letter-spacing:0px">Master key</tspan></text>
+    <rect
+       style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="rect4271-4"
+       width="106.3383"
+       height="21.300985"
+       x="313.80774"
+       y="335.31329" />
+    <path
+       style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#marker9315)"
+       d="m 368.50393,333.07083 0,-14.17323"
+       id="path4825"
+       inkscape:connector-curvature="0" />
+    <path
+       inkscape:connector-curvature="0"
+       d="m 357.72187,318.88698 c -2.19348,0 -3.97122,1.77773 -3.97122,3.97121 0,0.30404 0.0341,0.59878 0.0993,0.88266 l -6.07006,6.06851 0,0.9928 0.9928,0.9928 1.98561,0 0.99281,-0.9928 0,-0.9928 0.9928,0 0,-0.9928 0.9928,0 0,-0.9928 1.9856,0 1.09829,-1.09829 c 0.29008,0.0666 0.59102,0.10233 0.90128,0.10233 2.19347,0 3.9712,-1.77773 3.9712,-3.9712 0,-2.19348 -1.77928,-3.96967 -3.9712,-3.96967 z m -3.98518,6.95116 -4.96401,4.96402 0,-0.9928 4.96401,-4.96402 0,0.9928 z m 4.96401,-2.9784 c -0.54759,0 -0.9928,-0.44521 -0.9928,-0.9928 0,-0.54759 0.44521,-0.9928 0.9928,-0.9928 0.5476,0 0.99281,0.44521 0.99281,0.9928 0,0.54759 -0.44521,0.9928 -0.99281,0.9928 z"
+       id="path7910"
+       style="fill:#ffcc00;fill-opacity:1;stroke:none;stroke-opacity:1" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:90.01774597px;line-height:125%;font-family:Arial;-inkscape-font-specification:'Arial Bold';letter-spacing:67.66333771px;word-spacing:0px;fill:#aa00d4;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="347.14761"
+       y="283.80792"
+       id="text4155-88-3-5-0"
+       sodipodi:linespacing="125%"
+       transform="scale(1.0001971,0.99980293)"><tspan
+         sodipodi:role="line"
+         id="tspan4157-9-7-3-8"
+         x="347.14761"
+         y="283.80792"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.00295734px;font-family:sans-serif;-inkscape-font-specification:sans-serif;letter-spacing:0px;fill:#aa00d4">IV</tspan></text>
   </g>
 </svg>
