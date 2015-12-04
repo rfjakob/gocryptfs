@@ -1,4 +1,5 @@
 All test performed on tmpfs, /tmp/a mounted on /tmp/b.
+The used test archive is https://www.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz .
 
 UNTAR: tar xfz ../linux-3.0.tar.gz
 LS: ls -lR > /dev/null
