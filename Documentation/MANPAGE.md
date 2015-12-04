@@ -39,13 +39,17 @@ Options:
 **-debug**
 :	Enable debug output
 
+**-diriv**
+:	Use per-directory file name IV (default true)
+
 **-extpass string**
 :	Use an external program (like ssh-askpass) for the password prompt.
 The program should return the password on stdout, a trailing newline is
-stripped by gocryptfs.
+stripped by gocryptfs. Using something like "cat /mypassword.txt" allows
+to mount the gocryptfs filesytem without user interaction.
 
 **-f**
-:	Stay in the foreground
+:	Stay in the foreground instead of forking away.
 
 **-fusedebug**
 :	Enable fuse library debug output
@@ -54,13 +58,18 @@ stripped by gocryptfs.
 :	Initialize encrypted directory
 
 **-masterkey string**
-:	Mount with explicit master key
+:	Mount with explicit master key specified on the command line. This
+option can be used to mount a gocryptfs filesystem without a config file.
+Note that the command line, and with it the master key, is visible to
+anybody on the machine who can execute "ps -auxwww".
 
 **-notifypid int**
-:	Send USR1 to the specified process after successful mount - used internally for daemonization
+:	Send USR1 to the specified process after successful mount. This is
+used internally for daemonization.
 
 **-openssl bool**
-:	Use OpenSSL instead of built-in Go crypto (default true)
+:	Use OpenSSL instead of built-in Go crypto (default true). Using
+built-in crypto is 4x slower.
 
 **-passwd**
 :	Change password
@@ -71,9 +80,14 @@ stripped by gocryptfs.
 **-q**
 :	Quiet - silence informational messages
 
+**-scryptn int**
+:	scrypt cost parameter logN. Setting this to a lower value speeds up
+mounting but makes the password susceptible to brute-force attacks (default 16)
+
 **-version**
 :	Print version and exit
 
 **-zerokey**
-:	Use all-zero dummy master key
+:	Use all-zero dummy master key. This options is only intended for
+automated testing as it does not provide any security.
 
