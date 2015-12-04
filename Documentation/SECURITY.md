@@ -37,6 +37,8 @@ File Names
 Every directory gets a 128-bit directory IV that is stored in each
 directory as `gocryptfs.diriv`.
 
-File names are encrypted using AES-256-CBC with the directory IV.
+File names are encrypted using AES-256-CBC with the directory IV as
+initialization vector. The Base64 encoding limits the usable filename length
+to 176 characters.
 
 ![](https://rawgit.com/rfjakob/gocryptfs/master/Documentation/file-name-encryption.svg)
