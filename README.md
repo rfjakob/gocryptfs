@@ -18,9 +18,6 @@ Beta. You are advised to keep a backup of your data outside of gocryptfs, in
 addition to storing the *master key* in a safe place (the master key is printed
 when mounting).
 
-That said, I am dogfooding on gocryptfs for some time now. In fact, all gocryptfs
-development happens inside a mounted gocryptfs filesystem, with no issues so far.
-
 Only Linux is supported at the moment. Help wanted for a Mac OS X port.
 
 Testing
@@ -100,7 +97,7 @@ The output should look like this:
 Changelog
 ---------
 
-v0.5 (in progress)
+v0.5
 * **Stronger filename encryption: DirIV**
  * Each directory gets a random 128 bit file name IV on creation,
    stored in `gocryptfs.diriv`
