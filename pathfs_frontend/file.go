@@ -93,7 +93,18 @@ func (f *file) readHeader() error {
 func (f *file) createHeader() error {
 	h := cryptfs.RandomHeader()
 	buf := h.Pack()
-	_, err := f.fd.WriteAt(buf, 0)
+
+	// Prevent partially written (=corrupt) header by preallocating the space beforehand
+	f.fdLock.Lock()
+	defer f.fdLock.Unlock()
+	err := syscall.Fallocate(int(f.fd.Fd()), FALLOC_FL_KEEP_SIZE, 0, cryptfs.HEADER_LEN)
+	if err != nil {
+			cryptfs.Warn.Printf("createHeader: Fallocate failed: %s\n", err.Error())
+			return err
+	}
+
+	// Actually write header
+	_, err = f.fd.WriteAt(buf, 0)
 	if err != nil {
 		return err
 	}

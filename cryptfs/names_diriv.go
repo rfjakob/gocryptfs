@@ -22,6 +22,7 @@ type DirIVCache struct {
 	lock sync.RWMutex
 }
 
+// lookup - fetch entry for "dir" from the cache
 func (c *DirIVCache) lookup(dir string) (bool, []byte, string) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
@@ -31,6 +32,7 @@ func (c *DirIVCache) lookup(dir string) (bool, []byte, string) {
 	return false, nil, ""
 }
 
+// store - write entry for "dir" into the caches
 func (c *DirIVCache) store(dir string, iv []byte, translatedDir string) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
