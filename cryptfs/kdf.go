@@ -28,7 +28,7 @@ func NewScryptKdf(logN int) scryptKdf {
 		s.N = 1 << SCRYPT_DEFAULT_LOGN
 	} else {
 		if logN < 10 {
-			fmt.Printf("Error: scryptn below 10 is too low to make sense. Aborting.")
+			fmt.Printf("Error: scryptn below 10 is too low to make sense. Aborting.\n")
 			os.Exit(1)
 		}
 		s.N = 1 << uint32(logN)

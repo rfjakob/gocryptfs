@@ -52,13 +52,6 @@ func initDir(args *argContainer) {
 		os.Exit(ERREXIT_INIT)
 	}
 
-	// Create gocryptfs.diriv in the root dir
-	err = cryptfs.WriteDirIV(args.cipherdir)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(ERREXIT_INIT)
-	}
-
 	// Create gocryptfs.conf
 	cryptfs.Info.Printf("Choose a password for protecting your files.\n")
 	password := readPasswordTwice(args.extpass)
@@ -67,6 +60,14 @@ func initDir(args *argContainer) {
 		fmt.Println(err)
 		os.Exit(ERREXIT_INIT)
 	}
+
+	// Create gocryptfs.diriv in the root dir
+	err = cryptfs.WriteDirIV(args.cipherdir)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(ERREXIT_INIT)
+	}
+
 	cryptfs.Info.Printf("The filesystem is now ready for mounting.\n")
 	os.Exit(0)
 }
