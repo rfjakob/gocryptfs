@@ -391,7 +391,8 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 	// That directory may still be in the DirIV cache, clear it.
 	fs.CryptFS.DirIVCacheEnc.Clear()
 
-	return fs.FileSystem.Rename(cOldPath, cNewPath, context)
+	err = os.Rename(cOldPath, cNewPath)
+	return fuse.ToStatus(err)
 }
 
 func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code fuse.Status) {
