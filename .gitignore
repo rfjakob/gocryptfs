@@ -6,4 +6,6 @@
 
 # binary releases
 /*.tar.gz
-c
+
+# Binaries created for cpu profiling
+*.test

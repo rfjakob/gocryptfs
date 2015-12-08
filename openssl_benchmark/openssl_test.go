@@ -2,6 +2,8 @@ package benchmark
 
 // Benchmark go built-int GCM against spacemonkey openssl bindings
 //
+// Note: This is deprecated in favor of the benchmarks integrated in cryptfs.
+//
 // Run benchmark:
 // go test -bench=.
 
@@ -33,10 +35,11 @@ func BenchmarkGoEnc4K(b *testing.B) {
 	aes, _ := aes.NewCipher(key[:])
 	aesgcm, _ := cipher.NewGCM(aes)
 	var out []byte
-
+	// This would be fileID + blockNo
+	aData := make([]byte, 24)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		out = aesgcm.Seal(out[:0], nonce[:], buf, nil)
+		out = aesgcm.Seal(out[:0], nonce[:], buf, aData)
 	}
 }
 
@@ -67,6 +70,9 @@ func BenchmarkOpensslEnc4K(b *testing.B) {
 	var key [cryptfs.KEY_LEN]byte
 	var nonce [12]byte
 
+	// This would be fileID + blockNo
+	aData := make([]byte, 24)
+
 	var ciphertext bytes.Buffer
 	var part []byte
 
@@ -74,6 +80,10 @@ func BenchmarkOpensslEnc4K(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		ciphertext.Reset()
 		ectx, err := openssl.NewGCMEncryptionCipherCtx(cryptfs.KEY_LEN*8, nil, key[:], nonce[:])
+		if err != nil {
+			b.FailNow()
+		}
+		err = ectx.ExtraData(aData)
 		if err != nil {
 			b.FailNow()
 		}
