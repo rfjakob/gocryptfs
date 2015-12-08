@@ -87,3 +87,25 @@ func TestExampleFsV05(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+// Test example_filesystems/v0.6
+// with password mount and -masterkey mount
+func TestExampleFsV06(t *testing.T) {
+	pDir := tmpDir + "TestExampleFsV06/"
+	cDir := "example_filesystems/v0.6"
+	err := os.Mkdir(pDir, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mount(cDir, pDir, "-extpass", "echo test")
+	checkExampleContent(t, pDir)
+	unmount(pDir)
+	mount(cDir, pDir, "-masterkey", "7bc8deb0-5fc894ef-a093da43-61561a81-"+
+		"0e8dee83-fdc056a4-937c37dd-9df5c520")
+	checkExampleContent(t, pDir)
+	unmount(pDir)
+	err = os.Remove(pDir)
+	if err != nil {
+		t.Error(err)
+	}
+}
