@@ -103,7 +103,7 @@ v0.6
    the prefix leak. The used Go EME implementation is
    https://github.com/rfjakob/eme which is, as far as I know, the first
    implementation of EME in Go.
- * This is a forwards-compatible change. gocryptfs v0.5 can mount filesystems
+ * This is a forwards-compatible change. gocryptfs v0.6 can mount filesystems
    created by earlier version but not the other way round.
 * New command-line option:
  * `-emenames`: Enable EME filename encryption (default true)
