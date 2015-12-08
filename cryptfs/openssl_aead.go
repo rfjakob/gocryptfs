@@ -25,7 +25,11 @@ func (be opensslGCM) NonceSize() int {
 // time, for a given key.
 func (be opensslGCM) Seal(dst, nonce, plaintext, data []byte) []byte {
 
-	cipherBuf := bytes.NewBuffer(dst)
+	// Preallocate output buffer
+	var cipherBuf bytes.Buffer
+	cipherBuf.Grow(len(dst) + len(plaintext) + AUTH_TAG_LEN)
+	// Output will be appended to dst
+	cipherBuf.Write(dst)
 
 	ectx, err := openssl.NewGCMEncryptionCipherCtx(KEY_LEN*8, nil, be.key, nonce)
 	if err != nil {
