@@ -15,7 +15,7 @@ The KEK is generated from the user password using `scrypt`.
 File Contents
 -------------
 
-All file contents are encrypted using AES-256-GCM.
+All file contents are encrypted using AES-256-GCM (Galois/Counter Mode).
 
 Files are segmented into 4KB blocks. Each block gets a fresh random
 96 bit IV each time it is modified. A 128-bit authentication tag (GHASH)
@@ -37,8 +37,11 @@ File Names
 Every directory gets a 128-bit directory IV that is stored in each
 directory as `gocryptfs.diriv`.
 
-File names are encrypted using AES-256-CBC with the directory IV as
-initialization vector. The Base64 encoding limits the usable filename length
-to 176 characters.
+File names are encrypted using AES-256-EME (ECB-Mix-ECB wide-block encryption,
+see https://github.com/rfjakob/eme for details) with the directory IV
+as initialization vector. EME fixes the prefix leak that occours with CBC
+encryption.
 
 ![](https://rawgit.com/rfjakob/gocryptfs/master/Documentation/file-name-encryption.svg)
+
+The Base64 encoding limits the usable filename length to 176 characters.

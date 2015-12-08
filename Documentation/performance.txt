@@ -2,11 +2,12 @@ All test performed on tmpfs, /tmp/a mounted on /tmp/b.
 The used test archive is https://www.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz .
 
 UNTAR: tar xfz ../linux-3.0.tar.gz
-LS: ls -lR > /dev/null
-RM: rm -rf linux-3.0
+LS: ls -lR linux-3.0 > /dev/null
+RM: rm -Rf linux-3.0
 
 VERSION         UNTAR    LS     RM
 v0.4               48     1.5    5
 v0.5-rc1           56     7     19
 v0.5-rc1-1         54     4.1    9
-v0.5-rc1-2         45     1.7	 3.4
+v0.5-rc1-2         45     1.7    3.4
+v0.6               47     1.8    4.3

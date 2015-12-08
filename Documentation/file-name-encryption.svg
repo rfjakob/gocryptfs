@@ -149,9 +149,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.979899"
-     inkscape:cx="299.54034"
-     inkscape:cy="65.144047"
+     inkscape:zoom="2.8"
+     inkscape:cx="290.22759"
+     inkscape:cy="52.741737"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="true"
@@ -186,7 +186,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -267,7 +267,7 @@
          id="tspan4157-3-0-7-6-8"
          x="316.79153"
          y="309.39807"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.00342369px;font-family:sans-serif;-inkscape-font-specification:sans-serif;letter-spacing:0px">AES-256-CBC</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.00342369px;font-family:sans-serif;-inkscape-font-specification:sans-serif;letter-spacing:0px">AES-256-EME</tspan></text>
     <path
        style="opacity:1;fill:none;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#marker8559)"
        d="m 558.97059,270.16733 -169.78791,0.0896 0,17.75633"
@@ -359,14 +359,14 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:90.01774597px;line-height:125%;font-family:Arial;-inkscape-font-specification:'Arial Bold';letter-spacing:67.66333771px;word-spacing:0px;fill:#aa00d4;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="462.66055"
+       x="456.66174"
        y="266.66168"
        id="text4155-88-3-5-0"
        sodipodi:linespacing="125%"
        transform="scale(1.0001971,0.99980293)"><tspan
          sodipodi:role="line"
          id="tspan4157-9-7-3-8"
-         x="462.66055"
+         x="456.66174"
          y="266.66168"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15.00295734px;font-family:sans-serif;-inkscape-font-specification:sans-serif;letter-spacing:0px;fill:#aa00d4">IV</tspan></text>
     <rect

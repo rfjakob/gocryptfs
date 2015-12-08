@@ -6,10 +6,10 @@ gocryptfs is built on top the excellent
 [go-fuse](https://github.com/hanwen/go-fuse) FUSE library and its
 LoopbackFileSystem API.
 
-This project was inspired by [EncFS](https://github.com/vgough/encfs)
-and strives to fix its security issues (see EncFS tickets 9, 13, 14, 16).
+This project was inspired by EncFS and strives to fix its security
+issues while providing good performance.
 For details on the security of gocryptfs see the
-[SECURITY.md](Documentation/SECURITY.md) document.
+[SECURITY.md](Documentation/SECURITY.md) design document.
 
 Current Status
 --------------
@@ -96,6 +96,17 @@ The output should look like this:
 
 Changelog
 ---------
+
+v0.6
+* **Wide-block filename encryption using EME + DirIV**
+ * EME (ECB-Mix-ECB) provides even better security than CBC as it fixes
+   the prefix leak. The used Go EME implementation is
+   https://github.com/rfjakob/eme which is, as far as I know, the first
+   implementation of EME in Go.
+ * This is a forwards-compatible change. gocryptfs v0.5 can mount filesystems
+   created by earlier version but not the other way round.
+* New command-line option:
+ * `-emenames`: Enable EME filename encryption (default true)
 
 v0.5
 * **Stronger filename encryption: DirIV**
