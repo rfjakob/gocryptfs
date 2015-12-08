@@ -12,10 +12,6 @@ const (
 	// The dot "." is not used in base64url (RFC4648), hence
 	// we can never clash with an encrypted file.
 	ConfDefaultName = "gocryptfs.conf"
-	// Understood Feature Flags
-	// Also teach isFeatureFlagKnown() about any additions
-	FlagPlaintextNames = "PlaintextNames"
-	FlagDirIV          = "DirIV"
 )
 
 type ConfFile struct {
@@ -37,7 +33,7 @@ type ConfFile struct {
 // CreateConfFile - create a new config with a random key encrypted with
 // "password" and write it to "filename".
 // Uses scrypt with cost parameter logN.
-func CreateConfFile(filename string, password string, plaintextNames bool, logN int) error {
+func CreateConfFile(filename string, password string, plaintextNames bool, logN int, EMENames bool) error {
 	var cf ConfFile
 	cf.filename = filename
 
@@ -50,11 +46,13 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 
 	// Set defaults
 	cf.Version = HEADER_CURRENT_VERSION
-	cf.FeatureFlags = []string{FlagDirIV}
 
 	// Set values chosen by the user
 	if plaintextNames {
 		cf.FeatureFlags = append(cf.FeatureFlags, FlagPlaintextNames)
+	} else {
+		cf.FeatureFlags = append(cf.FeatureFlags, FlagDirIV)
+		cf.FeatureFlags = append(cf.FeatureFlags, FlagEMENames)
 	}
 
 	// Write file to disk
@@ -157,10 +155,18 @@ func (cf *ConfFile) WriteFile() error {
 	return nil
 }
 
+const (
+	// Understood Feature Flags.
+	// Also teach isFeatureFlagKnown() about any additions
+	FlagPlaintextNames = "PlaintextNames"
+	FlagDirIV          = "DirIV"
+	FlagEMENames       = "EMENames"
+)
+
 // Verify that we understand a feature flag
 func (cf *ConfFile) isFeatureFlagKnown(flag string) bool {
 	switch flag {
-	case FlagPlaintextNames, FlagDirIV:
+	case FlagPlaintextNames, FlagDirIV, FlagEMENames:
 		return true
 	default:
 		return false

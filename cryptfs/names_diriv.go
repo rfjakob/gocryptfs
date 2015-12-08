@@ -73,11 +73,8 @@ func WriteDirIV(dir string) error {
 	return ioutil.WriteFile(file, iv, 0444)
 }
 
-// EncryptPathDirIV - encrypt path using CBC with DirIV
-func (be *CryptFS) EncryptPathDirIV(plainPath string, rootDir string) (string, error) {
-	if be.plaintextNames {
-		return plainPath, nil
-	}
+// EncryptPathDirIV - encrypt path using CBC or EME with DirIV
+func (be *CryptFS) EncryptPathDirIV(plainPath string, rootDir string, eme bool) (cipherPath string, err error) {
 	// Empty string means root directory
 	if plainPath == "" {
 		return plainPath, nil
@@ -88,36 +85,32 @@ func (be *CryptFS) EncryptPathDirIV(plainPath string, rootDir string) (string, e
 	if found {
 		//fmt.Print("h")
 		baseName := filepath.Base(plainPath)
-		cBaseName := be.encryptName(baseName, iv)
-		cPath := cParentDir + "/" + cBaseName
-		return cPath, nil
+		cBaseName := be.encryptName(baseName, iv, eme)
+		cipherPath = cParentDir + "/" + cBaseName
+		return cipherPath, nil
 	}
 	// Walk the directory tree
 	var wd = rootDir
 	var encryptedNames []string
-	var err error
 	plainNames := strings.Split(plainPath, "/")
 	for _, plainName := range plainNames {
 		iv, err = be.ReadDirIV(wd)
 		if err != nil {
 			return "", err
 		}
-		encryptedName := be.encryptName(plainName, iv)
+		encryptedName := be.encryptName(plainName, iv, eme)
 		encryptedNames = append(encryptedNames, encryptedName)
 		wd = filepath.Join(wd, encryptedName)
 	}
 	// Cache the final DirIV
-	cPath := strings.Join(encryptedNames, "/")
-	cParentDir = filepath.Dir(cPath)
+	cipherPath = strings.Join(encryptedNames, "/")
+	cParentDir = filepath.Dir(cipherPath)
 	be.DirIVCacheEnc.store(parentDir, iv, cParentDir)
-	return cPath, nil
+	return cipherPath, nil
 }
 
-// DecryptPathDirIV - encrypt path using CBC with DirIV
-func (be *CryptFS) DecryptPathDirIV(encryptedPath string, rootDir string) (string, error) {
-	if be.plaintextNames {
-		return encryptedPath, nil
-	}
+// DecryptPathDirIV - encrypt path using CBC or EME with DirIV
+func (be *CryptFS) DecryptPathDirIV(encryptedPath string, rootDir string, eme bool) (string, error) {
 	var wd = rootDir
 	var plainNames []string
 	encryptedNames := strings.Split(encryptedPath, "/")
@@ -127,7 +120,7 @@ func (be *CryptFS) DecryptPathDirIV(encryptedPath string, rootDir string) (strin
 		if err != nil {
 			return "", err
 		}
-		plainName, err := be.DecryptName(encryptedName, iv)
+		plainName, err := be.decryptName(encryptedName, iv, eme)
 		if err != nil {
 			return "", err
 		}

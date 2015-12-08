@@ -48,7 +48,7 @@ func (fs *FS) getBackingPath(relPath string) (string, error) {
 
 func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	cryptfs.Debug.Printf("FS.GetAttr('%s')\n", name)
-	if fs.CryptFS.IsFiltered(name) {
+	if fs.isFiltered(name) {
 		return nil, fuse.EPERM
 	}
 	cName, err := fs.encryptPath(name)
@@ -103,7 +103,7 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 			continue
 		}
 		var name string
-		name, err = fs.CryptFS.DecryptName(cName, cachedIV)
+		name, err = fs.CryptFS.DecryptName(cName, cachedIV, fs.args.EMENames)
 		if err != nil {
 			cryptfs.Warn.Printf("Invalid name \"%s\" in dir \"%s\": %s\n", cName, dirName, err)
 			continue
@@ -128,7 +128,7 @@ func (fs *FS) mangleOpenFlags(flags uint32) (newFlags int, writeOnly bool) {
 }
 
 func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
-	if fs.CryptFS.IsFiltered(path) {
+	if fs.isFiltered(path) {
 		return nil, fuse.EPERM
 	}
 	iflags, writeOnly := fs.mangleOpenFlags(flags)
@@ -147,7 +147,7 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 }
 
 func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Context) (fuseFile nodefs.File, code fuse.Status) {
-	if fs.CryptFS.IsFiltered(path) {
+	if fs.isFiltered(path) {
 		return nil, fuse.EPERM
 	}
 	iflags, writeOnly := fs.mangleOpenFlags(flags)
@@ -163,7 +163,7 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 }
 
 func (fs *FS) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.Status) {
-	if fs.CryptFS.IsFiltered(path) {
+	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
 	cPath, err := fs.encryptPath(path)
@@ -174,7 +174,7 @@ func (fs *FS) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.
 }
 
 func (fs *FS) Chown(path string, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status) {
-	if fs.CryptFS.IsFiltered(path) {
+	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
 	cPath, err := fs.encryptPath(path)
@@ -185,7 +185,7 @@ func (fs *FS) Chown(path string, uid uint32, gid uint32, context *fuse.Context) 
 }
 
 func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context) (code fuse.Status) {
-	if fs.CryptFS.IsFiltered(path) {
+	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
 	cPath, err := fs.encryptPath(path)
@@ -201,7 +201,7 @@ func (fs *FS) Truncate(path string, offset uint64, context *fuse.Context) (code 
 }
 
 func (fs *FS) Utimens(path string, Atime *time.Time, Mtime *time.Time, context *fuse.Context) (code fuse.Status) {
-	if fs.CryptFS.IsFiltered(path) {
+	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
 	cPath, err := fs.encryptPath(path)
@@ -244,7 +244,7 @@ func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status f
 }
 
 func (fs *FS) Mkdir(relPath string, mode uint32, context *fuse.Context) (code fuse.Status) {
-	if fs.CryptFS.IsFiltered(relPath) {
+	if fs.isFiltered(relPath) {
 		return fuse.EPERM
 	}
 	encPath, err := fs.getBackingPath(relPath)
@@ -275,7 +275,7 @@ func (fs *FS) Mkdir(relPath string, mode uint32, context *fuse.Context) (code fu
 }
 
 func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
-	if fs.CryptFS.IsFiltered(path) {
+	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
 	cPath, err := fs.getBackingPath(path)
@@ -349,7 +349,7 @@ func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 
 func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (code fuse.Status) {
 	cryptfs.Debug.Printf("Symlink(\"%s\", \"%s\")\n", target, linkName)
-	if fs.CryptFS.IsFiltered(linkName) {
+	if fs.isFiltered(linkName) {
 		return fuse.EPERM
 	}
 	cPath, err := fs.getBackingPath(linkName)
@@ -376,7 +376,7 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 }
 
 func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (code fuse.Status) {
-	if fs.CryptFS.IsFiltered(newPath) {
+	if fs.isFiltered(newPath) {
 		return fuse.EPERM
 	}
 	cOldPath, err := fs.getBackingPath(oldPath)
@@ -396,7 +396,7 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 }
 
 func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code fuse.Status) {
-	if fs.CryptFS.IsFiltered(newPath) {
+	if fs.isFiltered(newPath) {
 		return fuse.EPERM
 	}
 	cOldPath, err := fs.getBackingPath(oldPath)
@@ -411,7 +411,7 @@ func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code 
 }
 
 func (fs *FS) Access(path string, mode uint32, context *fuse.Context) (code fuse.Status) {
-	if fs.CryptFS.IsFiltered(path) {
+	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
 	cPath, err := fs.getBackingPath(path)

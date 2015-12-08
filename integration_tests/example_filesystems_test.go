@@ -57,7 +57,7 @@ func TestExampleFsV04(t *testing.T) {
 	checkExampleContent(t, pDir)
 	unmount(pDir)
 	mount(cDir, pDir, "-masterkey", "74676e34-0b47c145-00dac61a-17a92316-"+
-		"bb57044c-e205b71f-65f4fdca-7cabd4b3", "-diriv=false")
+		"bb57044c-e205b71f-65f4fdca-7cabd4b3", "-diriv=false", "-emenames=false")
 	checkExampleContent(t, pDir)
 	unmount(pDir)
 	err = os.Remove(pDir)
@@ -79,7 +79,7 @@ func TestExampleFsV05(t *testing.T) {
 	checkExampleContent(t, pDir)
 	unmount(pDir)
 	mount(cDir, pDir, "-masterkey", "199eae55-36bff4af-83b9a3a2-4fa16f65-"+
-		"1549ccdb-2d08d1f0-b1b26965-1b61f896")
+		"1549ccdb-2d08d1f0-b1b26965-1b61f896", "-emenames=false")
 	checkExampleContent(t, pDir)
 	unmount(pDir)
 	err = os.Remove(pDir)

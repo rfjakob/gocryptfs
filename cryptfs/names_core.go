@@ -1,6 +1,6 @@
 package cryptfs
 
-// Filename encryption / decryption function
+// Filename encryption / decryption functions
 
 import (
 	"crypto/aes"
@@ -8,16 +8,22 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"strings"
-)
 
-const (
-	OpEncrypt = iota
-	OpDecrypt
+	"github.com/rfjakob/eme"
 )
 
 // DecryptName - decrypt base64-encoded encrypted filename "cipherName"
-func (be *CryptFS) DecryptName(cipherName string, iv []byte) (string, error) {
+// The used encryption is either CBC or EME, depending on the "EMENames" argument.
+//
+// This function is exported because it allows for a very efficient readdir
+// implementation (read IV once, decrypt all names using this function).
+func (be *CryptFS) DecryptName(cipherName string, iv []byte, EMENames bool) (string, error) {
+	return be.decryptName(cipherName, iv, EMENames)
+}
+
+// decryptName - decrypt base64-encoded encrypted filename "cipherName".
+// The used encryption is either CBC or EME, depending on the "EMENames" argument.
+func (be *CryptFS) decryptName(cipherName string, iv []byte, EMENames bool) (string, error) {
 
 	// Make sure relative symlinks still work after encryption
 	// by passing these through unchanged
@@ -34,8 +40,12 @@ func (be *CryptFS) DecryptName(cipherName string, iv []byte) (string, error) {
 		return "", fmt.Errorf("Decoded length %d is not a multiple of the AES block size", len(bin))
 	}
 
-	cbc := cipher.NewCBCDecrypter(be.blockCipher, iv)
-	cbc.CryptBlocks(bin, bin)
+	if EMENames {
+		bin = eme.Transform(be.blockCipher, iv, bin, eme.DirectionDecrypt)
+	} else {
+		cbc := cipher.NewCBCDecrypter(be.blockCipher, iv)
+		cbc.CryptBlocks(bin, bin)
+	}
 
 	bin, err = be.unPad16(bin)
 	if err != nil {
@@ -46,8 +56,9 @@ func (be *CryptFS) DecryptName(cipherName string, iv []byte) (string, error) {
 	return plain, err
 }
 
-// EncryptName - encrypt filename
-func (be *CryptFS) encryptName(plainName string, iv []byte) string {
+// encryptName - encrypt "plainName", return base64-encoded "cipherName64"
+// The used encryption is either CBC or EME, depending on the "EMENames" argument.
+func (be *CryptFS) encryptName(plainName string, iv []byte, EMENames bool) (cipherName64 string) {
 
 	// Make sure relative symlinks still work after encryption
 	// by passing these trough unchanged
@@ -58,48 +69,15 @@ func (be *CryptFS) encryptName(plainName string, iv []byte) string {
 	bin := []byte(plainName)
 	bin = be.pad16(bin)
 
-	cbc := cipher.NewCBCEncrypter(be.blockCipher, iv)
-	cbc.CryptBlocks(bin, bin)
+	if EMENames {
+		bin = eme.Transform(be.blockCipher, iv, bin, eme.DirectionEncrypt)
+	} else {
+		cbc := cipher.NewCBCEncrypter(be.blockCipher, iv)
+		cbc.CryptBlocks(bin, bin)
+	}
 
-	cipherName64 := base64.URLEncoding.EncodeToString(bin)
+	cipherName64 = base64.URLEncoding.EncodeToString(bin)
 	return cipherName64
-}
-
-// TranslatePathZeroIV - encrypt or decrypt path using CBC with a constant all-zero IV.
-// Just splits the string on "/" and hands the parts to encryptName() / decryptName()
-func (be *CryptFS) TranslatePathZeroIV(path string, op int) (string, error) {
-	var err error
-
-	// Empty string means root directory
-	if path == "" {
-		return path, err
-	}
-
-	zeroIV := make([]byte, DIRIV_LEN)
-
-	// Run operation on each path component
-	var translatedParts []string
-	parts := strings.Split(path, "/")
-	for _, part := range parts {
-		if part == "" {
-			// This happens on "/foo/bar/" on the front and on the end.
-			// Don't panic.
-			translatedParts = append(translatedParts, "")
-			continue
-		}
-		var newPart string
-		if op == OpEncrypt {
-			newPart = be.encryptName(part, zeroIV)
-		} else {
-			newPart, err = be.DecryptName(part, zeroIV)
-			if err != nil {
-				return "", err
-			}
-		}
-		translatedParts = append(translatedParts, newPart)
-	}
-
-	return strings.Join(translatedParts, "/"), err
 }
 
 // pad16 - pad filename to 16 byte blocks using standard PKCS#7 padding

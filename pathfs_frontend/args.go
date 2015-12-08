@@ -7,4 +7,5 @@ type Args struct {
 	OpenSSL        bool
 	PlaintextNames bool
 	DirIV          bool
+	EMENames       bool
 }

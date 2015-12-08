@@ -3,6 +3,7 @@ package cryptfs
 import (
 	"fmt"
 	"strings"
+	"encoding/json"
 )
 
 type logChannel struct {
@@ -24,6 +25,18 @@ func (l *logChannel) Println(s string) {
 func (l *logChannel) Dump(d []byte) {
 	s := string(d)
 	fmt.Println(strings.Replace(s, "\000", "\\0", -1))
+}
+
+func (l *logChannel) JSONDump(obj interface{}) {
+	if !l.enabled {
+		return
+	}
+	b, err := json.MarshalIndent(obj, "", "\t")
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(string(b))
+	}
 }
 
 func (l *logChannel) Enable() {

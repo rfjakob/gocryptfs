@@ -42,6 +42,9 @@ Options:
 **-diriv**
 :	Use per-directory file name IV (default true)
 
+**-emenames**
+:	Use EME filename encryption (default true). This option implies diriv.
+
 **-extpass string**
 :	Use an external program (like ssh-askpass) for the password prompt.
 The program should return the password on stdout, a trailing newline is

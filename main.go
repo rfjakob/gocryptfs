@@ -35,7 +35,7 @@ const (
 
 type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
-	plaintextnames, quiet, diriv bool
+	plaintextnames, quiet, diriv, emenames bool
 	masterkey, mountpoint, cipherdir, cpuprofile, config, extpass string
 	notifypid, scryptn                                            int
 }
@@ -55,7 +55,7 @@ func initDir(args *argContainer) {
 	// Create gocryptfs.conf
 	cryptfs.Info.Printf("Choose a password for protecting your files.\n")
 	password := readPasswordTwice(args.extpass)
-	err = cryptfs.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn)
+	err = cryptfs.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, args.emenames)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(ERREXIT_INIT)
@@ -146,6 +146,7 @@ func main() {
 		"file names")
 	flagSet.BoolVar(&args.quiet, "q", false, "Quiet - silence informational messages")
 	flagSet.BoolVar(&args.diriv, "diriv", true, "Use per-directory file name IV")
+	flagSet.BoolVar(&args.emenames, "emenames", true, "Use EME filename encryption. This option implies diriv.")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.config, "config", "", "Use specified config file instead of CIPHERDIR/gocryptfs.conf")
@@ -262,7 +263,7 @@ func main() {
 		printMasterKey(masterkey)
 	}
 	// Initialize FUSE server
-	cryptfs.Debug.Printf("args: %v\n", args)
+	cryptfs.Debug.Printf("cli args: %v\n", args)
 	srv := pathfsFrontend(masterkey, args, confFile)
 	cryptfs.Info.Println("Filesystem ready.")
 	// We are ready - send USR1 signal to our parent
@@ -289,13 +290,26 @@ func pathfsFrontend(key []byte, args argContainer, confFile *cryptfs.ConfFile) *
 		OpenSSL:        args.openssl,
 		PlaintextNames: args.plaintextnames,
 		DirIV:          args.diriv,
+		EMENames:       args.emenames,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {
 		// Settings from the config file override command line args
 		frontendArgs.PlaintextNames = confFile.IsFeatureFlagSet(cryptfs.FlagPlaintextNames)
 		frontendArgs.DirIV = confFile.IsFeatureFlagSet(cryptfs.FlagDirIV)
+		frontendArgs.EMENames = confFile.IsFeatureFlagSet(cryptfs.FlagEMENames)
 	}
+	// EMENames implies DirIV, both on the command line and in the config file.
+	if frontendArgs.EMENames {
+		frontendArgs.DirIV = true
+	}
+	// PlainTexnames disables both EMENames and DirIV
+	if frontendArgs.PlaintextNames {
+		frontendArgs.DirIV = false
+		frontendArgs.EMENames = false
+	}
+	cryptfs.Debug.Printf("frontendArgs: ")
+	cryptfs.Debug.JSONDump(frontendArgs)
 
 	finalFs := pathfs_frontend.NewFS(frontendArgs)
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}

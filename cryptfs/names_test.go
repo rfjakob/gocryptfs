@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestTranslatePath(t *testing.T) {
+func TestEncryptPathNoIV(t *testing.T) {
 	var s []string
 	s = append(s, "foo")
 	s = append(s, "foo12312312312312312313123123123")
@@ -15,15 +15,14 @@ func TestTranslatePath(t *testing.T) {
 	fs := NewCryptFS(key, true, false)
 
 	for _, n := range s {
-		c, err := fs.TranslatePathZeroIV(n, OpEncrypt)
-		d, err := fs.TranslatePathZeroIV(c, OpDecrypt)
+		c := fs.EncryptPathNoIV(n)
+		d, err := fs.DecryptPathNoIV(c)
 		if err != nil {
-			t.Errorf("Got error from DecryptName: %s", err)
+			t.Errorf("Got error from DecryptPathNoIV: %s", err)
 		}
 		if d != n {
-			t.Errorf("Content mismatch, n=\"%s\" d=\"%s\"", n, d)
+			t.Errorf("Content mismatch, n != d: n=%s c=%s d=%s", n, c, d)
 		}
-		//fmt.Printf("n=%s c=%s d=%s\n", n, c, d)
 	}
 }
 
