@@ -325,14 +325,13 @@ func TestMkdirRmdir(t *testing.T) {
 	}
 }
 
-
 // Test Rename
 func TestRename(t *testing.T) {
-	err := ioutil.WriteFile(defaultPlainDir + "rename1", []byte("content"), 0777)
+	err := ioutil.WriteFile(defaultPlainDir+"rename1", []byte("content"), 0777)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = syscall.Rename(defaultPlainDir + "rename1", defaultPlainDir + "rename2")
+	err = syscall.Rename(defaultPlainDir+"rename1", defaultPlainDir+"rename2")
 	if err != nil {
 		t.Fatal(err)
 	}

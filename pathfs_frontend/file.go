@@ -99,8 +99,8 @@ func (f *file) createHeader() error {
 	defer f.fdLock.Unlock()
 	err := syscall.Fallocate(int(f.fd.Fd()), FALLOC_FL_KEEP_SIZE, 0, cryptfs.HEADER_LEN)
 	if err != nil {
-			cryptfs.Warn.Printf("createHeader: Fallocate failed: %s\n", err.Error())
-			return err
+		cryptfs.Warn.Printf("createHeader: Fallocate failed: %s\n", err.Error())
+		return err
 	}
 
 	// Actually write header
