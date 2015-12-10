@@ -109,3 +109,25 @@ func TestExampleFsV06(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+// Test example_filesystems/v0.6
+// with password mount and -masterkey mount
+func TestExampleFsV06PlaintextNames(t *testing.T) {
+	pDir := tmpDir + "TestExampleFsV06PlaintextNames/"
+	cDir := "example_filesystems/v0.6-plaintextnames"
+	err := os.Mkdir(pDir, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mount(cDir, pDir, "-extpass", "echo test")
+	checkExampleContent(t, pDir)
+	unmount(pDir)
+	mount(cDir, pDir, "-masterkey", "f4690202-595e4593-64c4f7e0-4dddd7d1-"+
+		"303147f9-0ca8aea2-966341a7-52ea8ae9", "-plaintextnames")
+	checkExampleContent(t, pDir)
+	unmount(pDir)
+	err = os.Remove(pDir)
+	if err != nil {
+		t.Error(err)
+	}
+}
