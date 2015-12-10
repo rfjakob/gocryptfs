@@ -10,7 +10,6 @@ package cryptfs
 
 import (
 	"crypto/aes"
-	"crypto/cipher"
 	"testing"
 )
 
@@ -20,7 +19,7 @@ func benchmarkGoEnc(b *testing.B, plaintext []byte, key []byte, nonce []byte) (c
 	if err != nil {
 		b.Fatal(err)
 	}
-	aesgcm, err := cipher.NewGCMWithNonceSize(aes, len(nonce))
+	aesgcm, err := goGCMWrapper(aes, len(nonce))
 	if err != nil {
 		b.Fatal(err)
 	}
