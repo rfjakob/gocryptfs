@@ -12,7 +12,6 @@ import (
 	"os"
 	"runtime"
 	"sync"
-	"syscall"
 	"testing"
 )
 
@@ -314,25 +313,10 @@ func TestFilenameEncryption(t *testing.T) {
 
 // Test Mkdir and Rmdir
 func TestMkdirRmdir(t *testing.T) {
-	dir := defaultPlainDir + "dir1"
-	err := os.Mkdir(dir, 0777)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = syscall.Rmdir(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	testMkdirRmdir(t, defaultPlainDir)
 }
 
 // Test Rename
 func TestRename(t *testing.T) {
-	err := ioutil.WriteFile(defaultPlainDir+"rename1", []byte("content"), 0777)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = syscall.Rename(defaultPlainDir+"rename1", defaultPlainDir+"rename2")
-	if err != nil {
-		t.Fatal(err)
-	}
+	testRename(t, defaultPlainDir)
 }

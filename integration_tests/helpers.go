@@ -1,6 +1,7 @@
 package integration_tests
 
 import (
+	"syscall"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -51,6 +52,7 @@ func resetTmpDir() {
 func mount(c string, p string, extraArgs ...string) {
 	var args []string
 	args = append(args, extraArgs...)
+	args = append(args, "-q")
 	//args = append(args, "--fusedebug")
 	args = append(args, c)
 	args = append(args, p)
@@ -112,4 +114,32 @@ func verifySize(t *testing.T, path string, want int) {
 	} else if fi.Size() != int64(want) {
 		t.Errorf("wrong stat file size, got=%d want=%d", fi.Size(), want)
 	}
+}
+
+// Create and delete a directory
+func testMkdirRmdir(t *testing.T, plainDir string) {
+	dir := plainDir + "dir1"
+	err := os.Mkdir(dir, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = syscall.Rmdir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Create and rename a file
+func testRename(t *testing.T, plainDir string) {
+	file1 := plainDir+"rename1"
+	file2 := plainDir+"rename2"
+	err := ioutil.WriteFile(file1, []byte("content"), 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = syscall.Rename(file1, file2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	syscall.Unlink(file2)
 }
