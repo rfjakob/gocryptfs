@@ -33,9 +33,10 @@ type ConfFile struct {
 // CreateConfFile - create a new config with a random key encrypted with
 // "password" and write it to "filename".
 // Uses scrypt with cost parameter logN.
-func CreateConfFile(filename string, password string, plaintextNames bool, logN int, EMENames bool) error {
+func CreateConfFile(filename string, password string, plaintextNames bool, logN int) error {
 	var cf ConfFile
 	cf.filename = filename
+	cf.Version = HEADER_CURRENT_VERSION
 
 	// Generate new random master key
 	key := RandBytes(KEY_LEN)
@@ -44,10 +45,7 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 	// This sets ScryptObject and EncryptedKey
 	cf.EncryptKey(key, password, logN)
 
-	// Set defaults
-	cf.Version = HEADER_CURRENT_VERSION
-
-	// Set values chosen by the user
+	// Set feature flags
 	if plaintextNames {
 		cf.FeatureFlags = append(cf.FeatureFlags, FlagPlaintextNames)
 	} else {

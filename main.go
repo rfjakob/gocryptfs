@@ -55,7 +55,7 @@ func initDir(args *argContainer) {
 	// Create gocryptfs.conf
 	cryptfs.Info.Printf("Choose a password for protecting your files.\n")
 	password := readPasswordTwice(args.extpass)
-	err = cryptfs.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, args.emenames)
+	err = cryptfs.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(ERREXIT_INIT)
@@ -267,7 +267,7 @@ func main() {
 	// Initialize FUSE server
 	cryptfs.Debug.Printf("cli args: %v\n", args)
 	srv := pathfsFrontend(masterkey, args, confFile)
-	cryptfs.Info.Println("Filesystem ready.")
+	cryptfs.Info.Println("Filesystem mounted and ready.")
 	// We are ready - send USR1 signal to our parent
 	if args.notifypid > 0 {
 		sendUsr1(args.notifypid)
