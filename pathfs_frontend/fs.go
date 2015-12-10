@@ -90,7 +90,7 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 			return nil, fuse.ToStatus(err)
 		}
 	}
-	// Decrypt filenames
+	// Filter and decrypt filenames
 	var plain []fuse.DirEntry
 	for i := range cipherEntries {
 		cName := cipherEntries[i].Name
@@ -102,11 +102,13 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 			// silently ignore "gocryptfs.diriv" everywhere if dirIV is enabled
 			continue
 		}
-		var name string
-		name, err = fs.CryptFS.DecryptName(cName, cachedIV, fs.args.EMENames)
-		if err != nil {
-			cryptfs.Warn.Printf("Invalid name \"%s\" in dir \"%s\": %s\n", cName, dirName, err)
-			continue
+		var name string = cName
+		if !fs.args.PlaintextNames {
+			name, err = fs.CryptFS.DecryptName(cName, cachedIV, fs.args.EMENames)
+			if err != nil {
+				cryptfs.Warn.Printf("Invalid name \"%s\" in dir \"%s\": %s\n", cName, dirName, err)
+				continue
+			}
 		}
 		cipherEntries[i].Name = name
 		plain = append(plain, cipherEntries[i])
@@ -251,6 +253,10 @@ func (fs *FS) Mkdir(relPath string, mode uint32, context *fuse.Context) (code fu
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
+	if !fs.args.DirIV {
+		return fuse.ToStatus(os.Mkdir(encPath, os.FileMode(mode)))
+	}
+
 	// The new directory may take the place of an older one that is still in the cache
 	fs.CryptFS.DirIVCacheEnc.Clear()
 	// Create directory
@@ -289,6 +295,9 @@ func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 	encPath, err := fs.getBackingPath(name)
 	if err != nil {
 		return fuse.ToStatus(err)
+	}
+	if !fs.args.DirIV {
+		return fuse.ToStatus(syscall.Rmdir(encPath))
 	}
 
 	// If the directory is not empty besides gocryptfs.diriv, do not even

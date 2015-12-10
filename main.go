@@ -61,11 +61,13 @@ func initDir(args *argContainer) {
 		os.Exit(ERREXIT_INIT)
 	}
 
-	// Create gocryptfs.diriv in the root dir
-	err = cryptfs.WriteDirIV(args.cipherdir)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(ERREXIT_INIT)
+	if args.diriv && !args.plaintextnames {
+		// Create gocryptfs.diriv in the root dir
+		err = cryptfs.WriteDirIV(args.cipherdir)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(ERREXIT_INIT)
+		}
 	}
 
 	cryptfs.Info.Printf("The filesystem is now ready for mounting.\n")
