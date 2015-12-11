@@ -78,3 +78,40 @@ func TestInitConfig(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+// Test -init -plaintextnames
+func TestInitPlaintextNames(t *testing.T) {
+	dir := tmpDir + "TestInitPlaintextNames/"
+	err := os.Mkdir(dir, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(gocryptfsBinary, "-init", "-extpass", "echo test",
+		"-scryptn=10", "-plaintextnames", dir)
+	if testing.Verbose() {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
+	err = cmd.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = os.Stat(dir + cryptfs.ConfDefaultName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = os.Stat(dir + cryptfs.DIRIV_FILENAME)
+	if err == nil {
+		t.Errorf("gocryptfs.diriv should not have been created with -plaintextnames")
+	}
+	_, cf, err := cryptfs.LoadConfFile(dir + cryptfs.ConfDefaultName, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cf.IsFeatureFlagSet(cryptfs.FlagPlaintextNames) {
+		t.Error("PlaintextNames flag should be set but isnt")
+	}
+	if cf.IsFeatureFlagSet(cryptfs.FlagEMENames) || cf.IsFeatureFlagSet(cryptfs.FlagDirIV) {
+		t.Error("FlagEMENames and FlagDirIV should be not set")
+	}
+}
