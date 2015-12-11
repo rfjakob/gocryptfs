@@ -127,6 +127,38 @@ func testMkdirRmdir(t *testing.T, plainDir string) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Removing a non-empty dir should fail with ENOTEMPTY
+	if os.Mkdir(dir, 0777) != nil {
+		t.Fatal(err)
+	}
+	f, err := os.Create(dir + "/file")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	err = syscall.Rmdir(dir)
+	errno := err.(syscall.Errno)
+	if errno != syscall.ENOTEMPTY {
+		t.Errorf("Should have gotten ENOTEMPTY, go %v", errno)
+	}
+	if syscall.Unlink(dir + "/file") != nil {
+		t.Fatal(err)
+	}
+	if syscall.Rmdir(dir) != nil {
+		t.Fatal(err)
+	}
+
+	// We should also be able to remove a directory we do not have permissions to
+	// read or write
+	err = os.Mkdir(dir, 0000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = syscall.Rmdir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 // Create and rename a file

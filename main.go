@@ -159,7 +159,7 @@ func main() {
 		"Setting this to a lower value speeds up mounting but makes the password susceptible to brute-force attacks")
 	flagSet.Parse(os.Args[1:])
 
-	// Fork a child into the background if "-f" is not set and we are mounting a filesystem
+	// Fork a child into the background if "-f" is not set AND we are mounting a filesystem
 	if !args.foreground && flagSet.NArg() == 2 {
 		forkChild() // does not return
 	}
@@ -338,6 +338,11 @@ func pathfsFrontend(key []byte, args argContainer, confFile *cryptfs.ConfFile) *
 		os.Exit(ERREXIT_MOUNT)
 	}
 	srv.SetDebug(args.fusedebug)
+
+	// All FUSE file and directory create calls carry explicit permission
+	// information. We need an unrestricted umask to create the files and
+	// directories with the requested permissions.
+	syscall.Umask(0000)
 
 	return srv
 }

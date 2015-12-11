@@ -1,6 +1,7 @@
 package cryptfs
 
 import (
+	"encoding/binary"
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
@@ -15,6 +16,12 @@ func RandBytes(n int) []byte {
 		panic("Failed to read random bytes: " + err.Error())
 	}
 	return b
+}
+
+// Return a secure random uint64
+func RandUint64() uint64 {
+	b := RandBytes(8)
+	return binary.BigEndian.Uint64(b)
 }
 
 var gcmNonce nonce96

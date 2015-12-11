@@ -2,7 +2,6 @@ package pathfs_frontend
 
 import (
 	"encoding/base64"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -245,40 +244,7 @@ func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status f
 	return string(target), fuse.OK
 }
 
-func (fs *FS) Mkdir(relPath string, mode uint32, context *fuse.Context) (code fuse.Status) {
-	if fs.isFiltered(relPath) {
-		return fuse.EPERM
-	}
-	encPath, err := fs.getBackingPath(relPath)
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
-	if !fs.args.DirIV {
-		return fuse.ToStatus(os.Mkdir(encPath, os.FileMode(mode)))
-	}
 
-	// The new directory may take the place of an older one that is still in the cache
-	fs.CryptFS.DirIVCacheEnc.Clear()
-	// Create directory
-	fs.dirIVLock.Lock()
-	defer fs.dirIVLock.Unlock()
-	err = os.Mkdir(encPath, os.FileMode(mode))
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
-	// Create gocryptfs.diriv inside
-	err = cryptfs.WriteDirIV(encPath)
-	if err != nil {
-		// This should not happen
-		cryptfs.Warn.Printf("Creating %s in dir %s failed: %v\n", cryptfs.DIRIV_FILENAME, encPath, err)
-		err2 := syscall.Rmdir(encPath)
-		if err2 != nil {
-			cryptfs.Warn.Printf("Mkdir: Rollback failed: %v\n", err2)
-		}
-		return fuse.ToStatus(err)
-	}
-	return fuse.OK
-}
 
 func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(path) {
@@ -289,71 +255,6 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 		return fuse.ToStatus(err)
 	}
 	return fuse.ToStatus(syscall.Unlink(cPath))
-}
-
-func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
-	encPath, err := fs.getBackingPath(name)
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
-	if !fs.args.DirIV {
-		return fuse.ToStatus(syscall.Rmdir(encPath))
-	}
-
-	// If the directory is not empty besides gocryptfs.diriv, do not even
-	// attempt the dance around gocryptfs.diriv.
-	fd, err := os.Open(encPath)
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
-	defer fd.Close()
-	list, err := fd.Readdirnames(10)
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
-	if len(list) > 1 {
-		return fuse.ToStatus(syscall.ENOTEMPTY)
-	}
-
-	// Move "gocryptfs.diriv" to the parent dir under name "gocryptfs.diriv.rmdir.INODENUMBER"
-	var st syscall.Stat_t
-	err = syscall.Fstat(int(fd.Fd()), &st)
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
-	dirivPath := filepath.Join(encPath, cryptfs.DIRIV_FILENAME)
-	parentDir := filepath.Dir(encPath)
-	tmpName := fmt.Sprintf("gocryptfs.diriv.rmdir.%d", st.Ino)
-	tmpDirivPath := filepath.Join(parentDir, tmpName)
-	cryptfs.Debug.Printf("Rmdir: Renaming %s to %s\n", cryptfs.DIRIV_FILENAME, tmpDirivPath)
-	// The directory is in an inconsistent state between rename and rmdir. Protect against
-	// concurrent readers.
-	fs.dirIVLock.Lock()
-	defer fs.dirIVLock.Unlock()
-	err = os.Rename(dirivPath, tmpDirivPath)
-	if err != nil {
-		cryptfs.Warn.Printf("Rmdir: Renaming %s to %s failed: %v\n", cryptfs.DIRIV_FILENAME, tmpDirivPath, err)
-		return fuse.ToStatus(err)
-	}
-	// Actual Rmdir
-	err = syscall.Rmdir(encPath)
-	if err != nil {
-		// This can happen if another file in the directory was created in the
-		// meantime, undo the rename
-		err2 := os.Rename(tmpDirivPath, dirivPath)
-		if err2 != nil {
-			cryptfs.Warn.Printf("Rmdir: Rollback failed: %v\n", err2)
-		}
-		return fuse.ToStatus(err)
-	}
-	// Delete "gocryptfs.diriv.rmdir.INODENUMBER"
-	err = syscall.Unlink(tmpDirivPath)
-	if err != nil {
-		cryptfs.Warn.Printf("Rmdir: Could not clean up %s: %v\n", tmpName, err)
-	}
-	// The now-deleted directory may have been in the DirIV cache. Clear it.
-	fs.CryptFS.DirIVCacheEnc.Clear()
-	return fuse.OK
 }
 
 func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (code fuse.Status) {
