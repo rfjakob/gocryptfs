@@ -26,10 +26,14 @@ func TestMain(m *testing.M) {
 	if testing.Verbose() {
 		fmt.Printf("***** Testing with OpenSSL\n")
 	}
-	resetTmpDir()
+	resetTmpDir() // <- this also create gocryptfs.diriv
 	mount(defaultCipherDir, defaultPlainDir, "--zerokey")
 	r := m.Run()
 	unmount(defaultPlainDir)
+
+	if r != 0 {
+		os.Exit(r)
+	}
 
 	if defaultonly {
 		os.Exit(r)
@@ -43,6 +47,10 @@ func TestMain(m *testing.M) {
 	r = m.Run()
 	unmount(defaultPlainDir)
 
+	if r != 0 {
+		os.Exit(r)
+	}
+
 	if testing.Verbose() {
 		fmt.Printf("***** Testing \"--plaintextnames\"\n")
 	}
@@ -51,6 +59,10 @@ func TestMain(m *testing.M) {
 	plaintextNames = true
 	r = m.Run()
 	unmount(defaultPlainDir)
+
+	if r != 0 {
+		os.Exit(r)
+	}
 
 	os.Exit(r)
 }
@@ -319,4 +331,23 @@ func TestMkdirRmdir(t *testing.T) {
 // Test Rename
 func TestRename(t *testing.T) {
 	testRename(t, defaultPlainDir)
+}
+
+
+// Overwrite an empty directory with another directory
+func TestDirOverwrite(t *testing.T) {
+	dir1 := defaultPlainDir + "DirOverwrite1"
+	dir2 := defaultPlainDir + "DirOverwrite2"
+	err := os.Mkdir(dir1, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Mkdir(dir2, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Rename(dir1, dir2)
+	if err != nil {
+		t.Fatal(err)
+	}
 }

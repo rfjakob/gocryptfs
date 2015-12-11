@@ -20,6 +20,7 @@ const defaultCipherDir = tmpDir + "cipher/"
 
 const gocryptfsBinary = "../gocryptfs"
 
+// resetTmpDir - delete old tmp dir, create new one, write gocryptfs.diriv
 func resetTmpDir() {
 	fu := exec.Command("fusermount", "-z", "-u", defaultPlainDir)
 	fu.Run()
