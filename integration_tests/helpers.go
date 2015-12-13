@@ -1,13 +1,13 @@
 package integration_tests
 
 import (
-	"syscall"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"syscall"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/cryptfs"
@@ -143,7 +143,7 @@ func testMkdirRmdir(t *testing.T, plainDir string) {
 	if errno != syscall.ENOTEMPTY {
 		t.Errorf("Should have gotten ENOTEMPTY, go %v", errno)
 	}
-	if syscall.Unlink(dir + "/file") != nil {
+	if syscall.Unlink(dir+"/file") != nil {
 		t.Fatal(err)
 	}
 	if syscall.Rmdir(dir) != nil {
@@ -164,8 +164,8 @@ func testMkdirRmdir(t *testing.T, plainDir string) {
 
 // Create and rename a file
 func testRename(t *testing.T, plainDir string) {
-	file1 := plainDir+"rename1"
-	file2 := plainDir+"rename2"
+	file1 := plainDir + "rename1"
+	file2 := plainDir + "rename2"
 	err := ioutil.WriteFile(file1, []byte("content"), 0777)
 	if err != nil {
 		t.Fatal(err)

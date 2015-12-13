@@ -333,7 +333,6 @@ func TestRename(t *testing.T) {
 	testRename(t, defaultPlainDir)
 }
 
-
 // Overwrite an empty directory with another directory
 func TestDirOverwrite(t *testing.T) {
 	dir1 := defaultPlainDir + "DirOverwrite1"

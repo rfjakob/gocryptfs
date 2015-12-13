@@ -261,7 +261,6 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 			cryptfs.Debug.Printf("len(oldData)=%d len(blockData)=%d\n", len(oldData), len(blockData))
 		}
 
-		// Write
 		blockOffset, blockLen := b.CiphertextRange()
 		blockData = f.cfs.EncryptBlock(blockData, b.BlockNo, f.header.Id)
 		cryptfs.Debug.Printf("ino%d: Writing %d bytes to block #%d, md5=%s\n",
@@ -276,6 +275,8 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 			status = fuse.ToStatus(err)
 			break
 		}
+
+		// Write
 		f.fdLock.Lock()
 		_, err = f.fd.WriteAt(blockData, int64(blockOffset))
 		f.fdLock.Unlock()

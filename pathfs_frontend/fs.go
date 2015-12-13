@@ -244,8 +244,6 @@ func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status f
 	return string(target), fuse.OK
 }
 
-
-
 func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(path) {
 		return fuse.EPERM

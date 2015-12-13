@@ -24,7 +24,7 @@ type CryptFS struct {
 	plainBS     uint64
 	cipherBS    uint64
 	// Stores an all-zero block of size cipherBS
-	allZeroBlock   []byte
+	allZeroBlock []byte
 	// DirIV cache for filename encryption
 	DirIVCacheEnc DirIVCache
 }
@@ -53,11 +53,11 @@ func NewCryptFS(key []byte, useOpenssl bool, plaintextNames bool) *CryptFS {
 	cipherBS := DEFAULT_PLAINBS + NONCE_LEN + AUTH_TAG_LEN
 
 	return &CryptFS{
-		blockCipher:    b,
-		gcm:            gcm,
-		plainBS:        DEFAULT_PLAINBS,
-		cipherBS:       uint64(cipherBS),
-		allZeroBlock:   make([]byte, cipherBS),
+		blockCipher:  b,
+		gcm:          gcm,
+		plainBS:      DEFAULT_PLAINBS,
+		cipherBS:     uint64(cipherBS),
+		allZeroBlock: make([]byte, cipherBS),
 	}
 }
 

@@ -1,10 +1,10 @@
 package pathfs_frontend
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
-	"fmt"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/rfjakob/gocryptfs/cryptfs"
@@ -85,7 +85,7 @@ func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 			cryptfs.Debug.Printf("Rmdir: Chmod failed: %v\n", err2)
 			return fuse.ToStatus(err)
 		}
-		defer func () {
+		defer func() {
 			if code != fuse.OK {
 				// Undo the chmod if removing the directory failed
 				err3 := os.Chmod(encPath, origMode)

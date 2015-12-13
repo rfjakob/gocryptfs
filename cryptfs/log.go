@@ -1,9 +1,9 @@
 package cryptfs
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
-	"encoding/json"
 )
 
 type logChannel struct {

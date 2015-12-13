@@ -104,7 +104,7 @@ func TestInitPlaintextNames(t *testing.T) {
 	if err == nil {
 		t.Errorf("gocryptfs.diriv should not have been created with -plaintextnames")
 	}
-	_, cf, err := cryptfs.LoadConfFile(dir + cryptfs.ConfDefaultName, "test")
+	_, cf, err := cryptfs.LoadConfFile(dir+cryptfs.ConfDefaultName, "test")
 	if err != nil {
 		t.Fatal(err)
 	}

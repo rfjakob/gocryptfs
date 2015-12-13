@@ -86,7 +86,7 @@ func (be *CryptFS) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []byte
 }
 
 // encryptBlock - Encrypt and add IV and MAC
-func (be *CryptFS) EncryptBlock(plaintext []byte, blockNo uint64, fileId []byte) []byte {
+func (be *CryptFS) EncryptBlock(plaintext []byte, blockNo uint64, fileID []byte) []byte {
 
 	// Empty block?
 	if len(plaintext) == 0 {
@@ -96,10 +96,12 @@ func (be *CryptFS) EncryptBlock(plaintext []byte, blockNo uint64, fileId []byte)
 	// Get fresh nonce
 	nonce := gcmNonce.Get()
 
-	// Encrypt plaintext and append to nonce
+	// Authenticate block with block number and file ID
 	aData := make([]byte, 8)
 	binary.BigEndian.PutUint64(aData, blockNo)
-	aData = append(aData, fileId...)
+	aData = append(aData, fileID...)
+
+	// Encrypt plaintext and append to nonce
 	ciphertext := be.gcm.Seal(nonce, nonce, plaintext, aData)
 
 	return ciphertext

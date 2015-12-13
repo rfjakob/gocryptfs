@@ -24,7 +24,6 @@ func (fs *FS) isFiltered(path string) bool {
 	return false
 }
 
-
 // encryptPath - encrypt relative plaintext path
 func (fs *FS) encryptPath(plainPath string) (string, error) {
 	if fs.args.PlaintextNames {

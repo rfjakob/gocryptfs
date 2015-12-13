@@ -1,9 +1,9 @@
 package cryptfs
 
 import (
-	"encoding/binary"
 	"bytes"
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 )
