@@ -50,7 +50,7 @@ func NewCryptFS(key []byte, useOpenssl bool, plaintextNames bool, GCMIV128 bool)
 	if useOpenssl {
 		gcm = opensslGCM{key}
 	} else {
-		gcm, err = cipher.NewGCMWithNonceSize(b, gcmIV)
+		gcm, err = goGCMWrapper(b, gcmIV)
 		if err != nil {
 			panic(err)
 		}
