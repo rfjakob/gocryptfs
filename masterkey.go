@@ -21,20 +21,20 @@ func printMasterKey(key []byte) {
 			hChunked += "-"
 		}
 		if i == 24 {
-			hChunked += "\n                      "
+			hChunked += "\n    "
 		}
 	}
 
 	cryptfs.Info.Printf(`
-ATTENTION:
+Your master key is:
 
-  Your master key is: %s
+    %s
 
 If the gocryptfs.conf file becomes corrupted or you ever forget your password,
 there is only one hope for recovery: The master key. Print it to a piece of
 paper and store it in a drawer.
 
-`, hChunked)
+`, colorGrey+hChunked+colorReset)
 }
 
 // parseMasterKey - Parse a hex-encoded master key that was passed on the command line

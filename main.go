@@ -12,6 +12,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/crypto/ssh/terminal"
+
 	"github.com/rfjakob/gocryptfs/cryptfs"
 	"github.com/rfjakob/gocryptfs/pathfs_frontend"
 
@@ -48,7 +50,7 @@ var GitVersion = "[version not set - please compile using ./build.bash]"
 func initDir(args *argContainer) {
 	err := checkDirEmpty(args.cipherdir)
 	if err != nil {
-		fmt.Printf("Invalid CIPHERDIR: %v\n", err)
+		fmt.Printf("Invalid cipherdir: %v\n", err)
 		os.Exit(ERREXIT_INIT)
 	}
 
@@ -99,7 +101,7 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *cryptfs.ConfFil
 	cryptfs.Warn.Enable()
 	if err != nil {
 		fmt.Println(err)
-		fmt.Println("Wrong password.")
+		fmt.Println(colorRed + "Wrong password." + colorReset)
 		os.Exit(ERREXIT_LOADCONF)
 	}
 	cryptfs.Info.Printf("done.\n")
@@ -132,6 +134,7 @@ func main() {
 	runtime.GOMAXPROCS(4)
 	var err error
 	var args argContainer
+	setupColors()
 
 	// Parse command line arguments
 	flagSet = flag.NewFlagSet(PROGRAM_NAME, flag.ExitOnError)
@@ -178,7 +181,7 @@ func main() {
 		args.cipherdir, _ = filepath.Abs(flagSet.Arg(0))
 		err := checkDir(args.cipherdir)
 		if err != nil {
-			fmt.Printf("Invalid CIPHERDIR: %v\n", err)
+			fmt.Printf(colorRed+"Invalid cipherdir: %v\n"+colorReset, err)
 			os.Exit(ERREXIT_CIPHERDIR)
 		}
 	} else {
@@ -193,7 +196,7 @@ func main() {
 	if args.config != "" {
 		args.config, err = filepath.Abs(args.config)
 		if err != nil {
-			fmt.Printf("Invalid \"-config\" setting: %v\n", err)
+			fmt.Printf(colorRed+"Invalid \"-config\" setting: %v\n"+colorReset, err)
 		}
 		cryptfs.Info.Printf("Using config file at custom location %s\n", args.config)
 	} else {
@@ -239,12 +242,12 @@ func main() {
 	}
 	args.mountpoint, err = filepath.Abs(flagSet.Arg(1))
 	if err != nil {
-		fmt.Printf("Invalid MOUNTPOINT: %v\n", err)
+		fmt.Printf(colorRed+"Invalid mountpoint: %v\n"+colorReset, err)
 		os.Exit(ERREXIT_MOUNTPOINT)
 	}
 	err = checkDirEmpty(args.mountpoint)
 	if err != nil {
-		fmt.Printf("Invalid MOUNTPOINT: %v\n", err)
+		fmt.Printf(colorRed+"Invalid mountpoint: %v\n"+colorReset, err)
 		os.Exit(ERREXIT_MOUNTPOINT)
 	}
 	// Get master key
@@ -268,7 +271,7 @@ func main() {
 	// Initialize FUSE server
 	cryptfs.Debug.Printf("cli args: %v\n", args)
 	srv := pathfsFrontend(masterkey, args, confFile)
-	cryptfs.Info.Println("Filesystem mounted and ready.")
+	cryptfs.Info.Println(colorGreen + "Filesystem mounted and ready." + colorReset)
 	// We are ready - send USR1 signal to our parent
 	if args.notifypid > 0 {
 		sendUsr1(args.notifypid)
@@ -367,4 +370,16 @@ func handleSigint(srv *fuse.Server, mountpoint string) {
 		}
 		os.Exit(1)
 	}()
+}
+
+// Escape sequences for terminal colors
+var colorReset, colorGrey, colorRed, colorGreen string
+
+func setupColors() {
+	if terminal.IsTerminal(int(os.Stdout.Fd())) {
+		colorReset = "\033[0m"
+		colorGrey = "\033[2m"
+		colorRed = "\033[31m"
+		colorGreen = "\033[32m"
+	}
 }
