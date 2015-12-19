@@ -12,7 +12,7 @@ func TestEncryptPathNoIV(t *testing.T) {
 	s = append(s, "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890")
 
 	key := make([]byte, KEY_LEN)
-	fs := NewCryptFS(key, true, false)
+	fs := NewCryptFS(key, true, false, true)
 
 	for _, n := range s {
 		c := fs.EncryptPathNoIV(n)
@@ -33,7 +33,7 @@ func TestPad16(t *testing.T) {
 	s = append(s, []byte("12345678901234567abcdefg"))
 
 	key := make([]byte, KEY_LEN)
-	fs := NewCryptFS(key, true, false)
+	fs := NewCryptFS(key, true, false, true)
 
 	for i := range s {
 		orig := s[i]

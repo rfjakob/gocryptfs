@@ -24,16 +24,15 @@ func RandUint64() uint64 {
 	return binary.BigEndian.Uint64(b)
 }
 
-var gcmNonce nonce96
-
-type nonce96 struct {
+type nonceGenerator struct {
 	lastNonce []byte
+	nonceLen  int // bytes
 }
 
 // Get a random 96 bit nonce
-func (n *nonce96) Get() []byte {
-	nonce := RandBytes(12)
-	Debug.Printf("nonce96.Get(): %s\n", hex.EncodeToString(nonce))
+func (n *nonceGenerator) Get() []byte {
+	nonce := RandBytes(n.nonceLen)
+	Debug.Printf("nonceGenerator.Get(): %s\n", hex.EncodeToString(nonce))
 	if bytes.Equal(nonce, n.lastNonce) {
 		m := fmt.Sprintf("Got the same nonce twice: %s. This should never happen!", hex.EncodeToString(nonce))
 		panic(m)

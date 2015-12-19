@@ -59,15 +59,15 @@ func (be *CryptFS) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []byte
 		return make([]byte, be.plainBS), nil
 	}
 
-	if len(ciphertext) < NONCE_LEN {
+	if len(ciphertext) < be.gcmIVLen {
 		Warn.Printf("DecryptBlock: Block is too short: %d bytes\n", len(ciphertext))
 		return nil, errors.New("Block is too short")
 	}
 
 	// Extract nonce
-	nonce := ciphertext[:NONCE_LEN]
+	nonce := ciphertext[:be.gcmIVLen]
 	ciphertextOrig := ciphertext
-	ciphertext = ciphertext[NONCE_LEN:]
+	ciphertext = ciphertext[be.gcmIVLen:]
 
 	// Decrypt
 	var plaintext []byte
@@ -94,7 +94,7 @@ func (be *CryptFS) EncryptBlock(plaintext []byte, blockNo uint64, fileID []byte)
 	}
 
 	// Get fresh nonce
-	nonce := gcmNonce.Get()
+	nonce := be.gcmIVGen.Get()
 
 	// Authenticate block with block number and file ID
 	aData := make([]byte, 8)

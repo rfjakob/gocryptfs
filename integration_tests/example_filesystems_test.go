@@ -60,7 +60,7 @@ func TestExampleFSv04(t *testing.T) {
 	checkExampleFS(t, pDir)
 	unmount(pDir)
 	mount(cDir, pDir, "-masterkey", "74676e34-0b47c145-00dac61a-17a92316-"+
-		"bb57044c-e205b71f-65f4fdca-7cabd4b3", "-diriv=false", "-emenames=false")
+		"bb57044c-e205b71f-65f4fdca-7cabd4b3", "-diriv=false", "-emenames=false", "-gcmiv128=false")
 	checkExampleFS(t, pDir)
 	unmount(pDir)
 	err = os.Remove(pDir)
@@ -82,7 +82,7 @@ func TestExampleFSv05(t *testing.T) {
 	checkExampleFS(t, pDir)
 	unmount(pDir)
 	mount(cDir, pDir, "-masterkey", "199eae55-36bff4af-83b9a3a2-4fa16f65-"+
-		"1549ccdb-2d08d1f0-b1b26965-1b61f896", "-emenames=false")
+		"1549ccdb-2d08d1f0-b1b26965-1b61f896", "-emenames=false", "-gcmiv128=false")
 	checkExampleFS(t, pDir)
 	unmount(pDir)
 	err = os.Remove(pDir)
@@ -104,7 +104,7 @@ func TestExampleFSv06(t *testing.T) {
 	checkExampleFS(t, pDir)
 	unmount(pDir)
 	mount(cDir, pDir, "-masterkey", "7bc8deb0-5fc894ef-a093da43-61561a81-"+
-		"0e8dee83-fdc056a4-937c37dd-9df5c520")
+		"0e8dee83-fdc056a4-937c37dd-9df5c520", "-gcmiv128=false")
 	checkExampleFS(t, pDir)
 	unmount(pDir)
 	err = os.Remove(pDir)
@@ -113,8 +113,10 @@ func TestExampleFSv06(t *testing.T) {
 	}
 }
 
-// Test example_filesystems/v0.6
+// Test example_filesystems/v0.6-plaintextnames
 // with password mount and -masterkey mount
+// v0.6 changed the file name handling a lot, hence the explicit test case for
+// plaintextnames.
 func TestExampleFSv06PlaintextNames(t *testing.T) {
 	pDir := tmpDir + "TestExampleFsV06PlaintextNames/"
 	cDir := "example_filesystems/v0.6-plaintextnames"
@@ -126,7 +128,30 @@ func TestExampleFSv06PlaintextNames(t *testing.T) {
 	checkExampleFS(t, pDir)
 	unmount(pDir)
 	mount(cDir, pDir, "-masterkey", "f4690202-595e4593-64c4f7e0-4dddd7d1-"+
-		"303147f9-0ca8aea2-966341a7-52ea8ae9", "-plaintextnames")
+		"303147f9-0ca8aea2-966341a7-52ea8ae9", "-plaintextnames", "-gcmiv128=false")
+	checkExampleFS(t, pDir)
+	unmount(pDir)
+	err = os.Remove(pDir)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+// Test example_filesystems/v0.7
+// with password mount and -masterkey mount
+// v0.7 adds 128 bit GCM IVs
+func TestExampleFSv07(t *testing.T) {
+	pDir := tmpDir + "TestExampleFsV07/"
+	cDir := "example_filesystems/v0.7"
+	err := os.Mkdir(pDir, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mount(cDir, pDir, "-extpass", "echo test")
+	checkExampleFS(t, pDir)
+	unmount(pDir)
+	mount(cDir, pDir, "-masterkey", "bee8d0c5-74ec49ff-24b8793d-91d488a9-"+
+		"6117c58b-357eafaa-162ce3cf-8a061a28")
 	checkExampleFS(t, pDir)
 	unmount(pDir)
 	err = os.Remove(pDir)

@@ -18,7 +18,7 @@ File Contents
 All file contents are encrypted using AES-256-GCM (Galois/Counter Mode).
 
 Files are segmented into 4KB blocks. Each block gets a fresh random
-96 bit IV each time it is modified. A 128-bit authentication tag (GHASH)
+128 bit IV each time it is modified. A 128-bit authentication tag (GHASH)
 protects each block from modifications.
 
 Each file has a header containing a random 128-bit file ID. The

@@ -21,7 +21,7 @@ func TestSplitRange(t *testing.T) {
 		testRange{6654, 8945})
 
 	key := make([]byte, KEY_LEN)
-	f := NewCryptFS(key, true, false)
+	f := NewCryptFS(key, true, false, true)
 
 	for _, r := range ranges {
 		parts := f.ExplodePlainRange(r.offset, r.length)
@@ -48,7 +48,7 @@ func TestCiphertextRange(t *testing.T) {
 		testRange{6654, 8945})
 
 	key := make([]byte, KEY_LEN)
-	f := NewCryptFS(key, true, false)
+	f := NewCryptFS(key, true, false, true)
 
 	for _, r := range ranges {
 
@@ -70,7 +70,7 @@ func TestCiphertextRange(t *testing.T) {
 
 func TestBlockNo(t *testing.T) {
 	key := make([]byte, KEY_LEN)
-	f := NewCryptFS(key, true, false)
+	f := NewCryptFS(key, true, false, true)
 
 	b := f.CipherOffToBlockNo(788)
 	if b != 0 {

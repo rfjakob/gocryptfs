@@ -266,7 +266,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 		blockOffset, blockLen := b.CiphertextRange()
 		blockData = f.cfs.EncryptBlock(blockData, b.BlockNo, f.header.Id)
 		cryptfs.Debug.Printf("ino%d: Writing %d bytes to block #%d, md5=%s\n",
-			f.ino, len(blockData)-cryptfs.BLOCK_OVERHEAD, b.BlockNo, cryptfs.Debug.Md5sum(blockData))
+			f.ino, uint64(len(blockData))-f.cfs.BlockOverhead(), b.BlockNo, cryptfs.Debug.Md5sum(blockData))
 
 		// Prevent partially written (=corrupt) blocks by preallocating the space beforehand
 		f.fdLock.Lock()

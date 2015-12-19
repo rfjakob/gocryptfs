@@ -35,7 +35,7 @@ const (
 
 type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
-	plaintextnames, quiet, diriv, emenames bool
+	plaintextnames, quiet, diriv, emenames, gcmiv128 bool
 	masterkey, mountpoint, cipherdir, cpuprofile, config, extpass string
 	notifypid, scryptn                                            int
 }
@@ -149,6 +149,7 @@ func main() {
 	flagSet.BoolVar(&args.quiet, "q", false, "Quiet - silence informational messages")
 	flagSet.BoolVar(&args.diriv, "diriv", true, "Use per-directory file name IV")
 	flagSet.BoolVar(&args.emenames, "emenames", true, "Use EME filename encryption. This option implies diriv.")
+	flagSet.BoolVar(&args.gcmiv128, "gcmiv128", true, "Use an 128-bit IV for GCM encryption instead of Go's default of 96 bits")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.config, "config", "", "Use specified config file instead of CIPHERDIR/gocryptfs.conf")
@@ -293,6 +294,7 @@ func pathfsFrontend(key []byte, args argContainer, confFile *cryptfs.ConfFile) *
 		PlaintextNames: args.plaintextnames,
 		DirIV:          args.diriv,
 		EMENames:       args.emenames,
+		GCMIV128:       args.gcmiv128,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {
@@ -300,6 +302,7 @@ func pathfsFrontend(key []byte, args argContainer, confFile *cryptfs.ConfFile) *
 		frontendArgs.PlaintextNames = confFile.IsFeatureFlagSet(cryptfs.FlagPlaintextNames)
 		frontendArgs.DirIV = confFile.IsFeatureFlagSet(cryptfs.FlagDirIV)
 		frontendArgs.EMENames = confFile.IsFeatureFlagSet(cryptfs.FlagEMENames)
+		frontendArgs.GCMIV128 = confFile.IsFeatureFlagSet(cryptfs.FlagGCMIV128)
 	}
 	// EMENames implies DirIV, both on the command line and in the config file.
 	if frontendArgs.EMENames {

@@ -8,4 +8,5 @@ type Args struct {
 	PlaintextNames bool
 	DirIV          bool
 	EMENames       bool
+	GCMIV128       bool
 }

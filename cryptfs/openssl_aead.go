@@ -7,6 +7,7 @@ import (
 	"github.com/spacemonkeygo/openssl"
 )
 
+// Supports all nonce sizes
 type opensslGCM struct {
 	key []byte
 }
@@ -16,13 +17,13 @@ func (be opensslGCM) Overhead() int {
 }
 
 func (be opensslGCM) NonceSize() int {
-	return NONCE_LEN
+	// We support any nonce size
+	return -1
 }
 
 // Seal encrypts and authenticates plaintext, authenticates the
 // additional data and appends the result to dst, returning the updated
-// slice. The nonce must be NonceSize() bytes long and unique for all
-// time, for a given key.
+// slice. opensslGCM supports any nonce size.
 func (be opensslGCM) Seal(dst, nonce, plaintext, data []byte) []byte {
 
 	// Preallocate output buffer

@@ -44,7 +44,7 @@ func (be *CryptFS) CipherSizeToPlainSize(cipherSize uint64) uint64 {
 	blockNo := be.CipherOffToBlockNo(cipherSize - 1)
 	blockCount := blockNo + 1
 
-	overhead := BLOCK_OVERHEAD*blockCount + HEADER_LEN
+	overhead := be.BlockOverhead()*blockCount + HEADER_LEN
 
 	return cipherSize - overhead
 }
@@ -56,7 +56,7 @@ func (be *CryptFS) PlainSizeToCipherSize(plainSize uint64) uint64 {
 	blockNo := be.PlainOffToBlockNo(plainSize - 1)
 	blockCount := blockNo + 1
 
-	overhead := BLOCK_OVERHEAD*blockCount + HEADER_LEN
+	overhead := be.BlockOverhead()*blockCount + HEADER_LEN
 
 	return plainSize + overhead
 }

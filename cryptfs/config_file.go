@@ -46,6 +46,7 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 	cf.EncryptKey(key, password, logN)
 
 	// Set feature flags
+	cf.FeatureFlags = append(cf.FeatureFlags, FlagGCMIV128)
 	if plaintextNames {
 		cf.FeatureFlags = append(cf.FeatureFlags, FlagPlaintextNames)
 	} else {
@@ -94,7 +95,7 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	// Unlock master key using password-based key
 	// We use stock go GCM instead of OpenSSL here as speed is not important
 	// and we get better error messages
-	cfs := NewCryptFS(scryptHash, false, false)
+	cfs := NewCryptFS(scryptHash, false, false, false)
 	key, err := cfs.DecryptBlock(cf.EncryptedKey, 0, nil)
 	if err != nil {
 		Warn.Printf("failed to unlock master key: %s\n", err.Error())
@@ -115,7 +116,7 @@ func (cf *ConfFile) EncryptKey(key []byte, password string, logN int) {
 	scryptHash := cf.ScryptObject.DeriveKey(password)
 
 	// Lock master key using password-based key
-	cfs := NewCryptFS(scryptHash, false, false)
+	cfs := NewCryptFS(scryptHash, false, false, false)
 	cf.EncryptedKey = cfs.EncryptBlock(key, 0, nil)
 }
 
@@ -155,16 +156,18 @@ func (cf *ConfFile) WriteFile() error {
 
 const (
 	// Understood Feature Flags.
-	// Also teach isFeatureFlagKnown() about any additions
+	// Also teach isFeatureFlagKnown() about any additions and
+	// add it to CreateConfFile() if you want to have it enabled by default.
 	FlagPlaintextNames = "PlaintextNames"
 	FlagDirIV          = "DirIV"
 	FlagEMENames       = "EMENames"
+	FlagGCMIV128       = "GCMIV128"
 )
 
 // Verify that we understand a feature flag
 func (cf *ConfFile) isFeatureFlagKnown(flag string) bool {
 	switch flag {
-	case FlagPlaintextNames, FlagDirIV, FlagEMENames:
+	case FlagPlaintextNames, FlagDirIV, FlagEMENames, FlagGCMIV128:
 		return true
 	default:
 		return false

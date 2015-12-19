@@ -29,7 +29,7 @@ type FS struct {
 // Encrypted FUSE overlay filesystem
 func NewFS(args Args) *FS {
 	return &FS{
-		CryptFS:    cryptfs.NewCryptFS(args.Masterkey, args.OpenSSL, args.PlaintextNames),
+		CryptFS:    cryptfs.NewCryptFS(args.Masterkey, args.OpenSSL, args.PlaintextNames, args.GCMIV128),
 		FileSystem: pathfs.NewLoopbackFileSystem(args.Cipherdir),
 		args:       args,
 	}
