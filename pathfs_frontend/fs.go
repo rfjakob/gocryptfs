@@ -1,5 +1,7 @@
 package pathfs_frontend
 
+// FUSE operations on paths
+
 import (
 	"encoding/base64"
 	"os"
@@ -300,6 +302,17 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 	fs.CryptFS.DirIVCacheEnc.Clear()
 
 	err = os.Rename(cOldPath, cNewPath)
+
+	if lerr, ok := err.(*os.LinkError); ok && lerr.Err == syscall.ENOTEMPTY {
+		// If an empty directory is overwritten we will always get
+		// ENOTEMPTY as the "empty" directory will still contain gocryptfs.diriv.
+		// Handle that case by removing the target directory and trying again.
+		cryptfs.Debug.Printf("Rename: Handling ENOTEMPTY\n")
+		if fs.Rmdir(newPath, context) == fuse.OK {
+			err = os.Rename(cOldPath, cNewPath)
+		}
+	}
+
 	return fuse.ToStatus(err)
 }
 

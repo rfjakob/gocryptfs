@@ -1,5 +1,7 @@
 package pathfs_frontend
 
+// FUSE operations on file handles
+
 import (
 	"bytes"
 	"fmt"

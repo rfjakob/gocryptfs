@@ -1,5 +1,7 @@
 package pathfs_frontend
 
+// Mkdir and Rmdir
+
 import (
 	"fmt"
 	"os"

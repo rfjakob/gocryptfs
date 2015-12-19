@@ -1,5 +1,7 @@
 package pathfs_frontend
 
+// Helper functions for sparse files (files with holes)
+
 import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/rfjakob/gocryptfs/cryptfs"
