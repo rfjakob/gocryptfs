@@ -12,10 +12,14 @@ issues while providing good performance.
 For details on the security of gocryptfs see the
 [Security](https://nuetzlich.net/gocryptfs/security/) design document.
 
+All tags from v0.4 onward are signed by the *gocryptfs signing key*.
+Please check [Releases](https://nuetzlich.net/gocryptfs/releases/) for
+details.
+
 Current Status
 --------------
 
-Beta. You are advised to keep a backup of your data outside of gocryptfs, in
+gocryptfs is a young project. You are advised to keep a backup of your data outside of gocryptfs, in
 addition to storing the *master key* in a safe place (the master key is printed
 when mounting).
 
