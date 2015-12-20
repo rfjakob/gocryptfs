@@ -1,4 +1,4 @@
-GoCryptFS [![Build Status](https://travis-ci.org/rfjakob/gocryptfs.svg?branch=master)](https://travis-ci.org/rfjakob/gocryptfs) ![Release Status](https://img.shields.io/badge/status-beta-yellow.svg?style=flat)
+![gocryptfs](Documentation/logo.svg.png) [![Build Status](https://travis-ci.org/rfjakob/gocryptfs.svg?branch=master)](https://travis-ci.org/rfjakob/gocryptfs) ![Release Status](https://img.shields.io/badge/status-beta-yellow.svg?style=flat)
 ==============
 An encrypted overlay filesystem written in Go.
 
@@ -97,6 +97,15 @@ The output should look like this:
 Changelog
 ---------
 
+v0.7
+* **Extend GCM IV size to 128 bit from Go's default of 96 bit**
+ * This pushes back the birthday bound to make IV collisions virtually
+   impossible
+ * This is a forwards-compatible change. gocryptfs v0.7 can mount filesystems
+   created by earlier versions but not the other way round.
+* New command-line option:
+ * `-gcmiv128`: Use 128-bit GCM IVs (default true)
+
 v0.6
 * **Wide-block filename encryption using EME + DirIV**
  * EME (ECB-Mix-ECB) provides even better security than CBC as it fixes
@@ -104,7 +113,7 @@ v0.6
    https://github.com/rfjakob/eme which is, as far as I know, the first
    implementation of EME in Go.
  * This is a forwards-compatible change. gocryptfs v0.6 can mount filesystems
-   created by earlier version but not the other way round.
+   created by earlier versions but not the other way round.
 * New command-line option:
  * `-emenames`: Enable EME filename encryption (default true)
 
@@ -117,7 +126,7 @@ v0.5
  * A single-entry IV cache brings the performance cost of DirIV close to
    zero for common operations (see performance.txt)
  * This is a forwards-compatible change. gocryptfs v0.5 can mount filesystems
-   created by earlier version but not the other way round.
+   created by earlier versions but not the other way round.
 * New command-line option:
  * `-diriv`: Use the new per-directory IV file name encryption (default true)
  * `-scryptn`: allows to set the scrypt cost parameter N. This option
