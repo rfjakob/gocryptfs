@@ -72,7 +72,9 @@ func initDir(args *argContainer) {
 		}
 	}
 
-	cryptfs.Info.Printf("The filesystem is now ready for mounting.\n")
+	cryptfs.Info.Printf(colorGreen+"The filesystem has been created successfully.\n"+colorReset)
+	cryptfs.Info.Printf(colorGrey+"You can now mount it using: %s %s MOUNTPOINT\n"+colorReset,
+		PROGRAM_NAME, args.cipherdir)
 	os.Exit(0)
 }
 
