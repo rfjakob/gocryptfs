@@ -23,7 +23,7 @@ gocryptfs is a young project. You are advised to keep a backup of your data outs
 addition to storing the *master key* in a safe place (the master key is printed
 when mounting).
 
-Only Linux is supported at the moment. Help wanted for a Mac OS X port.
+Only Linux is supported at the moment. [Help wanted for a Mac OS X port.](https://github.com/rfjakob/gocryptfs/issues/15)
 
 Testing
 -------
