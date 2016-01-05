@@ -1,4 +1,4 @@
-![gocryptfs](Documentation/logo.svg.png) [![Build Status](https://travis-ci.org/rfjakob/gocryptfs.svg?branch=master)](https://travis-ci.org/rfjakob/gocryptfs) ![Release Status](https://img.shields.io/badge/status-beta-yellow.svg?style=flat)
+[![gocryptfs](https://nuetzlich.net/gocryptfs/img/gocryptfs-logo.paths-black.svg)](https://nuetzlich.net/gocryptfs/) [![Build Status](https://travis-ci.org/rfjakob/gocryptfs.svg?branch=master)](https://travis-ci.org/rfjakob/gocryptfs) ![MIT License](https://img.shields.io/badge/license-mit-blue.svg)
 ==============
 An encrypted overlay filesystem written in Go.
 Official website: https://nuetzlich.net/gocryptfs
