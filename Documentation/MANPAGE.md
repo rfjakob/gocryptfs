@@ -99,3 +99,14 @@ mounting but makes the password susceptible to brute-force attacks (default 16)
 :	Use all-zero dummy master key. This options is only intended for
 automated testing as it does not provide any security.
 
+
+EXAMPLES
+========
+
+Create and mount an encrypted filesystem:
+
+mkdir /tmp/g1 /tmp/g2
+
+gocryptfs -init /tmp/g1  
+gocryptfs /tmp/g1 /tmp/g2
+
