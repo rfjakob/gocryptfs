@@ -99,7 +99,7 @@ func (f *file) createHeader() error {
 	// Prevent partially written (=corrupt) header by preallocating the space beforehand
 	f.fdLock.Lock()
 	defer f.fdLock.Unlock()
-	err := fallocateRetry(int(f.fd.Fd()), FALLOC_FL_KEEP_SIZE, 0, cryptfs.HEADER_LEN)
+	err := prealloc(int(f.fd.Fd()), 0, cryptfs.HEADER_LEN)
 	if err != nil {
 		cryptfs.Warn.Printf("createHeader: fallocateRetry failed: %s\n", err.Error())
 		return err
@@ -207,17 +207,6 @@ func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 	return fuse.ReadResultData(out), status
 }
 
-// fallocateRetry - syscall.Fallocate() with retry for EINTR.
-func fallocateRetry(fd int, mode uint32, off int64, len int64) (err error) {
-	for {
-		err = syscall.Fallocate(fd, mode, off, len)
-		if err == syscall.EINTR {
-			continue
-		}
-		return err
-	}
-}
-
 const FALLOC_FL_KEEP_SIZE = 0x01
 
 // doWrite - encrypt "data" and write it to plaintext offset "off"
@@ -270,7 +259,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 
 		// Prevent partially written (=corrupt) blocks by preallocating the space beforehand
 		f.fdLock.Lock()
-		err := fallocateRetry(int(f.fd.Fd()), FALLOC_FL_KEEP_SIZE, int64(blockOffset), int64(blockLen))
+		err := prealloc(int(f.fd.Fd()), int64(blockOffset), int64(blockLen))
 		f.fdLock.Unlock()
 		if err != nil {
 			cryptfs.Warn.Printf("doWrite: fallocateRetry failed: %s\n", err.Error())
