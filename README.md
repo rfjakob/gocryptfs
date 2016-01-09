@@ -13,15 +13,16 @@ For details on the security of gocryptfs see the
 [Security](https://nuetzlich.net/gocryptfs/security/) design document.
 
 All tags from v0.4 onward are signed by the *gocryptfs signing key*.
-Please check [Releases](https://nuetzlich.net/gocryptfs/releases/) for
+Please check [Signed Releases](https://nuetzlich.net/gocryptfs/releases/) for
 details.
 
 Current Status
 --------------
 
-gocryptfs is a young project. You are advised to keep a backup of your data outside of gocryptfs, in
-addition to storing the *master key* in a safe place (the master key is printed
-when mounting).
+gocryptfs is a young project. While bugs in any software can cause issues,
+bugs in encryption software can cause catastrophic data loss. Keep a backup
+of your gocryptfs filesystem *and* store a copy of your master key (printed
+on mount) in a safe place.
 
 Only Linux is supported at the moment. [Help wanted for a Mac OS X port.](https://github.com/rfjakob/gocryptfs/issues/15)
 
@@ -29,7 +30,7 @@ Testing
 -------
 
 gocryptfs comes with is own test suite that is constantly expanded as features are
-added. Run it using `./test.bash`. It takes about 30 seconds and requires FUSE
+added. Run it using `./test.bash`. It takes about 1 minute and requires FUSE
 as it mounts several test filesystems.
 
 In addition, I have ported `xfstests` to FUSE, the result is the
@@ -42,7 +43,7 @@ as well as in go-fuse.
 The one exception is generic/035, see [go-fuse issue 55](https://github.com/hanwen/go-fuse/issues/55)
 for details. While this is a POSIX violation, I do not see any real-world impact.
 
-Install
+Compile
 -------
 
 	$ go get github.com/rfjakob/gocryptfs
@@ -50,23 +51,15 @@ Install
 Use
 ---
 
-Quickstart:
-
 	$ mkdir cipher plain
-	$ $GOPATH/bin/gocryptfs --init cipher
-	  [...]
+	$ $GOPATH/bin/gocryptfs -init cipher
 	$ $GOPATH/bin/gocryptfs cipher plain
-	  [...]
-	$ echo test > plain/test.txt
-	$ ls -l cipher
-	  total 8
-	  -rw-rw-r--. 1 user  user   33  7. Okt 23:23 0ao8Hyyf1A-A88sfNvkUxA==
-	  -rw-rw-r--. 1 user  user  233  7. Okt 23:23 gocryptfs.conf
-	$ fusermount -u plain
 
-See [MANPAGE.md](Documentation/MANPAGE.md) for a description of available options. If you already
-have gocryptfs installed, run `./MANPAGE-render.bash` to bring up the rendered manpage in
-the pager (requires pandoc).
+See the [Quickstart](https://nuetzlich.net/gocryptfs/quickstart/) page for more info.
+
+The [MANPAGE.md](Documentation/MANPAGE.md) containes a description of available command-line options.
+If you already have gocryptfs installed, run `./MANPAGE-render.bash` to bring up the rendered manpage in
+your man pager (requires pandoc).
 
 Storage Overhead
 ----------------
@@ -74,6 +67,8 @@ Storage Overhead
 * Empty files take 0 bytes on disk
 * 18 byte file header for non-empty files (2 bytes version, 16 bytes random file id)
 * 28 bytes of storage overhead per 4kB block (12 byte nonce, 16 bytes auth tag)
+
+[file-format.md](Documentation/file-format.md) contains a more detailed description.
 
 Performance
 -----------
@@ -102,6 +97,11 @@ The output should look like this:
 Changelog
 ---------
 
+v0.7.1
+* Make the `build.bash` script compatible with Go 1.3
+* Disable fallocate on OSX (system call not availabe)
+* Introduce pre-built binaries for Fedora 23 and Debian 8
+
 v0.7
 * **Extend GCM IV size to 128 bit from Go's default of 96 bit**
  * This pushes back the birthday bound to make IV collisions virtually
@@ -121,6 +121,10 @@ v0.6
    created by earlier versions but not the other way round.
 * New command-line option:
  * `-emenames`: Enable EME filename encryption (default true)
+
+v0.5.1
+* Fix a rename regression caused by DirIV and add test case
+* Use fallocate to guard against out-of-space errors
 
 v0.5
 * **Stronger filename encryption: DirIV**
