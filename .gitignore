@@ -4,8 +4,9 @@
 # temporary files created by the tests
 /tmp
 
-# binary releases
+# binary releases and signatiures
 /*.tar.gz
+/*.asc
 
 # Binaries created for cpu profiling
 *.test

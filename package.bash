@@ -1,12 +1,14 @@
 #!/bin/bash
 
-set -eux
+set -eu
 
-source build.bash
+source build.bash # Builds binary and sets GITVERSION (example: v0.7-15-gf01f599)
+source /etc/os-release # Sets ID (example: fedora) and VERSION_ID (example: 23)
+ARCH=$(go env GOARCH)
 
-ARCH=$(go version | cut -d ' ' -f 4 | tr / -)
-
-TARGZ=gocryptfs_${GITVERSION}_$ARCH.tar.gz
+TARGZ=gocryptfs_${GITVERSION}_${ID}${VERSION_ID}_${ARCH}.tar.gz
 
 tar czf $TARGZ gocryptfs
-ls -lh $TARGZ
+
+echo "Tar created."
+echo "Hint for signing: gpg -u 23A02740 --armor --detach-sig $TARGZ"
