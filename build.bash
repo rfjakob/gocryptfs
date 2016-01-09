@@ -18,3 +18,6 @@ else
 fi
 
 ./gocryptfs -version
+
+mkdir -p $GOPATH/bin
+cp -af gocryptfs $GOPATH/bin
