@@ -1,7 +1,5 @@
 package pathfs_frontend
 
-import "syscall"
-
 // prealloc - preallocate space without changing the file size. This prevents
 // us from running out of space in the middle of an operation.
 func prealloc(fd int, off int64, len int64) (err error) {
@@ -10,4 +8,5 @@ func prealloc(fd int, off int64, len int64) (err error) {
 	// fcntl F_PREALLOCATE is not accessible from Go.
 	//
 	// See https://github.com/rfjakob/gocryptfs/issues/18 if you want to help.
+	return nil
 }
