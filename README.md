@@ -98,7 +98,7 @@ Changelog
 ---------
 
 v0.7.2
-* **Fix in small file creation**
+* **Fix performance issue in small file creation**
  * This brings performance on-par with EncFS paranoia mode, with streaming writes
    significantly faster
  * The actual [fix](https://github.com/hanwen/go-fuse/commit/c4b6b7949716d13eec856baffc7b7941ae21778c)
