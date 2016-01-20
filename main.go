@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log/syslog"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -276,9 +277,17 @@ func main() {
 	cryptfs.Debug.Printf("cli args: %v", args)
 	srv := pathfsFrontend(masterkey, args, confFile)
 	cryptfs.Info.Println(colorGreen + "Filesystem mounted and ready." + colorReset)
-	// We are ready - send USR1 signal to our parent
+	// We are ready - send USR1 signal to our parent and switch to syslog
 	if args.notifypid > 0 {
 		sendUsr1(args.notifypid)
+
+		if !args.quiet {
+			switchToSyslog(cryptfs.Info, syslog.LOG_USER|syslog.LOG_INFO)
+		}
+		if args.debug {
+			switchToSyslog(cryptfs.Debug, syslog.LOG_USER|syslog.LOG_DEBUG)
+		}
+		switchToSyslog(cryptfs.Warn, syslog.LOG_USER|syslog.LOG_WARNING)
 	}
 	// Wait for SIGINT in the background and unmount ourselves if we get it.
 	// This prevents a dangling "Transport endpoint is not connected" mountpoint.
