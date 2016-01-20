@@ -41,10 +41,10 @@ func (fs *FS) Mkdir(relPath string, mode uint32, context *fuse.Context) (code fu
 	err = cryptfs.WriteDirIV(encPath)
 	if err != nil {
 		// This should not happen
-		cryptfs.Warn.Printf("Mkdir: WriteDirIV failed: %v\n", err)
+		cryptfs.Warn.Printf("Mkdir: WriteDirIV failed: %v", err)
 		err2 := syscall.Rmdir(encPath)
 		if err2 != nil {
-			cryptfs.Warn.Printf("Mkdir: Rmdir rollback failed: %v\n", err2)
+			cryptfs.Warn.Printf("Mkdir: Rmdir rollback failed: %v", err2)
 		}
 		return fuse.ToStatus(err)
 	}
@@ -53,7 +53,7 @@ func (fs *FS) Mkdir(relPath string, mode uint32, context *fuse.Context) (code fu
 	if origMode != mode {
 		err = os.Chmod(encPath, os.FileMode(origMode))
 		if err != nil {
-			cryptfs.Warn.Printf("Mkdir: Chmod failed: %v\n", err)
+			cryptfs.Warn.Printf("Mkdir: Chmod failed: %v", err)
 		}
 	}
 
@@ -74,17 +74,17 @@ func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 	fd, err := os.Open(encPath)
 	if perr, ok := err.(*os.PathError); ok && perr.Err == syscall.EACCES {
 		// We need permission to read and modify the directory
-		cryptfs.Debug.Printf("Rmdir: handling EACCESS\n")
+		cryptfs.Debug.Printf("Rmdir: handling EACCESS")
 		fi, err2 := os.Stat(encPath)
 		if err2 != nil {
-			cryptfs.Debug.Printf("Rmdir: Stat: %v\n", err2)
+			cryptfs.Debug.Printf("Rmdir: Stat: %v", err2)
 			return fuse.ToStatus(err2)
 		}
 		origMode := fi.Mode()
 		newMode := origMode | 0700
 		err2 = os.Chmod(encPath, newMode)
 		if err2 != nil {
-			cryptfs.Debug.Printf("Rmdir: Chmod failed: %v\n", err2)
+			cryptfs.Debug.Printf("Rmdir: Chmod failed: %v", err2)
 			return fuse.ToStatus(err)
 		}
 		defer func() {
@@ -92,7 +92,7 @@ func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 				// Undo the chmod if removing the directory failed
 				err3 := os.Chmod(encPath, origMode)
 				if err3 != nil {
-					cryptfs.Warn.Printf("Rmdir: Chmod rollback failed: %v\n", err2)
+					cryptfs.Warn.Printf("Rmdir: Chmod rollback failed: %v", err2)
 				}
 			}
 		}()
@@ -100,19 +100,19 @@ func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 		fd, err = os.Open(encPath)
 	}
 	if err != nil {
-		cryptfs.Debug.Printf("Rmdir: Open: %v\n", err)
+		cryptfs.Debug.Printf("Rmdir: Open: %v", err)
 		return fuse.ToStatus(err)
 	}
 	list, err := fd.Readdirnames(10)
 	fd.Close()
 	if err != nil {
-		cryptfs.Debug.Printf("Rmdir: Readdirnames: %v\n", err)
+		cryptfs.Debug.Printf("Rmdir: Readdirnames: %v", err)
 		return fuse.ToStatus(err)
 	}
 	if len(list) > 1 {
 		return fuse.ToStatus(syscall.ENOTEMPTY)
 	} else if len(list) == 0 {
-		cryptfs.Warn.Printf("Rmdir: gocryptfs.diriv missing, allowing deletion\n")
+		cryptfs.Warn.Printf("Rmdir: gocryptfs.diriv missing, allowing deletion")
 		return fuse.ToStatus(syscall.Rmdir(encPath))
 	}
 
@@ -121,14 +121,14 @@ func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 	parentDir := filepath.Dir(encPath)
 	tmpName := fmt.Sprintf("gocryptfs.diriv.rmdir.%d", cryptfs.RandUint64())
 	tmpDirivPath := filepath.Join(parentDir, tmpName)
-	cryptfs.Debug.Printf("Rmdir: Renaming %s to %s\n", cryptfs.DIRIV_FILENAME, tmpDirivPath)
+	cryptfs.Debug.Printf("Rmdir: Renaming %s to %s", cryptfs.DIRIV_FILENAME, tmpDirivPath)
 	// The directory is in an inconsistent state between rename and rmdir. Protect against
 	// concurrent readers.
 	fs.dirIVLock.Lock()
 	defer fs.dirIVLock.Unlock()
 	err = os.Rename(dirivPath, tmpDirivPath)
 	if err != nil {
-		cryptfs.Warn.Printf("Rmdir: Renaming %s to %s failed: %v\n", cryptfs.DIRIV_FILENAME, tmpDirivPath, err)
+		cryptfs.Warn.Printf("Rmdir: Renaming %s to %s failed: %v", cryptfs.DIRIV_FILENAME, tmpDirivPath, err)
 		return fuse.ToStatus(err)
 	}
 	// Actual Rmdir
@@ -138,14 +138,14 @@ func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 		// meantime, undo the rename
 		err2 := os.Rename(tmpDirivPath, dirivPath)
 		if err2 != nil {
-			cryptfs.Warn.Printf("Rmdir: Rename rollback failed: %v\n", err2)
+			cryptfs.Warn.Printf("Rmdir: Rename rollback failed: %v", err2)
 		}
 		return fuse.ToStatus(err)
 	}
 	// Delete "gocryptfs.diriv.rmdir.INODENUMBER"
 	err = syscall.Unlink(tmpDirivPath)
 	if err != nil {
-		cryptfs.Warn.Printf("Rmdir: Could not clean up %s: %v\n", tmpName, err)
+		cryptfs.Warn.Printf("Rmdir: Could not clean up %s: %v", tmpName, err)
 	}
 	// The now-deleted directory may have been in the DirIV cache. Clear it.
 	fs.CryptFS.DirIVCacheEnc.Clear()

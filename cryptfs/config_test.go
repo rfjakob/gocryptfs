@@ -2,6 +2,8 @@ package cryptfs
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 )
@@ -33,10 +35,10 @@ func TestLoadV2(t *testing.T) {
 
 func TestLoadV2PwdError(t *testing.T) {
 	if !testing.Verbose() {
-		Warn.Disable()
+		Warn.SetOutput(ioutil.Discard)
 	}
 	_, _, err := LoadConfFile("config_test/v2.conf", "wrongpassword")
-	Warn.Enable()
+	Warn.SetOutput(os.Stderr)
 	if err == nil {
 		t.Errorf("Loading with wrong password must fail but it didn't")
 	}

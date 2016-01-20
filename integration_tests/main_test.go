@@ -24,7 +24,7 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 
 	if testing.Verbose() {
-		fmt.Printf("***** Testing with OpenSSL\n")
+		fmt.Println("***** Testing with OpenSSL")
 	}
 	resetTmpDir() // <- this also create gocryptfs.diriv
 	mount(defaultCipherDir, defaultPlainDir, "--zerokey")
@@ -40,7 +40,7 @@ func TestMain(m *testing.M) {
 	}
 
 	if testing.Verbose() {
-		fmt.Printf("***** Testing with native Go crypto\n")
+		fmt.Println("***** Testing with native Go crypto")
 	}
 	resetTmpDir()
 	mount(defaultCipherDir, defaultPlainDir, "--zerokey", "--openssl=false")
@@ -52,7 +52,7 @@ func TestMain(m *testing.M) {
 	}
 
 	if testing.Verbose() {
-		fmt.Printf("***** Testing \"--plaintextnames\"\n")
+		fmt.Println("***** Testing \"--plaintextnames\"")
 	}
 	resetTmpDir()
 	mount(defaultCipherDir, defaultPlainDir, "--zerokey", "--plaintextnames")
@@ -77,7 +77,7 @@ func testWriteN(t *testing.T, fn string, n int) string {
 	d := make([]byte, n)
 	written, err := file.Write(d)
 	if err != nil || written != len(d) {
-		t.Errorf("err=\"%s\", written=%d\n", err, written)
+		t.Errorf("err=\"%s\", written=%d", err, written)
 	}
 	err = file.Close()
 	if err != nil {
@@ -92,7 +92,7 @@ func testWriteN(t *testing.T, fn string, n int) string {
 	hashActual := md5fn(defaultPlainDir + fn)
 
 	if hashActual != hashWant {
-		t.Errorf("Wrong content, hashWant=%s hashActual=%s\n", hashWant, hashActual)
+		t.Errorf("Wrong content, hashWant=%s hashActual=%s", hashWant, hashActual)
 	}
 
 	return hashActual

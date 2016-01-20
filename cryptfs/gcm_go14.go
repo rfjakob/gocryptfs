@@ -13,8 +13,8 @@ import (
 // compiled on 1.4.
 func goGCMWrapper(bc cipher.Block, nonceSize int) (cipher.AEAD, error) {
 	if nonceSize != 12 {
-		Warn.Printf("128 bit GCM IVs are not supported by Go 1.4 and lower.\n")
-		Warn.Printf("Please use openssl crypto or recompile using a newer Go runtime.\n")
+		Warn.Printf("128 bit GCM IVs are not supported by Go 1.4 and lower.")
+		Warn.Printf("Please use openssl crypto or recompile using a newer Go runtime.")
 		return nil, fmt.Errorf("128 bit GCM IVs are not supported by Go 1.4 and lower")
 	}
 	return cipher.NewGCM(bc)

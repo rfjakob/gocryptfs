@@ -58,7 +58,6 @@ func BenchmarkStreamRead(t *testing.B) {
 			}
 		}
 		f2.Close()
-		//fmt.Printf("done\n")
 	}
 
 	file, err := os.Open(fn)
@@ -70,7 +69,7 @@ func BenchmarkStreamRead(t *testing.B) {
 	for i = 0; i < t.N; i++ {
 		_, err := file.Read(buf)
 		if err == io.EOF {
-			fmt.Printf("Test file too small\n")
+			fmt.Println("Test file too small")
 			t.SkipNow()
 		} else if err != nil {
 			fmt.Println(err)

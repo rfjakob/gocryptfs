@@ -55,12 +55,12 @@ func (be *CryptFS) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []byte
 
 	// All-zero block?
 	if bytes.Equal(ciphertext, be.allZeroBlock) {
-		Debug.Printf("DecryptBlock: file hole encountered\n")
+		Debug.Printf("DecryptBlock: file hole encountered")
 		return make([]byte, be.plainBS), nil
 	}
 
 	if len(ciphertext) < be.gcmIVLen {
-		Warn.Printf("DecryptBlock: Block is too short: %d bytes\n", len(ciphertext))
+		Warn.Printf("DecryptBlock: Block is too short: %d bytes", len(ciphertext))
 		return nil, errors.New("Block is too short")
 	}
 
@@ -77,7 +77,7 @@ func (be *CryptFS) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []byte
 	plaintext, err := be.gcm.Open(plaintext, nonce, ciphertext, aData)
 
 	if err != nil {
-		Warn.Printf("DecryptBlock: %s, len=%d, md5=%s\n", err.Error(), len(ciphertextOrig), Warn.Md5sum(ciphertextOrig))
+		Warn.Printf("DecryptBlock: %s, len=%d, md5=%s", err.Error(), len(ciphertextOrig), md5sum(ciphertextOrig))
 		Debug.Println(hex.Dump(ciphertextOrig))
 		return nil, err
 	}

@@ -75,17 +75,17 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	// Unmarshal
 	err = json.Unmarshal(js, &cf)
 	if err != nil {
-		Warn.Printf("Failed to unmarshal config file\n")
+		Warn.Printf("Failed to unmarshal config file")
 		return nil, nil, err
 	}
 
 	if cf.Version != HEADER_CURRENT_VERSION {
-		return nil, nil, fmt.Errorf("Unsupported on-disk format %d\n", cf.Version)
+		return nil, nil, fmt.Errorf("Unsupported on-disk format %d", cf.Version)
 	}
 
 	for _, flag := range cf.FeatureFlags {
 		if cf.isFeatureFlagKnown(flag) == false {
-			return nil, nil, fmt.Errorf("Unsupported feature flag %s\n", flag)
+			return nil, nil, fmt.Errorf("Unsupported feature flag %s", flag)
 		}
 	}
 
@@ -98,8 +98,8 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	cfs := NewCryptFS(scryptHash, false, false, false)
 	key, err := cfs.DecryptBlock(cf.EncryptedKey, 0, nil)
 	if err != nil {
-		Warn.Printf("failed to unlock master key: %s\n", err.Error())
-		Warn.Printf("Password incorrect.\n")
+		Warn.Printf("failed to unlock master key: %s", err.Error())
+		Warn.Printf("Password incorrect.")
 		return nil, nil, err
 	}
 

@@ -2,67 +2,33 @@ package cryptfs
 
 import (
 	"encoding/json"
-	"fmt"
-	"strings"
+	"io/ioutil"
+	"log"
+	"os"
 )
 
-type logChannel struct {
-	enabled bool
-}
-
-func (l *logChannel) Printf(format string, args ...interface{}) {
-	if l.enabled == true {
-		fmt.Printf(format, args...)
-	}
-}
-
-func (l *logChannel) Println(s string) {
-	if l.enabled == true {
-		fmt.Println(s)
-	}
-}
-
-func (l *logChannel) Dump(d []byte) {
-	s := string(d)
-	fmt.Println(strings.Replace(s, "\000", "\\0", -1))
-}
-
-func (l *logChannel) JSONDump(obj interface{}) {
-	if !l.enabled {
-		return
-	}
+func JSONDump(obj interface{}) string {
 	b, err := json.MarshalIndent(obj, "", "\t")
 	if err != nil {
-		fmt.Println(err)
+		return err.Error()
 	} else {
-		fmt.Println(string(b))
+		return string(b)
 	}
-}
-
-func (l *logChannel) Enable() {
-	l.enabled = true
-}
-
-func (l *logChannel) Disable() {
-	l.enabled = false
-}
-
-// Only actually calculate the md5sum if the log channel is enabled to save
-// CPU cycles
-func (l *logChannel) Md5sum(buf []byte) string {
-	if l.enabled == false {
-		return "disabled"
-	}
-	return md5sum(buf)
 }
 
 // As defined by http://elinux.org/Debugging_by_printing#Log_Levels
 
 // Debug messages
-var Debug = logChannel{false}
+var Debug *log.Logger
 
 // Informational message e.g. startup information
-var Info = logChannel{true}
+var Info *log.Logger
 
 // A warning, meaning nothing serious by itself but might indicate problems
-var Warn = logChannel{true}
+var Warn *log.Logger
+
+func init() {
+	Debug = log.New(ioutil.Discard, "", 0)
+	Info = log.New(os.Stdout, "", 0)
+	Warn = log.New(os.Stderr, "", 0)
+}

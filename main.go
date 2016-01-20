@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -55,7 +57,7 @@ func initDir(args *argContainer) {
 	}
 
 	// Create gocryptfs.conf
-	cryptfs.Info.Printf("Choose a password for protecting your files.\n")
+	cryptfs.Info.Printf("Choose a password for protecting your files.")
 	password := readPasswordTwice(args.extpass)
 	err = cryptfs.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn)
 	if err != nil {
@@ -72,8 +74,8 @@ func initDir(args *argContainer) {
 		}
 	}
 
-	cryptfs.Info.Printf(colorGreen+"The filesystem has been created successfully.\n"+colorReset)
-	cryptfs.Info.Printf(colorGrey+"You can now mount it using: %s %s MOUNTPOINT\n"+colorReset,
+	cryptfs.Info.Printf(colorGreen + "The filesystem has been created successfully." + colorReset)
+	cryptfs.Info.Printf(colorGrey+"You can now mount it using: %s %s MOUNTPOINT"+colorReset,
 		PROGRAM_NAME, args.cipherdir)
 	os.Exit(0)
 }
@@ -98,15 +100,15 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *cryptfs.ConfFil
 	fmt.Printf("Password: ")
 	pw := readPassword(args.extpass)
 	cryptfs.Info.Printf("Decrypting master key... ")
-	cryptfs.Warn.Disable() // Silence DecryptBlock() error messages on incorrect password
+	cryptfs.Warn.SetOutput(ioutil.Discard) // Silence DecryptBlock() error messages on incorrect password
 	masterkey, confFile, err = cryptfs.LoadConfFile(args.config, pw)
-	cryptfs.Warn.Enable()
+	cryptfs.Warn.SetOutput(os.Stderr)
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println(colorRed + "Wrong password." + colorReset)
 		os.Exit(ERREXIT_LOADCONF)
 	}
-	cryptfs.Info.Printf("done.\n")
+	cryptfs.Info.Printf("done.")
 
 	return masterkey, confFile
 }
@@ -114,7 +116,7 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *cryptfs.ConfFil
 // changePassword - change the password of config file "filename"
 func changePassword(args *argContainer) {
 	masterkey, confFile := loadConfig(args)
-	fmt.Printf("Please enter your new password.\n")
+	fmt.Println("Please enter your new password.")
 	newPw := readPasswordTwice(args.extpass)
 	confFile.EncryptKey(masterkey, newPw, confFile.ScryptObject.LogN())
 	err := confFile.WriteFile()
@@ -122,7 +124,7 @@ func changePassword(args *argContainer) {
 		fmt.Println(err)
 		os.Exit(ERREXIT_INIT)
 	}
-	cryptfs.Info.Printf("Password changed.\n")
+	cryptfs.Info.Printf("Password changed.")
 	os.Exit(0)
 }
 
@@ -175,8 +177,8 @@ func main() {
 		os.Exit(0)
 	}
 	if args.debug {
-		cryptfs.Debug.Enable()
-		cryptfs.Debug.Printf("Debug output enabled\n")
+		cryptfs.Debug.SetOutput(os.Stdout)
+		cryptfs.Debug.Printf("Debug output enabled")
 	}
 	// Every operation below requires CIPHERDIR. Check that we have it.
 	if flagSet.NArg() >= 1 {
@@ -192,7 +194,7 @@ func main() {
 	}
 	// "-q"
 	if args.quiet {
-		cryptfs.Info.Disable()
+		cryptfs.Info.SetOutput(ioutil.Discard)
 	}
 	// "-config"
 	if args.config != "" {
@@ -200,7 +202,7 @@ func main() {
 		if err != nil {
 			fmt.Printf(colorRed+"Invalid \"-config\" setting: %v\n"+colorReset, err)
 		}
-		cryptfs.Info.Printf("Using config file at custom location %s\n", args.config)
+		cryptfs.Info.Printf("Using config file at custom location %s", args.config)
 	} else {
 		args.config = filepath.Join(args.cipherdir, cryptfs.ConfDefaultName)
 	}
@@ -211,13 +213,13 @@ func main() {
 			fmt.Println(err)
 			os.Exit(ERREXIT_INIT)
 		}
-		cryptfs.Info.Printf("Writing CPU profile to %s\n", args.cpuprofile)
+		cryptfs.Info.Printf("Writing CPU profile to %s", args.cpuprofile)
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
 	// "-openssl"
 	if args.openssl == false {
-		cryptfs.Info.Printf("Openssl disabled\n")
+		cryptfs.Info.Printf("Openssl disabled")
 	}
 	// Operation flags: init, passwd or mount
 	// "-init"
@@ -257,13 +259,13 @@ func main() {
 	var confFile *cryptfs.ConfFile
 	if args.masterkey != "" {
 		// "-masterkey"
-		cryptfs.Info.Printf("Using explicit master key.\n")
+		cryptfs.Info.Printf("Using explicit master key.")
 		masterkey = parseMasterKey(args.masterkey)
-		cryptfs.Info.Printf("THE MASTER KEY IS VISIBLE VIA \"ps -auxwww\", ONLY USE THIS MODE FOR EMERGENCIES.\n")
+		cryptfs.Info.Printf("THE MASTER KEY IS VISIBLE VIA \"ps -auxwww\", ONLY USE THIS MODE FOR EMERGENCIES.")
 	} else if args.zerokey {
 		// "-zerokey"
-		cryptfs.Info.Printf("Using all-zero dummy master key.\n")
-		cryptfs.Info.Printf("ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING.\n")
+		cryptfs.Info.Printf("Using all-zero dummy master key.")
+		cryptfs.Info.Printf("ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING.")
 		masterkey = make([]byte, cryptfs.KEY_LEN)
 	} else {
 		// Load master key from config file
@@ -271,7 +273,7 @@ func main() {
 		printMasterKey(masterkey)
 	}
 	// Initialize FUSE server
-	cryptfs.Debug.Printf("cli args: %v\n", args)
+	cryptfs.Debug.Printf("cli args: %v", args)
 	srv := pathfsFrontend(masterkey, args, confFile)
 	cryptfs.Info.Println(colorGreen + "Filesystem mounted and ready." + colorReset)
 	// We are ready - send USR1 signal to our parent
@@ -318,8 +320,8 @@ func pathfsFrontend(key []byte, args argContainer, confFile *cryptfs.ConfFile) *
 		frontendArgs.DirIV = false
 		frontendArgs.EMENames = false
 	}
-	cryptfs.Debug.Printf("frontendArgs: ")
-	cryptfs.Debug.JSONDump(frontendArgs)
+	jsonBytes, _ := json.MarshalIndent(frontendArgs, "", "\t")
+	cryptfs.Debug.Printf("frontendArgs: %s", string(jsonBytes))
 
 	finalFs := pathfs_frontend.NewFS(frontendArgs)
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
@@ -364,7 +366,7 @@ func handleSigint(srv *fuse.Server, mountpoint string) {
 		err := srv.Unmount()
 		if err != nil {
 			fmt.Print(err)
-			cryptfs.Info.Printf("Trying lazy unmount\n")
+			cryptfs.Info.Printf("Trying lazy unmount")
 			cmd := exec.Command("fusermount", "-u", "-z", mountpoint)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
