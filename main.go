@@ -38,8 +38,9 @@ const (
 type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
 	plaintextnames, quiet, diriv, emenames, gcmiv128 bool
-	masterkey, mountpoint, cipherdir, cpuprofile, config, extpass string
-	notifypid, scryptn                                            int
+	masterkey, mountpoint, cipherdir, cpuprofile, config, extpass,
+	memprofile string
+	notifypid, scryptn int
 }
 
 var flagSet *flag.FlagSet
@@ -149,14 +150,14 @@ func main() {
 	flagSet.BoolVar(&args.passwd, "passwd", false, "Change password")
 	flagSet.BoolVar(&args.foreground, "f", false, "Stay in the foreground")
 	flagSet.BoolVar(&args.version, "version", false, "Print version and exit")
-	flagSet.BoolVar(&args.plaintextnames, "plaintextnames", false, "Do not encrypt "+
-		"file names")
+	flagSet.BoolVar(&args.plaintextnames, "plaintextnames", false, "Do not encrypt file names")
 	flagSet.BoolVar(&args.quiet, "q", false, "Quiet - silence informational messages")
 	flagSet.BoolVar(&args.diriv, "diriv", true, "Use per-directory file name IV")
 	flagSet.BoolVar(&args.emenames, "emenames", true, "Use EME filename encryption. This option implies diriv.")
 	flagSet.BoolVar(&args.gcmiv128, "gcmiv128", true, "Use an 128-bit IV for GCM encryption instead of Go's default of 96 bits")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
+	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")
 	flagSet.StringVar(&args.config, "config", "", "Use specified config file instead of CIPHERDIR/gocryptfs.conf")
 	flagSet.StringVar(&args.extpass, "extpass", "", "Use external program for the password prompt")
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
@@ -206,14 +207,31 @@ func main() {
 	}
 	// "-cpuprofile"
 	if args.cpuprofile != "" {
+		cryptfs.Info.Printf("Writing CPU profile to %s", args.cpuprofile)
 		f, err := os.Create(args.cpuprofile)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(ERREXIT_INIT)
 		}
-		cryptfs.Info.Printf("Writing CPU profile to %s", args.cpuprofile)
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
+	}
+	// "-memprofile"
+	if args.memprofile != "" {
+		cryptfs.Info.Printf("Writing mem profile to %s", args.memprofile)
+		f, err := os.Create(args.memprofile)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(ERREXIT_INIT)
+		}
+		defer func() {
+			pprof.WriteHeapProfile(f)
+			f.Close()
+			return
+		}()
+	}
+	if args.cpuprofile != "" || args.memprofile != "" {
+		fmt.Printf("Note: You must unmount gracefully, otherwise the profile file(s) will stay empty!\n")
 	}
 	// "-openssl"
 	if args.openssl == false {
