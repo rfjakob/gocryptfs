@@ -2,14 +2,10 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"log/syslog"
 	"os"
 	"os/exec"
 	"os/signal"
 	"syscall"
-
-	"github.com/rfjakob/gocryptfs/cryptfs"
 )
 
 // The child sends us USR1 if the mount was successful
@@ -49,14 +45,4 @@ func forkChild() {
 	}
 	// The child exited with 0 - let's do the same.
 	os.Exit(0)
-}
-
-// Switch one Logger to syslog
-func switchToSyslog(l *log.Logger, p syslog.Priority) {
-	w, err := syslog.New(p, PROGRAM_NAME)
-	if err != nil {
-		cryptfs.Warn.Printf("Cannot switch 0x%02x to syslog: %v", p, err)
-	} else {
-		l.SetOutput(w)
-	}
 }

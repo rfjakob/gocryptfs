@@ -9,6 +9,8 @@ import (
 )
 
 const (
+	PROGRAM_NAME = "gocryptfs"
+
 	DEFAULT_PLAINBS = 4096
 	KEY_LEN         = 32 // AES-256
 	AUTH_TAG_LEN    = 16

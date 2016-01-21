@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log/syslog"
 	"os"
 	"os/exec"
@@ -26,8 +25,6 @@ import (
 )
 
 const (
-	PROGRAM_NAME = "gocryptfs"
-
 	// Exit codes
 	ERREXIT_USAGE      = 1
 	ERREXIT_MOUNT      = 3
@@ -77,15 +74,15 @@ func initDir(args *argContainer) {
 
 	cryptfs.Info.Printf(colorGreen + "The filesystem has been created successfully." + colorReset)
 	cryptfs.Info.Printf(colorGrey+"You can now mount it using: %s %s MOUNTPOINT"+colorReset,
-		PROGRAM_NAME, args.cipherdir)
+		cryptfs.PROGRAM_NAME, args.cipherdir)
 	os.Exit(0)
 }
 
 func usageText() {
 	printVersion()
 	fmt.Printf("\n")
-	fmt.Printf("Usage: %s -init|-passwd [OPTIONS] CIPHERDIR\n", PROGRAM_NAME)
-	fmt.Printf("  or   %s [OPTIONS] CIPHERDIR MOUNTPOINT\n", PROGRAM_NAME)
+	fmt.Printf("Usage: %s -init|-passwd [OPTIONS] CIPHERDIR\n", cryptfs.PROGRAM_NAME)
+	fmt.Printf("  or   %s [OPTIONS] CIPHERDIR MOUNTPOINT\n", cryptfs.PROGRAM_NAME)
 	fmt.Printf("\nOptions:\n")
 	flagSet.PrintDefaults()
 }
@@ -101,9 +98,9 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *cryptfs.ConfFil
 	fmt.Printf("Password: ")
 	pw := readPassword(args.extpass)
 	cryptfs.Info.Printf("Decrypting master key... ")
-	cryptfs.Warn.SetOutput(ioutil.Discard) // Silence DecryptBlock() error messages on incorrect password
+	cryptfs.Warn.Enabled = false // Silence DecryptBlock() error messages on incorrect password
 	masterkey, confFile, err = cryptfs.LoadConfFile(args.config, pw)
-	cryptfs.Warn.SetOutput(os.Stderr)
+	cryptfs.Warn.Enabled = true
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println(colorRed + "Wrong password." + colorReset)
@@ -132,7 +129,7 @@ func changePassword(args *argContainer) {
 // printVersion - print a version string like
 // "gocryptfs v0.3.1-31-g6736212-dirty; on-disk format 2"
 func printVersion() {
-	fmt.Printf("%s %s; on-disk format %d\n", PROGRAM_NAME, GitVersion, cryptfs.HEADER_CURRENT_VERSION)
+	fmt.Printf("%s %s; on-disk format %d\n", cryptfs.PROGRAM_NAME, GitVersion, cryptfs.HEADER_CURRENT_VERSION)
 }
 
 func main() {
@@ -142,7 +139,7 @@ func main() {
 	setupColors()
 
 	// Parse command line arguments
-	flagSet = flag.NewFlagSet(PROGRAM_NAME, flag.ExitOnError)
+	flagSet = flag.NewFlagSet(cryptfs.PROGRAM_NAME, flag.ExitOnError)
 	flagSet.Usage = usageText
 	flagSet.BoolVar(&args.debug, "debug", false, "Enable debug output")
 	flagSet.BoolVar(&args.fusedebug, "fusedebug", false, "Enable fuse library debug output")
@@ -195,7 +192,7 @@ func main() {
 	}
 	// "-q"
 	if args.quiet {
-		cryptfs.Info.SetOutput(ioutil.Discard)
+		cryptfs.Info.Enabled = false
 	}
 	// "-config"
 	if args.config != "" {
@@ -226,7 +223,7 @@ func main() {
 	// "-init"
 	if args.init {
 		if flagSet.NArg() > 1 {
-			fmt.Printf("Usage: %s -init [OPTIONS] CIPHERDIR\n", PROGRAM_NAME)
+			fmt.Printf("Usage: %s -init [OPTIONS] CIPHERDIR\n", cryptfs.PROGRAM_NAME)
 			os.Exit(ERREXIT_USAGE)
 		}
 		initDir(&args) // does not return
@@ -234,7 +231,7 @@ func main() {
 	// "-passwd"
 	if args.passwd {
 		if flagSet.NArg() > 1 {
-			fmt.Printf("Usage: %s -passwd [OPTIONS] CIPHERDIR\n", PROGRAM_NAME)
+			fmt.Printf("Usage: %s -passwd [OPTIONS] CIPHERDIR\n", cryptfs.PROGRAM_NAME)
 			os.Exit(ERREXIT_USAGE)
 		}
 		changePassword(&args) // does not return
@@ -281,13 +278,9 @@ func main() {
 	if args.notifypid > 0 {
 		sendUsr1(args.notifypid)
 
-		if !args.quiet {
-			switchToSyslog(cryptfs.Info, syslog.LOG_USER|syslog.LOG_INFO)
-		}
-		if args.debug {
-			switchToSyslog(cryptfs.Debug, syslog.LOG_USER|syslog.LOG_DEBUG)
-		}
-		switchToSyslog(cryptfs.Warn, syslog.LOG_USER|syslog.LOG_WARNING)
+		cryptfs.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
+		cryptfs.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_DEBUG)
+		cryptfs.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
 	}
 	// Wait for SIGINT in the background and unmount ourselves if we get it.
 	// This prevents a dangling "Transport endpoint is not connected" mountpoint.
