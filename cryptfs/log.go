@@ -3,7 +3,6 @@ package cryptfs
 import (
 	"encoding/json"
 	"log"
-	"log/syslog"
 	"os"
 )
 
@@ -33,14 +32,6 @@ func (l *toggledLogger) Println(v ...interface{}) {
 		return
 	}
 	l.Logger.Println(v...)
-}
-func (l *toggledLogger) SwitchToSyslog(p syslog.Priority) {
-	w, err := syslog.New(p, PROGRAM_NAME)
-	if err != nil {
-		Warn.Printf("Cannot switch 0x%02x to syslog: %v", p, err)
-	} else {
-		l.SetOutput(w)
-	}
 }
 
 // As defined by http://elinux.org/Debugging_by_printing#Log_Levels
