@@ -1,4 +1,5 @@
 // +build go1.5
+// = go 1.5 or higher
 
 package cryptfs
 
