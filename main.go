@@ -176,7 +176,7 @@ func main() {
 		os.Exit(0)
 	}
 	if args.debug {
-		cryptfs.Debug.SetOutput(os.Stdout)
+		cryptfs.Debug.Enabled = true
 		cryptfs.Debug.Printf("Debug output enabled")
 	}
 	// Every operation below requires CIPHERDIR. Check that we have it.
