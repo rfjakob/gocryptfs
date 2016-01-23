@@ -82,17 +82,15 @@ Run `./benchmark.bash` to run the benchmarks.
 
 The output should look like this:
 
-	./benchmark.bash
-	gocryptfs v0.3.1-30-gd69e0df-dirty; on-disk format 2
-	PASS
-	BenchmarkStreamWrite-2	     100	  12246070 ns/op	  85.63 MB/s
-	BenchmarkStreamRead-2 	     200	   9125990 ns/op	 114.90 MB/s
-	BenchmarkCreate0B-2   	   10000	    101284 ns/op
-	BenchmarkCreate1B-2   	   10000	    178356 ns/op	   0.01 MB/s
-	BenchmarkCreate100B-2 	    5000	    361014 ns/op	   0.28 MB/s
-	BenchmarkCreate4kB-2  	    5000	    375035 ns/op	  10.92 MB/s
-	BenchmarkCreate10kB-2 	    3000	    491071 ns/op	  20.85 MB/s
-	ok  	github.com/rfjakob/gocryptfs/integration_tests	17.216s
+```
+$ ./benchmark.bash
+linux-3.0.tar.gz       100%[===========================>]  92,20M  2,96MB/s    in 35s
+2016-01-23 20:08:11 URL:https://www.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz [...]
+WRITE: 131072000 bytes (131 MB) copied, 1,36225 s, 96,2 MB/s
+UNTAR: 23.16
+LS:    1.71
+RM:    4.36
+```
 
 Changelog
 ---------

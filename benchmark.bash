@@ -1,18 +1,20 @@
 #!/bin/bash
 
+# Run the set of "canonical" benchmarks that are shown on
+# https://nuetzlich.net/gocryptfs/comparison/
+
 set -eu
 
 TIME="/usr/bin/time -f %e"
 
 # Setup
 cd /tmp
-wget -q -c https://www.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz
+wget -nv --show-progress -c https://www.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz
 DIR1=$(mktemp -d)
 DIR2=$(mktemp -d)
 gocryptfs -q -init -extpass="echo test" $DIR1
 gocryptfs -q -extpass="echo test" $DIR1 $DIR2
 cd $DIR2
-echo
 
 # Benchmarks
 echo -n "WRITE: "
