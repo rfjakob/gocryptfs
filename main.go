@@ -96,7 +96,9 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *cryptfs.ConfFil
 		fmt.Println(err)
 		os.Exit(ERREXIT_LOADCONF)
 	}
-	fmt.Printf("Password: ")
+	if args.extpass == "" {
+		fmt.Printf("Password: ")
+	}
 	pw := readPassword(args.extpass)
 	cryptfs.Info.Printf("Decrypting master key... ")
 	cryptfs.Warn.Enabled = false // Silence DecryptBlock() error messages on incorrect password

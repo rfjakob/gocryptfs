@@ -10,15 +10,19 @@ import (
 )
 
 func readPasswordTwice(extpass string) string {
-	fmt.Printf("Password: ")
-	p1 := readPassword(extpass)
-	fmt.Printf("Repeat: ")
-	p2 := readPassword(extpass)
-	if p1 != p2 {
-		fmt.Printf("Passwords do not match\n")
-		os.Exit(ERREXIT_PASSWORD)
+	if extpass == "" {
+		fmt.Printf("Password: ")
+		p1 := readPassword("")
+		fmt.Printf("Repeat: ")
+		p2 := readPassword("")
+		if p1 != p2 {
+			fmt.Println(colorRed + "Passwords do not match" + colorReset)
+			os.Exit(ERREXIT_PASSWORD)
+		}
+		return p1
+	} else {
+		return readPassword(extpass)
 	}
-	return p1
 }
 
 // readPassword - get password from terminal
@@ -33,10 +37,9 @@ func readPassword(extpass string) string {
 		cmd.Stderr = os.Stderr
 		output, err = cmd.Output()
 		if err != nil {
-			fmt.Printf("extpass program returned error: %v\n", err)
+			fmt.Printf(colorRed+"extpass program returned error: %v\n"+colorReset, err)
 			os.Exit(ERREXIT_PASSWORD)
 		}
-		fmt.Printf("(extpass)\n")
 		// Trim trailing newline like terminal.ReadPassword() does
 		if output[len(output)-1] == '\n' {
 			output = output[:len(output)-1]
@@ -45,14 +48,14 @@ func readPassword(extpass string) string {
 		fd := int(os.Stdin.Fd())
 		output, err = terminal.ReadPassword(fd)
 		if err != nil {
-			fmt.Printf("Error: Could not read password from terminal: %v\n", err)
+			fmt.Printf(colorRed+"Could not read password from terminal: %v\n"+colorReset, err)
 			os.Exit(ERREXIT_PASSWORD)
 		}
 		fmt.Printf("\n")
 	}
 	password = string(output)
 	if password == "" {
-		fmt.Printf("Error: password is empty\n")
+		fmt.Printf(colorRed + "Password is empty\n" + colorReset)
 		os.Exit(ERREXIT_PASSWORD)
 	}
 	return password
