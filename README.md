@@ -97,6 +97,12 @@ The output should look like this:
 Changelog
 ---------
 
+v0.8
+* Redirect output to syslog when running in the background
+* New command-line option:
+ * `-memprofile`: Write a memory allocation debugging profile the specified
+   file
+
 v0.7.2
 * **Fix performance issue in small file creation**
  * This brings performance on-par with EncFS paranoia mode, with streaming writes
