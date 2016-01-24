@@ -27,7 +27,7 @@ func resetTmpDir() {
 
 	err := os.RemoveAll(tmpDir)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("resetTmpDir: RemoveAll:" + err.Error())
 		os.Exit(1)
 	}
 
