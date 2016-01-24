@@ -144,6 +144,7 @@ func main() {
 	// Parse command line arguments
 	flagSet = flag.NewFlagSet(cryptfs.PROGRAM_NAME, flag.ExitOnError)
 	flagSet.Usage = usageText
+	flagSet.BoolVar(&args.debug, "d", false, "")
 	flagSet.BoolVar(&args.debug, "debug", false, "Enable debug output")
 	flagSet.BoolVar(&args.fusedebug, "fusedebug", false, "Enable fuse library debug output")
 	flagSet.BoolVar(&args.init, "init", false, "Initialize encrypted directory")
@@ -153,7 +154,8 @@ func main() {
 	flagSet.BoolVar(&args.foreground, "f", false, "Stay in the foreground")
 	flagSet.BoolVar(&args.version, "version", false, "Print version and exit")
 	flagSet.BoolVar(&args.plaintextnames, "plaintextnames", false, "Do not encrypt file names")
-	flagSet.BoolVar(&args.quiet, "q", false, "Quiet - silence informational messages")
+	flagSet.BoolVar(&args.quiet, "q", false, "")
+	flagSet.BoolVar(&args.quiet, "quiet", false, "Quiet - silence informational messages")
 	flagSet.BoolVar(&args.diriv, "diriv", true, "Use per-directory file name IV")
 	flagSet.BoolVar(&args.emenames, "emenames", true, "Use EME filename encryption. This option implies diriv.")
 	flagSet.BoolVar(&args.gcmiv128, "gcmiv128", true, "Use an 128-bit IV for GCM encryption instead of Go's default of 96 bits")
