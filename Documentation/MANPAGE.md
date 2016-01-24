@@ -36,7 +36,7 @@ Options:
 **-cpuprofile string**
 :	Write cpu profile to specified file
 
-**-debug**
+**-d, -debug**
 :	Enable debug output
 
 **-diriv**
@@ -71,6 +71,15 @@ option can be used to mount a gocryptfs filesystem without a config file.
 Note that the command line, and with it the master key, is visible to
 anybody on the machine who can execute "ps -auxwww".
 
+**-memprofile string**
+:	Write memory profile to specified file. This is useful when debugging
+memory usage of gocryptfs.
+
+**-nosyslog**
+:	Diagnostic messages are normally redirected to syslog once gocryptfs
+daemonizes. This option disables the redirection and messages will
+continue be printed to stdout and stderr.
+
 **-notifypid int**
 :	Send USR1 to the specified process after successful mount. This is
 used internally for daemonization.
@@ -85,7 +94,7 @@ built-in crypto is 4x slower.
 **-plaintextnames**
 :	Do not encrypt file names
 
-**-q**
+**-q, -quiet**
 :	Quiet - silence informational messages
 
 **-scryptn int**
