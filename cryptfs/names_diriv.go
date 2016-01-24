@@ -1,6 +1,7 @@
 package cryptfs
 
 import (
+	"os"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -49,16 +50,24 @@ func (c *DirIVCache) Clear() {
 }
 
 // readDirIV - read the "gocryptfs.diriv" file from "dir" (absolute ciphertext path)
-func (be *CryptFS) ReadDirIV(dir string) (iv []byte, err error) {
+func (be *CryptFS) ReadDirIV(dir string) (iv []byte, readErr error) {
 	ivfile := filepath.Join(dir, DIRIV_FILENAME)
-	Debug.Printf("readDirIV: reading %s\n", ivfile)
-	iv, err = ioutil.ReadFile(ivfile)
-	if err != nil {
-		Warn.Printf("readDirIV: %v\n", err)
-		return nil, err
+	Debug.Printf("ReadDirIV: reading %s\n", ivfile)
+	iv, readErr = ioutil.ReadFile(ivfile)
+	if readErr != nil {
+		// The directory may have been concurrently deleted or moved. Failure to
+		// read the diriv is not an error in that case.
+		_, statErr := os.Stat(dir)
+		if os.IsNotExist(statErr) {
+			Debug.Printf("ReadDirIV: Dir %s was deleted under our feet", dir)
+		} else {
+			// This should not happen
+			Warn.Printf("ReadDirIV: Dir exists but diriv does not: %v\n", readErr)
+		}
+		return nil, readErr
 	}
 	if len(iv) != DIRIV_LEN {
-		return nil, fmt.Errorf("readDirIV: Invalid length %d\n", len(iv))
+		return nil, fmt.Errorf("ReadDirIV: Invalid length %d\n", len(iv))
 	}
 	return iv, nil
 }
@@ -73,7 +82,7 @@ func WriteDirIV(dir string) error {
 	return ioutil.WriteFile(file, iv, 0444)
 }
 
-// EncryptPathDirIV - encrypt path using CBC or EME with DirIV
+// EncryptPathDirIV - encrypt path using EME with DirIV
 func (be *CryptFS) EncryptPathDirIV(plainPath string, rootDir string, eme bool) (cipherPath string, err error) {
 	// Empty string means root directory
 	if plainPath == "" {
@@ -109,7 +118,7 @@ func (be *CryptFS) EncryptPathDirIV(plainPath string, rootDir string, eme bool) 
 	return cipherPath, nil
 }
 
-// DecryptPathDirIV - encrypt path using CBC or EME with DirIV
+// DecryptPathDirIV - decrypt path using EME with DirIV
 func (be *CryptFS) DecryptPathDirIV(encryptedPath string, rootDir string, eme bool) (string, error) {
 	var wd = rootDir
 	var plainNames []string
