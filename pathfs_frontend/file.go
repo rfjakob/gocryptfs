@@ -43,6 +43,7 @@ type file struct {
 func NewFile(fd *os.File, writeOnly bool, cfs *cryptfs.CryptFS) nodefs.File {
 	var st syscall.Stat_t
 	syscall.Fstat(int(fd.Fd()), &st)
+	wlock.register(st.Ino)
 
 	return &file{
 		fd:        fd,
@@ -57,20 +58,6 @@ func (f *file) InnerFile() nodefs.File {
 }
 
 func (f *file) SetInode(n *nodefs.Inode) {
-}
-
-// Ensure that all modifications to the file contents are serialized and no
-// reads happen concurrently.
-//
-// This prevents several races:
-// * getFileId vs Truncate
-// * zeroPad vs Read
-// * RMW vs Write
-func (f *file) wlock() {
-}
-func (f *file) rlock() {
-}
-func (f *file) unlock() {
 }
 
 // readHeader - load the file header from disk
@@ -252,6 +239,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 			cryptfs.Debug.Printf("len(oldData)=%d len(blockData)=%d", len(oldData), len(blockData))
 		}
 
+		// Encrypt
 		blockOffset, blockLen := b.CiphertextRange()
 		blockData = f.cfs.EncryptBlock(blockData, b.BlockNo, f.header.Id)
 		cryptfs.Debug.Printf("ino%d: Writing %d bytes to block #%d",
@@ -271,6 +259,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 		f.fdLock.Lock()
 		_, err = f.fd.WriteAt(blockData, int64(blockOffset))
 		f.fdLock.Unlock()
+
 		if err != nil {
 			cryptfs.Warn.Printf("doWrite: Write failed: %s", err.Error())
 			status = fuse.ToStatus(err)
@@ -284,6 +273,8 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 // Write - FUSE call
 func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 	cryptfs.Debug.Printf("ino%d: FUSE Write: offset=%d length=%d", f.ino, off, len(data))
+	wlock.lock(f.ino)
+	defer wlock.unlock(f.ino)
 
 	fi, err := f.fd.Stat()
 	if err != nil {
@@ -306,6 +297,7 @@ func (f *file) Release() {
 	f.fdLock.Lock()
 	f.fd.Close()
 	f.fdLock.Unlock()
+	wlock.unregister(f.ino)
 }
 
 // Flush - FUSE call
@@ -333,7 +325,11 @@ func (f *file) Fsync(flags int) (code fuse.Status) {
 	return r
 }
 
+// Truncate - FUSE call
 func (f *file) Truncate(newSize uint64) fuse.Status {
+	wlock.lock(f.ino)
+	defer wlock.unlock(f.ino)
+
 	// Common case first: Truncate to zero
 	if newSize == 0 {
 		f.fdLock.Lock()
@@ -343,7 +339,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 			cryptfs.Warn.Printf("Ftruncate(fd, 0) returned error: %v", err)
 			return fuse.ToStatus(err)
 		}
-		// A truncate to zero kills the file header
+		// Truncate to zero kills the file header
 		f.header = nil
 		return fuse.OK
 	}
