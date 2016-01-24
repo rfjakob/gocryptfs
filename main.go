@@ -37,7 +37,7 @@ const (
 
 type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
-	plaintextnames, quiet, diriv, emenames, gcmiv128 bool
+	plaintextnames, quiet, diriv, emenames, gcmiv128, nosyslog bool
 	masterkey, mountpoint, cipherdir, cpuprofile, config, extpass,
 	memprofile string
 	notifypid, scryptn int
@@ -157,6 +157,7 @@ func main() {
 	flagSet.BoolVar(&args.diriv, "diriv", true, "Use per-directory file name IV")
 	flagSet.BoolVar(&args.emenames, "emenames", true, "Use EME filename encryption. This option implies diriv.")
 	flagSet.BoolVar(&args.gcmiv128, "gcmiv128", true, "Use an 128-bit IV for GCM encryption instead of Go's default of 96 bits")
+	flagSet.BoolVar(&args.nosyslog, "nosyslog", false, "Do not redirect output to syslog when running in the background")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")
@@ -298,9 +299,11 @@ func main() {
 	if args.notifypid > 0 {
 		sendUsr1(args.notifypid)
 
-		cryptfs.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
-		cryptfs.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_DEBUG)
-		cryptfs.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
+		if !args.nosyslog {
+			cryptfs.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
+			cryptfs.Debug.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_DEBUG)
+			cryptfs.Warn.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
+		}
 	}
 	// Wait for SIGINT in the background and unmount ourselves if we get it.
 	// This prevents a dangling "Transport endpoint is not connected" mountpoint.
