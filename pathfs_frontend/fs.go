@@ -198,8 +198,14 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 	return fs.FileSystem.Mknod(cPath, mode, dev, context)
 }
 
+var truncateWarned bool
+
 func (fs *FS) Truncate(path string, offset uint64, context *fuse.Context) (code fuse.Status) {
-	cryptfs.Warn.Printf("Truncate of a closed file is not supported, returning ENOSYS")
+	// Only warn once
+	if !truncateWarned {
+		cryptfs.Warn.Printf("truncate(2) is not supported, returning ENOSYS - use ftruncate(2)")
+		truncateWarned = true
+	}
 	return fuse.ENOSYS
 }
 

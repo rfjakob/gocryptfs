@@ -336,7 +336,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 		err := syscall.Ftruncate(int(f.fd.Fd()), 0)
 		f.fdLock.Unlock()
 		if err != nil {
-			cryptfs.Warn.Printf("Ftruncate(fd, 0) returned error: %v", err)
+			cryptfs.Warn.Printf("ino%d: Ftruncate(fd, 0) returned error: %v", f.ino, err)
 			return fuse.ToStatus(err)
 		}
 		// Truncate to zero kills the file header
@@ -348,7 +348,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 	// the file
 	fi, err := f.fd.Stat()
 	if err != nil {
-		cryptfs.Warn.Printf("Truncate: Fstat failed: %v", err)
+		cryptfs.Warn.Printf("ino%d: Truncate: Fstat failed: %v", f.ino, err)
 		return fuse.ToStatus(err)
 	}
 	oldSize := f.cfs.CipherSizeToPlainSize(uint64(fi.Size()))
@@ -455,8 +455,14 @@ func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 }
 
 // Allocate - FUSE call, fallocate(2)
+var allocateWarned bool
+
 func (f *file) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
-	cryptfs.Warn.Printf("Fallocate is not supported, returning ENOSYS - see https://github.com/rfjakob/gocryptfs/issues/1")
+	// Only warn once
+	if !allocateWarned {
+		cryptfs.Warn.Printf("fallocate(2) is not supported, returning ENOSYS - see https://github.com/rfjakob/gocryptfs/issues/1")
+		allocateWarned = true
+	}
 	return fuse.ENOSYS
 }
 
