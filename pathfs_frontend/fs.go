@@ -107,7 +107,7 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 		if !fs.args.PlaintextNames {
 			name, err = fs.CryptFS.DecryptName(cName, cachedIV, fs.args.EMENames)
 			if err != nil {
-				cryptfs.Warn.Printf("Invalid name \"%s\" in dir \"%s\": %s", cName, dirName, err)
+				cryptfs.Warn.Printf("Invalid name \"%s\" in dir \"%s\": %s", cName, cDirName, err)
 				continue
 			}
 		}
