@@ -104,6 +104,10 @@ mounting but makes the password susceptible to brute-force attacks (default 16)
 **-version**
 :	Print version and exit
 
+**-wpanic**
+:	When encountering a warning, panic and exit immediately. This is
+useful in regression testing.
+
 **-zerokey**
 :	Use all-zero dummy master key. This options is only intended for
 automated testing as it does not provide any security.

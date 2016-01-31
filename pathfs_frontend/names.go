@@ -15,7 +15,7 @@ func (fs *FS) isFiltered(path string) bool {
 	}
 	// gocryptfs.conf in the root directory is forbidden
 	if path == cryptfs.ConfDefaultName {
-		cryptfs.Warn.Printf("The name /%s is reserved when -plaintextnames is used\n",
+		cryptfs.Info.Printf("The name /%s is reserved when -plaintextnames is used\n",
 			cryptfs.ConfDefaultName)
 		return true
 	}

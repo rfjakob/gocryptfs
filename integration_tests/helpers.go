@@ -53,7 +53,7 @@ func resetTmpDir() {
 func mount(c string, p string, extraArgs ...string) {
 	var args []string
 	args = append(args, extraArgs...)
-	args = append(args, "-q")
+	args = append(args, "-q", "-wpanic")
 	//args = append(args, "--fusedebug")
 	args = append(args, c)
 	args = append(args, p)

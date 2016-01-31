@@ -2,6 +2,7 @@ package cryptfs
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 )
@@ -17,7 +18,10 @@ func JSONDump(obj interface{}) string {
 
 // toggledLogger - a Logger than can be enabled and disabled
 type toggledLogger struct {
+	// Enable or disable output
 	Enabled bool
+	// Panic after logging a message, useful in regression tests
+	PanicAfter bool
 	*log.Logger
 }
 
@@ -26,12 +30,18 @@ func (l *toggledLogger) Printf(format string, v ...interface{}) {
 		return
 	}
 	l.Logger.Printf(format, v...)
+	if l.PanicAfter {
+		panic("PanicAfter: " + fmt.Sprintf(format, v...))
+	}
 }
 func (l *toggledLogger) Println(v ...interface{}) {
 	if !l.Enabled {
 		return
 	}
 	l.Logger.Println(v...)
+	if l.PanicAfter {
+		panic("PanicAfter: " + fmt.Sprintln(v...))
+	}
 }
 
 // As defined by http://elinux.org/Debugging_by_printing#Log_Levels
@@ -45,7 +55,7 @@ var Info *toggledLogger
 var Warn *toggledLogger
 
 func init() {
-	Debug = &toggledLogger{false, log.New(os.Stdout, "", 0)}
-	Info = &toggledLogger{true, log.New(os.Stdout, "", 0)}
-	Warn = &toggledLogger{true, log.New(os.Stderr, "", 0)}
+	Debug = &toggledLogger{false, false, log.New(os.Stdout, "", 0)}
+	Info = &toggledLogger{true, false, log.New(os.Stdout, "", 0)}
+	Warn = &toggledLogger{true, false, log.New(os.Stderr, "", 0)}
 }

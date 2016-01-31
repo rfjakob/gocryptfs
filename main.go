@@ -37,7 +37,7 @@ const (
 
 type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
-	plaintextnames, quiet, diriv, emenames, gcmiv128, nosyslog bool
+	plaintextnames, quiet, diriv, emenames, gcmiv128, nosyslog, wpanic bool
 	masterkey, mountpoint, cipherdir, cpuprofile, config, extpass,
 	memprofile string
 	notifypid, scryptn int
@@ -160,6 +160,7 @@ func main() {
 	flagSet.BoolVar(&args.emenames, "emenames", true, "Use EME filename encryption. This option implies diriv.")
 	flagSet.BoolVar(&args.gcmiv128, "gcmiv128", true, "Use an 128-bit IV for GCM encryption instead of Go's default of 96 bits")
 	flagSet.BoolVar(&args.nosyslog, "nosyslog", false, "Do not redirect output to syslog when running in the background")
+	flagSet.BoolVar(&args.wpanic, "wpanic", false, "When encountering a warning, panic and exit immediately")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")
@@ -183,6 +184,10 @@ func main() {
 	if args.debug {
 		cryptfs.Debug.Enabled = true
 		cryptfs.Debug.Printf("Debug output enabled")
+	}
+	if args.wpanic {
+		cryptfs.Warn.PanicAfter = true
+		cryptfs.Debug.Printf("Panicing on warnings")
 	}
 	// Every operation below requires CIPHERDIR. Check that we have it.
 	if flagSet.NArg() >= 1 {
