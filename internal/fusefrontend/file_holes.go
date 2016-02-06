@@ -1,4 +1,4 @@
-package pathfs_frontend
+package fusefrontend
 
 // Helper functions for sparse files (files with holes)
 

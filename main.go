@@ -20,7 +20,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 
-	"github.com/rfjakob/gocryptfs/pathfs_frontend"
+	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/toggledlog"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
@@ -304,7 +304,7 @@ func main() {
 	}
 	// Initialize FUSE server
 	toggledlog.Debug.Printf("cli args: %v", args)
-	srv := pathfsFrontend(masterkey, args, confFile)
+	srv := initFuseFrontend(masterkey, args, confFile)
 	toggledlog.Info.Println(colorGreen + "Filesystem mounted and ready." + colorReset)
 	// We are ready - send USR1 signal to our parent and switch to syslog
 	if args.notifypid > 0 {
@@ -324,13 +324,13 @@ func main() {
 	// main exits with code 0
 }
 
-// pathfsFrontend - initialize gocryptfs/pathfs_frontend
+// initFuseFrontend - initialize gocryptfs/fusefrontend
 // Calls os.Exit on errors
-func pathfsFrontend(key []byte, args argContainer, confFile *configfile.ConfFile) *fuse.Server {
+func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFile) *fuse.Server {
 
 	// Reconciliate CLI and config file arguments into a Args struct that is passed to the
 	// filesystem implementation
-	frontendArgs := pathfs_frontend.Args{
+	frontendArgs := fusefrontend.Args{
 		Cipherdir:      args.cipherdir,
 		Masterkey:      key,
 		OpenSSL:        args.openssl,
@@ -359,7 +359,7 @@ func pathfsFrontend(key []byte, args argContainer, confFile *configfile.ConfFile
 	jsonBytes, _ := json.MarshalIndent(frontendArgs, "", "\t")
 	toggledlog.Debug.Printf("frontendArgs: %s", string(jsonBytes))
 
-	finalFs := pathfs_frontend.NewFS(frontendArgs)
+	finalFs := fusefrontend.NewFS(frontendArgs)
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
 	pathFs := pathfs.NewPathNodeFs(finalFs, pathFsOpts)
 	fuseOpts := &nodefs.Options{

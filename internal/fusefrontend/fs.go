@@ -1,4 +1,4 @@
-package pathfs_frontend
+package fusefrontend
 
 // FUSE operations on paths
 

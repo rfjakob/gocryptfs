@@ -1,4 +1,4 @@
-package pathfs_frontend
+package fusefrontend
 
 // This file forwards file encryption operations to cryptfs
 

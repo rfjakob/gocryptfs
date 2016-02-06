@@ -1,4 +1,4 @@
-package pathfs_frontend
+package fusefrontend
 
 // prealloc - preallocate space without changing the file size. This prevents
 // us from running out of space in the middle of an operation.
