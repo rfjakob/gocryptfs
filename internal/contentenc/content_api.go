@@ -2,6 +2,11 @@ package contentenc
 
 import "github.com/rfjakob/gocryptfs/internal/cryptocore"
 
+const (
+	// Default plaintext block size
+	DefaultBS = 4096
+)
+
 type ContentEnc struct {
 	// Cryptographic primitives
 	cryptoCore *cryptocore.CryptoCore

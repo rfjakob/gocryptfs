@@ -12,15 +12,17 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"fmt"
-	"github.com/rfjakob/gocryptfs/cryptfs"
-	"github.com/spacemonkeygo/openssl"
 	"os"
 	"testing"
+
+	"github.com/spacemonkeygo/openssl"
+
+	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 )
 
 func TestMain(m *testing.M) {
 
-	fmt.Printf("Benchmarking AES-GCM-%d with 4kB block size\n", cryptfs.KEY_LEN*8)
+	fmt.Printf("Benchmarking AES-GCM-%d with 4kB block size\n", cryptocore.KeyLen*8)
 
 	r := m.Run()
 	os.Exit(r)
@@ -30,7 +32,7 @@ func BenchmarkGoEnc4K(b *testing.B) {
 	buf := make([]byte, 1024*4)
 	b.SetBytes(int64(len(buf)))
 
-	var key [cryptfs.KEY_LEN]byte
+	var key [cryptocore.KeyLen]byte
 	var nonce [12]byte
 	aes, _ := aes.NewCipher(key[:])
 	aesgcm, _ := cipher.NewGCM(aes)
@@ -47,7 +49,7 @@ func BenchmarkGoDec4K(b *testing.B) {
 	buf := make([]byte, 1024*4)
 	b.SetBytes(int64(len(buf)))
 
-	var key [cryptfs.KEY_LEN]byte
+	var key [cryptocore.KeyLen]byte
 	var nonce [12]byte
 	aes, _ := aes.NewCipher(key[:])
 	aesgcm, _ := cipher.NewGCM(aes)
@@ -67,7 +69,7 @@ func BenchmarkOpensslEnc4K(b *testing.B) {
 	buf := make([]byte, 1024*4)
 	b.SetBytes(int64(len(buf)))
 
-	var key [cryptfs.KEY_LEN]byte
+	var key [cryptocore.KeyLen]byte
 	var nonce [12]byte
 
 	// This would be fileID + blockNo
@@ -79,7 +81,7 @@ func BenchmarkOpensslEnc4K(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		ciphertext.Reset()
-		ectx, err := openssl.NewGCMEncryptionCipherCtx(cryptfs.KEY_LEN*8, nil, key[:], nonce[:])
+		ectx, err := openssl.NewGCMEncryptionCipherCtx(cryptocore.KeyLen*8, nil, key[:], nonce[:])
 		if err != nil {
 			b.FailNow()
 		}
@@ -112,7 +114,7 @@ func BenchmarkOpensslDec4K(b *testing.B) {
 	tag := buf[4096:]
 	buf = buf[0:4096]
 
-	var key [cryptfs.KEY_LEN]byte
+	var key [cryptocore.KeyLen]byte
 	var nonce [12]byte
 
 	var plaintext bytes.Buffer
@@ -121,7 +123,7 @@ func BenchmarkOpensslDec4K(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		plaintext.Reset()
-		dctx, err := openssl.NewGCMDecryptionCipherCtx(cryptfs.KEY_LEN*8, nil, key[:], nonce[:])
+		dctx, err := openssl.NewGCMDecryptionCipherCtx(cryptocore.KeyLen*8, nil, key[:], nonce[:])
 		if err != nil {
 			b.FailNow()
 		}
@@ -144,12 +146,12 @@ func BenchmarkOpensslDec4K(b *testing.B) {
 
 func makeOpensslCiphertext() []byte {
 	buf := make([]byte, 1024*4)
-	var key [cryptfs.KEY_LEN]byte
+	var key [cryptocore.KeyLen]byte
 	var nonce [12]byte
 	var ciphertext bytes.Buffer
 	var part []byte
 
-	ectx, _ := openssl.NewGCMEncryptionCipherCtx(cryptfs.KEY_LEN*8, nil, key[:], nonce[:])
+	ectx, _ := openssl.NewGCMEncryptionCipherCtx(cryptocore.KeyLen*8, nil, key[:], nonce[:])
 	part, _ = ectx.EncryptUpdate(buf)
 	ciphertext.Write(part)
 	part, _ = ectx.EncryptFinal()

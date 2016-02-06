@@ -21,8 +21,6 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 )
 
-const plainBS = 4096
-
 type FS struct {
 	pathfs.FileSystem      // loopbackFileSystem, see go-fuse/fuse/pathfs/loopback.go
 	args              Args // Stores configuration arguments
@@ -40,7 +38,7 @@ type FS struct {
 func NewFS(args Args) *FS {
 
 	cryptoCore := cryptocore.New(args.Masterkey, args.OpenSSL, args.GCMIV128)
-	contentEnc := contentenc.New(cryptoCore, plainBS)
+	contentEnc := contentenc.New(cryptoCore, contentenc.DefaultBS)
 	nameTransform := nametransform.New(cryptoCore, args.EMENames)
 
 	return &FS{

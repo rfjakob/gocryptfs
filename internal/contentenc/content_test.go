@@ -2,6 +2,8 @@ package contentenc
 
 import (
 	"testing"
+
+	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 )
 
 type testRange struct {
@@ -20,8 +22,9 @@ func TestSplitRange(t *testing.T) {
 		testRange{0, 65536},
 		testRange{6654, 8945})
 
-	key := make([]byte, KEY_LEN)
-	f := NewCryptFS(key, true, false, true)
+	key := make([]byte, cryptocore.KeyLen)
+	cc := cryptocore.New(key, false, true)
+	f := New(cc, DefaultBS)
 
 	for _, r := range ranges {
 		parts := f.ExplodePlainRange(r.offset, r.length)
@@ -31,7 +34,7 @@ func TestSplitRange(t *testing.T) {
 				t.Errorf("Duplicate block number %d", p.BlockNo)
 			}
 			lastBlockNo = p.BlockNo
-			if p.Length > DEFAULT_PLAINBS || p.Skip >= DEFAULT_PLAINBS {
+			if p.Length > DefaultBS || p.Skip >= DefaultBS {
 				t.Errorf("Test fail: n=%d, length=%d, offset=%d\n", p.BlockNo, p.Length, p.Skip)
 			}
 		}
@@ -47,8 +50,9 @@ func TestCiphertextRange(t *testing.T) {
 		testRange{65444, 54},
 		testRange{6654, 8945})
 
-	key := make([]byte, KEY_LEN)
-	f := NewCryptFS(key, true, false, true)
+	key := make([]byte, cryptocore.KeyLen)
+	cc := cryptocore.New(key, false, true)
+	f := New(cc, DefaultBS)
 
 	for _, r := range ranges {
 
@@ -69,8 +73,9 @@ func TestCiphertextRange(t *testing.T) {
 }
 
 func TestBlockNo(t *testing.T) {
-	key := make([]byte, KEY_LEN)
-	f := NewCryptFS(key, true, false, true)
+	key := make([]byte, cryptocore.KeyLen)
+	cc := cryptocore.New(key, false, true)
+	f := New(cc, DefaultBS)
 
 	b := f.CipherOffToBlockNo(788)
 	if b != 0 {

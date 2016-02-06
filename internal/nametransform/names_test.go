@@ -3,6 +3,8 @@ package nametransform
 import (
 	"bytes"
 	"testing"
+
+	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 )
 
 func TestEncryptPathNoIV(t *testing.T) {
@@ -11,8 +13,9 @@ func TestEncryptPathNoIV(t *testing.T) {
 	s = append(s, "foo12312312312312312313123123123")
 	s = append(s, "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890")
 
-	key := make([]byte, KEY_LEN)
-	fs := NewCryptFS(key, true, false, true)
+	key := make([]byte, cryptocore.KeyLen)
+	cc := cryptocore.New(key, false, true)
+	fs := New(cc, true)
 
 	for _, n := range s {
 		c := fs.EncryptPathNoIV(n)
@@ -32,19 +35,16 @@ func TestPad16(t *testing.T) {
 	s = append(s, []byte("12345678901234567"))
 	s = append(s, []byte("12345678901234567abcdefg"))
 
-	key := make([]byte, KEY_LEN)
-	fs := NewCryptFS(key, true, false, true)
-
 	for i := range s {
 		orig := s[i]
-		padded := fs.pad16(orig)
+		padded := pad16(orig)
 		if len(padded) <= len(orig) {
 			t.Errorf("Padded length not bigger than orig: %d", len(padded))
 		}
 		if len(padded)%16 != 0 {
 			t.Errorf("Length is not aligend: %d", len(padded))
 		}
-		unpadded, err := fs.unPad16(padded)
+		unpadded, err := unPad16(padded)
 		if err != nil {
 			t.Error("unPad16 returned error:", err)
 		}
