@@ -15,4 +15,4 @@ install:
 script:
   - go build
   - ./build.bash
-  - go test ./cryptfs
+  - go test ./internal/...
