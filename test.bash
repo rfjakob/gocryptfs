@@ -6,4 +6,4 @@ cd "$(dirname "$0")"
 
 source build.bash
 
-go test ./...
+go test ./... $*
