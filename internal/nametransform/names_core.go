@@ -60,4 +60,3 @@ func (n *NameTransform) encryptName(plainName string, iv []byte) (cipherName64 s
 	cipherName64 = base64.URLEncoding.EncodeToString(bin)
 	return cipherName64
 }
-

@@ -3,8 +3,8 @@ package contentenc
 // File content encryption / decryption
 
 import (
-	"encoding/binary"
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 

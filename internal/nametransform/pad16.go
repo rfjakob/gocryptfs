@@ -1,9 +1,9 @@
 package nametransform
 
 import (
-	"fmt"
 	"crypto/aes"
 	"errors"
+	"fmt"
 )
 
 // pad16 - pad data to AES block size (=16 byte) using standard PKCS#7 padding

@@ -1,21 +1,21 @@
 package cryptocore
 
 import (
-	"crypto/cipher"
 	"crypto/aes"
+	"crypto/cipher"
 	"fmt"
 )
 
 const (
-	KeyLen          = 32 // AES-256
-	AuthTagLen      = 16
+	KeyLen     = 32 // AES-256
+	AuthTagLen = 16
 )
 
 type CryptoCore struct {
 	BlockCipher cipher.Block
 	Gcm         cipher.AEAD
-	GcmIVGen	*nonceGenerator
-	IVLen		int
+	GcmIVGen    *nonceGenerator
+	IVLen       int
 }
 
 func New(key []byte, useOpenssl bool, GCMIV128 bool) *CryptoCore {
@@ -49,8 +49,8 @@ func New(key []byte, useOpenssl bool, GCMIV128 bool) *CryptoCore {
 
 	return &CryptoCore{
 		BlockCipher: blockCipher,
-		Gcm: gcm,
-		GcmIVGen:  &nonceGenerator{nonceLen: IVLen},
-		IVLen: IVLen,
+		Gcm:         gcm,
+		GcmIVGen:    &nonceGenerator{nonceLen: IVLen},
+		IVLen:       IVLen,
 	}
 }

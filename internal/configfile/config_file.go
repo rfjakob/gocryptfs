@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/toggledlog"
 )
 import "os"

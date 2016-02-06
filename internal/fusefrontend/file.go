@@ -49,10 +49,10 @@ func NewFile(fd *os.File, writeOnly bool, contentEnc *contentenc.ContentEnc) nod
 	wlock.register(st.Ino)
 
 	return &file{
-		fd:        fd,
-		writeOnly: writeOnly,
+		fd:         fd,
+		writeOnly:  writeOnly,
 		contentEnc: contentEnc,
-		ino:       st.Ino,
+		ino:        st.Ino,
 	}
 }
 

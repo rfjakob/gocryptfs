@@ -14,11 +14,11 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/configfile"
+	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
-	"github.com/rfjakob/gocryptfs/internal/contentenc"
-	"github.com/rfjakob/gocryptfs/internal/configfile"
+	"github.com/rfjakob/gocryptfs/internal/toggledlog"
 )
 
 type FS struct {
@@ -42,10 +42,10 @@ func NewFS(args Args) *FS {
 	nameTransform := nametransform.New(cryptoCore, args.EMENames)
 
 	return &FS{
-		FileSystem: pathfs.NewLoopbackFileSystem(args.Cipherdir),
-		args:       args,
+		FileSystem:    pathfs.NewLoopbackFileSystem(args.Cipherdir),
+		args:          args,
 		nameTransform: nameTransform,
-		contentEnc: contentEnc,
+		contentEnc:    contentEnc,
 	}
 }
 

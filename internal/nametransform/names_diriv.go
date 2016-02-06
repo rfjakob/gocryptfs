@@ -8,16 +8,16 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
+	"github.com/rfjakob/gocryptfs/internal/toggledlog"
 )
 
 const (
 	// identical to AES block size
-	dirIVLen       = 16
+	dirIVLen = 16
 	// dirIV is stored in this file. Exported because we have to ignore this
 	// name in directory listing.
-	DirIVFilename  = "gocryptfs.diriv"
+	DirIVFilename = "gocryptfs.diriv"
 )
 
 // A simple one-entry DirIV cache
