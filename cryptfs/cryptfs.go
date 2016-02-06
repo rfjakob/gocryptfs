@@ -28,7 +28,7 @@ type CryptFS struct {
 	// Stores an all-zero block of size cipherBS
 	allZeroBlock []byte
 	// DirIV cache for filename encryption
-	DirIVCacheEnc DirIVCache
+	DirIVCache dirIVCache
 }
 
 func NewCryptFS(key []byte, useOpenssl bool, plaintextNames bool, GCMIV128 bool) *CryptFS {

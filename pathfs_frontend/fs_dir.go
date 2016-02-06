@@ -29,7 +29,7 @@ func (fs *FS) Mkdir(relPath string, mode uint32, context *fuse.Context) (code fu
 	mode = mode | 0300
 
 	// The new directory may take the place of an older one that is still in the cache
-	fs.CryptFS.DirIVCacheEnc.Clear()
+	fs.CryptFS.DirIVCache.Clear()
 	// Create directory
 	fs.dirIVLock.Lock()
 	defer fs.dirIVLock.Unlock()
@@ -148,6 +148,6 @@ func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 		cryptfs.Warn.Printf("Rmdir: Could not clean up %s: %v", tmpName, err)
 	}
 	// The now-deleted directory may have been in the DirIV cache. Clear it.
-	fs.CryptFS.DirIVCacheEnc.Clear()
+	fs.CryptFS.DirIVCache.Clear()
 	return fuse.OK
 }

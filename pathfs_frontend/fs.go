@@ -305,7 +305,7 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 	}
 	// The Rename may cause a directory to take the place of another directory.
 	// That directory may still be in the DirIV cache, clear it.
-	fs.CryptFS.DirIVCacheEnc.Clear()
+	fs.CryptFS.DirIVCache.Clear()
 
 	err = os.Rename(cOldPath, cNewPath)
 

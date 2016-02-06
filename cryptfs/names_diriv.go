@@ -10,7 +10,7 @@ import (
 )
 
 // A simple one-entry DirIV cache
-type DirIVCache struct {
+type dirIVCache struct {
 	// Invalidated?
 	cleared bool
 	// The DirIV
@@ -24,7 +24,7 @@ type DirIVCache struct {
 }
 
 // lookup - fetch entry for "dir" from the cache
-func (c *DirIVCache) lookup(dir string) (bool, []byte, string) {
+func (c *dirIVCache) lookup(dir string) (bool, []byte, string) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	if !c.cleared && c.dir == dir {
@@ -34,7 +34,7 @@ func (c *DirIVCache) lookup(dir string) (bool, []byte, string) {
 }
 
 // store - write entry for "dir" into the caches
-func (c *DirIVCache) store(dir string, iv []byte, translatedDir string) {
+func (c *dirIVCache) store(dir string, iv []byte, translatedDir string) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	c.cleared = false
@@ -43,7 +43,7 @@ func (c *DirIVCache) store(dir string, iv []byte, translatedDir string) {
 	c.translatedDir = translatedDir
 }
 
-func (c *DirIVCache) Clear() {
+func (c *dirIVCache) Clear() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	c.cleared = true
@@ -90,7 +90,7 @@ func (be *CryptFS) EncryptPathDirIV(plainPath string, rootDir string, eme bool) 
 	}
 	// Check if the DirIV is cached
 	parentDir := filepath.Dir(plainPath)
-	found, iv, cParentDir := be.DirIVCacheEnc.lookup(parentDir)
+	found, iv, cParentDir := be.DirIVCache.lookup(parentDir)
 	if found {
 		//fmt.Print("h")
 		baseName := filepath.Base(plainPath)
@@ -114,7 +114,7 @@ func (be *CryptFS) EncryptPathDirIV(plainPath string, rootDir string, eme bool) 
 	// Cache the final DirIV
 	cipherPath = strings.Join(encryptedNames, "/")
 	cParentDir = filepath.Dir(cipherPath)
-	be.DirIVCacheEnc.store(parentDir, iv, cParentDir)
+	be.DirIVCache.store(parentDir, iv, cParentDir)
 	return cipherPath, nil
 }
 
