@@ -16,12 +16,16 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
-	"github.com/rfjakob/gocryptfs/cryptfs"
-	"github.com/rfjakob/gocryptfs/pathfs_frontend"
-
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
+
+	"github.com/rfjakob/gocryptfs/pathfs_frontend"
+	"github.com/rfjakob/gocryptfs/internal/configfile"
+	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/nametransform"
+	"github.com/rfjakob/gocryptfs/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 )
 
 const (
@@ -56,9 +60,9 @@ func initDir(args *argContainer) {
 	}
 
 	// Create gocryptfs.conf
-	cryptfs.Info.Printf("Choose a password for protecting your files.")
+	toggledlog.Info.Printf("Choose a password for protecting your files.")
 	password := readPasswordTwice(args.extpass)
-	err = cryptfs.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn)
+	err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(ERREXIT_INIT)
@@ -66,30 +70,30 @@ func initDir(args *argContainer) {
 
 	if args.diriv && !args.plaintextnames {
 		// Create gocryptfs.diriv in the root dir
-		err = cryptfs.WriteDirIV(args.cipherdir)
+		err = nametransform.WriteDirIV(args.cipherdir)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(ERREXIT_INIT)
 		}
 	}
 
-	cryptfs.Info.Printf(colorGreen + "The filesystem has been created successfully." + colorReset)
-	cryptfs.Info.Printf(colorGrey+"You can now mount it using: %s %s MOUNTPOINT"+colorReset,
-		cryptfs.PROGRAM_NAME, args.cipherdir)
+	toggledlog.Info.Printf(colorGreen + "The filesystem has been created successfully." + colorReset)
+	toggledlog.Info.Printf(colorGrey+"You can now mount it using: %s %s MOUNTPOINT"+colorReset,
+		toggledlog.ProgramName, args.cipherdir)
 	os.Exit(0)
 }
 
 func usageText() {
 	printVersion()
 	fmt.Printf("\n")
-	fmt.Printf("Usage: %s -init|-passwd [OPTIONS] CIPHERDIR\n", cryptfs.PROGRAM_NAME)
-	fmt.Printf("  or   %s [OPTIONS] CIPHERDIR MOUNTPOINT\n", cryptfs.PROGRAM_NAME)
+	fmt.Printf("Usage: %s -init|-passwd [OPTIONS] CIPHERDIR\n", toggledlog.ProgramName)
+	fmt.Printf("  or   %s [OPTIONS] CIPHERDIR MOUNTPOINT\n", toggledlog.ProgramName)
 	fmt.Printf("\nOptions:\n")
 	flagSet.PrintDefaults()
 }
 
 // loadConfig - load the config file "filename", prompting the user for the password
-func loadConfig(args *argContainer) (masterkey []byte, confFile *cryptfs.ConfFile) {
+func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.ConfFile) {
 	// Check if the file exists at all before prompting for a password
 	_, err := os.Stat(args.config)
 	if err != nil {
@@ -100,16 +104,16 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *cryptfs.ConfFil
 		fmt.Printf("Password: ")
 	}
 	pw := readPassword(args.extpass)
-	cryptfs.Info.Printf("Decrypting master key... ")
-	cryptfs.Warn.Enabled = false // Silence DecryptBlock() error messages on incorrect password
-	masterkey, confFile, err = cryptfs.LoadConfFile(args.config, pw)
-	cryptfs.Warn.Enabled = true
+	toggledlog.Info.Printf("Decrypting master key... ")
+	toggledlog.Warn.Enabled = false // Silence DecryptBlock() error messages on incorrect password
+	masterkey, confFile, err = configfile.LoadConfFile(args.config, pw)
+	toggledlog.Warn.Enabled = true
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println(colorRed + "Wrong password." + colorReset)
 		os.Exit(ERREXIT_LOADCONF)
 	}
-	cryptfs.Info.Printf("done.")
+	toggledlog.Info.Printf("done.")
 
 	return masterkey, confFile
 }
@@ -125,14 +129,14 @@ func changePassword(args *argContainer) {
 		fmt.Println(err)
 		os.Exit(ERREXIT_INIT)
 	}
-	cryptfs.Info.Printf("Password changed.")
+	toggledlog.Info.Printf("Password changed.")
 	os.Exit(0)
 }
 
 // printVersion - print a version string like
 // "gocryptfs v0.3.1-31-g6736212-dirty; on-disk format 2"
 func printVersion() {
-	fmt.Printf("%s %s; on-disk format %d\n", cryptfs.PROGRAM_NAME, GitVersion, cryptfs.HEADER_CURRENT_VERSION)
+	fmt.Printf("%s %s; on-disk format %d\n", toggledlog.ProgramName, GitVersion, contentenc.CurrentVersion)
 }
 
 func main() {
@@ -142,7 +146,7 @@ func main() {
 	setupColors()
 
 	// Parse command line arguments
-	flagSet = flag.NewFlagSet(cryptfs.PROGRAM_NAME, flag.ExitOnError)
+	flagSet = flag.NewFlagSet(toggledlog.ProgramName, flag.ExitOnError)
 	flagSet.Usage = usageText
 	flagSet.BoolVar(&args.debug, "d", false, "")
 	flagSet.BoolVar(&args.debug, "debug", false, "Enable debug output")
@@ -168,7 +172,7 @@ func main() {
 	flagSet.StringVar(&args.extpass, "extpass", "", "Use external program for the password prompt")
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")
-	flagSet.IntVar(&args.scryptn, "scryptn", cryptfs.SCRYPT_DEFAULT_LOGN, "scrypt cost parameter logN. "+
+	flagSet.IntVar(&args.scryptn, "scryptn", configfile.ScryptDefaultLogN, "scrypt cost parameter logN. "+
 		"Setting this to a lower value speeds up mounting but makes the password susceptible to brute-force attacks")
 	flagSet.Parse(os.Args[1:])
 
@@ -182,12 +186,12 @@ func main() {
 		os.Exit(0)
 	}
 	if args.debug {
-		cryptfs.Debug.Enabled = true
-		cryptfs.Debug.Printf("Debug output enabled")
+		toggledlog.Debug.Enabled = true
+		toggledlog.Debug.Printf("Debug output enabled")
 	}
 	if args.wpanic {
-		cryptfs.Warn.PanicAfter = true
-		cryptfs.Debug.Printf("Panicing on warnings")
+		toggledlog.Warn.PanicAfter = true
+		toggledlog.Debug.Printf("Panicing on warnings")
 	}
 	// Every operation below requires CIPHERDIR. Check that we have it.
 	if flagSet.NArg() >= 1 {
@@ -203,7 +207,7 @@ func main() {
 	}
 	// "-q"
 	if args.quiet {
-		cryptfs.Info.Enabled = false
+		toggledlog.Info.Enabled = false
 	}
 	// "-config"
 	if args.config != "" {
@@ -211,13 +215,13 @@ func main() {
 		if err != nil {
 			fmt.Printf(colorRed+"Invalid \"-config\" setting: %v\n"+colorReset, err)
 		}
-		cryptfs.Info.Printf("Using config file at custom location %s", args.config)
+		toggledlog.Info.Printf("Using config file at custom location %s", args.config)
 	} else {
-		args.config = filepath.Join(args.cipherdir, cryptfs.ConfDefaultName)
+		args.config = filepath.Join(args.cipherdir, configfile.ConfDefaultName)
 	}
 	// "-cpuprofile"
 	if args.cpuprofile != "" {
-		cryptfs.Info.Printf("Writing CPU profile to %s", args.cpuprofile)
+		toggledlog.Info.Printf("Writing CPU profile to %s", args.cpuprofile)
 		f, err := os.Create(args.cpuprofile)
 		if err != nil {
 			fmt.Println(err)
@@ -228,7 +232,7 @@ func main() {
 	}
 	// "-memprofile"
 	if args.memprofile != "" {
-		cryptfs.Info.Printf("Writing mem profile to %s", args.memprofile)
+		toggledlog.Info.Printf("Writing mem profile to %s", args.memprofile)
 		f, err := os.Create(args.memprofile)
 		if err != nil {
 			fmt.Println(err)
@@ -245,13 +249,13 @@ func main() {
 	}
 	// "-openssl"
 	if args.openssl == false {
-		cryptfs.Info.Printf("Openssl disabled")
+		toggledlog.Info.Printf("Openssl disabled")
 	}
 	// Operation flags: init, passwd or mount
 	// "-init"
 	if args.init {
 		if flagSet.NArg() > 1 {
-			fmt.Printf("Usage: %s -init [OPTIONS] CIPHERDIR\n", cryptfs.PROGRAM_NAME)
+			fmt.Printf("Usage: %s -init [OPTIONS] CIPHERDIR\n", toggledlog.ProgramName)
 			os.Exit(ERREXIT_USAGE)
 		}
 		initDir(&args) // does not return
@@ -259,7 +263,7 @@ func main() {
 	// "-passwd"
 	if args.passwd {
 		if flagSet.NArg() > 1 {
-			fmt.Printf("Usage: %s -passwd [OPTIONS] CIPHERDIR\n", cryptfs.PROGRAM_NAME)
+			fmt.Printf("Usage: %s -passwd [OPTIONS] CIPHERDIR\n", toggledlog.ProgramName)
 			os.Exit(ERREXIT_USAGE)
 		}
 		changePassword(&args) // does not return
@@ -282,34 +286,34 @@ func main() {
 	}
 	// Get master key
 	var masterkey []byte
-	var confFile *cryptfs.ConfFile
+	var confFile *configfile.ConfFile
 	if args.masterkey != "" {
 		// "-masterkey"
-		cryptfs.Info.Printf("Using explicit master key.")
+		toggledlog.Info.Printf("Using explicit master key.")
 		masterkey = parseMasterKey(args.masterkey)
-		cryptfs.Info.Printf("THE MASTER KEY IS VISIBLE VIA \"ps -auxwww\", ONLY USE THIS MODE FOR EMERGENCIES.")
+		toggledlog.Info.Printf("THE MASTER KEY IS VISIBLE VIA \"ps -auxwww\", ONLY USE THIS MODE FOR EMERGENCIES.")
 	} else if args.zerokey {
 		// "-zerokey"
-		cryptfs.Info.Printf("Using all-zero dummy master key.")
-		cryptfs.Info.Printf("ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING.")
-		masterkey = make([]byte, cryptfs.KEY_LEN)
+		toggledlog.Info.Printf("Using all-zero dummy master key.")
+		toggledlog.Info.Printf("ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING.")
+		masterkey = make([]byte, cryptocore.KeyLen)
 	} else {
 		// Load master key from config file
 		masterkey, confFile = loadConfig(&args)
 		printMasterKey(masterkey)
 	}
 	// Initialize FUSE server
-	cryptfs.Debug.Printf("cli args: %v", args)
+	toggledlog.Debug.Printf("cli args: %v", args)
 	srv := pathfsFrontend(masterkey, args, confFile)
-	cryptfs.Info.Println(colorGreen + "Filesystem mounted and ready." + colorReset)
+	toggledlog.Info.Println(colorGreen + "Filesystem mounted and ready." + colorReset)
 	// We are ready - send USR1 signal to our parent and switch to syslog
 	if args.notifypid > 0 {
 		sendUsr1(args.notifypid)
 
 		if !args.nosyslog {
-			cryptfs.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
-			cryptfs.Debug.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_DEBUG)
-			cryptfs.Warn.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
+			toggledlog.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
+			toggledlog.Debug.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_DEBUG)
+			toggledlog.Warn.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
 		}
 	}
 	// Wait for SIGINT in the background and unmount ourselves if we get it.
@@ -322,7 +326,7 @@ func main() {
 
 // pathfsFrontend - initialize gocryptfs/pathfs_frontend
 // Calls os.Exit on errors
-func pathfsFrontend(key []byte, args argContainer, confFile *cryptfs.ConfFile) *fuse.Server {
+func pathfsFrontend(key []byte, args argContainer, confFile *configfile.ConfFile) *fuse.Server {
 
 	// Reconciliate CLI and config file arguments into a Args struct that is passed to the
 	// filesystem implementation
@@ -338,10 +342,10 @@ func pathfsFrontend(key []byte, args argContainer, confFile *cryptfs.ConfFile) *
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {
 		// Settings from the config file override command line args
-		frontendArgs.PlaintextNames = confFile.IsFeatureFlagSet(cryptfs.FlagPlaintextNames)
-		frontendArgs.DirIV = confFile.IsFeatureFlagSet(cryptfs.FlagDirIV)
-		frontendArgs.EMENames = confFile.IsFeatureFlagSet(cryptfs.FlagEMENames)
-		frontendArgs.GCMIV128 = confFile.IsFeatureFlagSet(cryptfs.FlagGCMIV128)
+		frontendArgs.PlaintextNames = confFile.IsFeatureFlagSet(configfile.FlagPlaintextNames)
+		frontendArgs.DirIV = confFile.IsFeatureFlagSet(configfile.FlagDirIV)
+		frontendArgs.EMENames = confFile.IsFeatureFlagSet(configfile.FlagEMENames)
+		frontendArgs.GCMIV128 = confFile.IsFeatureFlagSet(configfile.FlagGCMIV128)
 	}
 	// EMENames implies DirIV, both on the command line and in the config file.
 	if frontendArgs.EMENames {
@@ -353,7 +357,7 @@ func pathfsFrontend(key []byte, args argContainer, confFile *cryptfs.ConfFile) *
 		frontendArgs.EMENames = false
 	}
 	jsonBytes, _ := json.MarshalIndent(frontendArgs, "", "\t")
-	cryptfs.Debug.Printf("frontendArgs: %s", string(jsonBytes))
+	toggledlog.Debug.Printf("frontendArgs: %s", string(jsonBytes))
 
 	finalFs := pathfs_frontend.NewFS(frontendArgs)
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
@@ -398,7 +402,7 @@ func handleSigint(srv *fuse.Server, mountpoint string) {
 		err := srv.Unmount()
 		if err != nil {
 			fmt.Print(err)
-			cryptfs.Info.Printf("Trying lazy unmount")
+			toggledlog.Info.Printf("Trying lazy unmount")
 			cmd := exec.Command("fusermount", "-u", "-z", mountpoint)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr

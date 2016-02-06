@@ -3,7 +3,8 @@ package pathfs_frontend
 // This file forwards file encryption operations to cryptfs
 
 import (
-	"github.com/rfjakob/gocryptfs/cryptfs"
+	"github.com/rfjakob/gocryptfs/internal/configfile"
+	mylog "github.com/rfjakob/gocryptfs/internal/toggledlog"
 )
 
 // isFiltered - check if plaintext "path" should be forbidden
@@ -14,9 +15,9 @@ func (fs *FS) isFiltered(path string) bool {
 		return false
 	}
 	// gocryptfs.conf in the root directory is forbidden
-	if path == cryptfs.ConfDefaultName {
-		cryptfs.Info.Printf("The name /%s is reserved when -plaintextnames is used\n",
-			cryptfs.ConfDefaultName)
+	if path == configfile.ConfDefaultName {
+		mylog.Info.Printf("The name /%s is reserved when -plaintextnames is used\n",
+			configfile.ConfDefaultName)
 		return true
 	}
 	// Note: gocryptfs.diriv is NOT forbidden because diriv and plaintextnames
@@ -30,11 +31,11 @@ func (fs *FS) encryptPath(plainPath string) (string, error) {
 		return plainPath, nil
 	}
 	if !fs.args.DirIV {
-		return fs.CryptFS.EncryptPathNoIV(plainPath), nil
+		return fs.nameTransform.EncryptPathNoIV(plainPath), nil
 	}
 	fs.dirIVLock.RLock()
 	defer fs.dirIVLock.RUnlock()
-	return fs.CryptFS.EncryptPathDirIV(plainPath, fs.args.Cipherdir, fs.args.EMENames)
+	return fs.nameTransform.EncryptPathDirIV(plainPath, fs.args.Cipherdir)
 }
 
 // decryptPath - decrypt relative ciphertext path
@@ -43,9 +44,9 @@ func (fs *FS) decryptPath(cipherPath string) (string, error) {
 		return cipherPath, nil
 	}
 	if !fs.args.DirIV {
-		return fs.CryptFS.DecryptPathNoIV(cipherPath)
+		return fs.nameTransform.DecryptPathNoIV(cipherPath)
 	}
 	fs.dirIVLock.RLock()
 	defer fs.dirIVLock.RUnlock()
-	return fs.CryptFS.DecryptPathDirIV(cipherPath, fs.args.Cipherdir, fs.args.EMENames)
+	return fs.nameTransform.DecryptPathDirIV(cipherPath, fs.args.Cipherdir, fs.args.EMENames)
 }

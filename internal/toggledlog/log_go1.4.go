@@ -1,7 +1,7 @@
 // +build !go1.5
 // = go 1.4 or lower
 
-package cryptfs
+package toggledlog
 
 import (
 	"log/syslog"

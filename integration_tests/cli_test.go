@@ -7,7 +7,8 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/rfjakob/gocryptfs/cryptfs"
+	"github.com/rfjakob/gocryptfs/internal/configfile"
+	"github.com/rfjakob/gocryptfs/internal/nametransform"
 )
 
 // Test -init flag
@@ -26,7 +27,7 @@ func TestInit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = os.Stat(dir + cryptfs.ConfDefaultName)
+	_, err = os.Stat(dir + configfile.ConfDefaultName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,22 +97,22 @@ func TestInitPlaintextNames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = os.Stat(dir + cryptfs.ConfDefaultName)
+	_, err = os.Stat(dir + configfile.ConfDefaultName)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = os.Stat(dir + cryptfs.DIRIV_FILENAME)
+	_, err = os.Stat(dir + nametransform.DirIVFilename)
 	if err == nil {
 		t.Errorf("gocryptfs.diriv should not have been created with -plaintextnames")
 	}
-	_, cf, err := cryptfs.LoadConfFile(dir+cryptfs.ConfDefaultName, "test")
+	_, cf, err := configfile.LoadConfFile(dir+configfile.ConfDefaultName, "test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !cf.IsFeatureFlagSet(cryptfs.FlagPlaintextNames) {
+	if !cf.IsFeatureFlagSet(configfile.FlagPlaintextNames) {
 		t.Error("PlaintextNames flag should be set but isnt")
 	}
-	if cf.IsFeatureFlagSet(cryptfs.FlagEMENames) || cf.IsFeatureFlagSet(cryptfs.FlagDirIV) {
+	if cf.IsFeatureFlagSet(configfile.FlagEMENames) || cf.IsFeatureFlagSet(configfile.FlagDirIV) {
 		t.Error("FlagEMENames and FlagDirIV should be not set")
 	}
 }

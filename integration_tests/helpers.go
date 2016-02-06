@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/rfjakob/gocryptfs/cryptfs"
+	"github.com/rfjakob/gocryptfs/internal/nametransform"
 )
 
 // Note: the code assumes that all have a trailing slash
@@ -42,7 +42,7 @@ func resetTmpDir() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	err = cryptfs.WriteDirIV(defaultCipherDir)
+	err = nametransform.WriteDirIV(defaultCipherDir)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -58,9 +58,9 @@ func mount(c string, p string, extraArgs ...string) {
 	args = append(args, c)
 	args = append(args, p)
 	cmd := exec.Command(gocryptfsBinary, args...)
+	cmd.Stderr = os.Stderr
 	if testing.Verbose() {
 		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
 	}
 	err := cmd.Run()
 	if err != nil {

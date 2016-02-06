@@ -1,4 +1,4 @@
-package cryptfs
+package nametransform
 
 import (
 	"fmt"
@@ -7,6 +7,17 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/cryptocore"
+)
+
+const (
+	// identical to AES block size
+	dirIVLen       = 16
+	// dirIV is stored in this file. Exported because we have to ignore this
+	// name in directory listing.
+	DirIVFilename  = "gocryptfs.diriv"
 )
 
 // A simple one-entry DirIV cache
@@ -50,23 +61,23 @@ func (c *dirIVCache) Clear() {
 }
 
 // readDirIV - read the "gocryptfs.diriv" file from "dir" (absolute ciphertext path)
-func (be *CryptFS) ReadDirIV(dir string) (iv []byte, readErr error) {
-	ivfile := filepath.Join(dir, DIRIV_FILENAME)
-	Debug.Printf("ReadDirIV: reading %s\n", ivfile)
+func (be *NameTransform) ReadDirIV(dir string) (iv []byte, readErr error) {
+	ivfile := filepath.Join(dir, DirIVFilename)
+	toggledlog.Debug.Printf("ReadDirIV: reading %s\n", ivfile)
 	iv, readErr = ioutil.ReadFile(ivfile)
 	if readErr != nil {
 		// The directory may have been concurrently deleted or moved. Failure to
 		// read the diriv is not an error in that case.
 		_, statErr := os.Stat(dir)
 		if os.IsNotExist(statErr) {
-			Debug.Printf("ReadDirIV: Dir %s was deleted under our feet", dir)
+			toggledlog.Debug.Printf("ReadDirIV: Dir %s was deleted under our feet", dir)
 		} else {
 			// This should not happen
-			Warn.Printf("ReadDirIV: Dir exists but diriv does not: %v\n", readErr)
+			toggledlog.Warn.Printf("ReadDirIV: Dir exists but diriv does not: %v\n", readErr)
 		}
 		return nil, readErr
 	}
-	if len(iv) != DIRIV_LEN {
+	if len(iv) != dirIVLen {
 		return nil, fmt.Errorf("ReadDirIV: Invalid length %d\n", len(iv))
 	}
 	return iv, nil
@@ -76,14 +87,14 @@ func (be *CryptFS) ReadDirIV(dir string) (iv []byte, readErr error) {
 // This function is exported because it is used from pathfs_frontend, main,
 // and also the automated tests.
 func WriteDirIV(dir string) error {
-	iv := RandBytes(DIRIV_LEN)
-	file := filepath.Join(dir, DIRIV_FILENAME)
+	iv := cryptocore.RandBytes(dirIVLen)
+	file := filepath.Join(dir, DirIVFilename)
 	// 0444 permissions: the file is not secret but should not be written to
 	return ioutil.WriteFile(file, iv, 0444)
 }
 
 // EncryptPathDirIV - encrypt path using EME with DirIV
-func (be *CryptFS) EncryptPathDirIV(plainPath string, rootDir string, eme bool) (cipherPath string, err error) {
+func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cipherPath string, err error) {
 	// Empty string means root directory
 	if plainPath == "" {
 		return plainPath, nil
@@ -94,7 +105,7 @@ func (be *CryptFS) EncryptPathDirIV(plainPath string, rootDir string, eme bool) 
 	if found {
 		//fmt.Print("h")
 		baseName := filepath.Base(plainPath)
-		cBaseName := be.encryptName(baseName, iv, eme)
+		cBaseName := be.encryptName(baseName, iv)
 		cipherPath = cParentDir + "/" + cBaseName
 		return cipherPath, nil
 	}
@@ -107,7 +118,7 @@ func (be *CryptFS) EncryptPathDirIV(plainPath string, rootDir string, eme bool) 
 		if err != nil {
 			return "", err
 		}
-		encryptedName := be.encryptName(plainName, iv, eme)
+		encryptedName := be.encryptName(plainName, iv)
 		encryptedNames = append(encryptedNames, encryptedName)
 		wd = filepath.Join(wd, encryptedName)
 	}
@@ -119,17 +130,17 @@ func (be *CryptFS) EncryptPathDirIV(plainPath string, rootDir string, eme bool) 
 }
 
 // DecryptPathDirIV - decrypt path using EME with DirIV
-func (be *CryptFS) DecryptPathDirIV(encryptedPath string, rootDir string, eme bool) (string, error) {
+func (be *NameTransform) DecryptPathDirIV(encryptedPath string, rootDir string, eme bool) (string, error) {
 	var wd = rootDir
 	var plainNames []string
 	encryptedNames := strings.Split(encryptedPath, "/")
-	Debug.Printf("DecryptPathDirIV: decrypting %v\n", encryptedNames)
+	toggledlog.Debug.Printf("DecryptPathDirIV: decrypting %v\n", encryptedNames)
 	for _, encryptedName := range encryptedNames {
 		iv, err := be.ReadDirIV(wd)
 		if err != nil {
 			return "", err
 		}
-		plainName, err := be.decryptName(encryptedName, iv, eme)
+		plainName, err := be.DecryptName(encryptedName, iv)
 		if err != nil {
 			return "", err
 		}

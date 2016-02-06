@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/rfjakob/gocryptfs/cryptfs"
 	"os"
 	"strings"
+
+	"github.com/rfjakob/gocryptfs/internal/cryptocore"
+	"github.com/rfjakob/gocryptfs/internal/toggledlog"
 )
 
 // printMasterKey - remind the user that he should store the master key in
@@ -25,7 +27,7 @@ func printMasterKey(key []byte) {
 		}
 	}
 
-	cryptfs.Info.Printf(`
+	toggledlog.Info.Printf(`
 Your master key is:
 
     %s
@@ -46,8 +48,8 @@ func parseMasterKey(masterkey string) []byte {
 		fmt.Printf("Could not parse master key: %v\n", err)
 		os.Exit(1)
 	}
-	if len(key) != cryptfs.KEY_LEN {
-		fmt.Printf("Master key has length %d but we require length %d\n", len(key), cryptfs.KEY_LEN)
+	if len(key) != cryptocore.KeyLen {
+		fmt.Printf("Master key has length %d but we require length %d\n", len(key), cryptocore.KeyLen)
 		os.Exit(1)
 	}
 	return key

@@ -1,4 +1,4 @@
-package cryptfs
+package cryptocore
 
 // Implements cipher.AEAD with OpenSSL backend
 
@@ -13,7 +13,7 @@ type opensslGCM struct {
 }
 
 func (be opensslGCM) Overhead() int {
-	return AUTH_TAG_LEN
+	return AuthTagLen
 }
 
 func (be opensslGCM) NonceSize() int {
@@ -28,11 +28,11 @@ func (be opensslGCM) Seal(dst, nonce, plaintext, data []byte) []byte {
 
 	// Preallocate output buffer
 	var cipherBuf bytes.Buffer
-	cipherBuf.Grow(len(dst) + len(plaintext) + AUTH_TAG_LEN)
+	cipherBuf.Grow(len(dst) + len(plaintext) + AuthTagLen)
 	// Output will be appended to dst
 	cipherBuf.Write(dst)
 
-	ectx, err := openssl.NewGCMEncryptionCipherCtx(KEY_LEN*8, nil, be.key, nonce)
+	ectx, err := openssl.NewGCMEncryptionCipherCtx(KeyLen*8, nil, be.key, nonce)
 	if err != nil {
 		panic(err)
 	}
@@ -69,11 +69,11 @@ func (be opensslGCM) Seal(dst, nonce, plaintext, data []byte) []byte {
 func (be opensslGCM) Open(dst, nonce, ciphertext, data []byte) ([]byte, error) {
 
 	l := len(ciphertext)
-	tag := ciphertext[l-AUTH_TAG_LEN : l]
-	ciphertext = ciphertext[0 : l-AUTH_TAG_LEN]
+	tag := ciphertext[l-AuthTagLen : l]
+	ciphertext = ciphertext[0 : l-AuthTagLen]
 	plainBuf := bytes.NewBuffer(dst)
 
-	dctx, err := openssl.NewGCMDecryptionCipherCtx(KEY_LEN*8, nil, be.key, nonce)
+	dctx, err := openssl.NewGCMDecryptionCipherCtx(KeyLen*8, nil, be.key, nonce)
 	if err != nil {
 		return nil, err
 	}

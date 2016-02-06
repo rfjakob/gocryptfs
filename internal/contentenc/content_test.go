@@ -1,4 +1,4 @@
-package cryptfs
+package contentenc
 
 import (
 	"testing"

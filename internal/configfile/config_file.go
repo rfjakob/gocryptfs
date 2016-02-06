@@ -1,10 +1,14 @@
-package cryptfs
+package configfile
 
 import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
+
+	"github.com/rfjakob/gocryptfs/internal/cryptocore"
+	"github.com/rfjakob/gocryptfs/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/internal/toggledlog"
 )
 import "os"
 
@@ -36,10 +40,10 @@ type ConfFile struct {
 func CreateConfFile(filename string, password string, plaintextNames bool, logN int) error {
 	var cf ConfFile
 	cf.filename = filename
-	cf.Version = HEADER_CURRENT_VERSION
+	cf.Version = contentenc.CurrentVersion
 
 	// Generate new random master key
-	key := RandBytes(KEY_LEN)
+	key := cryptocore.RandBytes(cryptocore.KeyLen)
 
 	// Encrypt it using the password
 	// This sets ScryptObject and EncryptedKey
@@ -75,11 +79,11 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	// Unmarshal
 	err = json.Unmarshal(js, &cf)
 	if err != nil {
-		Warn.Printf("Failed to unmarshal config file")
+		toggledlog.Warn.Printf("Failed to unmarshal config file")
 		return nil, nil, err
 	}
 
-	if cf.Version != HEADER_CURRENT_VERSION {
+	if cf.Version != contentenc.CurrentVersion {
 		return nil, nil, fmt.Errorf("Unsupported on-disk format %d", cf.Version)
 	}
 
@@ -95,11 +99,13 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	// Unlock master key using password-based key
 	// We use stock go GCM instead of OpenSSL here as speed is not important
 	// and we get better error messages
-	cfs := NewCryptFS(scryptHash, false, false, false)
-	key, err := cfs.DecryptBlock(cf.EncryptedKey, 0, nil)
+	cc := cryptocore.New(scryptHash, false, false)
+	ce := contentenc.New(cc, 4096)
+
+	key, err := ce.DecryptBlock(cf.EncryptedKey, 0, nil)
 	if err != nil {
-		Warn.Printf("failed to unlock master key: %s", err.Error())
-		Warn.Printf("Password incorrect.")
+		toggledlog.Warn.Printf("failed to unlock master key: %s", err.Error())
+		toggledlog.Warn.Printf("Password incorrect.")
 		return nil, nil, err
 	}
 
@@ -116,8 +122,9 @@ func (cf *ConfFile) EncryptKey(key []byte, password string, logN int) {
 	scryptHash := cf.ScryptObject.DeriveKey(password)
 
 	// Lock master key using password-based key
-	cfs := NewCryptFS(scryptHash, false, false, false)
-	cf.EncryptedKey = cfs.EncryptBlock(key, 0, nil)
+	cc := cryptocore.New(scryptHash, false, false)
+	ce := contentenc.New(cc, 4096)
+	cf.EncryptedKey = ce.EncryptBlock(key, 0, nil)
 }
 
 // WriteFile - write out config in JSON format to file "filename.tmp"

@@ -1,10 +1,14 @@
-package cryptfs
+package toggledlog
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+)
+
+const (
+	ProgramName = "gocryptfs"
 )
 
 func JSONDump(obj interface{}) string {

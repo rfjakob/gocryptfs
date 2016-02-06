@@ -13,25 +13,41 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
-	"github.com/rfjakob/gocryptfs/cryptfs"
+
+	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/cryptocore"
+	"github.com/rfjakob/gocryptfs/internal/nametransform"
+	"github.com/rfjakob/gocryptfs/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/internal/configfile"
 )
 
+const plainBS = 4096
+
 type FS struct {
-	*cryptfs.CryptFS
 	pathfs.FileSystem      // loopbackFileSystem, see go-fuse/fuse/pathfs/loopback.go
 	args              Args // Stores configuration arguments
 	// dirIVLock: Lock()ed if any "gocryptfs.diriv" file is modified
 	// Readers must RLock() it to prevent them from seeing intermediate
 	// states
 	dirIVLock sync.RWMutex
+	// Filename encryption helper
+	nameTransform *nametransform.NameTransform
+	// Content encryption helper
+	contentEnc *contentenc.ContentEnc
 }
 
 // Encrypted FUSE overlay filesystem
 func NewFS(args Args) *FS {
+
+	cryptoCore := cryptocore.New(args.Masterkey, args.OpenSSL, args.GCMIV128)
+	contentEnc := contentenc.New(cryptoCore, plainBS)
+	nameTransform := nametransform.New(cryptoCore, args.EMENames)
+
 	return &FS{
-		CryptFS:    cryptfs.NewCryptFS(args.Masterkey, args.OpenSSL, args.PlaintextNames, args.GCMIV128),
 		FileSystem: pathfs.NewLoopbackFileSystem(args.Cipherdir),
 		args:       args,
+		nameTransform: nameTransform,
+		contentEnc: contentEnc,
 	}
 }
 
@@ -43,12 +59,12 @@ func (fs *FS) getBackingPath(relPath string) (string, error) {
 		return "", err
 	}
 	cAbsPath := filepath.Join(fs.args.Cipherdir, cPath)
-	cryptfs.Debug.Printf("getBackingPath: %s + %s -> %s", fs.args.Cipherdir, relPath, cAbsPath)
+	toggledlog.Debug.Printf("getBackingPath: %s + %s -> %s", fs.args.Cipherdir, relPath, cAbsPath)
 	return cAbsPath, nil
 }
 
 func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
-	cryptfs.Debug.Printf("FS.GetAttr('%s')", name)
+	toggledlog.Debug.Printf("FS.GetAttr('%s')", name)
 	if fs.isFiltered(name) {
 		return nil, fuse.EPERM
 	}
@@ -58,11 +74,11 @@ func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Stat
 	}
 	a, status := fs.FileSystem.GetAttr(cName, context)
 	if a == nil {
-		cryptfs.Debug.Printf("FS.GetAttr failed: %s", status.String())
+		toggledlog.Debug.Printf("FS.GetAttr failed: %s", status.String())
 		return a, status
 	}
 	if a.IsRegular() {
-		a.Size = fs.CipherSizeToPlainSize(a.Size)
+		a.Size = fs.contentEnc.CipherSizeToPlainSize(a.Size)
 	} else if a.IsSymlink() {
 		target, _ := fs.Readlink(name, context)
 		a.Size = uint64(len(target))
@@ -71,7 +87,7 @@ func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Stat
 }
 
 func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
-	cryptfs.Debug.Printf("OpenDir(%s)", dirName)
+	toggledlog.Debug.Printf("OpenDir(%s)", dirName)
 	cDirName, err := fs.encryptPath(dirName)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
@@ -81,12 +97,12 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 	if cipherEntries == nil {
 		return nil, status
 	}
-	// Get DirIV (stays zero if DirIV if off)
-	cachedIV := make([]byte, cryptfs.DIRIV_LEN)
+	// Get DirIV (stays nil if DirIV if off)
+	var cachedIV []byte
 	if fs.args.DirIV {
 		// Read the DirIV once and use it for all later name decryptions
 		cDirAbsPath := filepath.Join(fs.args.Cipherdir, cDirName)
-		cachedIV, err = fs.CryptFS.ReadDirIV(cDirAbsPath)
+		cachedIV, err = fs.nameTransform.ReadDirIV(cDirAbsPath)
 		if err != nil {
 			return nil, fuse.ToStatus(err)
 		}
@@ -95,19 +111,19 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 	var plain []fuse.DirEntry
 	for i := range cipherEntries {
 		cName := cipherEntries[i].Name
-		if dirName == "" && cName == cryptfs.ConfDefaultName {
+		if dirName == "" && cName == configfile.ConfDefaultName {
 			// silently ignore "gocryptfs.conf" in the top level dir
 			continue
 		}
-		if fs.args.DirIV && cName == cryptfs.DIRIV_FILENAME {
+		if fs.args.DirIV && cName == nametransform.DirIVFilename {
 			// silently ignore "gocryptfs.diriv" everywhere if dirIV is enabled
 			continue
 		}
 		var name string = cName
 		if !fs.args.PlaintextNames {
-			name, err = fs.CryptFS.DecryptName(cName, cachedIV, fs.args.EMENames)
+			name, err = fs.nameTransform.DecryptName(cName, cachedIV)
 			if err != nil {
-				cryptfs.Warn.Printf("Invalid name \"%s\" in dir \"%s\": %s", cName, cDirName, err)
+				toggledlog.Warn.Printf("Invalid name \"%s\" in dir \"%s\": %s", cName, cDirName, err)
 				continue
 			}
 		}
@@ -137,16 +153,16 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 	iflags, writeOnly := fs.mangleOpenFlags(flags)
 	cPath, err := fs.getBackingPath(path)
 	if err != nil {
-		cryptfs.Debug.Printf("Open: getBackingPath: %v", err)
+		toggledlog.Debug.Printf("Open: getBackingPath: %v", err)
 		return nil, fuse.ToStatus(err)
 	}
-	cryptfs.Debug.Printf("Open: %s", cPath)
+	toggledlog.Debug.Printf("Open: %s", cPath)
 	f, err := os.OpenFile(cPath, iflags, 0666)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
 
-	return NewFile(f, writeOnly, fs.CryptFS), fuse.OK
+	return NewFile(f, writeOnly, fs.contentEnc), fuse.OK
 }
 
 func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Context) (fuseFile nodefs.File, code fuse.Status) {
@@ -162,7 +178,7 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	return NewFile(f, writeOnly, fs.CryptFS), fuse.OK
+	return NewFile(f, writeOnly, fs.contentEnc), fuse.OK
 }
 
 func (fs *FS) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.Status) {
@@ -203,7 +219,7 @@ var truncateWarned bool
 func (fs *FS) Truncate(path string, offset uint64, context *fuse.Context) (code fuse.Status) {
 	// Only warn once
 	if !truncateWarned {
-		cryptfs.Warn.Printf("truncate(2) is not supported, returning ENOSYS - use ftruncate(2)")
+		toggledlog.Warn.Printf("truncate(2) is not supported, returning ENOSYS - use ftruncate(2)")
 		truncateWarned = true
 	}
 	return fuse.ENOSYS
@@ -233,7 +249,7 @@ func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status f
 	if !fs.args.DirIV {
 		target, err := fs.decryptPath(cTarget)
 		if err != nil {
-			cryptfs.Warn.Printf("Readlink: CBC decryption failed: %v", err)
+			toggledlog.Warn.Printf("Readlink: CBC decryption failed: %v", err)
 			return "", fuse.EIO
 		}
 		return target, fuse.OK
@@ -241,12 +257,12 @@ func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status f
 	// Since gocryptfs v0.5 symlinks are encrypted like file contents (GCM)
 	cBinTarget, err := base64.URLEncoding.DecodeString(cTarget)
 	if err != nil {
-		cryptfs.Warn.Printf("Readlink: %v", err)
+		toggledlog.Warn.Printf("Readlink: %v", err)
 		return "", fuse.EIO
 	}
-	target, err := fs.CryptFS.DecryptBlock([]byte(cBinTarget), 0, nil)
+	target, err := fs.contentEnc.DecryptBlock([]byte(cBinTarget), 0, nil)
 	if err != nil {
-		cryptfs.Warn.Printf("Readlink: %v", err)
+		toggledlog.Warn.Printf("Readlink: %v", err)
 		return "", fuse.EIO
 	}
 	return string(target), fuse.OK
@@ -264,7 +280,7 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 }
 
 func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (code fuse.Status) {
-	cryptfs.Debug.Printf("Symlink(\"%s\", \"%s\")", target, linkName)
+	toggledlog.Debug.Printf("Symlink(\"%s\", \"%s\")", target, linkName)
 	if fs.isFiltered(linkName) {
 		return fuse.EPERM
 	}
@@ -276,18 +292,18 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	if !fs.args.DirIV {
 		cTarget, err := fs.encryptPath(target)
 		if err != nil {
-			cryptfs.Warn.Printf("Symlink: BUG: we should not get an error here: %v", err)
+			toggledlog.Warn.Printf("Symlink: BUG: we should not get an error here: %v", err)
 			return fuse.ToStatus(err)
 		}
 		err = os.Symlink(cTarget, cPath)
 		return fuse.ToStatus(err)
 	}
 	// Since gocryptfs v0.5 symlinks are encrypted like file contents (GCM)
-	cBinTarget := fs.CryptFS.EncryptBlock([]byte(target), 0, nil)
+	cBinTarget := fs.contentEnc.EncryptBlock([]byte(target), 0, nil)
 	cTarget := base64.URLEncoding.EncodeToString(cBinTarget)
 
 	err = os.Symlink(cTarget, cPath)
-	cryptfs.Debug.Printf("Symlink: os.Symlink(%s, %s) = %v", cTarget, cPath, err)
+	toggledlog.Debug.Printf("Symlink: os.Symlink(%s, %s) = %v", cTarget, cPath, err)
 	return fuse.ToStatus(err)
 }
 
@@ -305,7 +321,7 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 	}
 	// The Rename may cause a directory to take the place of another directory.
 	// That directory may still be in the DirIV cache, clear it.
-	fs.CryptFS.DirIVCache.Clear()
+	fs.nameTransform.DirIVCache.Clear()
 
 	err = os.Rename(cOldPath, cNewPath)
 
@@ -313,7 +329,7 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 		// If an empty directory is overwritten we will always get
 		// ENOTEMPTY as the "empty" directory will still contain gocryptfs.diriv.
 		// Handle that case by removing the target directory and trying again.
-		cryptfs.Debug.Printf("Rename: Handling ENOTEMPTY")
+		toggledlog.Debug.Printf("Rename: Handling ENOTEMPTY")
 		if fs.Rmdir(newPath, context) == fuse.OK {
 			err = os.Rename(cOldPath, cNewPath)
 		}

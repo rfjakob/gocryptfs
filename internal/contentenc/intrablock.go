@@ -1,11 +1,11 @@
-package cryptfs
+package contentenc
 
 // intraBlock identifies a part of a file block
 type intraBlock struct {
 	BlockNo uint64 // Block number in file
 	Skip    uint64 // Offset into block plaintext
 	Length  uint64 // Length of data from this block
-	fs      *CryptFS
+	fs      *ContentEnc
 }
 
 // isPartial - is the block partial? This means we have to do read-modify-write.

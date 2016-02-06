@@ -1,4 +1,4 @@
-package cryptfs
+package cryptocore
 
 // Benchmark go built-int GCM against spacemonkey openssl bindings
 //

@@ -1,16 +1,19 @@
-package cryptfs
+package configfile
 
 import (
 	"fmt"
-	"golang.org/x/crypto/scrypt"
 	"math"
 	"os"
+
+	"golang.org/x/crypto/scrypt"
+
+	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 )
 
 const (
 	// 1 << 16 uses 64MB of memory,
 	// takes 4 seconds on my Atom Z3735F netbook
-	SCRYPT_DEFAULT_LOGN = 16
+	ScryptDefaultLogN = 16
 )
 
 type scryptKdf struct {
@@ -23,9 +26,9 @@ type scryptKdf struct {
 
 func NewScryptKdf(logN int) scryptKdf {
 	var s scryptKdf
-	s.Salt = RandBytes(KEY_LEN)
+	s.Salt = cryptocore.RandBytes(cryptocore.KeyLen)
 	if logN <= 0 {
-		s.N = 1 << SCRYPT_DEFAULT_LOGN
+		s.N = 1 << ScryptDefaultLogN
 	} else {
 		if logN < 10 {
 			fmt.Println("Error: scryptn below 10 is too low to make sense. Aborting.")
@@ -35,7 +38,7 @@ func NewScryptKdf(logN int) scryptKdf {
 	}
 	s.R = 8 // Always 8
 	s.P = 1 // Always 1
-	s.KeyLen = KEY_LEN
+	s.KeyLen = cryptocore.KeyLen
 	return s
 }
 

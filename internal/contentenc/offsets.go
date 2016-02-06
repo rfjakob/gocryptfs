@@ -1,29 +1,33 @@
-package cryptfs
+package contentenc
 
-// CryptFS methods that translate offsets between ciphertext and plaintext
+import (
+	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+)
+
+// Contentenc methods that translate offsets between ciphertext and plaintext
 
 // get the block number at plain-text offset
-func (be *CryptFS) PlainOffToBlockNo(plainOffset uint64) uint64 {
+func (be *ContentEnc) PlainOffToBlockNo(plainOffset uint64) uint64 {
 	return plainOffset / be.plainBS
 }
 
 // get the block number at ciphter-text offset
-func (be *CryptFS) CipherOffToBlockNo(cipherOffset uint64) uint64 {
+func (be *ContentEnc) CipherOffToBlockNo(cipherOffset uint64) uint64 {
 	return (cipherOffset - HEADER_LEN) / be.cipherBS
 }
 
 // get ciphertext offset of block "blockNo"
-func (be *CryptFS) BlockNoToCipherOff(blockNo uint64) uint64 {
+func (be *ContentEnc) BlockNoToCipherOff(blockNo uint64) uint64 {
 	return HEADER_LEN + blockNo*be.cipherBS
 }
 
 // get plaintext offset of block "blockNo"
-func (be *CryptFS) BlockNoToPlainOff(blockNo uint64) uint64 {
+func (be *ContentEnc) BlockNoToPlainOff(blockNo uint64) uint64 {
 	return blockNo * be.plainBS
 }
 
 // PlainSize - calculate plaintext size from ciphertext size
-func (be *CryptFS) CipherSizeToPlainSize(cipherSize uint64) uint64 {
+func (be *ContentEnc) CipherSizeToPlainSize(cipherSize uint64) uint64 {
 
 	// Zero sized files stay zero-sized
 	if cipherSize == 0 {
@@ -31,12 +35,12 @@ func (be *CryptFS) CipherSizeToPlainSize(cipherSize uint64) uint64 {
 	}
 
 	if cipherSize == HEADER_LEN {
-		Warn.Printf("cipherSize %d == header size: interrupted write?\n", cipherSize)
+		toggledlog.Warn.Printf("cipherSize %d == header size: interrupted write?\n", cipherSize)
 		return 0
 	}
 
 	if cipherSize < HEADER_LEN {
-		Warn.Printf("cipherSize %d < header size: corrupt file\n", cipherSize)
+		toggledlog.Warn.Printf("cipherSize %d < header size: corrupt file\n", cipherSize)
 		return 0
 	}
 
@@ -50,7 +54,7 @@ func (be *CryptFS) CipherSizeToPlainSize(cipherSize uint64) uint64 {
 }
 
 // CipherSize - calculate ciphertext size from plaintext size
-func (be *CryptFS) PlainSizeToCipherSize(plainSize uint64) uint64 {
+func (be *ContentEnc) PlainSizeToCipherSize(plainSize uint64) uint64 {
 
 	// Block number at last byte
 	blockNo := be.PlainOffToBlockNo(plainSize - 1)
@@ -62,7 +66,7 @@ func (be *CryptFS) PlainSizeToCipherSize(plainSize uint64) uint64 {
 }
 
 // Split a plaintext byte range into (possibly partial) blocks
-func (be *CryptFS) ExplodePlainRange(offset uint64, length uint64) []intraBlock {
+func (be *ContentEnc) ExplodePlainRange(offset uint64, length uint64) []intraBlock {
 	var blocks []intraBlock
 	var nextBlock intraBlock
 	nextBlock.fs = be
@@ -79,6 +83,10 @@ func (be *CryptFS) ExplodePlainRange(offset uint64, length uint64) []intraBlock 
 		length -= nextBlock.Length
 	}
 	return blocks
+}
+
+func (be *ContentEnc) BlockOverhead() uint64 {
+	return be.cipherBS - be.plainBS
 }
 
 func MinUint64(x uint64, y uint64) uint64 {

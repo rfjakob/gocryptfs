@@ -1,31 +1,18 @@
-package cryptfs
+package contentenc
 
 // File content encryption / decryption
 
 import (
-	"bytes"
-	"crypto/cipher"
-	"crypto/md5"
 	"encoding/binary"
+	"bytes"
 	"encoding/hex"
 	"errors"
-	"os"
+
+	"github.com/rfjakob/gocryptfs/internal/toggledlog"
 )
 
-// md5sum - debug helper, return md5 hex string
-func md5sum(buf []byte) string {
-	rawHash := md5.Sum(buf)
-	hash := hex.EncodeToString(rawHash[:])
-	return hash
-}
-
-type CryptFile struct {
-	file *os.File
-	gcm  cipher.AEAD
-}
-
 // DecryptBlocks - Decrypt a number of blocks
-func (be *CryptFS) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, fileId []byte) ([]byte, error) {
+func (be *ContentEnc) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, fileId []byte) ([]byte, error) {
 	cBuf := bytes.NewBuffer(ciphertext)
 	var err error
 	var pBuf bytes.Buffer
@@ -46,7 +33,7 @@ func (be *CryptFS) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, fileId 
 //
 // Corner case: A full-sized block of all-zero ciphertext bytes is translated
 // to an all-zero plaintext block, i.e. file hole passtrough.
-func (be *CryptFS) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []byte) ([]byte, error) {
+func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []byte) ([]byte, error) {
 
 	// Empty block?
 	if len(ciphertext) == 0 {
@@ -55,30 +42,30 @@ func (be *CryptFS) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []byte
 
 	// All-zero block?
 	if bytes.Equal(ciphertext, be.allZeroBlock) {
-		Debug.Printf("DecryptBlock: file hole encountered")
+		toggledlog.Debug.Printf("DecryptBlock: file hole encountered")
 		return make([]byte, be.plainBS), nil
 	}
 
-	if len(ciphertext) < be.gcmIVLen {
-		Warn.Printf("DecryptBlock: Block is too short: %d bytes", len(ciphertext))
+	if len(ciphertext) < be.cryptoCore.IVLen {
+		toggledlog.Warn.Printf("DecryptBlock: Block is too short: %d bytes", len(ciphertext))
 		return nil, errors.New("Block is too short")
 	}
 
 	// Extract nonce
-	nonce := ciphertext[:be.gcmIVLen]
+	nonce := ciphertext[:be.cryptoCore.IVLen]
 	ciphertextOrig := ciphertext
-	ciphertext = ciphertext[be.gcmIVLen:]
+	ciphertext = ciphertext[be.cryptoCore.IVLen:]
 
 	// Decrypt
 	var plaintext []byte
 	aData := make([]byte, 8)
 	aData = append(aData, fileId...)
 	binary.BigEndian.PutUint64(aData, blockNo)
-	plaintext, err := be.gcm.Open(plaintext, nonce, ciphertext, aData)
+	plaintext, err := be.cryptoCore.Gcm.Open(plaintext, nonce, ciphertext, aData)
 
 	if err != nil {
-		Warn.Printf("DecryptBlock: %s, len=%d, md5=%s", err.Error(), len(ciphertextOrig), md5sum(ciphertextOrig))
-		Debug.Println(hex.Dump(ciphertextOrig))
+		toggledlog.Warn.Printf("DecryptBlock: %s, len=%d", err.Error(), len(ciphertextOrig))
+		toggledlog.Debug.Println(hex.Dump(ciphertextOrig))
 		return nil, err
 	}
 
@@ -86,7 +73,7 @@ func (be *CryptFS) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []byte
 }
 
 // encryptBlock - Encrypt and add IV and MAC
-func (be *CryptFS) EncryptBlock(plaintext []byte, blockNo uint64, fileID []byte) []byte {
+func (be *ContentEnc) EncryptBlock(plaintext []byte, blockNo uint64, fileID []byte) []byte {
 
 	// Empty block?
 	if len(plaintext) == 0 {
@@ -94,7 +81,7 @@ func (be *CryptFS) EncryptBlock(plaintext []byte, blockNo uint64, fileID []byte)
 	}
 
 	// Get fresh nonce
-	nonce := be.gcmIVGen.Get()
+	nonce := be.cryptoCore.GcmIVGen.Get()
 
 	// Authenticate block with block number and file ID
 	aData := make([]byte, 8)
@@ -102,14 +89,14 @@ func (be *CryptFS) EncryptBlock(plaintext []byte, blockNo uint64, fileID []byte)
 	aData = append(aData, fileID...)
 
 	// Encrypt plaintext and append to nonce
-	ciphertext := be.gcm.Seal(nonce, nonce, plaintext, aData)
+	ciphertext := be.cryptoCore.Gcm.Seal(nonce, nonce, plaintext, aData)
 
 	return ciphertext
 }
 
 // MergeBlocks - Merge newData into oldData at offset
 // New block may be bigger than both newData and oldData
-func (be *CryptFS) MergeBlocks(oldData []byte, newData []byte, offset int) []byte {
+func (be *ContentEnc) MergeBlocks(oldData []byte, newData []byte, offset int) []byte {
 
 	// Make block of maximum size
 	out := make([]byte, be.plainBS)

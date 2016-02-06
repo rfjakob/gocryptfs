@@ -1,7 +1,7 @@
 // +build !go1.5
 // = go 1.4 or lower
 
-package cryptfs
+package cryptocore
 
 import (
 	"crypto/cipher"

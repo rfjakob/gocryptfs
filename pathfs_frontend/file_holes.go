@@ -4,13 +4,14 @@ package pathfs_frontend
 
 import (
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/rfjakob/gocryptfs/cryptfs"
+
+	"github.com/rfjakob/gocryptfs/internal/toggledlog"
 )
 
 // Will a write to offset "off" create a file hole?
 func (f *file) createsHole(plainSize uint64, off int64) bool {
-	nextBlock := f.cfs.PlainOffToBlockNo(plainSize)
-	targetBlock := f.cfs.PlainOffToBlockNo(uint64(off))
+	nextBlock := f.contentEnc.PlainOffToBlockNo(plainSize)
+	targetBlock := f.contentEnc.PlainOffToBlockNo(uint64(off))
 	if targetBlock > nextBlock {
 		return true
 	}
@@ -19,10 +20,10 @@ func (f *file) createsHole(plainSize uint64, off int64) bool {
 
 // Zero-pad the file of size plainSize to the next block boundary
 func (f *file) zeroPad(plainSize uint64) fuse.Status {
-	lastBlockLen := plainSize % f.cfs.PlainBS()
-	missing := f.cfs.PlainBS() - lastBlockLen
+	lastBlockLen := plainSize % f.contentEnc.PlainBS()
+	missing := f.contentEnc.PlainBS() - lastBlockLen
 	pad := make([]byte, missing)
-	cryptfs.Debug.Printf("zeroPad: Writing %d bytes\n", missing)
+	toggledlog.Debug.Printf("zeroPad: Writing %d bytes\n", missing)
 	_, status := f.doWrite(pad, int64(plainSize))
 	return status
 }
