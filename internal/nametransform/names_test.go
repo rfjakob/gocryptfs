@@ -15,7 +15,7 @@ func TestEncryptPathNoIV(t *testing.T) {
 
 	key := make([]byte, cryptocore.KeyLen)
 	cc := cryptocore.New(key, false, true)
-	fs := New(cc, true)
+	fs := New(cc, true, false)
 
 	for _, n := range s {
 		c := fs.EncryptPathNoIV(n)

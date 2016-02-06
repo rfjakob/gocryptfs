@@ -1,6 +1,7 @@
 package nametransform
 
 import (
+	"syscall"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -19,8 +20,9 @@ const (
 	DirIVFilename = "gocryptfs.diriv"
 )
 
-// readDirIV - read the "gocryptfs.diriv" file from "dir" (absolute ciphertext path)
-func (be *NameTransform) ReadDirIV(dir string) (iv []byte, readErr error) {
+// ReadDirIV - read the "gocryptfs.diriv" file from "dir" (absolute ciphertext path)
+// This function is exported because it allows for an efficient readdir implementation
+func ReadDirIV(dir string) (iv []byte, readErr error) {
 	ivfile := filepath.Join(dir, DirIVFilename)
 	toggledlog.Debug.Printf("ReadDirIV: reading %s\n", ivfile)
 	iv, readErr = ioutil.ReadFile(ivfile)
@@ -62,9 +64,11 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cip
 	parentDir := filepath.Dir(plainPath)
 	found, iv, cParentDir := be.DirIVCache.lookup(parentDir)
 	if found {
-		//fmt.Print("h")
 		baseName := filepath.Base(plainPath)
-		cBaseName := be.encryptName(baseName, iv)
+		cBaseName := be.EncryptName(baseName, iv)
+		if be.longNames && len(cBaseName) > syscall.NAME_MAX {
+			cBaseName = HashLongName(cBaseName)
+		}
 		cipherPath = cParentDir + "/" + cBaseName
 		return cipherPath, nil
 	}
@@ -73,29 +77,32 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cip
 	var encryptedNames []string
 	plainNames := strings.Split(plainPath, "/")
 	for _, plainName := range plainNames {
-		iv, err = be.ReadDirIV(wd)
+		iv, err = ReadDirIV(wd)
 		if err != nil {
 			return "", err
 		}
-		encryptedName := be.encryptName(plainName, iv)
+		encryptedName := be.EncryptName(plainName, iv)
+		if be.longNames && len(encryptedName) > syscall.NAME_MAX {
+			encryptedName = HashLongName(encryptedName)
+		}
 		encryptedNames = append(encryptedNames, encryptedName)
 		wd = filepath.Join(wd, encryptedName)
 	}
-	// Cache the final DirIV
 	cipherPath = strings.Join(encryptedNames, "/")
+	// Cache the final DirIV
 	cParentDir = filepath.Dir(cipherPath)
 	be.DirIVCache.store(parentDir, iv, cParentDir)
 	return cipherPath, nil
 }
 
 // DecryptPathDirIV - decrypt path using EME with DirIV
-func (be *NameTransform) DecryptPathDirIV(encryptedPath string, rootDir string, eme bool) (string, error) {
+func (be *NameTransform) DecryptPathDirIV(encryptedPath string, rootDir string) (string, error) {
 	var wd = rootDir
 	var plainNames []string
 	encryptedNames := strings.Split(encryptedPath, "/")
 	toggledlog.Debug.Printf("DecryptPathDirIV: decrypting %v\n", encryptedNames)
 	for _, encryptedName := range encryptedNames {
-		iv, err := be.ReadDirIV(wd)
+		iv, err := ReadDirIV(wd)
 		if err != nil {
 			return "", err
 		}

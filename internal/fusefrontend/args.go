@@ -9,4 +9,5 @@ type Args struct {
 	DirIV          bool
 	EMENames       bool
 	GCMIV128       bool
+	LongNames      bool
 }

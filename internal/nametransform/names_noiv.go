@@ -49,7 +49,7 @@ func (be *NameTransform) translatePathNoIV(path string, op int) (string, error) 
 		}
 		var newPart string
 		if op == OpEncrypt {
-			newPart = be.encryptName(part, zeroIV)
+			newPart = be.EncryptName(part, zeroIV)
 		} else {
 			newPart, err = be.DecryptName(part, zeroIV)
 			if err != nil {

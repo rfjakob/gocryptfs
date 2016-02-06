@@ -56,6 +56,7 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 	} else {
 		cf.FeatureFlags = append(cf.FeatureFlags, FlagDirIV)
 		cf.FeatureFlags = append(cf.FeatureFlags, FlagEMENames)
+		cf.FeatureFlags = append(cf.FeatureFlags, FlagLongNames)
 	}
 
 	// Write file to disk
@@ -169,12 +170,13 @@ const (
 	FlagDirIV          = "DirIV"
 	FlagEMENames       = "EMENames"
 	FlagGCMIV128       = "GCMIV128"
+	FlagLongNames      = "LongNames"
 )
 
 // Verify that we understand a feature flag
 func (cf *ConfFile) isFeatureFlagKnown(flag string) bool {
 	switch flag {
-	case FlagPlaintextNames, FlagDirIV, FlagEMENames, FlagGCMIV128:
+	case FlagPlaintextNames, FlagDirIV, FlagEMENames, FlagGCMIV128, FlagLongNames:
 		return true
 	default:
 		return false

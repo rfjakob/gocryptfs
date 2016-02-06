@@ -39,7 +39,7 @@ func NewFS(args Args) *FS {
 
 	cryptoCore := cryptocore.New(args.Masterkey, args.OpenSSL, args.GCMIV128)
 	contentEnc := contentenc.New(cryptoCore, contentenc.DefaultBS)
-	nameTransform := nametransform.New(cryptoCore, args.EMENames)
+	nameTransform := nametransform.New(cryptoCore, args.EMENames, args.LongNames)
 
 	return &FS{
 		FileSystem:    pathfs.NewLoopbackFileSystem(args.Cipherdir),
@@ -47,18 +47,6 @@ func NewFS(args Args) *FS {
 		nameTransform: nameTransform,
 		contentEnc:    contentEnc,
 	}
-}
-
-// GetBackingPath - get the absolute encrypted path of the backing file
-// from the relative plaintext path "relPath"
-func (fs *FS) getBackingPath(relPath string) (string, error) {
-	cPath, err := fs.encryptPath(relPath)
-	if err != nil {
-		return "", err
-	}
-	cAbsPath := filepath.Join(fs.args.Cipherdir, cPath)
-	toggledlog.Debug.Printf("getBackingPath: %s + %s -> %s", fs.args.Cipherdir, relPath, cAbsPath)
-	return cAbsPath, nil
 }
 
 func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
@@ -97,10 +85,11 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 	}
 	// Get DirIV (stays nil if DirIV if off)
 	var cachedIV []byte
+	var cDirAbsPath string
 	if fs.args.DirIV {
 		// Read the DirIV once and use it for all later name decryptions
-		cDirAbsPath := filepath.Join(fs.args.Cipherdir, cDirName)
-		cachedIV, err = fs.nameTransform.ReadDirIV(cDirAbsPath)
+		cDirAbsPath = filepath.Join(fs.args.Cipherdir, cDirName)
+		cachedIV, err = nametransform.ReadDirIV(cDirAbsPath)
 		if err != nil {
 			return nil, fuse.ToStatus(err)
 		}
@@ -117,14 +106,32 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 			// silently ignore "gocryptfs.diriv" everywhere if dirIV is enabled
 			continue
 		}
-		var name string = cName
-		if !fs.args.PlaintextNames {
-			name, err = fs.nameTransform.DecryptName(cName, cachedIV)
-			if err != nil {
-				toggledlog.Warn.Printf("Invalid name \"%s\" in dir \"%s\": %s", cName, cDirName, err)
+
+		if fs.args.PlaintextNames {
+			plain = append(plain, cipherEntries[i])
+			continue
+		}
+
+		if fs.args.LongNames {
+			isLong := nametransform.IsLongName(cName)
+			if isLong == 1 {
+				cNameLong, err := nametransform.ReadLongName(filepath.Join(cDirAbsPath, cName))
+				if err != nil {
+					toggledlog.Warn.Printf("Could not read long name for file %s, skipping file", cName)
+					continue
+				}
+				cName = cNameLong
+			} else if isLong == 2 {
+				// ignore "gocryptfs.longname.*.name"
 				continue
 			}
 		}
+		name, err := fs.nameTransform.DecryptName(cName, cachedIV)
+		if err != nil {
+			toggledlog.Warn.Printf("Skipping invalid name '%s' in dir '%s': %s", cName, cDirName, err)
+			continue
+		}
+
 		cipherEntries[i].Name = name
 		plain = append(plain, cipherEntries[i])
 	}
@@ -171,6 +178,13 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 	cPath, err := fs.getBackingPath(path)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
+	}
+	cBaseName := filepath.Base(cPath)
+	if fs.args.LongNames && nametransform.IsLongName(cBaseName) == 1 {
+		err = fs.nameTransform.WriteLongName(filepath.Dir(cPath), cBaseName, filepath.Base(path))
+		if err != nil {
+			return nil, fuse.ToStatus(err)
+		}
 	}
 	f, err := os.OpenFile(cPath, iflags|os.O_CREATE, os.FileMode(mode))
 	if err != nil {

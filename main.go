@@ -41,7 +41,8 @@ const (
 
 type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
-	plaintextnames, quiet, diriv, emenames, gcmiv128, nosyslog, wpanic bool
+	plaintextnames, quiet, diriv, emenames, gcmiv128, nosyslog, wpanic,
+	longnames bool
 	masterkey, mountpoint, cipherdir, cpuprofile, config, extpass,
 	memprofile string
 	notifypid, scryptn int
@@ -165,6 +166,7 @@ func main() {
 	flagSet.BoolVar(&args.gcmiv128, "gcmiv128", true, "Use an 128-bit IV for GCM encryption instead of Go's default of 96 bits")
 	flagSet.BoolVar(&args.nosyslog, "nosyslog", false, "Do not redirect output to syslog when running in the background")
 	flagSet.BoolVar(&args.wpanic, "wpanic", false, "When encountering a warning, panic and exit immediately")
+	flagSet.BoolVar(&args.longnames, "longnames", true, "Store names longer than 176 bytes in extra files")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")
@@ -338,6 +340,7 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 		DirIV:          args.diriv,
 		EMENames:       args.emenames,
 		GCMIV128:       args.gcmiv128,
+		LongNames:      args.longnames,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {
