@@ -3,7 +3,6 @@ package integration_tests
 // File reading, writing, modification, truncate
 
 import (
-	"syscall"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
@@ -13,6 +12,7 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"syscall"
 	"testing"
 )
 
@@ -27,7 +27,7 @@ func TestMain(m *testing.M) {
 	if testing.Verbose() {
 		fmt.Println("***** Testing with OpenSSL")
 	}
-	resetTmpDir() // <- this also create gocryptfs.diriv
+	resetTmpDir(false) // <- this also create gocryptfs.diriv
 	mount(defaultCipherDir, defaultPlainDir, "--zerokey")
 	r := m.Run()
 	unmount(defaultPlainDir)
@@ -43,7 +43,7 @@ func TestMain(m *testing.M) {
 	if testing.Verbose() {
 		fmt.Println("***** Testing with native Go crypto")
 	}
-	resetTmpDir()
+	resetTmpDir(false)
 	mount(defaultCipherDir, defaultPlainDir, "--zerokey", "--openssl=false")
 	r = m.Run()
 	unmount(defaultPlainDir)
@@ -55,7 +55,7 @@ func TestMain(m *testing.M) {
 	if testing.Verbose() {
 		fmt.Println("***** Testing \"--plaintextnames\"")
 	}
-	resetTmpDir()
+	resetTmpDir(true) // do not create gocryptfs.diriv
 	mount(defaultCipherDir, defaultPlainDir, "--zerokey", "--plaintextnames")
 	plaintextNames = true
 	r = m.Run()
@@ -356,12 +356,12 @@ func TestLongNames(t *testing.T) {
 	// Create
 	wd := defaultPlainDir
 	n255x := string(bytes.Repeat([]byte("x"), 255))
-	f, err := os.Create(wd+n255x)
+	f, err := os.Create(wd + n255x)
 	if err != nil {
 		t.Fatalf("Could not create n255x")
 	}
 	f.Close()
-	if !verifyExistence(wd+n255x) {
+	if !verifyExistence(wd + n255x) {
 		t.Errorf("n255x is not in directory listing")
 	}
 	// Rename long to long
@@ -370,7 +370,7 @@ func TestLongNames(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not rename n255x to n255y")
 	}
-	if !verifyExistence(wd+n255y) {
+	if !verifyExistence(wd + n255y) {
 		t.Errorf("n255y is not in directory listing")
 	}
 	// Rename long to short
@@ -378,7 +378,7 @@ func TestLongNames(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not rename n255y to short")
 	}
-	if !verifyExistence(wd+"short") {
+	if !verifyExistence(wd + "short") {
 		t.Errorf("short is not in directory listing")
 	}
 	// Rename short to long
@@ -386,15 +386,15 @@ func TestLongNames(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not rename short to n255x")
 	}
-	if !verifyExistence(wd+n255x) {
+	if !verifyExistence(wd + n255x) {
 		t.Errorf("255x is not in directory listing II")
 	}
 	// Unlink
-	err = syscall.Unlink(wd+n255x)
+	err = syscall.Unlink(wd + n255x)
 	if err != nil {
 		t.Fatalf("Could not unlink n255x")
 	}
-	if verifyExistence(wd+n255x) {
+	if verifyExistence(wd + n255x) {
 		t.Errorf("n255x still there after unlink")
 	}
 }

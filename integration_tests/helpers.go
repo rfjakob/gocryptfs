@@ -1,13 +1,13 @@
 package integration_tests
 
 import (
-	"path/filepath"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"syscall"
 	"testing"
 
@@ -22,7 +22,7 @@ const defaultCipherDir = tmpDir + "cipher/"
 const gocryptfsBinary = "../gocryptfs"
 
 // resetTmpDir - delete old tmp dir, create new one, write gocryptfs.diriv
-func resetTmpDir() {
+func resetTmpDir(plaintextNames bool) {
 	fu := exec.Command("fusermount", "-z", "-u", defaultPlainDir)
 	fu.Run()
 
@@ -43,10 +43,12 @@ func resetTmpDir() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	err = nametransform.WriteDirIV(defaultCipherDir)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+	if !plaintextNames {
+		err = nametransform.WriteDirIV(defaultCipherDir)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 	}
 }
 
@@ -54,8 +56,9 @@ func resetTmpDir() {
 func mount(c string, p string, extraArgs ...string) {
 	var args []string
 	args = append(args, extraArgs...)
-	args = append(args, "-q", "-wpanic")
-	//args = append(args, "--fusedebug")
+	args = append(args, "-nosyslog", "-q", "-wpanic")
+	//args = append(args, "-fusedebug")
+	//args = append(args, "-d")
 	args = append(args, c)
 	args = append(args, p)
 	cmd := exec.Command(gocryptfsBinary, args...)
@@ -205,7 +208,7 @@ func verifyExistence(path string) bool {
 		//t.Log(err)
 		return false
 	}
-	for _, i := range(fi) {
+	for _, i := range fi {
 		if i.Name() == name {
 			return true
 		}
