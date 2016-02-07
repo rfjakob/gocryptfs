@@ -353,12 +353,17 @@ func TestDirOverwrite(t *testing.T) {
 }
 
 func TestLongNames(t *testing.T) {
-	// Create
+	fi, err := ioutil.ReadDir(defaultCipherDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cnt1 := len(fi)
 	wd := defaultPlainDir
+	// Create file with long name
 	n255x := string(bytes.Repeat([]byte("x"), 255))
 	f, err := os.Create(wd + n255x)
 	if err != nil {
-		t.Fatalf("Could not create n255x")
+		t.Fatalf("Could not create n255x: %v", err)
 	}
 	f.Close()
 	if !verifyExistence(wd + n255x) {
@@ -368,7 +373,7 @@ func TestLongNames(t *testing.T) {
 	n255y := string(bytes.Repeat([]byte("y"), 255))
 	err = os.Rename(wd+n255x, wd+n255y)
 	if err != nil {
-		t.Fatalf("Could not rename n255x to n255y")
+		t.Fatalf("Could not rename n255x to n255y: %v", err)
 	}
 	if !verifyExistence(wd + n255y) {
 		t.Errorf("n255y is not in directory listing")
@@ -376,7 +381,7 @@ func TestLongNames(t *testing.T) {
 	// Rename long to short
 	err = os.Rename(wd+n255y, wd+"short")
 	if err != nil {
-		t.Fatalf("Could not rename n255y to short")
+		t.Fatalf("Could not rename n255y to short: %v", err)
 	}
 	if !verifyExistence(wd + "short") {
 		t.Errorf("short is not in directory listing")
@@ -384,7 +389,7 @@ func TestLongNames(t *testing.T) {
 	// Rename short to long
 	err = os.Rename(wd+"short", wd+n255x)
 	if err != nil {
-		t.Fatalf("Could not rename short to n255x")
+		t.Fatalf("Could not rename short to n255x: %v", err)
 	}
 	if !verifyExistence(wd + n255x) {
 		t.Errorf("255x is not in directory listing II")
@@ -392,9 +397,41 @@ func TestLongNames(t *testing.T) {
 	// Unlink
 	err = syscall.Unlink(wd + n255x)
 	if err != nil {
-		t.Fatalf("Could not unlink n255x")
+		t.Fatalf("Could not unlink n255x: %v", err)
 	}
 	if verifyExistence(wd + n255x) {
 		t.Errorf("n255x still there after unlink")
+	}
+	// Long symlink
+	n255s := string(bytes.Repeat([]byte("s"), 255))
+	err = os.Symlink("/etc/motd", wd+n255s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !verifyExistence(wd + n255s) {
+		t.Errorf("n255s is not in directory listing")
+	}
+	err = syscall.Unlink(wd + n255s)
+	if err != nil {
+		t.Error(err)
+	}
+	// Long dir
+	n255d := string(bytes.Repeat([]byte("d"), 255))
+	err = os.Mkdir(wd+n255d, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = syscall.Rmdir(wd + n255d)
+	if err != nil {
+		t.Error(err)
+	}
+	// Check for orphaned files
+	fi, err = ioutil.ReadDir(defaultCipherDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cnt2 := len(fi)
+	if cnt1 != cnt2 {
+		t.Errorf("Leftover files, cnt1=%d cnt2=%d", cnt1, cnt2)
 	}
 }

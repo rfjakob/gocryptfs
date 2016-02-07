@@ -1,12 +1,12 @@
 package nametransform
 
 import (
-	"syscall"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/toggledlog"
@@ -54,17 +54,23 @@ func WriteDirIV(dir string) error {
 	return ioutil.WriteFile(file, iv, 0444)
 }
 
-// EncryptPathDirIV - encrypt path using EME with DirIV
+// EncryptPathDirIV - encrypt relative plaintext path using EME with DirIV.
+// Components that are longer than 255 bytes are hashed.
 func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cipherPath string, err error) {
 	// Empty string means root directory
 	if plainPath == "" {
 		return plainPath, nil
 	}
+	// Reject names longer than 255 bytes already here. This relieves everybody
+	// who uses hashed long names from checking for that later.
+	baseName := filepath.Base(plainPath)
+	if len(baseName) > syscall.NAME_MAX {
+		return "", syscall.ENAMETOOLONG
+	}
 	// Check if the DirIV is cached
 	parentDir := filepath.Dir(plainPath)
 	found, iv, cParentDir := be.DirIVCache.lookup(parentDir)
 	if found {
-		baseName := filepath.Base(plainPath)
 		cBaseName := be.EncryptName(baseName, iv)
 		if be.longNames && len(cBaseName) > syscall.NAME_MAX {
 			cBaseName = HashLongName(cBaseName)
@@ -72,7 +78,7 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cip
 		cipherPath = cParentDir + "/" + cBaseName
 		return cipherPath, nil
 	}
-	// Walk the directory tree
+	// Not cached - walk the directory tree
 	var wd = rootDir
 	var encryptedNames []string
 	plainNames := strings.Split(plainPath, "/")
@@ -96,6 +102,9 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cip
 }
 
 // DecryptPathDirIV - decrypt path using EME with DirIV
+//
+// TODO This has only a single user, Readlink(), and only for compatability with
+// gocryptfs v0.5. Drop?
 func (be *NameTransform) DecryptPathDirIV(encryptedPath string, rootDir string) (string, error) {
 	var wd = rootDir
 	var plainNames []string

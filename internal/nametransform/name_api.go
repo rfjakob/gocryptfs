@@ -12,7 +12,7 @@ type NameTransform struct {
 func New(c *cryptocore.CryptoCore, useEME bool, longNames bool) *NameTransform {
 	return &NameTransform{
 		cryptoCore: c,
-		longNames: longNames,
+		longNames:  longNames,
 		useEME:     useEME,
 	}
 }

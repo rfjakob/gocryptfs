@@ -40,7 +40,7 @@ func (be *ContentEnc) CipherSizeToPlainSize(cipherSize uint64) uint64 {
 	}
 
 	if cipherSize < HEADER_LEN {
-		toggledlog.Warn.Printf("cipherSize %d < header size: corrupt file\n", cipherSize)
+		toggledlog.Warn.Printf("cipherSize %d < header size %d: corrupt file\n", cipherSize, HEADER_LEN)
 		return 0
 	}
 

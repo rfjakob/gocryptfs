@@ -9,6 +9,7 @@ import (
 
 const (
 	ProgramName = "gocryptfs"
+	wpanicMsg   = "-wpanic turns this warning into a panic: "
 )
 
 func JSONDump(obj interface{}) string {
@@ -35,7 +36,7 @@ func (l *toggledLogger) Printf(format string, v ...interface{}) {
 	}
 	l.Logger.Printf(format, v...)
 	if l.Wpanic {
-		panic("-wpanic turns warning into panic: " + fmt.Sprintf(format, v...))
+		panic(wpanicMsg + fmt.Sprintf(format, v...))
 	}
 }
 func (l *toggledLogger) Println(v ...interface{}) {
@@ -44,7 +45,7 @@ func (l *toggledLogger) Println(v ...interface{}) {
 	}
 	l.Logger.Println(v...)
 	if l.Wpanic {
-		panic("-wpanic turns warning into panic: " + fmt.Sprintln(v...))
+		panic(wpanicMsg + fmt.Sprintln(v...))
 	}
 }
 

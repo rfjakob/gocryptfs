@@ -10,6 +10,7 @@ import (
 
 	"github.com/hanwen/go-fuse/fuse"
 
+	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/toggledlog"
@@ -30,7 +31,11 @@ func (fs *FS) Mkdir(relPath string, mode uint32, context *fuse.Context) (code fu
 	// We need write and execute permissions to create gocryptfs.diriv
 	origMode := mode
 	mode = mode | 0300
-
+	// Create .name file to store the long file name if needed
+	err = fs.nameTransform.WriteLongName(encPath, relPath)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
 	// The new directory may take the place of an older one that is still in the cache
 	fs.nameTransform.DirIVCache.Clear()
 	// Create directory
@@ -150,6 +155,10 @@ func (fs *FS) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 	err = syscall.Unlink(tmpDirivPath)
 	if err != nil {
 		toggledlog.Warn.Printf("Rmdir: Could not clean up %s: %v", tmpName, err)
+	}
+	err = nametransform.DeleteLongName(encPath)
+	if err != nil {
+		toggledlog.Warn.Printf("Rmdir: Could not delete long name file: %v", err)
 	}
 	// The now-deleted directory may have been in the DirIV cache. Clear it.
 	fs.nameTransform.DirIVCache.Clear()

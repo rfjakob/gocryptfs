@@ -5,7 +5,6 @@ package fusefrontend
 import (
 	"encoding/base64"
 	"os"
-	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
@@ -14,7 +13,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 
-	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
@@ -113,10 +111,9 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	cBaseName := filepath.Base(cPath)
-	if fs.args.LongNames && nametransform.IsLongName(cBaseName) == 1 {
-		// Create the ".name" file before creating the content
-		err = fs.nameTransform.WriteLongName(filepath.Dir(cPath), cBaseName, filepath.Base(path))
+	// Create .name file to store the long file name if needed
+	if !fs.args.PlaintextNames {
+		err = fs.nameTransform.WriteLongName(cPath, path)
 		if err != nil {
 			return nil, fuse.ToStatus(err)
 		}
@@ -157,6 +154,13 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 	cPath, err := fs.encryptPath(path)
 	if err != nil {
 		return fuse.ToStatus(err)
+	}
+	if !fs.args.PlaintextNames {
+		// Create .name file to store the long file name if needed
+		err = fs.nameTransform.WriteLongName(cPath, path)
+		if err != nil {
+			return fuse.ToStatus(err)
+		}
 	}
 	return fs.FileSystem.Mknod(cPath, mode, dev, context)
 }
@@ -223,7 +227,12 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	return fuse.ToStatus(syscall.Unlink(cPath))
+	err = syscall.Unlink(cPath)
+	// Delete .name file
+	if err == nil && !fs.args.PlaintextNames {
+		nametransform.DeleteLongName(cPath)
+	}
+	return fuse.ToStatus(err)
 }
 
 func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (code fuse.Status) {
@@ -236,6 +245,7 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 		return fuse.ToStatus(err)
 	}
 	// Old filesystem: symlinks are encrypted like paths (CBC)
+	// TODO drop compatibility and simplify code
 	if !fs.args.DirIV {
 		cTarget, err := fs.encryptPath(target)
 		if err != nil {
@@ -248,7 +258,13 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	// Since gocryptfs v0.5 symlinks are encrypted like file contents (GCM)
 	cBinTarget := fs.contentEnc.EncryptBlock([]byte(target), 0, nil)
 	cTarget := base64.URLEncoding.EncodeToString(cBinTarget)
-
+	if !fs.args.PlaintextNames {
+		// Create .name file to store the long file name if needed
+		err = fs.nameTransform.WriteLongName(cPath, linkName)
+		if err != nil {
+			return fuse.ToStatus(err)
+		}
+	}
 	err = os.Symlink(cTarget, cPath)
 	toggledlog.Debug.Printf("Symlink: os.Symlink(%s, %s) = %v", cTarget, cPath, err)
 	return fuse.ToStatus(err)
@@ -270,6 +286,15 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 	// That directory may still be in the DirIV cache, clear it.
 	fs.nameTransform.DirIVCache.Clear()
 
+	if !fs.args.PlaintextNames {
+		// Create .name file to store the new long file name if needed
+		err = fs.nameTransform.WriteLongName(cNewPath, newPath)
+		if err != nil {
+			return fuse.ToStatus(err)
+		}
+	}
+
+	// Actual rename
 	err = os.Rename(cOldPath, cNewPath)
 
 	if lerr, ok := err.(*os.LinkError); ok && lerr.Err == syscall.ENOTEMPTY {
@@ -280,6 +305,13 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 		if fs.Rmdir(newPath, context) == fuse.OK {
 			err = os.Rename(cOldPath, cNewPath)
 		}
+	}
+	if err == nil {
+		// Rename succeeded - delete old long name file
+		nametransform.DeleteLongName(cOldPath)
+	} else {
+		// Rename has failed - undo long name file creation
+		nametransform.DeleteLongName(cNewPath)
 	}
 
 	return fuse.ToStatus(err)
@@ -296,6 +328,13 @@ func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code 
 	cNewPath, err := fs.getBackingPath(newPath)
 	if err != nil {
 		return fuse.ToStatus(err)
+	}
+	if !fs.args.PlaintextNames {
+		// Create .name file to store the long file name if needed
+		err = fs.nameTransform.WriteLongName(cNewPath, newPath)
+		if err != nil {
+			return fuse.ToStatus(err)
+		}
 	}
 	return fuse.ToStatus(os.Link(cOldPath, cNewPath))
 }
