@@ -192,7 +192,7 @@ func main() {
 		toggledlog.Debug.Printf("Debug output enabled")
 	}
 	if args.wpanic {
-		toggledlog.Warn.PanicAfter = true
+		toggledlog.Warn.Wpanic = true
 		toggledlog.Debug.Printf("Panicing on warnings")
 	}
 	// Every operation below requires CIPHERDIR. Check that we have it.

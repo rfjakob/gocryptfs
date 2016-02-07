@@ -1,6 +1,7 @@
 package integration_tests
 
 import (
+	"path/filepath"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -175,4 +176,39 @@ func testRename(t *testing.T, plainDir string) {
 		t.Fatal(err)
 	}
 	syscall.Unlink(file2)
+}
+
+// verifyExistence - check in 3 ways that "path" exists:
+// stat, open, readdir
+func verifyExistence(path string) bool {
+
+	// Check that file can be stated
+	_, err := os.Stat(path)
+	if err != nil {
+		//t.Log(err)
+		return false
+	}
+
+	// Check that file can be opened
+	fd, err := os.Open(path)
+	if err != nil {
+		//t.Log(err)
+		return false
+	}
+	fd.Close()
+
+	// Check that file shows up in directory listing
+	dir := filepath.Dir(path)
+	name := filepath.Base(path)
+	fi, err := ioutil.ReadDir(dir)
+	if err != nil {
+		//t.Log(err)
+		return false
+	}
+	for _, i := range(fi) {
+		if i.Name() == name {
+			return true
+		}
+	}
+	return false
 }

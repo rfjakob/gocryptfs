@@ -25,7 +25,7 @@ type toggledLogger struct {
 	// Enable or disable output
 	Enabled bool
 	// Panic after logging a message, useful in regression tests
-	PanicAfter bool
+	Wpanic bool
 	*log.Logger
 }
 
@@ -34,8 +34,8 @@ func (l *toggledLogger) Printf(format string, v ...interface{}) {
 		return
 	}
 	l.Logger.Printf(format, v...)
-	if l.PanicAfter {
-		panic("PanicAfter: " + fmt.Sprintf(format, v...))
+	if l.Wpanic {
+		panic("-wpanic turns warning into panic: " + fmt.Sprintf(format, v...))
 	}
 }
 func (l *toggledLogger) Println(v ...interface{}) {
@@ -43,8 +43,8 @@ func (l *toggledLogger) Println(v ...interface{}) {
 		return
 	}
 	l.Logger.Println(v...)
-	if l.PanicAfter {
-		panic("PanicAfter: " + fmt.Sprintln(v...))
+	if l.Wpanic {
+		panic("-wpanic turns warning into panic: " + fmt.Sprintln(v...))
 	}
 }
 

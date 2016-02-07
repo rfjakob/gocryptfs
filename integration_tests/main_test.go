@@ -3,6 +3,7 @@ package integration_tests
 // File reading, writing, modification, truncate
 
 import (
+	"syscall"
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
@@ -348,5 +349,52 @@ func TestDirOverwrite(t *testing.T) {
 	err = os.Rename(dir1, dir2)
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestLongNames(t *testing.T) {
+	// Create
+	wd := defaultPlainDir
+	n255x := string(bytes.Repeat([]byte("x"), 255))
+	f, err := os.Create(wd+n255x)
+	if err != nil {
+		t.Fatalf("Could not create n255x")
+	}
+	f.Close()
+	if !verifyExistence(wd+n255x) {
+		t.Errorf("n255x is not in directory listing")
+	}
+	// Rename long to long
+	n255y := string(bytes.Repeat([]byte("y"), 255))
+	err = os.Rename(wd+n255x, wd+n255y)
+	if err != nil {
+		t.Fatalf("Could not rename n255x to n255y")
+	}
+	if !verifyExistence(wd+n255y) {
+		t.Errorf("n255y is not in directory listing")
+	}
+	// Rename long to short
+	err = os.Rename(wd+n255y, wd+"short")
+	if err != nil {
+		t.Fatalf("Could not rename n255y to short")
+	}
+	if !verifyExistence(wd+"short") {
+		t.Errorf("short is not in directory listing")
+	}
+	// Rename short to long
+	err = os.Rename(wd+"short", wd+n255x)
+	if err != nil {
+		t.Fatalf("Could not rename short to n255x")
+	}
+	if !verifyExistence(wd+n255x) {
+		t.Errorf("255x is not in directory listing II")
+	}
+	// Unlink
+	err = syscall.Unlink(wd+n255x)
+	if err != nil {
+		t.Fatalf("Could not unlink n255x")
+	}
+	if verifyExistence(wd+n255x) {
+		t.Errorf("n255x still there after unlink")
 	}
 }
