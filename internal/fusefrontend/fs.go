@@ -72,72 +72,6 @@ func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Stat
 	return a, status
 }
 
-func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
-	toggledlog.Debug.Printf("OpenDir(%s)", dirName)
-	cDirName, err := fs.encryptPath(dirName)
-	if err != nil {
-		return nil, fuse.ToStatus(err)
-	}
-	// Read ciphertext directory
-	cipherEntries, status := fs.FileSystem.OpenDir(cDirName, context)
-	if cipherEntries == nil {
-		return nil, status
-	}
-	// Get DirIV (stays nil if DirIV if off)
-	var cachedIV []byte
-	var cDirAbsPath string
-	if fs.args.DirIV {
-		// Read the DirIV once and use it for all later name decryptions
-		cDirAbsPath = filepath.Join(fs.args.Cipherdir, cDirName)
-		cachedIV, err = nametransform.ReadDirIV(cDirAbsPath)
-		if err != nil {
-			return nil, fuse.ToStatus(err)
-		}
-	}
-	// Filter and decrypt filenames
-	var plain []fuse.DirEntry
-	for i := range cipherEntries {
-		cName := cipherEntries[i].Name
-		if dirName == "" && cName == configfile.ConfDefaultName {
-			// silently ignore "gocryptfs.conf" in the top level dir
-			continue
-		}
-		if fs.args.DirIV && cName == nametransform.DirIVFilename {
-			// silently ignore "gocryptfs.diriv" everywhere if dirIV is enabled
-			continue
-		}
-
-		if fs.args.PlaintextNames {
-			plain = append(plain, cipherEntries[i])
-			continue
-		}
-
-		if fs.args.LongNames {
-			isLong := nametransform.IsLongName(cName)
-			if isLong == 1 {
-				cNameLong, err := nametransform.ReadLongName(filepath.Join(cDirAbsPath, cName))
-				if err != nil {
-					toggledlog.Warn.Printf("Could not read long name for file %s, skipping file", cName)
-					continue
-				}
-				cName = cNameLong
-			} else if isLong == 2 {
-				// ignore "gocryptfs.longname.*.name"
-				continue
-			}
-		}
-		name, err := fs.nameTransform.DecryptName(cName, cachedIV)
-		if err != nil {
-			toggledlog.Warn.Printf("Skipping invalid name '%s' in dir '%s': %s", cName, cDirName, err)
-			continue
-		}
-
-		cipherEntries[i].Name = name
-		plain = append(plain, cipherEntries[i])
-	}
-	return plain, status
-}
-
 // We always need read access to do read-modify-write cycles
 func (fs *FS) mangleOpenFlags(flags uint32) (newFlags int, writeOnly bool) {
 	newFlags = int(flags)
@@ -181,6 +115,7 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 	}
 	cBaseName := filepath.Base(cPath)
 	if fs.args.LongNames && nametransform.IsLongName(cBaseName) == 1 {
+		// Create the ".name" file before creating the content
 		err = fs.nameTransform.WriteLongName(filepath.Dir(cPath), cBaseName, filepath.Base(path))
 		if err != nil {
 			return nil, fuse.ToStatus(err)
