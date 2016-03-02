@@ -98,8 +98,8 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	scryptHash := cf.ScryptObject.DeriveKey(password)
 
 	// Unlock master key using password-based key
-	// We use stock go GCM instead of OpenSSL here as speed is not important
-	// and we get better error messages
+	// We use stock go GCM instead of OpenSSL here as we only use 96-bit IVs,
+	// speed is not important and we get better error messages
 	cc := cryptocore.New(scryptHash, false, false)
 	ce := contentenc.New(cc, 4096)
 
