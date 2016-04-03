@@ -95,6 +95,19 @@ RM:    4.36
 Changelog
 ---------
 
+v0.9-rc (release candidate, not yet stable)
+* Long file name support
+ * gocryptfs now supports file names up to 255 characters.
+ * This is a forwards-compatible change. gocryptfs v0.9 can mount filesystems
+   created by earlier versions but not the other way round.
+* Refactor gocryptfs into multiple "internal" packages
+* New command-line options:
+ * `-longnames`: Enable long file name support (default true)
+ * `-nosyslog`: Print messages to stdout and stderr instead of syslog (default false)
+ * `-wpanic`: Make warning messages fatal (used for testing)
+ * `-d`: Alias for `-debug`
+ * `-q`: Alias for `-quiet`
+
 v0.8
 * Redirect output to syslog when running in the background
 * New command-line option:
