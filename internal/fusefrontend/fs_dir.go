@@ -207,21 +207,22 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 
 		if fs.args.LongNames {
 			isLong := nametransform.IsLongName(cName)
-			if isLong == 1 {
+			if isLong == nametransform.LongNameContent {
 				cNameLong, err := nametransform.ReadLongName(filepath.Join(cDirAbsPath, cName))
 				if err != nil {
 					toggledlog.Warn.Printf("Could not read long name for file %s, skipping file", cName)
 					continue
 				}
 				cName = cNameLong
-			} else if isLong == 2 {
+			} else if isLong == nametransform.LongNameFilename {
 				// ignore "gocryptfs.longname.*.name"
 				continue
 			}
 		}
 		name, err := fs.nameTransform.DecryptName(cName, cachedIV)
 		if err != nil {
-			toggledlog.Warn.Printf("Skipping invalid name '%s' in dir '%s': %s", cName, cDirName, err)
+			toggledlog.Warn.Printf("Skipping invalid name '%s' in dir '%s': %s",
+				cName, cDirName, err)
 			continue
 		}
 

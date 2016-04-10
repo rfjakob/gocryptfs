@@ -25,18 +25,25 @@ func HashLongName(name string) string {
 	return longNamePrefix + hashBase64
 }
 
+// Values returned by IsLongName
+const (
+	LongNameContent  = iota
+	LongNameFilename = iota
+	LongNameNone     = iota
+)
+
 // IsLongName - detect if cName is
-// gocryptfs.longname.* ........ 1
-// gocryptfs.longname.*.name ... 2
-// else ........................ 0
+// gocryptfs.longname.[sha256]  ........ LongNameContent (content of a long name file)
+// gocryptfs.longname.[sha256].name .... LongNameFilename (full file name of a long name file)
+// else ................................ LongNameNone (normal file)
 func IsLongName(cName string) int {
 	if !strings.HasPrefix(cName, longNamePrefix) {
-		return 0
+		return LongNameNone
 	}
 	if strings.HasSuffix(cName, longNameSuffix) {
-		return 2
+		return LongNameFilename
 	}
-	return 1
+	return LongNameContent
 }
 
 // ReadLongName - read path.name
@@ -51,7 +58,7 @@ func ReadLongName(path string) (string, error) {
 // DeleteLongName - if cPath ends in "gocryptfs.longname.[sha256]",
 // delete the "gocryptfs.longname.[sha256].name" file
 func DeleteLongName(cPath string) error {
-	if IsLongName(filepath.Base(cPath)) == 1 {
+	if IsLongName(filepath.Base(cPath)) == LongNameContent {
 		err := syscall.Unlink(cPath + longNameSuffix)
 		if err != nil {
 			toggledlog.Warn.Printf("DeleteLongName: %v", err)
@@ -65,7 +72,7 @@ func DeleteLongName(cPath string) error {
 // "gocryptfs.longname.[sha256].name" file
 func (n *NameTransform) WriteLongName(cPath string, plainPath string) (err error) {
 	cHashedName := filepath.Base(cPath)
-	if IsLongName(cHashedName) != 1 {
+	if IsLongName(cHashedName) != LongNameContent {
 		// This is not a hashed file name, nothing to do
 		return nil
 	}
