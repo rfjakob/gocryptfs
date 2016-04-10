@@ -23,10 +23,17 @@ const gocryptfsBinary = "../gocryptfs"
 
 // resetTmpDir - delete old tmp dir, create new one, write gocryptfs.diriv
 func resetTmpDir(plaintextNames bool) {
-	fu := exec.Command("fusermount", "-z", "-u", defaultPlainDir)
-	fu.Run()
 
-	err := os.RemoveAll(tmpDir)
+	// Try to unmount everything
+	entries, err := ioutil.ReadDir(tmpDir)
+	if err == nil {
+		for _, e := range entries {
+			fu := exec.Command("fusermount", "-z", "-u", filepath.Join(tmpDir, e.Name()))
+			fu.Run()
+		}
+	}
+
+	err = os.RemoveAll(tmpDir)
 	if err != nil {
 		fmt.Println("resetTmpDir: RemoveAll:" + err.Error())
 		os.Exit(1)
@@ -162,6 +169,8 @@ func testMkdirRmdir(t *testing.T, plainDir string) {
 	}
 	err = syscall.Rmdir(dir)
 	if err != nil {
+		// Make sure the directory can cleaned up by the next test run
+		os.Chmod(dir, 0700)
 		t.Fatal(err)
 	}
 }
