@@ -236,7 +236,8 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 		if b.IsPartial() {
 			// Read
 			o, _ := b.PlaintextRange()
-			oldData, status := f.doRead(o, f.contentEnc.PlainBS())
+			var oldData []byte
+			oldData, status = f.doRead(o, f.contentEnc.PlainBS())
 			if status != fuse.OK {
 				toggledlog.Warn.Printf("ino%d fh%d: RMW read failed: %s", f.ino, f.intFd(), status.String())
 				return written, status

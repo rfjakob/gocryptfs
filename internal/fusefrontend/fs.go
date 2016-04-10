@@ -116,7 +116,8 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 	// Handle long file name
 	cName := filepath.Base(cPath)
 	if nametransform.IsLongContent(cName) {
-		dirfd, err := os.Open(filepath.Dir(cPath))
+		var dirfd *os.File
+		dirfd, err = os.Open(filepath.Dir(cPath))
 		if err != nil {
 			return nil, fuse.ToStatus(err)
 		}
@@ -129,7 +130,8 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 		}
 
 		// Create content
-		fdRaw, err := syscall.Openat(int(dirfd.Fd()), cName, iflags|os.O_CREATE, mode)
+		var fdRaw int
+		fdRaw, err = syscall.Openat(int(dirfd.Fd()), cName, iflags|os.O_CREATE, mode)
 		if err != nil {
 			nametransform.DeleteLongName(dirfd, cName)
 			return nil, fuse.ToStatus(err)
@@ -237,7 +239,8 @@ func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status f
 	}
 	// Old filesystem: symlinks are encrypted like paths (CBC)
 	if !fs.args.DirIV {
-		target, err := fs.decryptPath(cTarget)
+		var target string
+		target, err = fs.decryptPath(cTarget)
 		if err != nil {
 			toggledlog.Warn.Printf("Readlink: CBC decryption failed: %v", err)
 			return "", fuse.EIO
@@ -269,7 +272,8 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 
 	cName := filepath.Base(cPath)
 	if nametransform.IsLongContent(cName) {
-		dirfd, err := os.Open(filepath.Dir(cPath))
+		var dirfd *os.File
+		dirfd, err = os.Open(filepath.Dir(cPath))
 		if err != nil {
 			return fuse.ToStatus(err)
 		}
@@ -303,7 +307,8 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	// Before v0.5, symlinks were encrypted like paths (CBC)
 	// TODO drop compatibility and simplify code?
 	if !fs.args.DirIV {
-		cTarget, err := fs.encryptPath(target)
+		var cTarget string
+		cTarget, err = fs.encryptPath(target)
 		if err != nil {
 			toggledlog.Warn.Printf("Symlink: BUG: we should not get an error here: %v", err)
 			return fuse.ToStatus(err)
@@ -318,7 +323,8 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	// Handle long file name
 	cName := filepath.Base(cPath)
 	if nametransform.IsLongContent(cName) {
-		dirfd, err := os.Open(filepath.Dir(cPath))
+		var dirfd *os.File
+		dirfd, err = os.Open(filepath.Dir(cPath))
 		if err != nil {
 			return fuse.ToStatus(err)
 		}

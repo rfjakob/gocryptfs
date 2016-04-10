@@ -224,7 +224,8 @@ func main() {
 	// "-cpuprofile"
 	if args.cpuprofile != "" {
 		toggledlog.Info.Printf("Writing CPU profile to %s", args.cpuprofile)
-		f, err := os.Create(args.cpuprofile)
+		var f *os.File
+		f, err = os.Create(args.cpuprofile)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(ERREXIT_INIT)
@@ -235,7 +236,8 @@ func main() {
 	// "-memprofile"
 	if args.memprofile != "" {
 		toggledlog.Info.Printf("Writing mem profile to %s", args.memprofile)
-		f, err := os.Create(args.memprofile)
+		var f *os.File
+		f, err = os.Create(args.memprofile)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(ERREXIT_INIT)

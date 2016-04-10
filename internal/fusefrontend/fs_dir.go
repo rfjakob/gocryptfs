@@ -56,7 +56,8 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 	// Handle long file name
 	cName := filepath.Base(cPath)
 	if nametransform.IsLongContent(cName) {
-		dirfd, err := os.Open(filepath.Dir(cPath))
+		var dirfd *os.File
+		dirfd, err = os.Open(filepath.Dir(cPath))
 		if err != nil {
 			return fuse.ToStatus(err)
 		}
