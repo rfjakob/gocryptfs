@@ -52,6 +52,7 @@ var flagSet *flag.FlagSet
 
 // GitVersion will be set by the build script "build.bash"
 var GitVersion = "[version not set - please compile using ./build.bash]"
+var GitVersionFuse = "[version not set - please compile using ./build.bash]"
 
 func initDir(args *argContainer) {
 	err := checkDirEmpty(args.cipherdir)
@@ -137,7 +138,8 @@ func changePassword(args *argContainer) {
 // printVersion - print a version string like
 // "gocryptfs v0.3.1-31-g6736212-dirty; on-disk format 2"
 func printVersion() {
-	fmt.Printf("%s %s; on-disk format %d\n", toggledlog.ProgramName, GitVersion, contentenc.CurrentVersion)
+	fmt.Printf("%s %s; on-disk format %d; go-fuse %s\n",
+		toggledlog.ProgramName, GitVersion, contentenc.CurrentVersion, GitVersionFuse)
 }
 
 func main() {
