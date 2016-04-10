@@ -3,7 +3,7 @@ The used test archive is https://www.kernel.org/pub/linux/kernel/v3.0/linux-3.0.
 (mirror: http://ftp.linux.org.uk/pub/linux/linux-3.0/linux-3.0.tar.gz).
 The archive is placed on tmpfs as well.
 
-WRITE: dd if=/dev/zero of=zero bs=128K count=1000 
+WRITE: dd if=/dev/zero of=zero bs=128K count=1000
 UNTAR: time tar xfz ../linux-3.0.tar.gz
 LS:    time ls -lR linux-3.0 > /dev/null
 RM:    time rm -Rf linux-3.0
@@ -17,3 +17,4 @@ v0.6                      47     1.8    4.3
 v0.7                      43     1.7    4.3
 v0.7.2                    26     1.8    4.3
 v0.8                      23     1.8    4.3
+v0.9-rc2      94          24     1.8    4.5
