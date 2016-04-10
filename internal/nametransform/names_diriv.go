@@ -1,7 +1,7 @@
 package nametransform
 
 import (
-	"fmt"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -21,25 +21,38 @@ const (
 )
 
 // ReadDirIV - read the "gocryptfs.diriv" file from "dir" (absolute ciphertext path)
-// This function is exported because it allows for an efficient readdir implementation
-func ReadDirIV(dir string) (iv []byte, readErr error) {
-	ivfile := filepath.Join(dir, DirIVFilename)
-	toggledlog.Debug.Printf("ReadDirIV: reading %s\n", ivfile)
-	iv, readErr = ioutil.ReadFile(ivfile)
-	if readErr != nil {
-		// The directory may have been concurrently deleted or moved. Failure to
-		// read the diriv is not an error in that case.
-		_, statErr := os.Stat(dir)
-		if os.IsNotExist(statErr) {
-			toggledlog.Debug.Printf("ReadDirIV: Dir %s was deleted under our feet", dir)
-		} else {
-			// This should not happen
-			toggledlog.Warn.Printf("ReadDirIV: Dir exists but diriv does not: %v\n", readErr)
-		}
-		return nil, readErr
+// This function is exported because it allows for an efficient readdir implementation.
+func ReadDirIV(dir string) (iv []byte, err error) {
+	dirfd, err := os.Open(dir)
+	if err != nil {
+		return nil, err
 	}
+	defer dirfd.Close()
+
+	return ReadDirIVAt(dirfd)
+}
+
+// ReadDirIVAt reads "gocryptfs.diriv" from the directory that is opened as "dirfd".
+// Using the dirfd makes it immune to concurrent renames of the directory.
+func ReadDirIVAt(dirfd *os.File) (iv []byte, err error) {
+	fdRaw, err := syscall.Openat(int(dirfd.Fd()), DirIVFilename, syscall.O_RDONLY, 0)
+	if err != nil {
+		toggledlog.Warn.Printf("ReadDirIVAt: %v", err)
+		return nil, err
+	}
+	fd := os.NewFile(uintptr(fdRaw), DirIVFilename)
+	defer fd.Close()
+
+	iv = make([]byte, dirIVLen+1)
+	n, err := fd.Read(iv)
+	if err != nil {
+		toggledlog.Warn.Printf("ReadDirIVAt: %v", err)
+		return nil, err
+	}
+	iv = iv[0:n]
 	if len(iv) != dirIVLen {
-		return nil, fmt.Errorf("ReadDirIV: Invalid length %d\n", len(iv))
+		toggledlog.Warn.Printf("ReadDirIVAt: wanted %d bytes, got %d", dirIVLen, len(iv))
+		return nil, errors.New("invalid iv length")
 	}
 	return iv, nil
 }
@@ -50,12 +63,15 @@ func ReadDirIV(dir string) (iv []byte, readErr error) {
 func WriteDirIV(dir string) error {
 	iv := cryptocore.RandBytes(dirIVLen)
 	file := filepath.Join(dir, DirIVFilename)
-	// 0444 permissions: the file is not secret but should not be written to
-	return ioutil.WriteFile(file, iv, 0444)
+	err := ioutil.WriteFile(file, iv, 0400)
+	if err != nil {
+		toggledlog.Warn.Printf("WriteDirIV: %v", err)
+	}
+	return err
 }
 
 // EncryptPathDirIV - encrypt relative plaintext path using EME with DirIV.
-// Components that are longer than 255 bytes are hashed.
+// Components that are longer than 255 bytes are hashed if be.longnames == true.
 func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cipherPath string, err error) {
 	// Empty string means root directory
 	if plainPath == "" {

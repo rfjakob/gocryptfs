@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -11,11 +12,13 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/toggledlog"
 )
 
-// Files with long names are stored in two files:
-// gocryptfs.longname.[sha256]       <--- File content
-// gocryptfs.longname.[sha256].name  <--- File name
-const longNamePrefix = "gocryptfs.longname."
-const longNameSuffix = ".name"
+const (
+	// Files with long names are stored in two files:
+	// gocryptfs.longname.[sha256]       <--- File content, prefix = gocryptfs.longname.
+	// gocryptfs.longname.[sha256].name  <--- File name, suffix = .name
+	LongNameSuffix = ".name"
+	longNamePrefix = "gocryptfs.longname."
+)
 
 // HashLongName - take the hash of a long string "name" and return
 // "gocryptfs.longname.[sha256]"
@@ -32,63 +35,68 @@ const (
 	LongNameNone     = iota
 )
 
-// IsLongName - detect if cName is
+// NameType - detect if cName is
 // gocryptfs.longname.[sha256]  ........ LongNameContent (content of a long name file)
 // gocryptfs.longname.[sha256].name .... LongNameFilename (full file name of a long name file)
 // else ................................ LongNameNone (normal file)
-func IsLongName(cName string) int {
+func NameType(cName string) int {
 	if !strings.HasPrefix(cName, longNamePrefix) {
 		return LongNameNone
 	}
-	if strings.HasSuffix(cName, longNameSuffix) {
+	if strings.HasSuffix(cName, LongNameSuffix) {
 		return LongNameFilename
 	}
 	return LongNameContent
 }
 
+// IsLongContent returns true if "cName" is the content store of a long name file.
+func IsLongContent(cName string) bool {
+	return NameType(cName) == LongNameContent
+}
+
 // ReadLongName - read path.name
 func ReadLongName(path string) (string, error) {
-	content, err := ioutil.ReadFile(path + longNameSuffix)
+	content, err := ioutil.ReadFile(path + LongNameSuffix)
 	if err != nil {
 		toggledlog.Warn.Printf("ReadLongName: %v", err)
 	}
 	return string(content), err
 }
 
-// DeleteLongName - if cPath ends in "gocryptfs.longname.[sha256]",
-// delete the "gocryptfs.longname.[sha256].name" file
-func DeleteLongName(cPath string) error {
-	if IsLongName(filepath.Base(cPath)) == LongNameContent {
-		err := syscall.Unlink(cPath + longNameSuffix)
-		if err != nil {
-			toggledlog.Warn.Printf("DeleteLongName: %v", err)
-		}
-		return err
+// DeleteLongName deletes "hashName.name".
+func DeleteLongName(dirfd *os.File, hashName string) error {
+	err := syscall.Unlinkat(int(dirfd.Fd()), hashName+LongNameSuffix)
+	if err != nil {
+		toggledlog.Warn.Printf("DeleteLongName: %v", err)
 	}
-	return nil
+	return err
 }
 
-// WriteLongName - if cPath ends in "gocryptfs.longname.[sha256]", write the
-// "gocryptfs.longname.[sha256].name" file
-func (n *NameTransform) WriteLongName(cPath string, plainPath string) (err error) {
-	cHashedName := filepath.Base(cPath)
-	if IsLongName(cHashedName) != LongNameContent {
-		// This is not a hashed file name, nothing to do
-		return nil
-	}
-	// Encrypt (but do not hash) the plaintext name
-	cDir := filepath.Dir(cPath)
-	dirIV, err := ReadDirIV(cDir)
+// WriteLongName encrypts plainName and writes it into "hashName.name".
+// For the convenience of the caller, plainName may also be a path and will be
+// converted internally.
+func (n *NameTransform) WriteLongName(dirfd *os.File, hashName string, plainName string) (err error) {
+	plainName = filepath.Base(plainName)
+
+	// Encrypt the basename
+	dirIV, err := ReadDirIVAt(dirfd)
 	if err != nil {
-		toggledlog.Warn.Printf("WriteLongName: %v", err)
 		return err
 	}
-	plainName := filepath.Base(plainPath)
 	cName := n.EncryptName(plainName, dirIV)
-	// Write the encrypted name into gocryptfs.longname.[sha256].name
-	err = ioutil.WriteFile(filepath.Join(cDir, cHashedName+longNameSuffix), []byte(cName), 0600)
+
+	// Write the encrypted name into hashName.name
+	fdRaw, err := syscall.Openat(int(dirfd.Fd()), hashName+LongNameSuffix,
+		syscall.O_WRONLY|syscall.O_CREAT|syscall.O_EXCL, 0600)
 	if err != nil {
-		toggledlog.Warn.Printf("WriteLongName: %v", err)
+		toggledlog.Warn.Printf("WriteLongName: Openat: %v", err)
+		return err
+	}
+	fd := os.NewFile(uintptr(fdRaw), hashName+LongNameSuffix)
+	defer fd.Close()
+	_, err = fd.Write([]byte(cName))
+	if err != nil {
+		toggledlog.Warn.Printf("WriteLongName: Write: %v", err)
 	}
 	return err
 }
