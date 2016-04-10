@@ -95,8 +95,8 @@ RM:    4.36
 Changelog
 ---------
 
-v0.9-rc (release candidate, not yet stable)
-* Long file name support
+v0.9
+* **Long file name support**
  * gocryptfs now supports file names up to 255 characters.
  * This is a forwards-compatible change. gocryptfs v0.9 can mount filesystems
    created by earlier versions but not the other way round.
