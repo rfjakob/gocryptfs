@@ -41,9 +41,13 @@ Options:
 
 **-diriv**
 :	Use per-directory file name IV (default true)
+This flag is useful when recovering old gocryptfs filesystems using
+"-masterkey". It is ignored (stays at the default) otherwise.
 
 **-emenames**
-:	Use EME filename encryption (default true). This option implies diriv.
+:	Use EME filename encryption (default true), implies diriv.
+This flag is useful when recovering old gocryptfs filesystems using
+"-masterkey". It is ignored (stays at the default) otherwise.
 
 **-extpass string**
 :	Use an external program (like ssh-askpass) for the password prompt.
@@ -61,9 +65,16 @@ to mount the gocryptfs filesytem without user interaction.
 :	Use an 128-bit IV for GCM encryption instead of Go's default of
 96 bits (default true). This pushes back the birthday bound for IV
 collisions far enough to make it irrelevant.
+This flag is useful when recovering old gocryptfs filesystems using
+"-masterkey". It is ignored (stays at the default) otherwise.
 
 **-init**
 :	Initialize encrypted directory
+
+**-longnames**
+:	Store names longer than 176 bytes in extra files (default true)
+This flag is useful when recovering old gocryptfs filesystems using
+"-masterkey". It is ignored (stays at the default) otherwise.
 
 **-masterkey string**
 :	Mount with explicit master key specified on the command line. This
