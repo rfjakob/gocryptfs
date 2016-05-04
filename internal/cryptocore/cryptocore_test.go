@@ -16,10 +16,11 @@ func TestCryptoCoreNew(t *testing.T) {
 	if c.IVLen != 12 {
 		t.Fail()
 	}
-	c = New(key, false, true)
-	if c.IVLen != 16 {
+	c = New(key, false, false)
+	if c.IVLen != 12 {
 		t.Fail()
 	}
+	// "New(key, false, true)" is tested for Go 1.4 and 1.5+ seperately
 }
 
 // "New" should panic on any key not 32 bytes long
