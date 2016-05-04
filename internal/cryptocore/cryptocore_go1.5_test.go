@@ -7,11 +7,10 @@ import (
 	"testing"
 )
 
-// Native Go crypto with 128-bit IVs is only supported on Go 1.5 and up
 func TestCryptoCoreNewGo15(t *testing.T) {
 	key := make([]byte, 32)
 	c := New(key, false, true)
-	if c.IVLen != 12 {
+	if c.IVLen != 16 {
 		t.Fail()
 	}
 }
