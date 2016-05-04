@@ -102,7 +102,7 @@ Changelog
 
 v0.10-rc1
 * **Drop dependency to `spacemonkeygo/openssl`**
- * gocrypts now has its own thin wrapper to OpenSSL's GCM implemenation
+ * gocryptfs now has its own thin wrapper to OpenSSL's GCM implementation
    called `stupidgcm`.
  * This should fix the [compile issues](https://github.com/rfjakob/gocryptfs/issues/21)
    people are seeing with `spacemonkeygo/openssl` and it also gets us
