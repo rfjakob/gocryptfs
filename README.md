@@ -73,27 +73,40 @@ Storage Overhead
 Performance
 -----------
 
-gocryptfs uses openssl through
-[spacemonkeygo/openssl](https://github.com/spacemonkeygo/openssl)
-for a 3x speedup compared to Go's builtin AES-GCM implementation (see
-[go-vs-openssl.md](openssl_benchmark/go-vs-openssl.md) for details).
+Since version 0.7.2, gocryptfs is as fast as EncFS in the default mode,
+and significantly faster than EncFS' "paranoia" mode that provides
+a security level comparable to gocryptfs.
 
-Run `./benchmark.bash` to run the benchmarks.
+gocryptfs uses OpenSSL through a thin wrapper called `stupidgcm`.
+This provides a 4x speedup compared to Go's builtin AES-GCM
+implementation - see [openssl-gcm.md](Documentation/openssl-gcm.md)
+for details. The use of openssl can disabled on the command-line.
 
-The output should look like this:
+Run `./benchmark.bash` to run gocryptfs' canonical set of
+benchmarks that include streaming write, extracting a linux kernel
+tarball, recursively listing and finally deleting it. The output will
+look like this:
 
 ```
 $ ./benchmark.bash
-linux-3.0.tar.gz       100%[===========================>]  92,20M  2,96MB/s    in 35s
-2016-01-23 20:08:11 URL:https://www.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz [...]
-WRITE: 131072000 bytes (131 MB) copied, 1,36225 s, 96,2 MB/s
-UNTAR: 23.16
-LS:    1.71
-RM:    4.36
+linux-3.0.tar.gz       100%[==========================>]  92,20M  2,96MB/s    in 35s
+2016-05-04 19:29:20 URL:https://www.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz
+WRITE: 131072000 bytes (131 MB) copied, 1,43137 s, 91,6 MB/s
+UNTAR: 23.25
+LS:    1.75
+RM:    4.42
 ```
 
 Changelog
 ---------
+
+v0.10-rc1
+* **Drop dependency to `spacemonkeygo/openssl`**
+ * gocrypts now has its own thin wrapper to OpenSSL's GCM implemenation
+   called `stupidgcm`.
+ * This should fix the [compile issues](https://github.com/rfjakob/gocryptfs/issues/21)
+   people are seeing with `spacemonkeygo/openssl` and it also gets us
+   a 20% performance boost for streaming writes.
 
 v0.9
 * **Long file name support**
