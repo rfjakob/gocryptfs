@@ -3,7 +3,6 @@
 package stupidgcm
 
 // #include <openssl/evp.h>
-// #include <openssl/err.h>
 // #cgo pkg-config: libcrypto
 import "C"
 
@@ -18,21 +17,6 @@ const (
 	ivLen  = 16
 	tagLen = 16
 )
-
-func opensslPanic(msg string) {
-	for {
-		e := C.ERR_get_error()
-		if e == 0 {
-			break
-		}
-		log.Printf("openssl error: %d:%s:%s:%s", e,
-			C.GoString(C.ERR_lib_error_string(e)),
-			C.GoString(C.ERR_func_error_string(e)),
-			C.GoString(C.ERR_reason_error_string(e)))
-	}
-	log.Printf("(no further openssl error messages)")
-	log.Panic(msg)
-}
 
 // stupidGCM implements the cipher.AEAD interface
 type stupidGCM struct {
@@ -69,28 +53,28 @@ func (g stupidGCM) Seal(dst, iv, in, authData []byte) []byte {
 	// Create scratch space "context"
 	ctx := C.EVP_CIPHER_CTX_new()
 	if ctx == nil {
-		opensslPanic("EVP_CIPHER_CTX_new failed")
+		panic("EVP_CIPHER_CTX_new failed")
 	}
 
 	// Set cipher to AES-256
 	if C.EVP_EncryptInit_ex(ctx, C.EVP_aes_256_gcm(), nil, nil, nil) != 1 {
-		opensslPanic("EVP_EncryptInit_ex I failed")
+		panic("EVP_EncryptInit_ex I failed")
 	}
 
 	// Use 16-byte IV
 	if C.EVP_CIPHER_CTX_ctrl(ctx, C.EVP_CTRL_GCM_SET_IVLEN, ivLen, nil) != 1 {
-		opensslPanic("EVP_CIPHER_CTX_ctrl EVP_CTRL_GCM_SET_IVLEN failed")
+		panic("EVP_CIPHER_CTX_ctrl EVP_CTRL_GCM_SET_IVLEN failed")
 	}
 
 	// Set key and IV
 	if C.EVP_EncryptInit_ex(ctx, nil, nil, (*C.uchar)(&g.key[0]), (*C.uchar)(&iv[0])) != 1 {
-		opensslPanic("EVP_EncryptInit_ex II failed")
+		panic("EVP_EncryptInit_ex II failed")
 	}
 
 	// Provide authentication data
 	var resultLen C.int
 	if C.EVP_EncryptUpdate(ctx, nil, &resultLen, (*C.uchar)(&authData[0]), C.int(len(authData))) != 1 {
-		opensslPanic("EVP_EncryptUpdate authData failed")
+		panic("EVP_EncryptUpdate authData failed")
 	}
 	if int(resultLen) != len(authData) {
 		log.Panicf("Unexpected length %d", resultLen)
@@ -98,7 +82,7 @@ func (g stupidGCM) Seal(dst, iv, in, authData []byte) []byte {
 
 	// Encrypt "in" into "buf"
 	if C.EVP_EncryptUpdate(ctx, (*C.uchar)(&buf[0]), &resultLen, (*C.uchar)(&in[0]), C.int(len(in))) != 1 {
-		opensslPanic("EVP_EncryptUpdate failed")
+		panic("EVP_EncryptUpdate failed")
 	}
 	if int(resultLen) != len(in) {
 		log.Panicf("Unexpected length %d", resultLen)
@@ -108,7 +92,7 @@ func (g stupidGCM) Seal(dst, iv, in, authData []byte) []byte {
 	// Because GCM is a stream encryption, this will not write out any data.
 	dummy := make([]byte, 16)
 	if C.EVP_EncryptFinal_ex(ctx, (*C.uchar)(&dummy[0]), &resultLen) != 1 {
-		opensslPanic("EVP_EncryptFinal_ex failed")
+		panic("EVP_EncryptFinal_ex failed")
 	}
 	if resultLen != 0 {
 		log.Panicf("Unexpected length %d", resultLen)
@@ -116,7 +100,7 @@ func (g stupidGCM) Seal(dst, iv, in, authData []byte) []byte {
 
 	// Get GMAC tag and append it to the ciphertext in "buf"
 	if C.EVP_CIPHER_CTX_ctrl(ctx, C.EVP_CTRL_GCM_GET_TAG, tagLen, (unsafe.Pointer)(&buf[len(in)])) != 1 {
-		opensslPanic("EVP_CIPHER_CTX_ctrl EVP_CTRL_GCM_GET_TAG failed")
+		panic("EVP_CIPHER_CTX_ctrl EVP_CTRL_GCM_GET_TAG failed")
 	}
 
 	// Free scratch space
@@ -142,33 +126,33 @@ func (g stupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
 	// Create scratch space "context"
 	ctx := C.EVP_CIPHER_CTX_new()
 	if ctx == nil {
-		opensslPanic("EVP_CIPHER_CTX_new failed")
+		panic("EVP_CIPHER_CTX_new failed")
 	}
 
 	// Set cipher to AES-256
 	if C.EVP_DecryptInit_ex(ctx, C.EVP_aes_256_gcm(), nil, nil, nil) != 1 {
-		opensslPanic("EVP_DecryptInit_ex I failed")
+		panic("EVP_DecryptInit_ex I failed")
 	}
 
 	// Use 16-byte IV
 	if C.EVP_CIPHER_CTX_ctrl(ctx, C.EVP_CTRL_GCM_SET_IVLEN, ivLen, nil) != 1 {
-		opensslPanic("EVP_CIPHER_CTX_ctrl EVP_CTRL_GCM_SET_IVLEN failed")
+		panic("EVP_CIPHER_CTX_ctrl EVP_CTRL_GCM_SET_IVLEN failed")
 	}
 
 	// Set key and IV
 	if C.EVP_DecryptInit_ex(ctx, nil, nil, (*C.uchar)(&g.key[0]), (*C.uchar)(&iv[0])) != 1 {
-		opensslPanic("EVP_DecryptInit_ex II failed")
+		panic("EVP_DecryptInit_ex II failed")
 	}
 
 	// Set expected GMAC tag
 	if C.EVP_CIPHER_CTX_ctrl(ctx, C.EVP_CTRL_GCM_SET_TAG, tagLen, (unsafe.Pointer)(&tag[0])) != 1 {
-		opensslPanic("EVP_CIPHER_CTX_ctrl failed")
+		panic("EVP_CIPHER_CTX_ctrl failed")
 	}
 
 	// Provide authentication data
 	var resultLen C.int
 	if C.EVP_DecryptUpdate(ctx, nil, &resultLen, (*C.uchar)(&authData[0]), C.int(len(authData))) != 1 {
-		opensslPanic("EVP_DecryptUpdate authData failed")
+		panic("EVP_DecryptUpdate authData failed")
 	}
 	if int(resultLen) != len(authData) {
 		log.Panicf("Unexpected length %d", resultLen)
@@ -176,7 +160,7 @@ func (g stupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
 
 	// Decrypt "ciphertext" into "buf"
 	if C.EVP_DecryptUpdate(ctx, (*C.uchar)(&buf[0]), &resultLen, (*C.uchar)(&ciphertext[0]), C.int(len(ciphertext))) != 1 {
-		opensslPanic("EVP_DecryptUpdate failed")
+		panic("EVP_DecryptUpdate failed")
 	}
 	if int(resultLen) != len(ciphertext) {
 		log.Panicf("Unexpected length %d", resultLen)
