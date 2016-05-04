@@ -18,6 +18,7 @@ type CryptoCore struct {
 	IVLen       int
 }
 
+// "New" returns a new CryptoCore object or panics.
 func New(key []byte, useOpenssl bool, GCMIV128 bool) *CryptoCore {
 
 	if len(key) != KeyLen {
