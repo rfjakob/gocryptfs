@@ -147,7 +147,7 @@ func (g stupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
 	// Provide authentication data
 	var resultLen C.int
 	if C.EVP_DecryptUpdate(ctx, nil, &resultLen, (*C.uchar)(&authData[0]), C.int(len(authData))) != 1 {
-		log.Panic("EVP_EncryptUpdate authData failed")
+		log.Panic("EVP_DecryptUpdate authData failed")
 	}
 	if int(resultLen) != len(authData) {
 		log.Panicf("Unexpected length %d", resultLen)
