@@ -160,6 +160,11 @@ func (g stupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
 		opensslPanic("EVP_DecryptInit_ex II failed")
 	}
 
+	// Set expected GMAC tag
+	if C.EVP_CIPHER_CTX_ctrl(ctx, C.EVP_CTRL_GCM_SET_TAG, tagLen, (unsafe.Pointer)(&tag[0])) != 1 {
+		opensslPanic("EVP_CIPHER_CTX_ctrl failed")
+	}
+
 	// Provide authentication data
 	var resultLen C.int
 	if C.EVP_DecryptUpdate(ctx, nil, &resultLen, (*C.uchar)(&authData[0]), C.int(len(authData))) != 1 {
@@ -175,11 +180,6 @@ func (g stupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
 	}
 	if int(resultLen) != len(ciphertext) {
 		log.Panicf("Unexpected length %d", resultLen)
-	}
-
-	// Set expected GMAC tag
-	if C.EVP_CIPHER_CTX_ctrl(ctx, C.EVP_CTRL_GCM_SET_TAG, tagLen, (unsafe.Pointer)(&tag[0])) != 1 {
-		opensslPanic("EVP_CIPHER_CTX_ctrl failed")
 	}
 
 	// Check GMAC
