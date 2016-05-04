@@ -4,6 +4,8 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"fmt"
+
+	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 )
 
 const (
@@ -39,8 +41,9 @@ func New(key []byte, useOpenssl bool, GCMIV128 bool) *CryptoCore {
 	}
 
 	var gcm cipher.AEAD
-	if useOpenssl {
-		gcm = opensslGCM{key}
+	if useOpenssl && GCMIV128 {
+		// stupidgcm only supports 128-bit IVs
+		gcm = stupidgcm.New(key)
 	} else {
 		gcm, err = goGCMWrapper(blockCipher, IVLen)
 		if err != nil {
