@@ -302,9 +302,10 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 // Release - FUSE call, close file
 func (f *file) Release() {
 	f.fdLock.Lock()
-	defer f.fdLock.Unlock()
-
 	f.fd.Close()
+	f.fdLock.Unlock()
+
+	wlock.unregister(f.ino)
 	f.forgotten = true
 }
 
