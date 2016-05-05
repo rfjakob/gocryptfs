@@ -16,17 +16,22 @@ cd $DIR2
 # Just ignore fusermount errors.
 trap "cd /; fusermount -u -z $DIR2; rm -rf $DIR1 $DIR2" EXIT
 
-# Loop
-N=1
-while true
-do
-	echo -n "$N "
-	echo -n "extract "
-	tar xf /tmp/linux-3.0.tar.gz
-	echo -n "diff "
-	diff -ur linux-3.0 /tmp/linux-3.0
-	echo -n "rm "
-	rm -Rf linux-3.0
-	date
-	let N=$N+1
-done
+function loop {
+	# Note: $$ returns the PID of the *parent* shell
+	mkdir $BASHPID
+	cd $BASHPID
+
+	N=1
+	while true
+	do
+		echo "Process $BASHPID iteration $N: $(date)"
+		tar xf /tmp/linux-3.0.tar.gz
+		diff -ur linux-3.0 /tmp/linux-3.0
+		rm -Rf linux-3.0
+		let N=$N+1
+	done
+}
+
+loop &
+loop &
+wait
