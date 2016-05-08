@@ -9,6 +9,7 @@ DIR1=$(mktemp -d)
 DIR2=$(mktemp -d)
 gocryptfs -q -init -extpass="echo test" $DIR1
 gocryptfs -q -extpass="echo test" -nosyslog $DIR1 $DIR2
+#gocryptfs -q -extpass="echo test" -nosyslog -memprofile /tmp/extractloop-mem $DIR1 $DIR2
 cd $DIR2
 
 # Cleanup trap
@@ -24,7 +25,7 @@ function loop {
 	N=1
 	while true
 	do
-		echo "Process $BASHPID iteration $N: $(date)"
+		echo "[pid $BASHPID] $N: $(date +%H:%M:%S)"
 		tar xf /tmp/linux-3.0.tar.gz
 		diff -ur linux-3.0 /tmp/linux-3.0
 		rm -Rf linux-3.0

@@ -5,8 +5,6 @@ set -eu
 DIR=/tmp/a
 # Mountpoint
 MNT=/tmp/b
-# Debug log
-LOG=/tmp/log.txt
 # fsstress binary
 FSSTRESS=~/src/xfstests/ltp/fsstress
 
@@ -41,19 +39,18 @@ else
 fi
 
 echo -n "Waiting for mount: "
+sleep 0.5
 while ! grep "$MNT fuse" /proc/self/mounts > /dev/null
 do
 	sleep 1
 	echo -n x
 done
-echo " done, debug log goes to $LOG"
+echo
 
 echo "Starting fsstress loop"
 N=1
 while true
 do
-	> $LOG
-
 	echo $N
 	mkdir $MNT/fsstress.1
 	echo -n "    fsstress.1 "
