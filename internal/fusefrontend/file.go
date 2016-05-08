@@ -278,6 +278,10 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
+	if f.fd.Fd() < 0 {
+		// The file descriptor has been closed concurrently.
+		return 0, fuse.EBADF
+	}
 	wlock.lock(f.ino)
 	defer wlock.unlock(f.ino)
 
@@ -337,6 +341,10 @@ func (f *file) Fsync(flags int) (code fuse.Status) {
 func (f *file) Truncate(newSize uint64) fuse.Status {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
+	if f.fd.Fd() < 0 {
+		// The file descriptor has been closed concurrently.
+		return fuse.EBADF
+	}
 	wlock.lock(f.ino)
 	defer wlock.unlock(f.ino)
 
