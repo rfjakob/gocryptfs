@@ -96,8 +96,10 @@ continue be printed to stdout and stderr.
 used internally for daemonization.
 
 **-openssl bool**
-:	Use OpenSSL instead of built-in Go crypto (default true). Using
-built-in crypto is 4x slower.
+:	Use OpenSSL instead of built-in Go crypto (default "auto"). Using
+built-in crypto is 4x slower unless you CPU has AES instructions and
+you are using Go 1.6+. In mode "auto", gocrypts chooses the faster
+option.
 
 **-passwd**
 :	Change password

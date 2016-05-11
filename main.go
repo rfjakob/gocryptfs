@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
+	"github.com/rfjakob/gocryptfs/internal/prefer_openssl"
 	"github.com/rfjakob/gocryptfs/internal/toggledlog"
 )
 
@@ -149,6 +151,7 @@ func main() {
 	setupColors()
 
 	// Parse command line arguments
+	var opensslAuto string
 	flagSet = flag.NewFlagSet(toggledlog.ProgramName, flag.ExitOnError)
 	flagSet.Usage = usageText
 	flagSet.BoolVar(&args.debug, "d", false, "")
@@ -156,7 +159,7 @@ func main() {
 	flagSet.BoolVar(&args.fusedebug, "fusedebug", false, "Enable fuse library debug output")
 	flagSet.BoolVar(&args.init, "init", false, "Initialize encrypted directory")
 	flagSet.BoolVar(&args.zerokey, "zerokey", false, "Use all-zero dummy master key")
-	flagSet.BoolVar(&args.openssl, "openssl", true, "Use OpenSSL instead of built-in Go crypto")
+	flagSet.StringVar(&opensslAuto, "openssl", "auto", "Use OpenSSL instead of built-in Go crypto")
 	flagSet.BoolVar(&args.passwd, "passwd", false, "Change password")
 	flagSet.BoolVar(&args.foreground, "f", false, "Stay in the foreground")
 	flagSet.BoolVar(&args.version, "version", false, "Print version and exit")
@@ -180,18 +183,29 @@ func main() {
 		"Setting this to a lower value speeds up mounting but makes the password susceptible to brute-force attacks")
 	flagSet.Parse(os.Args[1:])
 
+	// "-openssl" needs some post-processing
+	if opensslAuto == "auto" {
+		args.openssl = prefer_openssl.PreferOpenSSL()
+	} else {
+		args.openssl, err = strconv.ParseBool(opensslAuto)
+		if err != nil {
+			fmt.Printf(colorRed+"Invalid \"-openssl\" setting: %v\n"+colorReset, err)
+			os.Exit(ERREXIT_USAGE)
+		}
+	}
+
 	// Fork a child into the background if "-f" is not set AND we are mounting a filesystem
 	if !args.foreground && flagSet.NArg() == 2 {
 		forkChild() // does not return
 	}
-	// "-v"
-	if args.version {
-		printVersion()
-		os.Exit(0)
-	}
 	if args.debug {
 		toggledlog.Debug.Enabled = true
-		toggledlog.Debug.Printf("Debug output enabled")
+	}
+	// "-v"
+	if args.version {
+		toggledlog.Debug.Printf("openssl=%v\n", args.openssl)
+		printVersion()
+		os.Exit(0)
 	}
 	if args.wpanic {
 		toggledlog.Warn.Wpanic = true
@@ -255,7 +269,9 @@ func main() {
 	}
 	// "-openssl"
 	if args.openssl == false {
-		toggledlog.Info.Printf("Openssl disabled")
+		toggledlog.Debug.Printf("OpenSSL disabled, using Go GCM")
+	} else {
+		toggledlog.Debug.Printf("OpenSSL enabled")
 	}
 	// Operation flags: init, passwd or mount
 	// "-init"
