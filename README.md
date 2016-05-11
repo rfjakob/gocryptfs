@@ -107,6 +107,9 @@ v0.10-rc1
  * This should fix the [compile issues](https://github.com/rfjakob/gocryptfs/issues/21)
    people are seeing with `spacemonkeygo/openssl` and it also gets us
    a 20% performance boost for streaming writes.
+* Warn but continue anyway if fallocate(2) is not supported by the
+  underlying filesystem, see [issue #22](https://github.com/rfjakob/gocryptfs/issues/22)
+ * Enables to use gocryptfs on ZFS, albeit with reduced out-of-space safety.
 
 v0.9
 * **Long file name support**
