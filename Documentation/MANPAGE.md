@@ -97,7 +97,7 @@ used internally for daemonization.
 
 **-openssl bool**
 :	Use OpenSSL instead of built-in Go crypto (default "auto"). Using
-built-in crypto is 4x slower unless you CPU has AES instructions and
+built-in crypto is 4x slower unless your CPU has AES instructions and
 you are using Go 1.6+. In mode "auto", gocrypts chooses the faster
 option.
 
