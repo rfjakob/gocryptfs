@@ -228,6 +228,17 @@ func (fs *FS) Utimens(path string, Atime *time.Time, Mtime *time.Time, context *
 	return fs.FileSystem.Utimens(cPath, Atime, Mtime, context)
 }
 
+func (fs *FS) StatFs(path string) *fuse.StatfsOut {
+	if fs.isFiltered(path) {
+		return nil
+	}
+	cPath, err := fs.encryptPath(path)
+	if err != nil {
+		return nil
+	}
+	return fs.FileSystem.StatFs(cPath)
+}
+
 func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status fuse.Status) {
 	cPath, err := fs.encryptPath(path)
 	if err != nil {
