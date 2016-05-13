@@ -100,7 +100,7 @@ RM:    4.42
 Changelog
 ---------
 
-v0.10-rc1
+v0.10-rc3
 * **Drop dependency to `spacemonkeygo/openssl`**
  * gocryptfs now has its own thin wrapper to OpenSSL's GCM implementation
    called `stupidgcm`.
@@ -110,6 +110,13 @@ v0.10-rc1
 * Warn but continue anyway if fallocate(2) is not supported by the
   underlying filesystem, see [issue #22](https://github.com/rfjakob/gocryptfs/issues/22)
  * Enables to use gocryptfs on ZFS, albeit with reduced out-of-space safety.
+* **Automatically choose between OpenSSL and Go crypto** [issue #23](https://github.com/rfjakob/gocryptfs/issues/23)
+ * `-openssl=auto` is the new default
+ * Go 1.6 added an optimized GCM implementation in amd64 assembly that uses AES-NI.
+   This is faster than OpenSSL and is used if available.
+ * In all other cases OpenSSL is much faster and is used instead.
+ * Passing `-openssl=true/false` overrides the autodetection.
+* [Fix statfs](https://github.com/rfjakob/gocryptfs/pull/27), by @lxp
 
 v0.9
 * **Long file name support**
