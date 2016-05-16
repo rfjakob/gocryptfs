@@ -1,6 +1,6 @@
 % GOCRYPTFS(1)
 % github.com/rfjakob
-% Nov 2015
+% May 2016
 
 NAME
 ====
@@ -29,6 +29,13 @@ DESCRIPTION
 ===========
 
 Options:
+
+**-allow_other**
+:	By default, the Linux kernel prevents any other user (even root) to
+access a mounted FUSE filesystem. Settings this option allows access for
+other users, subject to file permission checking. Only works if
+user_allow_other is set in /etc/fuse.conf. This option is equivalent to
+"allow_other" plus "default_permissions" described in fuse(8).
 
 **-config string**
 :	Use specified config file instead of CIPHERDIR/gocryptfs.conf
@@ -136,3 +143,7 @@ mkdir /tmp/g1 /tmp/g2
 gocryptfs -init /tmp/g1  
 gocryptfs /tmp/g1 /tmp/g2
 
+
+SEE ALSO
+========
+fuse(8)

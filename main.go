@@ -44,7 +44,7 @@ const (
 type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
 	plaintextnames, quiet, diriv, emenames, gcmiv128, nosyslog, wpanic,
-	longnames bool
+	longnames, allow_other bool
 	masterkey, mountpoint, cipherdir, cpuprofile, config, extpass,
 	memprofile string
 	notifypid, scryptn int
@@ -159,6 +159,7 @@ func main() {
 	flagSet.BoolVar(&args.fusedebug, "fusedebug", false, "Enable fuse library debug output")
 	flagSet.BoolVar(&args.init, "init", false, "Initialize encrypted directory")
 	flagSet.BoolVar(&args.zerokey, "zerokey", false, "Use all-zero dummy master key")
+	// Tri-state true/false/auto
 	flagSet.StringVar(&opensslAuto, "openssl", "auto", "Use OpenSSL instead of built-in Go crypto")
 	flagSet.BoolVar(&args.passwd, "passwd", false, "Change password")
 	flagSet.BoolVar(&args.foreground, "f", false, "Stay in the foreground")
@@ -172,6 +173,8 @@ func main() {
 	flagSet.BoolVar(&args.nosyslog, "nosyslog", false, "Do not redirect output to syslog when running in the background")
 	flagSet.BoolVar(&args.wpanic, "wpanic", false, "When encountering a warning, panic and exit immediately")
 	flagSet.BoolVar(&args.longnames, "longnames", true, "Store names longer than 176 bytes in extra files")
+	flagSet.BoolVar(&args.allow_other, "allow_other", false, "Allow other users to access the filesystem. "+
+		"Only works if user_allow_other is set in /etc/fuse.conf.")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")
@@ -395,6 +398,13 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	conn := nodefs.NewFileSystemConnector(pathFs.Root(), fuseOpts)
 	var mOpts fuse.MountOptions
 	mOpts.AllowOther = false
+	if args.allow_other {
+		toggledlog.Info.Printf(colorYellow + "The option \"-allow_other\" is set. Make sure the file " +
+			"permissions protect your data from unwanted access." + colorReset)
+		mOpts.AllowOther = true
+		// Make the kernel check the file permissions for us
+		mOpts.Options = append(mOpts.Options, "default_permissions")
+	}
 	// Set values shown in "df -T" and friends
 	// First column, "Filesystem"
 	mOpts.Options = append(mOpts.Options, "fsname="+args.cipherdir)
@@ -436,7 +446,7 @@ func handleSigint(srv *fuse.Server, mountpoint string) {
 }
 
 // Escape sequences for terminal colors
-var colorReset, colorGrey, colorRed, colorGreen string
+var colorReset, colorGrey, colorRed, colorGreen, colorYellow string
 
 func setupColors() {
 	if terminal.IsTerminal(int(os.Stdout.Fd())) {
@@ -444,5 +454,6 @@ func setupColors() {
 		colorGrey = "\033[2m"
 		colorRed = "\033[31m"
 		colorGreen = "\033[32m"
+		colorYellow = "\033[33m"
 	}
 }
