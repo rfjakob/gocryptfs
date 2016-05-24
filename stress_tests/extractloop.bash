@@ -40,11 +40,11 @@ function loop {
 	N=1
 	while true
 	do
-		t1=$(date +%s)
+		t1=$SECONDS
 		tar xf /tmp/linux-3.0.tar.gz
 		md5sum --status -c $MD5
 		rm -Rf linux-3.0
-		t2=$(date +%s)
+		t2=$SECONDS
 		delta=$((t2-t1))
 		echo "[pid $BASHPID] Iteration $N done, $delta seconds"
 		let N=$N+1
