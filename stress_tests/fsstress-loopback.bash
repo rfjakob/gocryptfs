@@ -15,9 +15,9 @@
 set -eu
 
 # Backing directory
-DIR=/tmp/a
+DIR=$(mktemp -d /tmp/fsstress.XXX)
 # Mountpoint
-MNT=/tmp/b
+MNT="$DIR.mnt"
 # fsstress binary
 FSSTRESS=~/src/xfstests/ltp/fsstress
 
@@ -27,7 +27,7 @@ then
 	exit 1
 fi
 
-# Cleanup + Setup
+# Setup
 fusermount -u -z $MNT &> /dev/null || true
 mkdir -p $DIR $MNT
 rm -Rf $DIR/*
@@ -59,6 +59,9 @@ do
 	echo -n x
 done
 echo
+
+# Cleanup trap
+trap "cd /; fusermount -u -z $MNT; rm -rf $DIR $MNT" EXIT
 
 echo "Starting fsstress loop"
 N=1
