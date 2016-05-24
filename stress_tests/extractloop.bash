@@ -1,6 +1,18 @@
 #!/bin/bash
+#
+# Mount a gocryptfs filesystem somewhere on /tmp, then run two parallel
+# infinite loops inside that do the following:
+# 1) Extract linux-3.0.tar.gz
+# 2) Verify the md5sums
+# 3) Delete, go to (1)
+#
+# This test is good at discovering inode-related memory leaks because it creates
+# huge numbers of files.
 
 set -eu
+
+cd "$(dirname "$0")"
+MD5="$PWD/extractloop.md5sums"
 
 # Setup
 cd /tmp
@@ -18,17 +30,23 @@ cd $DIR2
 trap "cd /; fusermount -u -z $DIR2; rm -rf $DIR1 $DIR2" EXIT
 
 function loop {
-	# Note: $$ returns the PID of the *parent* shell
+	# Note: In a subshell, $$ returns the PID of the *parent* shell,
+	# we need our own, which is why we have to use $BASHPID.
 	mkdir $BASHPID
 	cd $BASHPID
+
+	echo "[pid $BASHPID] Starting loop"
 
 	N=1
 	while true
 	do
-		echo "[pid $BASHPID] $N: $(date +%H:%M:%S)"
+		t1=$(date +%s)
 		tar xf /tmp/linux-3.0.tar.gz
-		diff -ur linux-3.0 /tmp/linux-3.0
+		md5sum --status -c $MD5
 		rm -Rf linux-3.0
+		t2=$(date +%s)
+		delta=$((t2-t1))
+		echo "[pid $BASHPID] Iteration $N done, $delta seconds"
 		let N=$N+1
 	done
 }

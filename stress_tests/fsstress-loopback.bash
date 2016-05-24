@@ -1,4 +1,17 @@
 #!/bin/bash
+#
+# Mount a go-fuse loopback filesystem in /tmp and run fsstress against it
+# in an infinite loop, only exiting on errors.
+#
+# When called as "fsstress-gocryptfs.bash", a gocryptfs filesystem is tested
+# instead.
+#
+# This test used to fail on older go-fuse versions after a few iterations with
+# errors like this:
+# "rm: cannot remove ‘/tmp/b/fsstress.2/pd/d1XXX/f4a’: No such file or directory"
+#
+# Nowadays it should pass an indefinite number of iterations.
+
 set -eu
 
 # Backing directory
