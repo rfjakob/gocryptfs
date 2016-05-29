@@ -208,14 +208,13 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 	return fs.FileSystem.Mknod(cPath, mode, dev, context)
 }
 
-var truncateWarned bool
+// Only warn once
+var truncateWarnOnce sync.Once
 
 func (fs *FS) Truncate(path string, offset uint64, context *fuse.Context) (code fuse.Status) {
-	// Only warn once
-	if !truncateWarned {
+	truncateWarnOnce.Do(func() {
 		toggledlog.Warn.Printf("truncate(2) is not supported, returning ENOSYS - use ftruncate(2)")
-		truncateWarned = true
-	}
+	})
 	return fuse.ENOSYS
 }
 

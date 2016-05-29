@@ -472,15 +472,14 @@ func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 	return fuse.OK
 }
 
-// Allocate - FUSE call, fallocate(2)
-var allocateWarned bool
+// Only warn once
+var allocateWarnOnce sync.Once
 
+// Allocate - FUSE call, fallocate(2)
 func (f *file) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
-	// Only warn once
-	if !allocateWarned {
+	allocateWarnOnce.Do(func() {
 		toggledlog.Warn.Printf("fallocate(2) is not supported, returning ENOSYS - see https://github.com/rfjakob/gocryptfs/issues/1")
-		allocateWarned = true
-	}
+	})
 	return fuse.ENOSYS
 }
 
