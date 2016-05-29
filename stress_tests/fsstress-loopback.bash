@@ -40,10 +40,11 @@ if [ $MYNAME = fsstress-loopback.bash ]; then
 	cd $GOPATH/src/github.com/hanwen/go-fuse/example/loopback
 	go build && go install
 	$GOPATH/bin/loopback -l $MNT $DIR &
+	disown
 elif [ $MYNAME = fsstress-gocryptfs.bash ]; then
 	echo "Recompile gocryptfs"
 	cd $GOPATH/src/github.com/rfjakob/gocryptfs
-	go build && go install
+	./build.bash
 	$GOPATH/bin/gocryptfs -q -init -extpass "echo test" -scryptn=10 $DIR
 	$GOPATH/bin/gocryptfs -q -extpass "echo test" -nosyslog $DIR $MNT
 else
@@ -61,7 +62,7 @@ done
 echo
 
 # Cleanup trap
-trap "cd /; fusermount -u -z $MNT; rm -rf $DIR $MNT" EXIT
+trap "kill %1 ; cd /; fusermount -u -z $MNT; rm -rf $DIR $MNT" EXIT
 
 echo "Starting fsstress loop"
 N=1
@@ -70,15 +71,20 @@ do
 	echo $N
 	mkdir $MNT/fsstress.1
 	echo -n "    fsstress.1 "
-	$FSSTRESS -r -m 8 -n 1000 -d $MNT/fsstress.1
+	$FSSTRESS -r -m 8 -n 1000 -d $MNT/fsstress.1 &
+	wait
 
 	mkdir $MNT/fsstress.2
 	echo -n "    fsstress.2 "
-	$FSSTRESS -p 20 -r -m 8 -n 1000 -d $MNT/fsstress.2
+	$FSSTRESS -p 20 -r -m 8 -n 1000 -d $MNT/fsstress.2 &
+	wait
 
 	mkdir $MNT/fsstress.3
 	echo -n "    fsstress.3 "
-	$FSSTRESS -p 4 -z -f rmdir=10 -f link=10 -f creat=10 -f mkdir=10 -f rename=30 -f stat=30 -f unlink=30 -f truncate=20 -m 8 -n 1000 -d $MNT/fsstress.3
+	$FSSTRESS -p 4 -z -f rmdir=10 -f link=10 -f creat=10 -f mkdir=10 \
+		-f rename=30 -f stat=30 -f unlink=30 -f truncate=20 -m 8 \
+		-n 1000 -d $MNT/fsstress.3 &
+	wait
 
 	echo "    rm"
 	rm -R $MNT/*
