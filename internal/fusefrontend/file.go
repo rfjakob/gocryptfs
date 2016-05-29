@@ -39,8 +39,6 @@ type file struct {
 
 	// File header
 	header *contentenc.FileHeader
-
-	forgotten bool
 }
 
 func NewFile(fd *os.File, writeOnly bool, contentEnc *contentenc.ContentEnc) nodefs.File {
@@ -310,7 +308,6 @@ func (f *file) Release() {
 	f.fdLock.Unlock()
 
 	wlock.unregister(f.ino)
-	f.forgotten = true
 }
 
 // Flush - FUSE call
@@ -343,14 +340,11 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 	defer f.fdLock.RUnlock()
 	if f.fd.Fd() < 0 {
 		// The file descriptor has been closed concurrently.
+		toggledlog.Warn.Printf("ino%d fh%d: Truncate on forgotten file", f.ino, f.intFd())
 		return fuse.EBADF
 	}
 	wlock.lock(f.ino)
 	defer wlock.unlock(f.ino)
-
-	if f.forgotten {
-		toggledlog.Warn.Printf("ino%d fh%d: Truncate on forgotten file", f.ino, f.intFd())
-	}
 
 	// Common case first: Truncate to zero
 	if newSize == 0 {
