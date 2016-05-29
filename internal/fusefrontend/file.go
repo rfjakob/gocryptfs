@@ -41,9 +41,13 @@ type file struct {
 	header *contentenc.FileHeader
 }
 
-func NewFile(fd *os.File, writeOnly bool, contentEnc *contentenc.ContentEnc) nodefs.File {
+func NewFile(fd *os.File, writeOnly bool, contentEnc *contentenc.ContentEnc) (nodefs.File, fuse.Status) {
 	var st syscall.Stat_t
-	syscall.Fstat(int(fd.Fd()), &st)
+	err := syscall.Fstat(int(fd.Fd()), &st)
+	if err != nil {
+		toggledlog.Warn.Printf("NewFile: Fstat on fd %d failed: %v\n", fd.Fd(), err)
+		return nil, fuse.ToStatus(err)
+	}
 	wlock.register(st.Ino)
 
 	return &file{
@@ -51,7 +55,7 @@ func NewFile(fd *os.File, writeOnly bool, contentEnc *contentenc.ContentEnc) nod
 		writeOnly:  writeOnly,
 		contentEnc: contentEnc,
 		ino:        st.Ino,
-	}
+	}, fuse.OK
 }
 
 // intFd - return the backing file descriptor as an integer. Used for debug

@@ -100,7 +100,7 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 		return nil, fuse.ToStatus(err)
 	}
 
-	return NewFile(f, writeOnly, fs.contentEnc), fuse.OK
+	return NewFile(f, writeOnly, fs.contentEnc)
 }
 
 func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Context) (fuseFile nodefs.File, code fuse.Status) {
@@ -113,8 +113,10 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 		return nil, fuse.ToStatus(err)
 	}
 
-	// Handle long file name
+	var fd *os.File
 	cName := filepath.Base(cPath)
+
+	// Handle long file name
 	if nametransform.IsLongContent(cName) {
 		var dirfd *os.File
 		dirfd, err = os.Open(filepath.Dir(cPath))
@@ -136,16 +138,16 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 			nametransform.DeleteLongName(dirfd, cName)
 			return nil, fuse.ToStatus(err)
 		}
-		fd := os.NewFile(uintptr(fdRaw), cName)
-
-		return NewFile(fd, writeOnly, fs.contentEnc), fuse.OK
+		fd = os.NewFile(uintptr(fdRaw), cName)
+	} else {
+		// Normal (short) file name
+		fd, err = os.OpenFile(cPath, iflags|os.O_CREATE, os.FileMode(mode))
+		if err != nil {
+			return nil, fuse.ToStatus(err)
+		}
 	}
 
-	fd, err := os.OpenFile(cPath, iflags|os.O_CREATE, os.FileMode(mode))
-	if err != nil {
-		return nil, fuse.ToStatus(err)
-	}
-	return NewFile(fd, writeOnly, fs.contentEnc), fuse.OK
+	return NewFile(fd, writeOnly, fs.contentEnc)
 }
 
 func (fs *FS) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.Status) {
