@@ -101,7 +101,7 @@ RM:    4.42
 Changelog
 ---------
 
-v0.10, 2016-05-24
+v0.10 (not yet released)
 * **Drop dependency to `spacemonkeygo/openssl`**
  * gocryptfs now has its own thin wrapper to OpenSSL's GCM implementation
    called `stupidgcm`.
