@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"sync"
 	"syscall"
@@ -21,11 +22,15 @@ import (
 // File - based on loopbackFile in go-fuse/fuse/nodefs/files.go
 type file struct {
 	fd *os.File
-
+	// Has Release() already been called on this file? This also means that the
+	// wlock entry has been freed, so let's not crash trying to access it.
+	// Due to concurrency, Release can overtake other operations. These will
+	// return EBADF in that case.
+	released bool
 	// fdLock prevents the fd to be closed while we are in the middle of
 	// an operation.
 	// Every FUSE entrypoint should RLock(). The only user of Lock() is
-	// Release(), which closes the fd, hence has to acquire an exclusive lock.
+	// Release(), which closes the fd and sets "released" to true.
 	fdLock sync.RWMutex
 
 	// Was the file opened O_WRONLY?
@@ -280,8 +285,9 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
-	if f.fd.Fd() < 0 {
+	if f.released {
 		// The file descriptor has been closed concurrently.
+		toggledlog.Warn.Printf("ino%d fh%d: Write on released file", f.ino, f.intFd())
 		return 0, fuse.EBADF
 	}
 	wlock.lock(f.ino)
@@ -308,7 +314,11 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 // Release - FUSE call, close file
 func (f *file) Release() {
 	f.fdLock.Lock()
+	if f.released {
+		log.Panicf("ino%d fh%d: double release", f.ino, f.intFd())
+	}
 	f.fd.Close()
+	f.released = true
 	f.fdLock.Unlock()
 
 	wlock.unregister(f.ino)
@@ -342,9 +352,9 @@ func (f *file) Fsync(flags int) (code fuse.Status) {
 func (f *file) Truncate(newSize uint64) fuse.Status {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
-	if f.fd.Fd() < 0 {
+	if f.released {
 		// The file descriptor has been closed concurrently.
-		toggledlog.Warn.Printf("ino%d fh%d: Truncate on forgotten file", f.ino, f.intFd())
+		toggledlog.Warn.Printf("ino%d fh%d: Truncate on released file", f.ino, f.intFd())
 		return fuse.EBADF
 	}
 	wlock.lock(f.ino)
