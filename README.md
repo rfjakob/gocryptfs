@@ -101,22 +101,22 @@ RM:    4.42
 Changelog
 ---------
 
-v0.10 (not yet released)
-* **Drop dependency to `spacemonkeygo/openssl`**
+v0.10, 2016-05-30
+* **Replace `spacemonkeygo/openssl` with `stupidgcm`**
  * gocryptfs now has its own thin wrapper to OpenSSL's GCM implementation
    called `stupidgcm`.
  * This should fix the [compile issues](https://github.com/rfjakob/gocryptfs/issues/21)
-   people are seeing with `spacemonkeygo/openssl` and it also gets us
+   people are seeing with `spacemonkeygo/openssl`. It also gets us
    a 20% performance boost for streaming writes.
+* **Automatically choose between OpenSSL and Go crypto** [issue #23](https://github.com/rfjakob/gocryptfs/issues/23)
+ * Go 1.6 added an optimized GCM implementation in amd64 assembly that uses AES-NI.
+   This is faster than OpenSSL and is used if available. In all other
+   cases OpenSSL is much faster and is used instead.
+ * `-openssl=auto` is the new default
+ * Passing `-openssl=true/false` overrides the autodetection.
 * Warn but continue anyway if fallocate(2) is not supported by the
   underlying filesystem, see [issue #22](https://github.com/rfjakob/gocryptfs/issues/22)
- * Enables to use gocryptfs on ZFS, albeit with reduced out-of-space safety.
-* **Automatically choose between OpenSSL and Go crypto** [issue #23](https://github.com/rfjakob/gocryptfs/issues/23)
- * `-openssl=auto` is the new default
- * Go 1.6 added an optimized GCM implementation in amd64 assembly that uses AES-NI.
-   This is faster than OpenSSL and is used if available.
- * In all other cases OpenSSL is much faster and is used instead.
- * Passing `-openssl=true/false` overrides the autodetection.
+ * Enables to use gocryptfs on ZFS and ext3, albeit with reduced out-of-space safety.
 * [Fix statfs](https://github.com/rfjakob/gocryptfs/pull/27), by @lxp
 * Fix a fsstress [failure](https://github.com/hanwen/go-fuse/issues/106)
   in the go-fuse library.
@@ -215,6 +215,3 @@ v0.2, 2015-10-11
 v0.1, 2015-10-07
 * First release
 * On-disk format 0
-
-See https://github.com/rfjakob/gocryptfs/tags for the release dates and associated
-git tags.
