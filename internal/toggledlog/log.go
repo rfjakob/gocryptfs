@@ -36,7 +36,7 @@ func (l *toggledLogger) Printf(format string, v ...interface{}) {
 	}
 	l.Logger.Printf(format, v...)
 	if l.Wpanic {
-		panic(wpanicMsg + fmt.Sprintf(format, v...))
+		l.Logger.Panic(wpanicMsg + fmt.Sprintf(format, v...))
 	}
 }
 func (l *toggledLogger) Println(v ...interface{}) {
@@ -45,7 +45,7 @@ func (l *toggledLogger) Println(v ...interface{}) {
 	}
 	l.Logger.Println(v...)
 	if l.Wpanic {
-		panic(wpanicMsg + fmt.Sprintln(v...))
+		l.Logger.Panic(wpanicMsg + fmt.Sprintln(v...))
 	}
 }
 
