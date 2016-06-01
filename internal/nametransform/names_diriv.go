@@ -37,7 +37,8 @@ func ReadDirIV(dir string) (iv []byte, err error) {
 func ReadDirIVAt(dirfd *os.File) (iv []byte, err error) {
 	fdRaw, err := syscall.Openat(int(dirfd.Fd()), DirIVFilename, syscall.O_RDONLY, 0)
 	if err != nil {
-		toggledlog.Warn.Printf("ReadDirIVAt: %v", err)
+		toggledlog.Warn.Printf("ReadDirIVAt: opening %q in dir %q failed: %v",
+			DirIVFilename, dirfd.Name(), err)
 		return nil, err
 	}
 	fd := os.NewFile(uintptr(fdRaw), DirIVFilename)
@@ -46,7 +47,7 @@ func ReadDirIVAt(dirfd *os.File) (iv []byte, err error) {
 	iv = make([]byte, dirIVLen+1)
 	n, err := fd.Read(iv)
 	if err != nil {
-		toggledlog.Warn.Printf("ReadDirIVAt: %v", err)
+		toggledlog.Warn.Printf("ReadDirIVAt: Read failed: %v", err)
 		return nil, err
 	}
 	iv = iv[0:n]

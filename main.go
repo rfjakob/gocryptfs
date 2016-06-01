@@ -101,7 +101,7 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 	// Check if the file exists at all before prompting for a password
 	_, err := os.Stat(args.config)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf(colorRed+"Config file not found: %v\n"+colorReset, err)
 		os.Exit(ERREXIT_LOADCONF)
 	}
 	if args.extpass == "" {
