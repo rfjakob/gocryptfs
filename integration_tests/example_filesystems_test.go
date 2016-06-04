@@ -11,8 +11,7 @@ import (
 
 const statusTxtContent = "It works!\n"
 
-// checkStatusTxt - read file "filename" and verify that it contains
-// "It works!\n"
+// checkExampleFS - verify that "dir" contains the expected test files
 func checkExampleFS(t *testing.T, dir string) {
 	// Read regular file
 	statusFile := filepath.Join(dir, "status.txt")
@@ -45,6 +44,27 @@ func checkExampleFS(t *testing.T, dir string) {
 	// Test directory operations
 	testRename(t, dir)
 	testMkdirRmdir(t, dir)
+}
+
+// checkExampleFSLongnames - verify that "dir" contains the expected test files
+// plus the long file name test file
+func checkExampleFSLongnames(t *testing.T, dir string) {
+	// regular tests
+	checkExampleFS(t, dir)
+	// long name test file
+	longname := "longname_255_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" +
+		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" +
+		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" +
+		"xxxxxxxxxxxxxxxxxxxxxxxx"
+	contentBytes, err := ioutil.ReadFile(filepath.Join(dir, longname))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(contentBytes)
+	if content != statusTxtContent {
+		t.Errorf("longname_255: unexpected content: %s\n", content)
+	}
+
 }
 
 // Test example_filesystems/v0.4
@@ -153,6 +173,28 @@ func TestExampleFSv07(t *testing.T) {
 	mount(cDir, pDir, "-masterkey", "bee8d0c5-74ec49ff-24b8793d-91d488a9-"+
 		"6117c58b-357eafaa-162ce3cf-8a061a28")
 	checkExampleFS(t, pDir)
+	unmount(pDir)
+	err = os.Remove(pDir)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+// Test example_filesystems/v0.9
+// (gocryptfs v0.9 introduced long file name support)
+func TestExampleFSv09(t *testing.T) {
+	cDir := "example_filesystems/v0.9"
+	pDir := tmpDir + "TestExampleFsV09/"
+	err := os.Mkdir(pDir, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mount(cDir, pDir, "-extpass", "echo test")
+	checkExampleFSLongnames(t, pDir)
+	unmount(pDir)
+	mount(cDir, pDir, "-masterkey", "1cafe3f4-bc316466-2214c47c-ecd89bf3-"+
+		"4e078fe4-f5faeea7-8b7cab02-884f5e1c")
+	checkExampleFSLongnames(t, pDir)
 	unmount(pDir)
 	err = os.Remove(pDir)
 	if err != nil {
