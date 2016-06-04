@@ -170,8 +170,8 @@ func TestExampleFSv07(t *testing.T) {
 	mount(cDir, pDir, "-extpass", "echo test")
 	checkExampleFS(t, pDir)
 	unmount(pDir)
-	mount(cDir, pDir, "-masterkey", "bee8d0c5-74ec49ff-24b8793d-91d488a9-"+
-		"6117c58b-357eafaa-162ce3cf-8a061a28")
+	mount(cDir, pDir, "-masterkey", "ed7f6d83-40cce86c-0e7d79c2-a9438710-"+
+		"575221bf-30a0eb60-2821fa8f-7f3123bf")
 	checkExampleFS(t, pDir)
 	unmount(pDir)
 	err = os.Remove(pDir)
