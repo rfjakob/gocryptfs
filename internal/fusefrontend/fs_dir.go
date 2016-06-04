@@ -226,8 +226,11 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 			return nil, fuse.ToStatus(err)
 		}
 	}
-	// Filter and decrypt filenames
+
+	// Decrypted directory entries
 	var plain []fuse.DirEntry
+	var errorCount int
+	// Filter and decrypt filenames
 	for i := range cipherEntries {
 		cName := cipherEntries[i].Name
 		if dirName == "" && cName == configfile.ConfDefaultName {
@@ -244,29 +247,44 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 			continue
 		}
 
+		// Handle long file name
+		isLong := nametransform.LongNameNone
 		if fs.args.LongNames {
-			isLong := nametransform.NameType(cName)
-			if isLong == nametransform.LongNameContent {
-				cNameLong, err := nametransform.ReadLongName(filepath.Join(cDirAbsPath, cName))
-				if err != nil {
-					toggledlog.Warn.Printf("Could not read long name for file %s, skipping file", cName)
-					continue
-				}
-				cName = cNameLong
-			} else if isLong == nametransform.LongNameFilename {
-				// ignore "gocryptfs.longname.*.name"
+			isLong = nametransform.NameType(cName)
+		}
+		if isLong == nametransform.LongNameContent {
+			cNameLong, err := nametransform.ReadLongName(filepath.Join(cDirAbsPath, cName))
+			if err != nil {
+				toggledlog.Warn.Printf("Skipping file %q in dir %q: Could not read .name: %v",
+					cName, cDirName, err)
+				errorCount++
 				continue
 			}
+			cName = cNameLong
+		} else if isLong == nametransform.LongNameFilename {
+			// ignore "gocryptfs.longname.*.name"
+			continue
 		}
+
 		name, err := fs.nameTransform.DecryptName(cName, cachedIV)
 		if err != nil {
-			toggledlog.Warn.Printf("Skipping invalid name '%s' in dir '%s': %s",
+			toggledlog.Warn.Printf("Skipping invalid name %q in dir %q: %s",
 				cName, cDirName, err)
+			errorCount++
 			continue
 		}
 
 		cipherEntries[i].Name = name
 		plain = append(plain, cipherEntries[i])
 	}
+
+	if errorCount > 0 && len(plain) == 0 {
+		// Don't let the user stare on an empty directory. Report that things went
+		// wrong.
+		toggledlog.Warn.Printf("All %d entries in directory %q were invalid, returning EIO",
+			errorCount, cDirName)
+		status = fuse.EIO
+	}
+
 	return plain, status
 }
