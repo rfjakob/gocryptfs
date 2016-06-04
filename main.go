@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -56,6 +57,7 @@ var flagSet *flag.FlagSet
 var GitVersion = "[version not set - please compile using ./build.bash]"
 var GitVersionFuse = "[version not set - please compile using ./build.bash]"
 
+// initDir initializes an empty directory for use as a gocryptfs cipherdir.
 func initDir(args *argContainer) {
 	err := checkDirEmpty(args.cipherdir)
 	if err != nil {
@@ -82,8 +84,15 @@ func initDir(args *argContainer) {
 	}
 
 	toggledlog.Info.Printf(colorGreen + "The filesystem has been created successfully." + colorReset)
+	wd, _ := os.Getwd()
+	friendlyPath, _ := filepath.Rel(wd, args.cipherdir)
+	if strings.HasPrefix(friendlyPath, "../") {
+		// A relative path that starts with "../" is pretty unfriendly, just
+		// keep the absolute path.
+		friendlyPath = args.cipherdir
+	}
 	toggledlog.Info.Printf(colorGrey+"You can now mount it using: %s %s MOUNTPOINT"+colorReset,
-		toggledlog.ProgramName, args.cipherdir)
+		toggledlog.ProgramName, friendlyPath)
 	os.Exit(0)
 }
 
