@@ -66,7 +66,11 @@ func initDir(args *argContainer) {
 	}
 
 	// Create gocryptfs.conf
-	toggledlog.Info.Printf("Choose a password for protecting your files.")
+	if args.extpass == "" {
+		toggledlog.Info.Printf("Choose a password for protecting your files.")
+	} else {
+		toggledlog.Info.Printf("Using password provided via -extpass.")
+	}
 	password := readPasswordTwice(args.extpass)
 	err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn)
 	if err != nil {
