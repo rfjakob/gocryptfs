@@ -19,8 +19,10 @@ const (
 )
 
 type ConfFile struct {
-	// File the config is saved to. Not exported to JSON.
-	filename string
+	// gocryptfs version string
+	// This only documents the config file for humans who look at it. The actual
+	// technical info is contained in FeatureFlags.
+	Creator string
 	// Encrypted AES key, unlocked using a password hashed with scrypt
 	EncryptedKey []byte
 	// Stores parameters for scrypt hashing (key derivation)
@@ -32,14 +34,17 @@ type ConfFile struct {
 	// mounting. This mechanism is analogous to the ext4 feature flags that are
 	// stored in the superblock.
 	FeatureFlags []string
+	// File the config is saved to. Not exported to JSON.
+	filename string
 }
 
 // CreateConfFile - create a new config with a random key encrypted with
 // "password" and write it to "filename".
 // Uses scrypt with cost parameter logN.
-func CreateConfFile(filename string, password string, plaintextNames bool, logN int) error {
+func CreateConfFile(filename string, password string, plaintextNames bool, logN int, creator string) error {
 	var cf ConfFile
 	cf.filename = filename
+	cf.Creator = creator
 	cf.Version = contentenc.CurrentVersion
 
 	// Generate new random master key

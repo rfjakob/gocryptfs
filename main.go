@@ -72,7 +72,8 @@ func initDir(args *argContainer) {
 		toggledlog.Info.Printf("Using password provided via -extpass.")
 	}
 	password := readPasswordTwice(args.extpass)
-	err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn)
+	creator := toggledlog.ProgramName + " " + GitVersion
+	err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(ERREXIT_INIT)
