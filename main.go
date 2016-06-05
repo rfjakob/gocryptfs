@@ -123,12 +123,9 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 	}
 	pw := readPassword(args.extpass)
 	toggledlog.Info.Printf("Decrypting master key... ")
-	toggledlog.Warn.Enabled = false // Silence DecryptBlock() error messages on incorrect password
 	masterkey, confFile, err = configfile.LoadConfFile(args.config, pw)
-	toggledlog.Warn.Enabled = true
 	if err != nil {
-		fmt.Println(err)
-		fmt.Println(colorRed + "Wrong password." + colorReset)
+		fmt.Println(os.Stderr, colorRed+err.Error()+colorReset)
 		os.Exit(ERREXIT_LOADCONF)
 	}
 	toggledlog.Info.Printf("done.")

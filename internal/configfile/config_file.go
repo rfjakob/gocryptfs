@@ -107,11 +107,12 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	cc := cryptocore.New(scryptHash, false, false)
 	ce := contentenc.New(cc, 4096)
 
+	toggledlog.Warn.Enabled = false // Silence DecryptBlock() error messages on incorrect password
 	key, err := ce.DecryptBlock(cf.EncryptedKey, 0, nil)
+	toggledlog.Warn.Enabled = true
 	if err != nil {
 		toggledlog.Warn.Printf("failed to unlock master key: %s", err.Error())
-		toggledlog.Warn.Printf("Password incorrect.")
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("Password incorrect.")
 	}
 
 	return key, &cf, nil
