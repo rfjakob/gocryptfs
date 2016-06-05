@@ -49,18 +49,24 @@ func (l *toggledLogger) Println(v ...interface{}) {
 	}
 }
 
-// As defined by http://elinux.org/Debugging_by_printing#Log_Levels
 // Debug messages
+// Can be enabled by passing "-d"
 var Debug *toggledLogger
 
-// Informational message e.g. startup information
+// Informational message
+// Can be disabled by passing "-q"
 var Info *toggledLogger
 
-// A warning, meaning nothing serious by itself but might indicate problems
+// A warning, meaning nothing serious by itself but might indicate problems.
+// Passing "-wpanic" will make this function panic after printing the message.
 var Warn *toggledLogger
+
+// Fatal error, we are about to exit
+var Fatal *toggledLogger
 
 func init() {
 	Debug = &toggledLogger{false, false, log.New(os.Stdout, "", 0)}
 	Info = &toggledLogger{true, false, log.New(os.Stdout, "", 0)}
 	Warn = &toggledLogger{true, false, log.New(os.Stderr, "", 0)}
+	Fatal = &toggledLogger{true, false, log.New(os.Stderr, "", 0)}
 }

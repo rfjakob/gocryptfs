@@ -1,9 +1,10 @@
 package prefer_openssl
 
 import (
-	"fmt"
 	"io/ioutil"
 	"regexp"
+
+	"github.com/rfjakob/gocryptfs/internal/toggledlog"
 )
 
 // filePreferOpenSSL tells us if OpenSSL is faster than Go GCM on this machine.
@@ -17,12 +18,12 @@ import (
 func filePreferOpenSSL(file string) bool {
 	ci, err := ioutil.ReadFile(file)
 	if err != nil {
-		fmt.Println(err)
+		toggledlog.Warn.Println(err)
 		return true
 	}
 	haveAes, err := regexp.Match(`(?m)^flags.*\baes\b`, ci)
 	if err != nil {
-		fmt.Println(err)
+		toggledlog.Warn.Println(err)
 		return true
 	}
 	return !haveAes

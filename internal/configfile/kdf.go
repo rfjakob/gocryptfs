@@ -1,13 +1,14 @@
 package configfile
 
 import (
-	"fmt"
+	"log"
 	"math"
 	"os"
 
 	"golang.org/x/crypto/scrypt"
 
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
+	"github.com/rfjakob/gocryptfs/internal/toggledlog"
 )
 
 const (
@@ -31,7 +32,7 @@ func NewScryptKdf(logN int) scryptKdf {
 		s.N = 1 << ScryptDefaultLogN
 	} else {
 		if logN < 10 {
-			fmt.Println("Error: scryptn below 10 is too low to make sense. Aborting.")
+			toggledlog.Fatal.Println("Error: scryptn below 10 is too low to make sense. Aborting.")
 			os.Exit(1)
 		}
 		s.N = 1 << uint32(logN)
@@ -45,7 +46,7 @@ func NewScryptKdf(logN int) scryptKdf {
 func (s *scryptKdf) DeriveKey(pw string) []byte {
 	k, err := scrypt.Key([]byte(pw), s.Salt, s.N, s.R, s.P, s.KeyLen)
 	if err != nil {
-		panic(fmt.Sprintf("DeriveKey failed: %s", err.Error()))
+		log.Panicf("DeriveKey failed: %v", err)
 	}
 	return k
 }

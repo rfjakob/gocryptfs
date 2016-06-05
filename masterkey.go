@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/hex"
-	"fmt"
 	"os"
 	"strings"
 
@@ -45,11 +44,11 @@ func parseMasterKey(masterkey string) []byte {
 	masterkey = strings.Replace(masterkey, "-", "", -1)
 	key, err := hex.DecodeString(masterkey)
 	if err != nil {
-		fmt.Printf("Could not parse master key: %v\n", err)
+		toggledlog.Fatal.Printf("Could not parse master key: %v\n", err)
 		os.Exit(1)
 	}
 	if len(key) != cryptocore.KeyLen {
-		fmt.Printf("Master key has length %d but we require length %d\n", len(key), cryptocore.KeyLen)
+		toggledlog.Fatal.Printf("Master key has length %d but we require length %d\n", len(key), cryptocore.KeyLen)
 		os.Exit(1)
 	}
 	return key

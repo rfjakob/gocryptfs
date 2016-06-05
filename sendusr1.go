@@ -1,9 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"syscall"
+
+	"github.com/rfjakob/gocryptfs/internal/toggledlog"
 )
 
 // Send signal USR1 to "pid" (usually our parent process). This notifies it
@@ -11,11 +12,11 @@ import (
 func sendUsr1(pid int) {
 	p, err := os.FindProcess(pid)
 	if err != nil {
-		fmt.Printf("sendUsr1: FindProcess: %v\n", err)
+		toggledlog.Warn.Printf("sendUsr1: FindProcess: %v\n", err)
 		return
 	}
 	err = p.Signal(syscall.SIGUSR1)
 	if err != nil {
-		fmt.Printf("sendUsr1: Signal: %v\n", err)
+		toggledlog.Warn.Printf("sendUsr1: Signal: %v\n", err)
 	}
 }
