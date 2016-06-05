@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
@@ -55,13 +54,13 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 	cf.EncryptKey(key, password, logN)
 
 	// Set feature flags
-	cf.FeatureFlags = append(cf.FeatureFlags, FlagGCMIV128)
+	cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagGCMIV128])
 	if plaintextNames {
-		cf.FeatureFlags = append(cf.FeatureFlags, FlagPlaintextNames)
+		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagPlaintextNames])
 	} else {
-		cf.FeatureFlags = append(cf.FeatureFlags, FlagDirIV)
-		cf.FeatureFlags = append(cf.FeatureFlags, FlagEMENames)
-		cf.FeatureFlags = append(cf.FeatureFlags, FlagLongNames)
+		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagDirIV])
+		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagEMENames])
+		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagLongNames])
 	}
 
 	// Write file to disk
@@ -165,38 +164,4 @@ func (cf *ConfFile) WriteFile() error {
 	}
 
 	return nil
-}
-
-const (
-	// Understood Feature Flags.
-	// Also teach isFeatureFlagKnown() about any additions and
-	// add it to CreateConfFile() if you want to have it enabled by default.
-	FlagPlaintextNames = "PlaintextNames"
-	FlagDirIV          = "DirIV"
-	FlagEMENames       = "EMENames"
-	FlagGCMIV128       = "GCMIV128"
-	FlagLongNames      = "LongNames"
-)
-
-// Verify that we understand a feature flag
-func (cf *ConfFile) isFeatureFlagKnown(flag string) bool {
-	switch flag {
-	case FlagPlaintextNames, FlagDirIV, FlagEMENames, FlagGCMIV128, FlagLongNames:
-		return true
-	default:
-		return false
-	}
-}
-
-// isFeatureFlagSet - is the feature flag "flagWant" enabled?
-func (cf *ConfFile) IsFeatureFlagSet(flagWant string) bool {
-	if !cf.isFeatureFlagKnown(flagWant) {
-		log.Panicf("BUG: Tried to use unsupported feature flag %s", flagWant)
-	}
-	for _, flag := range cf.FeatureFlags {
-		if flag == flagWant {
-			return true
-		}
-	}
-	return false
 }

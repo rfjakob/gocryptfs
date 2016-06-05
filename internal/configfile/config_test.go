@@ -72,14 +72,23 @@ func TestCreateConfFile(t *testing.T) {
 }
 
 func TestIsFeatureFlagKnown(t *testing.T) {
+	// Test a few hardcoded values
+	testKnownFlags := []string{"DirIV", "PlaintextNames", "EMENames", "GCMIV128", "LongNames"}
+	// And also everything in knownFlags (yes, it is likely that we end up with
+	// some duplicates. Does not matter.)
+	for _, f := range knownFlags {
+		testKnownFlags = append(testKnownFlags, f)
+	}
+
 	var cf ConfFile
-	if !cf.isFeatureFlagKnown(FlagDirIV) {
-		t.Errorf("This flag should be known")
+	for _, f := range testKnownFlags {
+		if !cf.isFeatureFlagKnown(f) {
+			t.Errorf("flag %q should be known", f)
+		}
 	}
-	if !cf.isFeatureFlagKnown(FlagPlaintextNames) {
-		t.Errorf("This flag should be known")
-	}
-	if cf.isFeatureFlagKnown("StrangeFeatureFlag") {
-		t.Errorf("This flag should be NOT known")
+
+	f := "StrangeFeatureFlag"
+	if cf.isFeatureFlagKnown(f) {
+		t.Errorf("flag %q should be NOT known", f)
 	}
 }
