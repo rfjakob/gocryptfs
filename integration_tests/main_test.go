@@ -28,7 +28,7 @@ func TestMain(m *testing.M) {
 		fmt.Println("***** Testing with OpenSSL")
 	}
 	resetTmpDir(false) // <- this also create gocryptfs.diriv
-	mount(defaultCipherDir, defaultPlainDir, "--zerokey")
+	mountOrExit(defaultCipherDir, defaultPlainDir, "--zerokey")
 	r := m.Run()
 	unmount(defaultPlainDir)
 
@@ -44,7 +44,7 @@ func TestMain(m *testing.M) {
 		fmt.Println("***** Testing with native Go crypto")
 	}
 	resetTmpDir(false)
-	mount(defaultCipherDir, defaultPlainDir, "--zerokey", "--openssl=false")
+	mountOrExit(defaultCipherDir, defaultPlainDir, "--zerokey", "--openssl=false")
 	r = m.Run()
 	unmount(defaultPlainDir)
 
@@ -56,7 +56,7 @@ func TestMain(m *testing.M) {
 		fmt.Println("***** Testing \"--plaintextnames\"")
 	}
 	resetTmpDir(true) // do not create gocryptfs.diriv
-	mount(defaultCipherDir, defaultPlainDir, "--zerokey", "--plaintextnames")
+	mountOrExit(defaultCipherDir, defaultPlainDir, "--zerokey", "--plaintextnames")
 	plaintextNames = true
 	r = m.Run()
 	unmount(defaultPlainDir)

@@ -76,10 +76,10 @@ func TestExampleFSv04(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mount(cDir, pDir, "-extpass", "echo test")
+	mountOrFatal(t, cDir, pDir, "-extpass", "echo test")
 	checkExampleFS(t, pDir)
 	unmount(pDir)
-	mount(cDir, pDir, "-masterkey", "74676e34-0b47c145-00dac61a-17a92316-"+
+	mountOrFatal(t, cDir, pDir, "-masterkey", "74676e34-0b47c145-00dac61a-17a92316-"+
 		"bb57044c-e205b71f-65f4fdca-7cabd4b3", "-diriv=false", "-emenames=false", "-gcmiv128=false")
 	checkExampleFS(t, pDir)
 	unmount(pDir)
@@ -98,10 +98,10 @@ func TestExampleFSv05(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mount(cDir, pDir, "-extpass", "echo test")
+	mountOrFatal(t, cDir, pDir, "-extpass", "echo test")
 	checkExampleFS(t, pDir)
 	unmount(pDir)
-	mount(cDir, pDir, "-masterkey", "199eae55-36bff4af-83b9a3a2-4fa16f65-"+
+	mountOrFatal(t, cDir, pDir, "-masterkey", "199eae55-36bff4af-83b9a3a2-4fa16f65-"+
 		"1549ccdb-2d08d1f0-b1b26965-1b61f896", "-emenames=false", "-gcmiv128=false")
 	checkExampleFS(t, pDir)
 	unmount(pDir)
@@ -120,10 +120,10 @@ func TestExampleFSv06(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mount(cDir, pDir, "-extpass", "echo test")
+	mountOrFatal(t, cDir, pDir, "-extpass", "echo test")
 	checkExampleFS(t, pDir)
 	unmount(pDir)
-	mount(cDir, pDir, "-masterkey", "7bc8deb0-5fc894ef-a093da43-61561a81-"+
+	mountOrFatal(t, cDir, pDir, "-masterkey", "7bc8deb0-5fc894ef-a093da43-61561a81-"+
 		"0e8dee83-fdc056a4-937c37dd-9df5c520", "-gcmiv128=false")
 	checkExampleFS(t, pDir)
 	unmount(pDir)
@@ -144,10 +144,10 @@ func TestExampleFSv06PlaintextNames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mount(cDir, pDir, "-extpass", "echo test")
+	mountOrFatal(t, cDir, pDir, "-extpass", "echo test")
 	checkExampleFS(t, pDir)
 	unmount(pDir)
-	mount(cDir, pDir, "-masterkey", "f4690202-595e4593-64c4f7e0-4dddd7d1-"+
+	mountOrFatal(t, cDir, pDir, "-masterkey", "f4690202-595e4593-64c4f7e0-4dddd7d1-"+
 		"303147f9-0ca8aea2-966341a7-52ea8ae9", "-plaintextnames", "-gcmiv128=false")
 	checkExampleFS(t, pDir)
 	unmount(pDir)
@@ -167,10 +167,10 @@ func TestExampleFSv07(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mount(cDir, pDir, "-extpass", "echo test")
+	mountOrFatal(t, cDir, pDir, "-extpass", "echo test")
 	checkExampleFS(t, pDir)
 	unmount(pDir)
-	mount(cDir, pDir, "-masterkey", "ed7f6d83-40cce86c-0e7d79c2-a9438710-"+
+	mountOrFatal(t, cDir, pDir, "-masterkey", "ed7f6d83-40cce86c-0e7d79c2-a9438710-"+
 		"575221bf-30a0eb60-2821fa8f-7f3123bf")
 	checkExampleFS(t, pDir)
 	unmount(pDir)
@@ -189,10 +189,10 @@ func TestExampleFSv09(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mount(cDir, pDir, "-extpass", "echo test")
+	mountOrFatal(t, cDir, pDir, "-extpass", "echo test")
 	checkExampleFSLongnames(t, pDir)
 	unmount(pDir)
-	mount(cDir, pDir, "-masterkey", "1cafe3f4-bc316466-2214c47c-ecd89bf3-"+
+	mountOrFatal(t, cDir, pDir, "-masterkey", "1cafe3f4-bc316466-2214c47c-ecd89bf3-"+
 		"4e078fe4-f5faeea7-8b7cab02-884f5e1c")
 	checkExampleFSLongnames(t, pDir)
 	unmount(pDir)

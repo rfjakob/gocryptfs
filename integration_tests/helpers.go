@@ -60,7 +60,7 @@ func resetTmpDir(plaintextNames bool) {
 }
 
 // mount CIPHERDIR "c" on PLAINDIR "p"
-func mount(c string, p string, extraArgs ...string) {
+func mount(c string, p string, extraArgs ...string) error {
 	var args []string
 	args = append(args, extraArgs...)
 	args = append(args, "-nosyslog", "-q", "-wpanic")
@@ -70,13 +70,24 @@ func mount(c string, p string, extraArgs ...string) {
 	args = append(args, p)
 	cmd := exec.Command(gocryptfsBinary, args...)
 	cmd.Stderr = os.Stderr
-	if testing.Verbose() {
-		cmd.Stdout = os.Stdout
-	}
-	err := cmd.Run()
+	cmd.Stdout = os.Stdout
+	return cmd.Run()
+}
+
+// mountOrExit calls mount() and exits on failure.
+func mountOrExit(c string, p string, extraArgs ...string) {
+	err := mount(c, p, extraArgs...)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("mount failed: %v", err)
 		os.Exit(1)
+	}
+}
+
+// mountOrFatal calls mount() and calls t.Fatal() on failure.
+func mountOrFatal(t *testing.T, c string, p string, extraArgs ...string) {
+	err := mount(c, p, extraArgs...)
+	if err != nil {
+		t.Fatal(fmt.Errorf("mount failed: %v", err))
 	}
 }
 
