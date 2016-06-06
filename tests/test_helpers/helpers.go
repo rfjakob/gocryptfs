@@ -1,4 +1,4 @@
-package integration_tests
+package test_helpers
 
 import (
 	"crypto/md5"
@@ -15,43 +15,43 @@ import (
 )
 
 // Note: the code assumes that all have a trailing slash
-const tmpDir = "/tmp/gocryptfs_main_test/"
-const defaultPlainDir = tmpDir + "plain/"
-const defaultCipherDir = tmpDir + "cipher/"
+const TmpDir = "/tmp/gocryptfs_main_test/"
+const DefaultPlainDir = TmpDir + "plain/"
+const DefaultCipherDir = TmpDir + "cipher/"
 
-const gocryptfsBinary = "../gocryptfs"
+const GocryptfsBinary = "../../gocryptfs"
 
-// resetTmpDir - delete old tmp dir, create new one, write gocryptfs.diriv
-func resetTmpDir(plaintextNames bool) {
+// ResetTmpDir - delete old tmp dir, create new one, write gocryptfs.diriv
+func ResetTmpDir(plaintextNames bool) {
 
 	// Try to unmount everything
-	entries, err := ioutil.ReadDir(tmpDir)
+	entries, err := ioutil.ReadDir(TmpDir)
 	if err == nil {
 		for _, e := range entries {
-			fu := exec.Command("fusermount", "-z", "-u", filepath.Join(tmpDir, e.Name()))
+			fu := exec.Command("fusermount", "-z", "-u", filepath.Join(TmpDir, e.Name()))
 			fu.Run()
 		}
 	}
 
-	err = os.RemoveAll(tmpDir)
+	err = os.RemoveAll(TmpDir)
 	if err != nil {
 		fmt.Println("resetTmpDir: RemoveAll:" + err.Error())
 		os.Exit(1)
 	}
 
-	err = os.MkdirAll(defaultPlainDir, 0777)
+	err = os.MkdirAll(DefaultPlainDir, 0777)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	err = os.MkdirAll(defaultCipherDir, 0777)
+	err = os.MkdirAll(DefaultCipherDir, 0777)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 	if !plaintextNames {
-		err = nametransform.WriteDirIV(defaultCipherDir)
+		err = nametransform.WriteDirIV(DefaultCipherDir)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -59,8 +59,8 @@ func resetTmpDir(plaintextNames bool) {
 	}
 }
 
-// mount CIPHERDIR "c" on PLAINDIR "p"
-func mount(c string, p string, extraArgs ...string) error {
+// Mount CIPHERDIR "c" on PLAINDIR "p"
+func Mount(c string, p string, extraArgs ...string) error {
 	var args []string
 	args = append(args, extraArgs...)
 	args = append(args, "-nosyslog", "-q", "-wpanic")
@@ -68,31 +68,33 @@ func mount(c string, p string, extraArgs ...string) error {
 	//args = append(args, "-d")
 	args = append(args, c)
 	args = append(args, p)
-	cmd := exec.Command(gocryptfsBinary, args...)
+	cmd := exec.Command(GocryptfsBinary, args...)
 	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
+	if testing.Verbose() {
+		cmd.Stdout = os.Stdout
+	}
 	return cmd.Run()
 }
 
-// mountOrExit calls mount() and exits on failure.
-func mountOrExit(c string, p string, extraArgs ...string) {
-	err := mount(c, p, extraArgs...)
+// MountOrExit calls mount() and exits on failure.
+func MountOrExit(c string, p string, extraArgs ...string) {
+	err := Mount(c, p, extraArgs...)
 	if err != nil {
 		fmt.Printf("mount failed: %v", err)
 		os.Exit(1)
 	}
 }
 
-// mountOrFatal calls mount() and calls t.Fatal() on failure.
-func mountOrFatal(t *testing.T, c string, p string, extraArgs ...string) {
-	err := mount(c, p, extraArgs...)
+// MountOrFatal calls mount() and calls t.Fatal() on failure.
+func MountOrFatal(t *testing.T, c string, p string, extraArgs ...string) {
+	err := Mount(c, p, extraArgs...)
 	if err != nil {
 		t.Fatal(fmt.Errorf("mount failed: %v", err))
 	}
 }
 
-// unmount PLAINDIR "p"
-func unmount(p string) error {
+// Unmount PLAINDIR "p"
+func Unmount(p string) error {
 	fu := exec.Command("fusermount", "-u", "-z", p)
 	fu.Stdout = os.Stdout
 	fu.Stderr = os.Stderr
@@ -104,17 +106,17 @@ func unmount(p string) error {
 }
 
 // Return md5 string for file "filename"
-func md5fn(filename string) string {
+func Md5fn(filename string) string {
 	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
 		fmt.Printf("ReadFile: %v\n", err)
 		return ""
 	}
-	return md5hex(buf)
+	return Md5hex(buf)
 }
 
 // Return md5 string for "buf"
-func md5hex(buf []byte) string {
+func Md5hex(buf []byte) string {
 	rawHash := md5.Sum(buf)
 	hash := hex.EncodeToString(rawHash[:])
 	return hash
@@ -123,7 +125,7 @@ func md5hex(buf []byte) string {
 // Verify that the file size equals "want". This checks:
 // 1) Size reported by Stat()
 // 2) Number of bytes returned when reading the whole file
-func verifySize(t *testing.T, path string, want int) {
+func VerifySize(t *testing.T, path string, want int) {
 	buf, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Errorf("ReadFile failed: %v", err)
@@ -140,7 +142,7 @@ func verifySize(t *testing.T, path string, want int) {
 }
 
 // Create and delete a directory
-func testMkdirRmdir(t *testing.T, plainDir string) {
+func TestMkdirRmdir(t *testing.T, plainDir string) {
 	dir := plainDir + "dir1"
 	err := os.Mkdir(dir, 0777)
 	if err != nil {
@@ -187,7 +189,7 @@ func testMkdirRmdir(t *testing.T, plainDir string) {
 }
 
 // Create and rename a file
-func testRename(t *testing.T, plainDir string) {
+func TestRename(t *testing.T, plainDir string) {
 	file1 := plainDir + "rename1"
 	file2 := plainDir + "rename2"
 	err := ioutil.WriteFile(file1, []byte("content"), 0777)
@@ -203,7 +205,7 @@ func testRename(t *testing.T, plainDir string) {
 
 // verifyExistence - check in 3 ways that "path" exists:
 // stat, open, readdir
-func verifyExistence(path string) bool {
+func VerifyExistence(path string) bool {
 
 	// Check that file can be stated
 	_, err := os.Stat(path)

@@ -9,16 +9,18 @@ import (
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
+
+	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
 // Test -init flag
 func TestInit(t *testing.T) {
-	dir := tmpDir + "TestInit/"
+	dir := test_helpers.TmpDir + "TestInit/"
 	err := os.Mkdir(dir, 0777)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command(gocryptfsBinary, "-init", "-extpass", "echo test", "-scryptn=10", dir)
+	cmd := exec.Command(test_helpers.GocryptfsBinary, "-init", "-extpass", "echo test", "-scryptn=10", dir)
 	if testing.Verbose() {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -33,7 +35,7 @@ func TestInit(t *testing.T) {
 	}
 
 	// Test -passwd
-	cmd2 := exec.Command(gocryptfsBinary, "-passwd", "-extpass", "echo test", dir)
+	cmd2 := exec.Command(test_helpers.GocryptfsBinary, "-passwd", "-extpass", "echo test", dir)
 	if testing.Verbose() {
 		cmd2.Stdout = os.Stdout
 		cmd2.Stderr = os.Stderr
@@ -46,13 +48,13 @@ func TestInit(t *testing.T) {
 
 // Test -init & -config flag
 func TestInitConfig(t *testing.T) {
-	dir := tmpDir + "TestInitConfig/"
-	config := tmpDir + "TestInitConfig.conf"
+	dir := test_helpers.TmpDir + "TestInitConfig/"
+	config := test_helpers.TmpDir + "TestInitConfig.conf"
 	err := os.Mkdir(dir, 0777)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command(gocryptfsBinary, "-init", "-extpass", "echo test",
+	cmd := exec.Command(test_helpers.GocryptfsBinary, "-init", "-extpass", "echo test",
 		"-config", config, "-scryptn=10", dir)
 	if testing.Verbose() {
 		cmd.Stdout = os.Stdout
@@ -68,7 +70,7 @@ func TestInitConfig(t *testing.T) {
 	}
 
 	// Test -passwd & -config
-	cmd2 := exec.Command(gocryptfsBinary, "-passwd", "-extpass", "echo test",
+	cmd2 := exec.Command(test_helpers.GocryptfsBinary, "-passwd", "-extpass", "echo test",
 		"-config", config, dir)
 	if testing.Verbose() {
 		cmd2.Stdout = os.Stdout
@@ -82,12 +84,12 @@ func TestInitConfig(t *testing.T) {
 
 // Test -init -plaintextnames
 func TestInitPlaintextNames(t *testing.T) {
-	dir := tmpDir + "TestInitPlaintextNames/"
+	dir := test_helpers.TmpDir + "TestInitPlaintextNames/"
 	err := os.Mkdir(dir, 0777)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command(gocryptfsBinary, "-init", "-extpass", "echo test",
+	cmd := exec.Command(test_helpers.GocryptfsBinary, "-init", "-extpass", "echo test",
 		"-scryptn=10", "-plaintextnames", dir)
 	if testing.Verbose() {
 		cmd.Stdout = os.Stdout

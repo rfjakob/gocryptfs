@@ -8,13 +8,15 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
 func BenchmarkStreamWrite(t *testing.B) {
 	buf := make([]byte, 1024*1024)
 	t.SetBytes(int64(len(buf)))
 
-	file, err := os.Create(defaultPlainDir + "BenchmarkWrite")
+	file, err := os.Create(test_helpers.DefaultPlainDir + "BenchmarkWrite")
 	if err != nil {
 		t.FailNow()
 	}
@@ -35,7 +37,7 @@ func BenchmarkStreamRead(t *testing.B) {
 	buf := make([]byte, 1024*1024)
 	t.SetBytes(int64(len(buf)))
 
-	fn := defaultPlainDir + "BenchmarkWrite"
+	fn := test_helpers.DefaultPlainDir + "BenchmarkWrite"
 	fi, err := os.Stat(fn)
 	if err != nil {
 		t.Fatal(err)
@@ -82,7 +84,7 @@ func BenchmarkStreamRead(t *testing.B) {
 
 // createFiles - create "count" files of size "size" bytes each
 func createFiles(t *testing.B, count int, size int) {
-	dir := fmt.Sprintf("%s/createFiles_%d_%d", defaultPlainDir, count, size)
+	dir := fmt.Sprintf("%s/createFiles_%d_%d", test_helpers.DefaultPlainDir, count, size)
 	err := os.Mkdir(dir, 0777)
 	if err != nil {
 		t.Fatal(err)
