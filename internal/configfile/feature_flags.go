@@ -19,6 +19,19 @@ var knownFlags map[flagIota]string = map[flagIota]string{
 	FlagLongNames:      "LongNames",
 }
 
+// Filesystems that do not have these feature flags set are deprecated.
+var requiredFlagsNormal []flagIota = []flagIota{
+	FlagDirIV,
+	FlagEMENames,
+	FlagGCMIV128,
+}
+
+// Filesystems without filename encryption obviously don't have or need the
+// related feature flags.
+var requiredFlagsPlaintextNames []flagIota = []flagIota{
+	FlagGCMIV128,
+}
+
 // isFeatureFlagKnown verifies that we understand a feature flag
 func (cf *ConfFile) isFeatureFlagKnown(flag string) bool {
 	for _, knownFlag := range knownFlags {

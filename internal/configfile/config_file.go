@@ -92,10 +92,38 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 		return nil, nil, fmt.Errorf("Unsupported on-disk format %d", cf.Version)
 	}
 
+	// Check that all set feature flags are known
 	for _, flag := range cf.FeatureFlags {
-		if cf.isFeatureFlagKnown(flag) == false {
-			return nil, nil, fmt.Errorf("Unsupported feature flag %s", flag)
+		if !cf.isFeatureFlagKnown(flag) {
+			return nil, nil, fmt.Errorf("Unsupported feature flag %q", flag)
 		}
+	}
+
+	// Check that all required feature flags are set
+	var requiredFlags []flagIota
+	if cf.IsFeatureFlagSet(FlagPlaintextNames) {
+		requiredFlags = requiredFlagsPlaintextNames
+	} else {
+		requiredFlags = requiredFlagsNormal
+	}
+	deprecatedFs := false
+	for _, i := range requiredFlags {
+		if !cf.IsFeatureFlagSet(i) {
+			// For now, warn but continue.
+			fmt.Printf("Deprecated filesystem: feature flag %q is missing\n", knownFlags[i])
+			deprecatedFs = true
+			//return nil, nil, fmt.Errorf("Required feature flag %q is missing", knownFlags[i])
+		}
+	}
+	if deprecatedFs {
+		fmt.Printf("\033[33m" + `
+    This filesystem was created by gocryptfs v0.6 or earlier. You are missing
+    security improvements. gocryptfs v1.0 is scheduled to drop support for this
+    filesystem, please upgrade!
+    If you disagree with the plan or have trouble upgrading, please join the
+    discussion at https://github.com/rfjakob/gocryptfs/issues/29 .
+
+` + "\033[0m")
 	}
 
 	// Generate derived key from password
