@@ -12,7 +12,7 @@
 set -eu
 
 cd "$(dirname "$0")"
-MD5="$PWD/extractloop.md5sums"
+MD5="$PWD/linux-3.0.md5sums"
 
 # Setup
 cd /tmp
