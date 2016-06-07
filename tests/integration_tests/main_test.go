@@ -437,3 +437,19 @@ func TestLongNames(t *testing.T) {
 		t.Errorf("Leftover files, cnt1=%d cnt2=%d", cnt1, cnt2)
 	}
 }
+
+func TestLchown(t *testing.T) {
+	name := test_helpers.DefaultPlainDir + "symlink"
+	err := os.Symlink("/target/does/not/exist", name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Chown(name, os.Getuid(), os.Getgid())
+	if err == nil {
+		t.Error("Chown on dangling symlink should fail")
+	}
+	err = os.Lchown(name, os.Getuid(), os.Getgid())
+	if err != nil {
+		t.Error(err)
+	}
+}

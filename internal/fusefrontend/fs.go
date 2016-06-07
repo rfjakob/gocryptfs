@@ -165,11 +165,11 @@ func (fs *FS) Chown(path string, uid uint32, gid uint32, context *fuse.Context) 
 	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
-	cPath, err := fs.encryptPath(path)
+	cPath, err := fs.getBackingPath(path)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	return fs.FileSystem.Chown(cPath, uid, gid, context)
+	return fuse.ToStatus(os.Lchown(cPath, int(uid), int(gid)))
 }
 
 func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context) (code fuse.Status) {
