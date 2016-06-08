@@ -190,7 +190,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 		}
 		return fuse.ToStatus(err)
 	}
-	// Delete "gocryptfs.diriv.rmdir.INODENUMBER"
+	// Delete "gocryptfs.diriv.rmdir.XYZ"
 	err = syscall.Unlinkat(int(parentDirFd.Fd()), tmpName)
 	if err != nil {
 		toggledlog.Warn.Printf("Rmdir: Could not clean up %s: %v", tmpName, err)

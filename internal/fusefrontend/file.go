@@ -286,7 +286,9 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 	if f.released {
-		// The file descriptor has been closed concurrently.
+		// The file descriptor has been closed concurrently, which also means
+		// the wlock has been freed. Exit here so we don't crash trying to access
+		// it.
 		toggledlog.Warn.Printf("ino%d fh%d: Write on released file", f.ino, f.intFd())
 		return 0, fuse.EBADF
 	}
@@ -514,5 +516,14 @@ func (f *file) Utimens(a *time.Time, m *time.Time) fuse.Status {
 	}
 
 	fn := fmt.Sprintf("/proc/self/fd/%d", f.fd.Fd())
-	return fuse.ToStatus(syscall.UtimesNano(fn, ts))
+	err := syscall.UtimesNano(fn, ts)
+	if err != nil {
+		toggledlog.Debug.Printf("UtimesNano on %q failed: %v", fn, err)
+	}
+	if err == syscall.ENOENT {
+		// If /proc/self/fd/X did not exist, the actual error is that the file
+		// descriptor was invalid.
+		return fuse.EBADF
+	}
+	return fuse.ToStatus(err)
 }
