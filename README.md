@@ -101,7 +101,7 @@ RM:    4.42
 Changelog
 ---------
 
-v0.11, 2016-06-07
+v0.11, 2016-06-10
 * Deprecate filesystems created by v0.6 and older
  * Filesystems can still be mounted but a warning is printed
  * See https://github.com/rfjakob/gocryptfs/issues/29 for details and
