@@ -108,6 +108,8 @@ v0.11, 2016-06-07
    join the discussion
 * Add rsync stress test "pingpong-rsync.bash"
 ** Fix chown and utimens failures that caused rsync to complain
+* Build release binaries with Go 1.6.2
+** Big speedup for CPUs with AES-NI, see [#23](https://github.com/rfjakob/gocryptfs/issues/23))
 
 v0.10, 2016-05-30
 * **Replace `spacemonkeygo/openssl` with `stupidgcm`**
