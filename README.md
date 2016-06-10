@@ -101,6 +101,14 @@ RM:    4.42
 Changelog
 ---------
 
+v0.11, 2016-06-07
+* Deprecate filesystems created by v0.6 and older
+ * Filesystems can still be mounted but a warning is printed
+ * See https://github.com/rfjakob/gocryptfs/issues/29 for details and
+   join the discussion
+* Add rsync stress test "pingpong-rsync.bash"
+** Fix chown and utimens failures that caused rsync to complain
+
 v0.10, 2016-05-30
 * **Replace `spacemonkeygo/openssl` with `stupidgcm`**
  * gocryptfs now has its own thin wrapper to OpenSSL's GCM implementation
