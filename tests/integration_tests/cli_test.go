@@ -3,8 +3,10 @@ package integration_tests
 // Test CLI operations like "-init", "-password" etc
 
 import (
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
@@ -15,35 +17,46 @@ import (
 
 // Test -init flag
 func TestInit(t *testing.T) {
-	dir := test_helpers.TmpDir + "TestInit/"
-	err := os.Mkdir(dir, 0777)
+	dir, err := ioutil.TempDir(test_helpers.TmpDir, "TestInit")
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command(test_helpers.GocryptfsBinary, "-init", "-extpass", "echo test", "-scryptn=10", dir)
-	if testing.Verbose() {
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-	}
+	cmd := exec.Command(test_helpers.GocryptfsBinary, "-q", "-init", "-extpass", "echo test", "-scryptn=10", dir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = os.Stat(dir + configfile.ConfDefaultName)
+	_, err = os.Stat(filepath.Join(dir, configfile.ConfDefaultName))
 	if err != nil {
 		t.Fatal(err)
 	}
+}
 
-	// Test -passwd
-	cmd2 := exec.Command(test_helpers.GocryptfsBinary, "-passwd", "-extpass", "echo test", dir)
-	if testing.Verbose() {
-		cmd2.Stdout = os.Stdout
-		cmd2.Stderr = os.Stderr
+// Test -passwd flag
+func TestPasswd(t *testing.T) {
+	// Create FS
+	dir, err := ioutil.TempDir(test_helpers.TmpDir, "TestPasswd")
+	if err != nil {
+		t.Fatal(err)
 	}
+	cmd := exec.Command(test_helpers.GocryptfsBinary, "-q", "-init", "-extpass", "echo test", "-scryptn=10", dir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Change password using "-extpass"
+	cmd2 := exec.Command(test_helpers.GocryptfsBinary, "-q", "-passwd", "-extpass", "echo test", dir)
+	cmd2.Stdout = os.Stdout
+	cmd2.Stderr = os.Stderr
 	err = cmd2.Run()
 	if err != nil {
 		t.Error(err)
 	}
+
 }
 
 // Test -init & -config flag
@@ -54,12 +67,10 @@ func TestInitConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command(test_helpers.GocryptfsBinary, "-init", "-extpass", "echo test",
+	cmd := exec.Command(test_helpers.GocryptfsBinary, "-q", "-init", "-extpass", "echo test",
 		"-config", config, "-scryptn=10", dir)
-	if testing.Verbose() {
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
 		t.Fatal(err)
@@ -70,12 +81,10 @@ func TestInitConfig(t *testing.T) {
 	}
 
 	// Test -passwd & -config
-	cmd2 := exec.Command(test_helpers.GocryptfsBinary, "-passwd", "-extpass", "echo test",
+	cmd2 := exec.Command(test_helpers.GocryptfsBinary, "-q", "-passwd", "-extpass", "echo test",
 		"-config", config, dir)
-	if testing.Verbose() {
-		cmd2.Stdout = os.Stdout
-		cmd2.Stderr = os.Stderr
-	}
+	cmd2.Stdout = os.Stdout
+	cmd2.Stderr = os.Stderr
 	err = cmd2.Run()
 	if err != nil {
 		t.Error(err)
@@ -89,12 +98,10 @@ func TestInitPlaintextNames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command(test_helpers.GocryptfsBinary, "-init", "-extpass", "echo test",
+	cmd := exec.Command(test_helpers.GocryptfsBinary, "-q", "-init", "-extpass", "echo test",
 		"-scryptn=10", "-plaintextnames", dir)
-	if testing.Verbose() {
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
 		t.Fatal(err)
