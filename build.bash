@@ -9,6 +9,9 @@ GITVERSION=$(git describe --tags --dirty)
 # go-fuse version according to git
 GITVERSIONFUSE=$(cd $GOPATH/src/github.com/hanwen/go-fuse && git rev-parse --short HEAD)
 
+# Make sure we have the go binary
+go version > /dev/null
+
 # go version go1.5.1 linux/amd64
 V=$(go version | cut -d" " -f3 | cut -c3-5)
 
