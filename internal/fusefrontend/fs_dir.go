@@ -137,7 +137,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 		// Undo the chmod if removing the directory failed
 		defer func() {
 			if code != fuse.OK {
-				err := os.Chmod(cPath, origMode)
+				err = os.Chmod(cPath, origMode)
 				if err != nil {
 					toggledlog.Warn.Printf("Rmdir: Chmod rollback failed: %v", err)
 				}

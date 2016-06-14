@@ -361,10 +361,11 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 	}
 	wlock.lock(f.ino)
 	defer wlock.unlock(f.ino)
+	var err error
 
 	// Common case first: Truncate to zero
 	if newSize == 0 {
-		err := syscall.Ftruncate(int(f.fd.Fd()), 0)
+		err = syscall.Ftruncate(int(f.fd.Fd()), 0)
 		if err != nil {
 			toggledlog.Warn.Printf("ino%d fh%d: Ftruncate(fd, 0) returned error: %v", f.ino, f.intFd(), err)
 			return fuse.ToStatus(err)
@@ -398,7 +399,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 
 		// File was empty, create new header
 		if oldSize == 0 {
-			err := f.createHeader()
+			err = f.createHeader()
 			if err != nil {
 				return fuse.ToStatus(err)
 			}
@@ -416,7 +417,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 				}
 			} else {
 				off, length := b.CiphertextRange()
-				err := syscall.Ftruncate(int(f.fd.Fd()), int64(off+length))
+				err = syscall.Ftruncate(int(f.fd.Fd()), int64(off+length))
 				if err != nil {
 					toggledlog.Warn.Printf("grow Ftruncate returned error: %v", err)
 					return fuse.ToStatus(err)

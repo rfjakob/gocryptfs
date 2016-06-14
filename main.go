@@ -231,7 +231,7 @@ func main() {
 	// Every operation below requires CIPHERDIR. Check that we have it.
 	if flagSet.NArg() >= 1 {
 		args.cipherdir, _ = filepath.Abs(flagSet.Arg(0))
-		err := checkDir(args.cipherdir)
+		err = checkDir(args.cipherdir)
 		if err != nil {
 			toggledlog.Fatal.Printf(colorRed+"Invalid cipherdir: %v\n"+colorReset, err)
 			os.Exit(ERREXIT_CIPHERDIR)
