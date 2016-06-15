@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 const (
@@ -40,7 +40,7 @@ func Twice(extpass string) string {
 	p1 := readPasswordTerminal("Password: ")
 	p2 := readPasswordTerminal("Repeat: ")
 	if p1 != p2 {
-		toggledlog.Fatal.Println("Passwords do not match")
+		tlog.Fatal.Println("Passwords do not match")
 		os.Exit(exitCode)
 	}
 	return p1
@@ -54,12 +54,12 @@ func readPasswordTerminal(prompt string) string {
 	// terminal.ReadPassword removes the trailing newline
 	p, err := terminal.ReadPassword(fd)
 	if err != nil {
-		toggledlog.Fatal.Printf("Could not read password from terminal: %v\n", err)
+		tlog.Fatal.Printf("Could not read password from terminal: %v\n", err)
 		os.Exit(exitCode)
 	}
 	fmt.Fprintf(os.Stderr, "\n")
 	if len(p) == 0 {
-		toggledlog.Fatal.Println("Password is empty")
+		tlog.Fatal.Println("Password is empty")
 		os.Exit(exitCode)
 	}
 	return string(p)
@@ -68,11 +68,11 @@ func readPasswordTerminal(prompt string) string {
 // readPasswordStdin reads a line from stdin
 // Exits on read error or empty result.
 func readPasswordStdin() string {
-	toggledlog.Info.Println("Reading password from stdin")
+	tlog.Info.Println("Reading password from stdin")
 	p := readLineUnbuffered(os.Stdin)
 	if len(p) == 0 {
 		fmt.Fprintf(os.Stderr, "FOOOOOO\n")
-		toggledlog.Fatal.Println("Got empty password from stdin")
+		tlog.Fatal.Println("Got empty password from stdin")
 		os.Exit(exitCode)
 	}
 	return p
@@ -82,25 +82,25 @@ func readPasswordStdin() string {
 // of the output.
 // Exits on read error or empty result.
 func readPasswordExtpass(extpass string) string {
-	toggledlog.Info.Println("Reading password from extpass program")
+	tlog.Info.Println("Reading password from extpass program")
 	parts := strings.Split(extpass, " ")
 	cmd := exec.Command(parts[0], parts[1:]...)
 	cmd.Stderr = os.Stderr
 	pipe, err := cmd.StdoutPipe()
 	if err != nil {
-		toggledlog.Fatal.Printf("extpass pipe setup failed: %v", err)
+		tlog.Fatal.Printf("extpass pipe setup failed: %v", err)
 		os.Exit(exitCode)
 	}
 	err = cmd.Start()
 	if err != nil {
-		toggledlog.Fatal.Printf("extpass cmd start failed: %v", err)
+		tlog.Fatal.Printf("extpass cmd start failed: %v", err)
 		os.Exit(exitCode)
 	}
 	p := readLineUnbuffered(pipe)
 	pipe.Close()
 	cmd.Wait()
 	if len(p) == 0 {
-		toggledlog.Fatal.Println("extpass: password is empty")
+		tlog.Fatal.Println("extpass: password is empty")
 		os.Exit(exitCode)
 	}
 	return p
@@ -116,7 +116,7 @@ func readLineUnbuffered(r io.Reader) (l string) {
 			return l
 		}
 		if err != nil {
-			toggledlog.Fatal.Printf("readLineUnbuffered: %v", err)
+			tlog.Fatal.Printf("readLineUnbuffered: %v", err)
 			os.Exit(exitCode)
 		}
 		if n == 0 {

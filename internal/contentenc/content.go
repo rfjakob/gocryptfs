@@ -8,7 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 // DecryptBlocks - Decrypt a number of blocks
@@ -42,12 +42,12 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []b
 
 	// All-zero block?
 	if bytes.Equal(ciphertext, be.allZeroBlock) {
-		toggledlog.Debug.Printf("DecryptBlock: file hole encountered")
+		tlog.Debug.Printf("DecryptBlock: file hole encountered")
 		return make([]byte, be.plainBS), nil
 	}
 
 	if len(ciphertext) < be.cryptoCore.IVLen {
-		toggledlog.Warn.Printf("DecryptBlock: Block is too short: %d bytes", len(ciphertext))
+		tlog.Warn.Printf("DecryptBlock: Block is too short: %d bytes", len(ciphertext))
 		return nil, errors.New("Block is too short")
 	}
 
@@ -64,8 +64,8 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []b
 	plaintext, err := be.cryptoCore.Gcm.Open(plaintext, nonce, ciphertext, aData)
 
 	if err != nil {
-		toggledlog.Warn.Printf("DecryptBlock: %s, len=%d", err.Error(), len(ciphertextOrig))
-		toggledlog.Debug.Println(hex.Dump(ciphertextOrig))
+		tlog.Warn.Printf("DecryptBlock: %s, len=%d", err.Error(), len(ciphertextOrig))
+		tlog.Debug.Println(hex.Dump(ciphertextOrig))
 		return nil, err
 	}
 

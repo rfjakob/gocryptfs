@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 // The child sends us USR1 if the mount was successful
@@ -32,7 +32,7 @@ func forkChild() {
 	c.Stdin = os.Stdin
 	err := c.Start()
 	if err != nil {
-		toggledlog.Fatal.Printf("forkChild: starting %s failed: %v\n", name, err)
+		tlog.Fatal.Printf("forkChild: starting %s failed: %v\n", name, err)
 		os.Exit(1)
 	}
 	err = c.Wait()
@@ -42,7 +42,7 @@ func forkChild() {
 				os.Exit(waitstat.ExitStatus())
 			}
 		}
-		toggledlog.Fatal.Printf("forkChild: wait returned an unknown error: %v\n", err)
+		tlog.Fatal.Printf("forkChild: wait returned an unknown error: %v\n", err)
 		os.Exit(1)
 	}
 	// The child exited with 0 - let's do the same.

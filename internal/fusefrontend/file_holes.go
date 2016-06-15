@@ -5,7 +5,7 @@ package fusefrontend
 import (
 	"github.com/hanwen/go-fuse/fuse"
 
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 // Will a write to offset "off" create a file hole?
@@ -23,7 +23,7 @@ func (f *file) zeroPad(plainSize uint64) fuse.Status {
 	lastBlockLen := plainSize % f.contentEnc.PlainBS()
 	missing := f.contentEnc.PlainBS() - lastBlockLen
 	pad := make([]byte, missing)
-	toggledlog.Debug.Printf("zeroPad: Writing %d bytes\n", missing)
+	tlog.Debug.Printf("zeroPad: Writing %d bytes\n", missing)
 	_, status := f.doWrite(pad, int64(plainSize))
 	return status
 }

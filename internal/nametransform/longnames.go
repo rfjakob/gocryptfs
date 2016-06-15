@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 const (
@@ -58,7 +58,7 @@ func IsLongContent(cName string) bool {
 func ReadLongName(path string) (string, error) {
 	content, err := ioutil.ReadFile(path + LongNameSuffix)
 	if err != nil {
-		toggledlog.Warn.Printf("ReadLongName: %v", err)
+		tlog.Warn.Printf("ReadLongName: %v", err)
 	}
 	return string(content), err
 }
@@ -67,7 +67,7 @@ func ReadLongName(path string) (string, error) {
 func DeleteLongName(dirfd *os.File, hashName string) error {
 	err := syscall.Unlinkat(int(dirfd.Fd()), hashName+LongNameSuffix)
 	if err != nil {
-		toggledlog.Warn.Printf("DeleteLongName: %v", err)
+		tlog.Warn.Printf("DeleteLongName: %v", err)
 	}
 	return err
 }
@@ -89,14 +89,14 @@ func (n *NameTransform) WriteLongName(dirfd *os.File, hashName string, plainName
 	fdRaw, err := syscall.Openat(int(dirfd.Fd()), hashName+LongNameSuffix,
 		syscall.O_WRONLY|syscall.O_CREAT|syscall.O_EXCL, 0600)
 	if err != nil {
-		toggledlog.Warn.Printf("WriteLongName: Openat: %v", err)
+		tlog.Warn.Printf("WriteLongName: Openat: %v", err)
 		return err
 	}
 	fd := os.NewFile(uintptr(fdRaw), hashName+LongNameSuffix)
 	defer fd.Close()
 	_, err = fd.Write([]byte(cName))
 	if err != nil {
-		toggledlog.Warn.Printf("WriteLongName: Write: %v", err)
+		tlog.Warn.Printf("WriteLongName: Write: %v", err)
 	}
 	return err
 }

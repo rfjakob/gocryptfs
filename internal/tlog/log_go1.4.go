@@ -1,7 +1,7 @@
 // +build !go1.5
 // = go 1.4 or lower
 
-package toggledlog
+package tlog
 
 import (
 	"log/syslog"

@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 const (
@@ -37,7 +37,7 @@ func ReadDirIV(dir string) (iv []byte, err error) {
 func ReadDirIVAt(dirfd *os.File) (iv []byte, err error) {
 	fdRaw, err := syscall.Openat(int(dirfd.Fd()), DirIVFilename, syscall.O_RDONLY, 0)
 	if err != nil {
-		toggledlog.Warn.Printf("ReadDirIVAt: opening %q in dir %q failed: %v",
+		tlog.Warn.Printf("ReadDirIVAt: opening %q in dir %q failed: %v",
 			DirIVFilename, dirfd.Name(), err)
 		return nil, err
 	}
@@ -47,12 +47,12 @@ func ReadDirIVAt(dirfd *os.File) (iv []byte, err error) {
 	iv = make([]byte, dirIVLen+1)
 	n, err := fd.Read(iv)
 	if err != nil {
-		toggledlog.Warn.Printf("ReadDirIVAt: Read failed: %v", err)
+		tlog.Warn.Printf("ReadDirIVAt: Read failed: %v", err)
 		return nil, err
 	}
 	iv = iv[0:n]
 	if len(iv) != dirIVLen {
-		toggledlog.Warn.Printf("ReadDirIVAt: wanted %d bytes, got %d", dirIVLen, len(iv))
+		tlog.Warn.Printf("ReadDirIVAt: wanted %d bytes, got %d", dirIVLen, len(iv))
 		return nil, errors.New("invalid iv length")
 	}
 	return iv, nil
@@ -66,7 +66,7 @@ func WriteDirIV(dir string) error {
 	file := filepath.Join(dir, DirIVFilename)
 	err := ioutil.WriteFile(file, iv, 0400)
 	if err != nil {
-		toggledlog.Warn.Printf("WriteDirIV: %v", err)
+		tlog.Warn.Printf("WriteDirIV: %v", err)
 	}
 	return err
 }
@@ -126,7 +126,7 @@ func (be *NameTransform) DecryptPathDirIV(encryptedPath string, rootDir string) 
 	var wd = rootDir
 	var plainNames []string
 	encryptedNames := strings.Split(encryptedPath, "/")
-	toggledlog.Debug.Printf("DecryptPathDirIV: decrypting %v\n", encryptedNames)
+	tlog.Debug.Printf("DecryptPathDirIV: decrypting %v\n", encryptedNames)
 	for _, encryptedName := range encryptedNames {
 		iv, err := ReadDirIV(wd)
 		if err != nil {

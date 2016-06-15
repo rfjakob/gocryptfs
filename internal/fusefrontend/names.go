@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 // isFiltered - check if plaintext "path" should be forbidden
@@ -18,7 +18,7 @@ func (fs *FS) isFiltered(path string) bool {
 	}
 	// gocryptfs.conf in the root directory is forbidden
 	if path == configfile.ConfDefaultName {
-		toggledlog.Info.Printf("The name /%s is reserved when -plaintextnames is used\n",
+		tlog.Info.Printf("The name /%s is reserved when -plaintextnames is used\n",
 			configfile.ConfDefaultName)
 		return true
 	}
@@ -35,7 +35,7 @@ func (fs *FS) getBackingPath(relPath string) (string, error) {
 		return "", err
 	}
 	cAbsPath := filepath.Join(fs.args.Cipherdir, cPath)
-	toggledlog.Debug.Printf("getBackingPath: %s + %s -> %s", fs.args.Cipherdir, relPath, cAbsPath)
+	tlog.Debug.Printf("getBackingPath: %s + %s -> %s", fs.args.Cipherdir, relPath, cAbsPath)
 	return cAbsPath, nil
 }
 
@@ -49,7 +49,7 @@ func (fs *FS) encryptPath(plainPath string) (string, error) {
 	}
 	fs.dirIVLock.RLock()
 	cPath, err := fs.nameTransform.EncryptPathDirIV(plainPath, fs.args.Cipherdir)
-	toggledlog.Debug.Printf("encryptPath '%s' -> '%s' (err: %v)", plainPath, cPath, err)
+	tlog.Debug.Printf("encryptPath '%s' -> '%s' (err: %v)", plainPath, cPath, err)
 	fs.dirIVLock.RUnlock()
 	return cPath, err
 }

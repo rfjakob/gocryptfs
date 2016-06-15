@@ -27,7 +27,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/prefer_openssl"
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 const (
@@ -59,21 +59,21 @@ var GitVersionFuse = "[version not set - please compile using ./build.bash]"
 func initDir(args *argContainer) {
 	err := checkDirEmpty(args.cipherdir)
 	if err != nil {
-		toggledlog.Fatal.Printf("Invalid cipherdir: %v", err)
+		tlog.Fatal.Printf("Invalid cipherdir: %v", err)
 		os.Exit(ERREXIT_INIT)
 	}
 
 	// Create gocryptfs.conf
 	if args.extpass == "" {
-		toggledlog.Info.Printf("Choose a password for protecting your files.")
+		tlog.Info.Printf("Choose a password for protecting your files.")
 	} else {
-		toggledlog.Info.Printf("Using password provided via -extpass.")
+		tlog.Info.Printf("Using password provided via -extpass.")
 	}
 	password := readpassword.Twice(args.extpass)
-	creator := toggledlog.ProgramName + " " + GitVersion
+	creator := tlog.ProgramName + " " + GitVersion
 	err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator)
 	if err != nil {
-		toggledlog.Fatal.Println(err)
+		tlog.Fatal.Println(err)
 		os.Exit(ERREXIT_INIT)
 	}
 
@@ -81,12 +81,12 @@ func initDir(args *argContainer) {
 		// Create gocryptfs.diriv in the root dir
 		err = nametransform.WriteDirIV(args.cipherdir)
 		if err != nil {
-			toggledlog.Fatal.Println(err)
+			tlog.Fatal.Println(err)
 			os.Exit(ERREXIT_INIT)
 		}
 	}
 
-	toggledlog.Info.Printf(toggledlog.ColorGreen + "The filesystem has been created successfully." + toggledlog.ColorReset)
+	tlog.Info.Printf(tlog.ColorGreen + "The filesystem has been created successfully." + tlog.ColorReset)
 	wd, _ := os.Getwd()
 	friendlyPath, _ := filepath.Rel(wd, args.cipherdir)
 	if strings.HasPrefix(friendlyPath, "../") {
@@ -94,8 +94,8 @@ func initDir(args *argContainer) {
 		// keep the absolute path.
 		friendlyPath = args.cipherdir
 	}
-	toggledlog.Info.Printf(toggledlog.ColorGrey+"You can now mount it using: %s %s MOUNTPOINT"+toggledlog.ColorReset,
-		toggledlog.ProgramName, friendlyPath)
+	tlog.Info.Printf(tlog.ColorGrey+"You can now mount it using: %s %s MOUNTPOINT"+tlog.ColorReset,
+		tlog.ProgramName, friendlyPath)
 	os.Exit(0)
 }
 
@@ -106,7 +106,7 @@ Usage: %s -init|-passwd [OPTIONS] CIPHERDIR
   or   %s [OPTIONS] CIPHERDIR MOUNTPOINT
 
 Options:
-`, toggledlog.ProgramName, toggledlog.ProgramName)
+`, tlog.ProgramName, tlog.ProgramName)
 
 	flagSet.PrintDefaults()
 }
@@ -116,14 +116,14 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 	// Check if the file exists at all before prompting for a password
 	_, err := os.Stat(args.config)
 	if err != nil {
-		toggledlog.Fatal.Printf("Config file not found: %v", err)
+		tlog.Fatal.Printf("Config file not found: %v", err)
 		os.Exit(ERREXIT_LOADCONF)
 	}
 	pw := readpassword.Once(args.extpass)
-	toggledlog.Info.Println("Decrypting master key")
+	tlog.Info.Println("Decrypting master key")
 	masterkey, confFile, err = configfile.LoadConfFile(args.config, pw)
 	if err != nil {
-		toggledlog.Fatal.Println(err.Error())
+		tlog.Fatal.Println(err.Error())
 		os.Exit(ERREXIT_LOADCONF)
 	}
 
@@ -133,15 +133,15 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 // changePassword - change the password of config file "filename"
 func changePassword(args *argContainer) {
 	masterkey, confFile := loadConfig(args)
-	toggledlog.Info.Println("Please enter your new password.")
+	tlog.Info.Println("Please enter your new password.")
 	newPw := readpassword.Twice(args.extpass)
 	confFile.EncryptKey(masterkey, newPw, confFile.ScryptObject.LogN())
 	err := confFile.WriteFile()
 	if err != nil {
-		toggledlog.Fatal.Println(err)
+		tlog.Fatal.Println(err)
 		os.Exit(ERREXIT_INIT)
 	}
-	toggledlog.Info.Printf("Password changed.")
+	tlog.Info.Printf("Password changed.")
 	os.Exit(0)
 }
 
@@ -149,7 +149,7 @@ func changePassword(args *argContainer) {
 // "gocryptfs v0.3.1-31-g6736212-dirty; on-disk format 2"
 func printVersion() {
 	fmt.Printf("%s %s; on-disk format %d; go-fuse %s\n",
-		toggledlog.ProgramName, GitVersion, contentenc.CurrentVersion, GitVersionFuse)
+		tlog.ProgramName, GitVersion, contentenc.CurrentVersion, GitVersionFuse)
 }
 
 func main() {
@@ -159,7 +159,7 @@ func main() {
 
 	// Parse command line arguments
 	var opensslAuto string
-	flagSet = flag.NewFlagSet(toggledlog.ProgramName, flag.ExitOnError)
+	flagSet = flag.NewFlagSet(tlog.ProgramName, flag.ExitOnError)
 	flagSet.Usage = usageText
 	flagSet.BoolVar(&args.debug, "d", false, "")
 	flagSet.BoolVar(&args.debug, "debug", false, "Enable debug output")
@@ -199,7 +199,7 @@ func main() {
 	} else {
 		args.openssl, err = strconv.ParseBool(opensslAuto)
 		if err != nil {
-			toggledlog.Fatal.Printf("Invalid \"-openssl\" setting: %v", err)
+			tlog.Fatal.Printf("Invalid \"-openssl\" setting: %v", err)
 			os.Exit(ERREXIT_USAGE)
 		}
 	}
@@ -209,24 +209,24 @@ func main() {
 		forkChild() // does not return
 	}
 	if args.debug {
-		toggledlog.Debug.Enabled = true
+		tlog.Debug.Enabled = true
 	}
 	// "-v"
 	if args.version {
-		toggledlog.Debug.Printf("openssl=%v\n", args.openssl)
+		tlog.Debug.Printf("openssl=%v\n", args.openssl)
 		printVersion()
 		os.Exit(0)
 	}
 	if args.wpanic {
-		toggledlog.Warn.Wpanic = true
-		toggledlog.Debug.Printf("Panicing on warnings")
+		tlog.Warn.Wpanic = true
+		tlog.Debug.Printf("Panicing on warnings")
 	}
 	// Every operation below requires CIPHERDIR. Check that we have it.
 	if flagSet.NArg() >= 1 {
 		args.cipherdir, _ = filepath.Abs(flagSet.Arg(0))
 		err = checkDir(args.cipherdir)
 		if err != nil {
-			toggledlog.Fatal.Printf("Invalid cipherdir: %v", err)
+			tlog.Fatal.Printf("Invalid cipherdir: %v", err)
 			os.Exit(ERREXIT_CIPHERDIR)
 		}
 	} else {
@@ -235,26 +235,26 @@ func main() {
 	}
 	// "-q"
 	if args.quiet {
-		toggledlog.Info.Enabled = false
+		tlog.Info.Enabled = false
 	}
 	// "-config"
 	if args.config != "" {
 		args.config, err = filepath.Abs(args.config)
 		if err != nil {
-			toggledlog.Fatal.Printf("Invalid \"-config\" setting: %v", err)
+			tlog.Fatal.Printf("Invalid \"-config\" setting: %v", err)
 			os.Exit(ERREXIT_INIT)
 		}
-		toggledlog.Info.Printf("Using config file at custom location %s", args.config)
+		tlog.Info.Printf("Using config file at custom location %s", args.config)
 	} else {
 		args.config = filepath.Join(args.cipherdir, configfile.ConfDefaultName)
 	}
 	// "-cpuprofile"
 	if args.cpuprofile != "" {
-		toggledlog.Info.Printf("Writing CPU profile to %s", args.cpuprofile)
+		tlog.Info.Printf("Writing CPU profile to %s", args.cpuprofile)
 		var f *os.File
 		f, err = os.Create(args.cpuprofile)
 		if err != nil {
-			toggledlog.Fatal.Println(err)
+			tlog.Fatal.Println(err)
 			os.Exit(ERREXIT_INIT)
 		}
 		pprof.StartCPUProfile(f)
@@ -262,11 +262,11 @@ func main() {
 	}
 	// "-memprofile"
 	if args.memprofile != "" {
-		toggledlog.Info.Printf("Writing mem profile to %s", args.memprofile)
+		tlog.Info.Printf("Writing mem profile to %s", args.memprofile)
 		var f *os.File
 		f, err = os.Create(args.memprofile)
 		if err != nil {
-			toggledlog.Fatal.Println(err)
+			tlog.Fatal.Println(err)
 			os.Exit(ERREXIT_INIT)
 		}
 		defer func() {
@@ -276,19 +276,19 @@ func main() {
 		}()
 	}
 	if args.cpuprofile != "" || args.memprofile != "" {
-		toggledlog.Info.Printf("Note: You must unmount gracefully, otherwise the profile file(s) will stay empty!\n")
+		tlog.Info.Printf("Note: You must unmount gracefully, otherwise the profile file(s) will stay empty!\n")
 	}
 	// "-openssl"
 	if args.openssl == false {
-		toggledlog.Debug.Printf("OpenSSL disabled, using Go GCM")
+		tlog.Debug.Printf("OpenSSL disabled, using Go GCM")
 	} else {
-		toggledlog.Debug.Printf("OpenSSL enabled")
+		tlog.Debug.Printf("OpenSSL enabled")
 	}
 	// Operation flags: init, passwd or mount
 	// "-init"
 	if args.init {
 		if flagSet.NArg() > 1 {
-			toggledlog.Fatal.Printf("Usage: %s -init [OPTIONS] CIPHERDIR", toggledlog.ProgramName)
+			tlog.Fatal.Printf("Usage: %s -init [OPTIONS] CIPHERDIR", tlog.ProgramName)
 			os.Exit(ERREXIT_USAGE)
 		}
 		initDir(&args) // does not return
@@ -296,7 +296,7 @@ func main() {
 	// "-passwd"
 	if args.passwd {
 		if flagSet.NArg() > 1 {
-			toggledlog.Fatal.Printf("Usage: %s -passwd [OPTIONS] CIPHERDIR", toggledlog.ProgramName)
+			tlog.Fatal.Printf("Usage: %s -passwd [OPTIONS] CIPHERDIR", tlog.ProgramName)
 			os.Exit(ERREXIT_USAGE)
 		}
 		changePassword(&args) // does not return
@@ -304,17 +304,17 @@ func main() {
 	// Mount
 	// Check mountpoint
 	if flagSet.NArg() != 2 {
-		toggledlog.Fatal.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT", toggledlog.ProgramName)
+		tlog.Fatal.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT", tlog.ProgramName)
 		os.Exit(ERREXIT_USAGE)
 	}
 	args.mountpoint, err = filepath.Abs(flagSet.Arg(1))
 	if err != nil {
-		toggledlog.Fatal.Printf("Invalid mountpoint: %v", err)
+		tlog.Fatal.Printf("Invalid mountpoint: %v", err)
 		os.Exit(ERREXIT_MOUNTPOINT)
 	}
 	err = checkDirEmpty(args.mountpoint)
 	if err != nil {
-		toggledlog.Fatal.Printf("Invalid mountpoint: %v", err)
+		tlog.Fatal.Printf("Invalid mountpoint: %v", err)
 		os.Exit(ERREXIT_MOUNTPOINT)
 	}
 	// Get master key
@@ -322,13 +322,13 @@ func main() {
 	var confFile *configfile.ConfFile
 	if args.masterkey != "" {
 		// "-masterkey"
-		toggledlog.Info.Printf("Using explicit master key.")
+		tlog.Info.Printf("Using explicit master key.")
 		masterkey = parseMasterKey(args.masterkey)
-		toggledlog.Info.Printf("THE MASTER KEY IS VISIBLE VIA \"ps -auxwww\", ONLY USE THIS MODE FOR EMERGENCIES.")
+		tlog.Info.Printf("THE MASTER KEY IS VISIBLE VIA \"ps -auxwww\", ONLY USE THIS MODE FOR EMERGENCIES.")
 	} else if args.zerokey {
 		// "-zerokey"
-		toggledlog.Info.Printf("Using all-zero dummy master key.")
-		toggledlog.Info.Printf("ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING.")
+		tlog.Info.Printf("Using all-zero dummy master key.")
+		tlog.Info.Printf("ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING.")
 		masterkey = make([]byte, cryptocore.KeyLen)
 	} else {
 		// Load master key from config file
@@ -336,17 +336,17 @@ func main() {
 		printMasterKey(masterkey)
 	}
 	// Initialize FUSE server
-	toggledlog.Debug.Printf("cli args: %v", args)
+	tlog.Debug.Printf("cli args: %v", args)
 	srv := initFuseFrontend(masterkey, args, confFile)
-	toggledlog.Info.Println(toggledlog.ColorGreen + "Filesystem mounted and ready." + toggledlog.ColorReset)
+	tlog.Info.Println(tlog.ColorGreen + "Filesystem mounted and ready." + tlog.ColorReset)
 	// We are ready - send USR1 signal to our parent and switch to syslog
 	if args.notifypid > 0 {
 		sendUsr1(args.notifypid)
 
 		if !args.nosyslog {
-			toggledlog.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
-			toggledlog.Debug.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_DEBUG)
-			toggledlog.Warn.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
+			tlog.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
+			tlog.Debug.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_DEBUG)
+			tlog.Warn.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
 		}
 	}
 	// Wait for SIGINT in the background and unmount ourselves if we get it.
@@ -391,7 +391,7 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 		frontendArgs.EMENames = false
 	}
 	jsonBytes, _ := json.MarshalIndent(frontendArgs, "", "\t")
-	toggledlog.Debug.Printf("frontendArgs: %s", string(jsonBytes))
+	tlog.Debug.Printf("frontendArgs: %s", string(jsonBytes))
 
 	finalFs := fusefrontend.NewFS(frontendArgs)
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
@@ -407,8 +407,8 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	var mOpts fuse.MountOptions
 	mOpts.AllowOther = false
 	if args.allow_other {
-		toggledlog.Info.Printf(toggledlog.ColorYellow + "The option \"-allow_other\" is set. Make sure the file " +
-			"permissions protect your data from unwanted access." + toggledlog.ColorReset)
+		tlog.Info.Printf(tlog.ColorYellow + "The option \"-allow_other\" is set. Make sure the file " +
+			"permissions protect your data from unwanted access." + tlog.ColorReset)
 		mOpts.AllowOther = true
 		// Make the kernel check the file permissions for us
 		mOpts.Options = append(mOpts.Options, "default_permissions")
@@ -421,7 +421,7 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 
 	srv, err := fuse.NewServer(conn.RawFS(), args.mountpoint, &mOpts)
 	if err != nil {
-		toggledlog.Fatal.Printf("Mount failed: %v", err)
+		tlog.Fatal.Printf("Mount failed: %v", err)
 		os.Exit(ERREXIT_MOUNT)
 	}
 	srv.SetDebug(args.fusedebug)
@@ -442,8 +442,8 @@ func handleSigint(srv *fuse.Server, mountpoint string) {
 		<-ch
 		err := srv.Unmount()
 		if err != nil {
-			toggledlog.Warn.Print(err)
-			toggledlog.Info.Printf("Trying lazy unmount")
+			tlog.Warn.Print(err)
+			tlog.Info.Printf("Trying lazy unmount")
 			cmd := exec.Command("fusermount", "-u", "-z", mountpoint)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr

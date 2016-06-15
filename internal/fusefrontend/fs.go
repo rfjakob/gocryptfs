@@ -17,7 +17,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 type FS struct {
@@ -49,7 +49,7 @@ func NewFS(args Args) *FS {
 }
 
 func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
-	toggledlog.Debug.Printf("FS.GetAttr('%s')", name)
+	tlog.Debug.Printf("FS.GetAttr('%s')", name)
 	if fs.isFiltered(name) {
 		return nil, fuse.EPERM
 	}
@@ -59,7 +59,7 @@ func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Stat
 	}
 	a, status := fs.FileSystem.GetAttr(cName, context)
 	if a == nil {
-		toggledlog.Debug.Printf("FS.GetAttr failed: %s", status.String())
+		tlog.Debug.Printf("FS.GetAttr failed: %s", status.String())
 		return a, status
 	}
 	if a.IsRegular() {
@@ -91,10 +91,10 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 	iflags, writeOnly := fs.mangleOpenFlags(flags)
 	cPath, err := fs.getBackingPath(path)
 	if err != nil {
-		toggledlog.Debug.Printf("Open: getBackingPath: %v", err)
+		tlog.Debug.Printf("Open: getBackingPath: %v", err)
 		return nil, fuse.ToStatus(err)
 	}
-	toggledlog.Debug.Printf("Open: %s", cPath)
+	tlog.Debug.Printf("Open: %s", cPath)
 	f, err := os.OpenFile(cPath, iflags, 0666)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
@@ -213,7 +213,7 @@ var truncateWarnOnce sync.Once
 
 func (fs *FS) Truncate(path string, offset uint64, context *fuse.Context) (code fuse.Status) {
 	truncateWarnOnce.Do(func() {
-		toggledlog.Warn.Printf("truncate(2) is not supported, returning ENOSYS - use ftruncate(2)")
+		tlog.Warn.Printf("truncate(2) is not supported, returning ENOSYS - use ftruncate(2)")
 	})
 	return fuse.ENOSYS
 }
@@ -254,7 +254,7 @@ func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status f
 		var target string
 		target, err = fs.decryptPath(cTarget)
 		if err != nil {
-			toggledlog.Warn.Printf("Readlink: CBC decryption failed: %v", err)
+			tlog.Warn.Printf("Readlink: CBC decryption failed: %v", err)
 			return "", fuse.EIO
 		}
 		return target, fuse.OK
@@ -262,12 +262,12 @@ func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status f
 	// Since gocryptfs v0.5 symlinks are encrypted like file contents (GCM)
 	cBinTarget, err := base64.URLEncoding.DecodeString(cTarget)
 	if err != nil {
-		toggledlog.Warn.Printf("Readlink: %v", err)
+		tlog.Warn.Printf("Readlink: %v", err)
 		return "", fuse.EIO
 	}
 	target, err := fs.contentEnc.DecryptBlock([]byte(cBinTarget), 0, nil)
 	if err != nil {
-		toggledlog.Warn.Printf("Readlink: %v", err)
+		tlog.Warn.Printf("Readlink: %v", err)
 		return "", fuse.EIO
 	}
 	return string(target), fuse.OK
@@ -298,7 +298,7 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 		// Delete ".name"
 		err = nametransform.DeleteLongName(dirfd, cName)
 		if err != nil {
-			toggledlog.Warn.Printf("Unlink: could not delete .name file: %v", err)
+			tlog.Warn.Printf("Unlink: could not delete .name file: %v", err)
 		}
 		return fuse.ToStatus(err)
 	}
@@ -308,7 +308,7 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 }
 
 func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (code fuse.Status) {
-	toggledlog.Debug.Printf("Symlink(\"%s\", \"%s\")", target, linkName)
+	tlog.Debug.Printf("Symlink(\"%s\", \"%s\")", target, linkName)
 	if fs.isFiltered(linkName) {
 		return fuse.EPERM
 	}
@@ -322,7 +322,7 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 		var cTarget string
 		cTarget, err = fs.encryptPath(target)
 		if err != nil {
-			toggledlog.Warn.Printf("Symlink: BUG: we should not get an error here: %v", err)
+			tlog.Warn.Printf("Symlink: BUG: we should not get an error here: %v", err)
 			return fuse.ToStatus(err)
 		}
 		err = os.Symlink(cTarget, cPath)
@@ -417,7 +417,7 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 		// If an empty directory is overwritten we will always get ENOTEMPTY as
 		// the "empty" directory will still contain gocryptfs.diriv.
 		// Handle that case by removing the target directory and trying again.
-		toggledlog.Debug.Printf("Rename: Handling ENOTEMPTY")
+		tlog.Debug.Printf("Rename: Handling ENOTEMPTY")
 		if fs.Rmdir(newPath, context) == fuse.OK {
 			err = syscall.Renameat(finalOldDirFd, finalOldPath, finalNewDirFd, finalNewPath)
 		}

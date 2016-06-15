@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 // Get "n" random bytes from /dev/urandom or panic
@@ -34,7 +34,7 @@ type nonceGenerator struct {
 // Get a random "nonceLen"-byte nonce
 func (n *nonceGenerator) Get() []byte {
 	nonce := RandBytes(n.nonceLen)
-	toggledlog.Debug.Printf("nonceGenerator.Get(): %s\n", hex.EncodeToString(nonce))
+	tlog.Debug.Printf("nonceGenerator.Get(): %s\n", hex.EncodeToString(nonce))
 	if bytes.Equal(nonce, n.lastNonce) {
 		m := fmt.Sprintf("Got the same nonce twice: %s. This should never happen!", hex.EncodeToString(nonce))
 		panic(m)

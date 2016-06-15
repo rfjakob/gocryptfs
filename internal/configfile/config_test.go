@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 func TestLoadV1(t *testing.T) {
@@ -35,7 +35,7 @@ func TestLoadV2(t *testing.T) {
 
 func TestLoadV2PwdError(t *testing.T) {
 	if !testing.Verbose() {
-		toggledlog.Warn.Enabled = false
+		tlog.Warn.Enabled = false
 	}
 	_, _, err := LoadConfFile("config_test/v2.conf", "wrongpassword")
 	if err == nil {

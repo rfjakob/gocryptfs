@@ -16,7 +16,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 // File - based on loopbackFile in go-fuse/fuse/nodefs/files.go
@@ -50,7 +50,7 @@ func NewFile(fd *os.File, writeOnly bool, contentEnc *contentenc.ContentEnc) (no
 	var st syscall.Stat_t
 	err := syscall.Fstat(int(fd.Fd()), &st)
 	if err != nil {
-		toggledlog.Warn.Printf("NewFile: Fstat on fd %d failed: %v\n", fd.Fd(), err)
+		tlog.Warn.Printf("NewFile: Fstat on fd %d failed: %v\n", fd.Fd(), err)
 		return nil, fuse.ToStatus(err)
 	}
 	wlock.register(st.Ino)
@@ -102,7 +102,7 @@ func (f *file) createHeader() error {
 	// Prevent partially written (=corrupt) header by preallocating the space beforehand
 	err := prealloc(int(f.fd.Fd()), 0, contentenc.HEADER_LEN)
 	if err != nil {
-		toggledlog.Warn.Printf("ino%d: createHeader: prealloc failed: %s\n", f.ino, err.Error())
+		tlog.Warn.Printf("ino%d: createHeader: prealloc failed: %s\n", f.ino, err.Error())
 		return err
 	}
 
@@ -145,18 +145,18 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	blocks := f.contentEnc.ExplodePlainRange(off, length)
 	alignedOffset, alignedLength := blocks[0].JointCiphertextRange(blocks)
 	skip := blocks[0].Skip
-	toggledlog.Debug.Printf("JointCiphertextRange(%d, %d) -> %d, %d, %d", off, length, alignedOffset, alignedLength, skip)
+	tlog.Debug.Printf("JointCiphertextRange(%d, %d) -> %d, %d, %d", off, length, alignedOffset, alignedLength, skip)
 	ciphertext := make([]byte, int(alignedLength))
 	n, err := f.fd.ReadAt(ciphertext, int64(alignedOffset))
 	if err != nil && err != io.EOF {
-		toggledlog.Warn.Printf("read: ReadAt: %s", err.Error())
+		tlog.Warn.Printf("read: ReadAt: %s", err.Error())
 		return nil, fuse.ToStatus(err)
 	}
 	// Truncate ciphertext buffer down to actually read bytes
 	ciphertext = ciphertext[0:n]
 
 	firstBlockNo := blocks[0].BlockNo
-	toggledlog.Debug.Printf("ReadAt offset=%d bytes (%d blocks), want=%d, got=%d", alignedOffset, firstBlockNo, alignedLength, n)
+	tlog.Debug.Printf("ReadAt offset=%d bytes (%d blocks), want=%d, got=%d", alignedOffset, firstBlockNo, alignedLength, n)
 
 	// Decrypt it
 	plaintext, err := f.contentEnc.DecryptBlocks(ciphertext, firstBlockNo, f.header.Id)
@@ -164,7 +164,7 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 		curruptBlockNo := firstBlockNo + f.contentEnc.PlainOffToBlockNo(uint64(len(plaintext)))
 		cipherOff := f.contentEnc.BlockNoToCipherOff(curruptBlockNo)
 		plainOff := f.contentEnc.BlockNoToPlainOff(curruptBlockNo)
-		toggledlog.Warn.Printf("ino%d: doRead: corrupt block #%d (plainOff=%d, cipherOff=%d)",
+		tlog.Warn.Printf("ino%d: doRead: corrupt block #%d (plainOff=%d, cipherOff=%d)",
 			f.ino, curruptBlockNo, plainOff, cipherOff)
 		return nil, fuse.EIO
 	}
@@ -188,23 +188,23 @@ func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 
-	toggledlog.Debug.Printf("ino%d: FUSE Read: offset=%d length=%d", f.ino, len(buf), off)
+	tlog.Debug.Printf("ino%d: FUSE Read: offset=%d length=%d", f.ino, len(buf), off)
 
 	if f.writeOnly {
-		toggledlog.Warn.Printf("ino%d: Tried to read from write-only file", f.ino)
+		tlog.Warn.Printf("ino%d: Tried to read from write-only file", f.ino)
 		return nil, fuse.EBADF
 	}
 
 	out, status := f.doRead(uint64(off), uint64(len(buf)))
 
 	if status == fuse.EIO {
-		toggledlog.Warn.Printf("ino%d: Read failed with EIO, offset=%d, length=%d", f.ino, len(buf), off)
+		tlog.Warn.Printf("ino%d: Read failed with EIO, offset=%d, length=%d", f.ino, len(buf), off)
 	}
 	if status != fuse.OK {
 		return nil, status
 	}
 
-	toggledlog.Debug.Printf("ino%d: Read: status %v, returning %d bytes", f.ino, status, len(out))
+	tlog.Debug.Printf("ino%d: Read: status %v, returning %d bytes", f.ino, status, len(out))
 	return fuse.ReadResultData(out), status
 }
 
@@ -246,24 +246,24 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 			var oldData []byte
 			oldData, status = f.doRead(o, f.contentEnc.PlainBS())
 			if status != fuse.OK {
-				toggledlog.Warn.Printf("ino%d fh%d: RMW read failed: %s", f.ino, f.intFd(), status.String())
+				tlog.Warn.Printf("ino%d fh%d: RMW read failed: %s", f.ino, f.intFd(), status.String())
 				return written, status
 			}
 			// Modify
 			blockData = f.contentEnc.MergeBlocks(oldData, blockData, int(b.Skip))
-			toggledlog.Debug.Printf("len(oldData)=%d len(blockData)=%d", len(oldData), len(blockData))
+			tlog.Debug.Printf("len(oldData)=%d len(blockData)=%d", len(oldData), len(blockData))
 		}
 
 		// Encrypt
 		blockOffset, blockLen := b.CiphertextRange()
 		blockData = f.contentEnc.EncryptBlock(blockData, b.BlockNo, f.header.Id)
-		toggledlog.Debug.Printf("ino%d: Writing %d bytes to block #%d",
+		tlog.Debug.Printf("ino%d: Writing %d bytes to block #%d",
 			f.ino, uint64(len(blockData))-f.contentEnc.BlockOverhead(), b.BlockNo)
 
 		// Prevent partially written (=corrupt) blocks by preallocating the space beforehand
 		err := prealloc(int(f.fd.Fd()), int64(blockOffset), int64(blockLen))
 		if err != nil {
-			toggledlog.Warn.Printf("ino%d fh%d: doWrite: prealloc failed: %s", f.ino, f.intFd(), err.Error())
+			tlog.Warn.Printf("ino%d fh%d: doWrite: prealloc failed: %s", f.ino, f.intFd(), err.Error())
 			status = fuse.ToStatus(err)
 			break
 		}
@@ -272,7 +272,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 		_, err = f.fd.WriteAt(blockData, int64(blockOffset))
 
 		if err != nil {
-			toggledlog.Warn.Printf("doWrite: Write failed: %s", err.Error())
+			tlog.Warn.Printf("doWrite: Write failed: %s", err.Error())
 			status = fuse.ToStatus(err)
 			break
 		}
@@ -289,24 +289,24 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 		// The file descriptor has been closed concurrently, which also means
 		// the wlock has been freed. Exit here so we don't crash trying to access
 		// it.
-		toggledlog.Warn.Printf("ino%d fh%d: Write on released file", f.ino, f.intFd())
+		tlog.Warn.Printf("ino%d fh%d: Write on released file", f.ino, f.intFd())
 		return 0, fuse.EBADF
 	}
 	wlock.lock(f.ino)
 	defer wlock.unlock(f.ino)
 
-	toggledlog.Debug.Printf("ino%d: FUSE Write: offset=%d length=%d", f.ino, off, len(data))
+	tlog.Debug.Printf("ino%d: FUSE Write: offset=%d length=%d", f.ino, off, len(data))
 
 	fi, err := f.fd.Stat()
 	if err != nil {
-		toggledlog.Warn.Printf("Write: Fstat failed: %v", err)
+		tlog.Warn.Printf("Write: Fstat failed: %v", err)
 		return 0, fuse.ToStatus(err)
 	}
 	plainSize := f.contentEnc.CipherSizeToPlainSize(uint64(fi.Size()))
 	if f.createsHole(plainSize, off) {
 		status := f.zeroPad(plainSize)
 		if status != fuse.OK {
-			toggledlog.Warn.Printf("zeroPad returned error %v", status)
+			tlog.Warn.Printf("zeroPad returned error %v", status)
 			return 0, status
 		}
 	}
@@ -356,7 +356,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 	defer f.fdLock.RUnlock()
 	if f.released {
 		// The file descriptor has been closed concurrently.
-		toggledlog.Warn.Printf("ino%d fh%d: Truncate on released file", f.ino, f.intFd())
+		tlog.Warn.Printf("ino%d fh%d: Truncate on released file", f.ino, f.intFd())
 		return fuse.EBADF
 	}
 	wlock.lock(f.ino)
@@ -367,7 +367,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 	if newSize == 0 {
 		err = syscall.Ftruncate(int(f.fd.Fd()), 0)
 		if err != nil {
-			toggledlog.Warn.Printf("ino%d fh%d: Ftruncate(fd, 0) returned error: %v", f.ino, f.intFd(), err)
+			tlog.Warn.Printf("ino%d fh%d: Ftruncate(fd, 0) returned error: %v", f.ino, f.intFd(), err)
 			return fuse.ToStatus(err)
 		}
 		// Truncate to zero kills the file header
@@ -379,14 +379,14 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 	// the file
 	fi, err := f.fd.Stat()
 	if err != nil {
-		toggledlog.Warn.Printf("ino%d fh%d: Truncate: Fstat failed: %v", f.ino, f.intFd(), err)
+		tlog.Warn.Printf("ino%d fh%d: Truncate: Fstat failed: %v", f.ino, f.intFd(), err)
 		return fuse.ToStatus(err)
 	}
 	oldSize := f.contentEnc.CipherSizeToPlainSize(uint64(fi.Size()))
 	{
 		oldB := float32(oldSize) / float32(f.contentEnc.PlainBS())
 		newB := float32(newSize) / float32(f.contentEnc.PlainBS())
-		toggledlog.Debug.Printf("ino%d: FUSE Truncate from %.2f to %.2f blocks (%d to %d bytes)", f.ino, oldB, newB, oldSize, newSize)
+		tlog.Debug.Printf("ino%d: FUSE Truncate from %.2f to %.2f blocks (%d to %d bytes)", f.ino, oldB, newB, oldSize, newSize)
 	}
 
 	// File size stays the same - nothing to do
@@ -419,7 +419,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 				off, length := b.CiphertextRange()
 				err = syscall.Ftruncate(int(f.fd.Fd()), int64(off+length))
 				if err != nil {
-					toggledlog.Warn.Printf("grow Ftruncate returned error: %v", err)
+					tlog.Warn.Printf("grow Ftruncate returned error: %v", err)
 					return fuse.ToStatus(err)
 				}
 			}
@@ -436,14 +436,14 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 			var status fuse.Status
 			data, status = f.doRead(plainOff, lastBlockLen)
 			if status != fuse.OK {
-				toggledlog.Warn.Printf("shrink doRead returned error: %v", err)
+				tlog.Warn.Printf("shrink doRead returned error: %v", err)
 				return status
 			}
 		}
 		// Truncate down to last complete block
 		err = syscall.Ftruncate(int(f.fd.Fd()), int64(cipherOff))
 		if err != nil {
-			toggledlog.Warn.Printf("shrink Ftruncate returned error: %v", err)
+			tlog.Warn.Printf("shrink Ftruncate returned error: %v", err)
 			return fuse.ToStatus(err)
 		}
 		// Append partial block
@@ -473,7 +473,7 @@ func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 
-	toggledlog.Debug.Printf("file.GetAttr()")
+	tlog.Debug.Printf("file.GetAttr()")
 	st := syscall.Stat_t{}
 	err := syscall.Fstat(int(f.fd.Fd()), &st)
 	if err != nil {
@@ -491,7 +491,7 @@ var allocateWarnOnce sync.Once
 // Allocate - FUSE call, fallocate(2)
 func (f *file) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
 	allocateWarnOnce.Do(func() {
-		toggledlog.Warn.Printf("fallocate(2) is not supported, returning ENOSYS - see https://github.com/rfjakob/gocryptfs/issues/1")
+		tlog.Warn.Printf("fallocate(2) is not supported, returning ENOSYS - see https://github.com/rfjakob/gocryptfs/issues/1")
 	})
 	return fuse.ENOSYS
 }
@@ -519,7 +519,7 @@ func (f *file) Utimens(a *time.Time, m *time.Time) fuse.Status {
 	fn := fmt.Sprintf("/proc/self/fd/%d", f.fd.Fd())
 	err := syscall.UtimesNano(fn, ts)
 	if err != nil {
-		toggledlog.Debug.Printf("UtimesNano on %q failed: %v", fn, err)
+		tlog.Debug.Printf("UtimesNano on %q failed: %v", fn, err)
 	}
 	if err == syscall.ENOENT {
 		// If /proc/self/fd/X did not exist, the actual error is that the file

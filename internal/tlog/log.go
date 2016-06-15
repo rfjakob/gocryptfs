@@ -1,4 +1,4 @@
-package toggledlog
+package tlog
 
 import (
 	"encoding/json"

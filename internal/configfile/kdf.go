@@ -8,7 +8,7 @@ import (
 	"golang.org/x/crypto/scrypt"
 
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 const (
@@ -32,7 +32,7 @@ func NewScryptKdf(logN int) scryptKdf {
 		s.N = 1 << ScryptDefaultLogN
 	} else {
 		if logN < 10 {
-			toggledlog.Fatal.Println("Error: scryptn below 10 is too low to make sense. Aborting.")
+			tlog.Fatal.Println("Error: scryptn below 10 is too low to make sense. Aborting.")
 			os.Exit(1)
 		}
 		s.N = 1 << uint32(logN)

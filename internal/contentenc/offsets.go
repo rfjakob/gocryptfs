@@ -1,7 +1,7 @@
 package contentenc
 
 import (
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 // Contentenc methods that translate offsets between ciphertext and plaintext
@@ -35,12 +35,12 @@ func (be *ContentEnc) CipherSizeToPlainSize(cipherSize uint64) uint64 {
 	}
 
 	if cipherSize == HEADER_LEN {
-		toggledlog.Warn.Printf("cipherSize %d == header size: interrupted write?\n", cipherSize)
+		tlog.Warn.Printf("cipherSize %d == header size: interrupted write?\n", cipherSize)
 		return 0
 	}
 
 	if cipherSize < HEADER_LEN {
-		toggledlog.Warn.Printf("cipherSize %d < header size %d: corrupt file\n", cipherSize, HEADER_LEN)
+		tlog.Warn.Printf("cipherSize %d < header size %d: corrupt file\n", cipherSize, HEADER_LEN)
 		return 0
 	}
 

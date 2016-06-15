@@ -5,12 +5,12 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 func TestMain(m *testing.M) {
 	// Shut up info output
-	toggledlog.Info.Enabled = false
+	tlog.Info.Enabled = false
 	m.Run()
 }
 

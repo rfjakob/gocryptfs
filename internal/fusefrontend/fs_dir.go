@@ -13,7 +13,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 func (fs *FS) mkdirWithIv(cPath string, mode uint32) error {
@@ -32,7 +32,7 @@ func (fs *FS) mkdirWithIv(cPath string, mode uint32) error {
 	if err != nil {
 		err2 := syscall.Rmdir(cPath)
 		if err2 != nil {
-			toggledlog.Warn.Printf("mkdirWithIv: rollback failed: %v", err2)
+			tlog.Warn.Printf("mkdirWithIv: rollback failed: %v", err2)
 		}
 	}
 	return err
@@ -86,7 +86,7 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 	if origMode != mode {
 		err = os.Chmod(cPath, os.FileMode(origMode))
 		if err != nil {
-			toggledlog.Warn.Printf("Mkdir: Chmod failed: %v", err)
+			tlog.Warn.Printf("Mkdir: Chmod failed: %v", err)
 		}
 	}
 
@@ -114,19 +114,19 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 		syscall.O_RDONLY, 0)
 	if err == syscall.EACCES {
 		// We need permission to read and modify the directory
-		toggledlog.Debug.Printf("Rmdir: handling EACCESS")
+		tlog.Debug.Printf("Rmdir: handling EACCESS")
 		// TODO use syscall.Fstatat once it is available in Go
 		var fi os.FileInfo
 		fi, err = os.Lstat(cPath)
 		if err != nil {
-			toggledlog.Debug.Printf("Rmdir: Stat: %v", err)
+			tlog.Debug.Printf("Rmdir: Stat: %v", err)
 			return fuse.ToStatus(err)
 		}
 		origMode := fi.Mode()
 		// TODO use syscall.Chmodat once it is available in Go
 		err = os.Chmod(cPath, origMode|0700)
 		if err != nil {
-			toggledlog.Debug.Printf("Rmdir: Chmod failed: %v", err)
+			tlog.Debug.Printf("Rmdir: Chmod failed: %v", err)
 			return fuse.ToStatus(err)
 		}
 		// Retry open
@@ -139,13 +139,13 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 			if code != fuse.OK {
 				err = os.Chmod(cPath, origMode)
 				if err != nil {
-					toggledlog.Warn.Printf("Rmdir: Chmod rollback failed: %v", err)
+					tlog.Warn.Printf("Rmdir: Chmod rollback failed: %v", err)
 				}
 			}
 		}()
 	}
 	if err != nil {
-		toggledlog.Debug.Printf("Rmdir: Open: %v", err)
+		tlog.Debug.Printf("Rmdir: Open: %v", err)
 		return fuse.ToStatus(err)
 	}
 	dirfd := os.NewFile(uintptr(dirfdRaw), cName)
@@ -153,7 +153,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 
 	children, err := dirfd.Readdirnames(10)
 	if err != nil {
-		toggledlog.Warn.Printf("Rmdir: Readdirnames: %v", err)
+		tlog.Warn.Printf("Rmdir: Readdirnames: %v", err)
 		return fuse.ToStatus(err)
 	}
 	// If the directory is not empty besides gocryptfs.diriv, do not even
@@ -164,7 +164,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 
 	// Move "gocryptfs.diriv" to the parent dir as "gocryptfs.diriv.rmdir.XYZ"
 	tmpName := fmt.Sprintf("gocryptfs.diriv.rmdir.%d", cryptocore.RandUint64())
-	toggledlog.Debug.Printf("Rmdir: Renaming %s to %s", nametransform.DirIVFilename, tmpName)
+	tlog.Debug.Printf("Rmdir: Renaming %s to %s", nametransform.DirIVFilename, tmpName)
 	// The directory is in an inconsistent state between rename and rmdir.
 	// Protect against concurrent readers.
 	fs.dirIVLock.Lock()
@@ -172,7 +172,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 	err = syscall.Renameat(int(dirfd.Fd()), nametransform.DirIVFilename,
 		int(parentDirFd.Fd()), tmpName)
 	if err != nil {
-		toggledlog.Warn.Printf("Rmdir: Renaming %s to %s failed: %v",
+		tlog.Warn.Printf("Rmdir: Renaming %s to %s failed: %v",
 			nametransform.DirIVFilename, tmpName, err)
 		return fuse.ToStatus(err)
 	}
@@ -186,14 +186,14 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 		err2 := syscall.Renameat(int(parentDirFd.Fd()), tmpName,
 			int(dirfd.Fd()), nametransform.DirIVFilename)
 		if err != nil {
-			toggledlog.Warn.Printf("Rmdir: Rename rollback failed: %v", err2)
+			tlog.Warn.Printf("Rmdir: Rename rollback failed: %v", err2)
 		}
 		return fuse.ToStatus(err)
 	}
 	// Delete "gocryptfs.diriv.rmdir.XYZ"
 	err = syscall.Unlinkat(int(parentDirFd.Fd()), tmpName)
 	if err != nil {
-		toggledlog.Warn.Printf("Rmdir: Could not clean up %s: %v", tmpName, err)
+		tlog.Warn.Printf("Rmdir: Could not clean up %s: %v", tmpName, err)
 	}
 	// Delete .name file
 	if nametransform.IsLongContent(cName) {
@@ -205,7 +205,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 }
 
 func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
-	toggledlog.Debug.Printf("OpenDir(%s)", dirName)
+	tlog.Debug.Printf("OpenDir(%s)", dirName)
 	cDirName, err := fs.encryptPath(dirName)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
@@ -255,7 +255,7 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 		if isLong == nametransform.LongNameContent {
 			cNameLong, err := nametransform.ReadLongName(filepath.Join(cDirAbsPath, cName))
 			if err != nil {
-				toggledlog.Warn.Printf("Skipping file %q in dir %q: Could not read .name: %v",
+				tlog.Warn.Printf("Skipping file %q in dir %q: Could not read .name: %v",
 					cName, cDirName, err)
 				errorCount++
 				continue
@@ -268,7 +268,7 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 
 		name, err := fs.nameTransform.DecryptName(cName, cachedIV)
 		if err != nil {
-			toggledlog.Warn.Printf("Skipping invalid name %q in dir %q: %s",
+			tlog.Warn.Printf("Skipping invalid name %q in dir %q: %s",
 				cName, cDirName, err)
 			errorCount++
 			continue
@@ -281,7 +281,7 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 	if errorCount > 0 && len(plain) == 0 {
 		// Don't let the user stare on an empty directory. Report that things went
 		// wrong.
-		toggledlog.Warn.Printf("All %d entries in directory %q were invalid, returning EIO",
+		tlog.Warn.Printf("All %d entries in directory %q were invalid, returning EIO",
 			errorCount, cDirName)
 		status = fuse.EIO
 	}

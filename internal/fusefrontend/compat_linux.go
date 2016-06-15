@@ -5,7 +5,7 @@ import (
 	"syscall"
 )
 
-import "github.com/rfjakob/gocryptfs/internal/toggledlog"
+import "github.com/rfjakob/gocryptfs/internal/tlog"
 
 var preallocWarn sync.Once
 
@@ -24,7 +24,7 @@ func prealloc(fd int, off int64, len int64) (err error) {
 			// ZFS does not support fallocate which caused gocryptfs to abort
 			// every write operation: https://github.com/rfjakob/gocryptfs/issues/22
 			preallocWarn.Do(func() {
-				toggledlog.Warn.Printf("Warning: The underlying filesystem " +
+				tlog.Warn.Printf("Warning: The underlying filesystem " +
 					"does not support fallocate(2). gocryptfs will continue working " +
 					"but is no longer resistant against out-of-space errors.\n")
 			})

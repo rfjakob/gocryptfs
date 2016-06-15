@@ -7,7 +7,7 @@ import (
 	"crypto/cipher"
 	"fmt"
 
-	"github.com/rfjakob/gocryptfs/internal/toggledlog"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 // goGCMWrapper - This wrapper makes sure gocryptfs can be compiled on Go
@@ -16,8 +16,8 @@ import (
 // compiled on 1.4.
 func goGCMWrapper(bc cipher.Block, nonceSize int) (cipher.AEAD, error) {
 	if nonceSize != 12 {
-		toggledlog.Warn.Printf("128 bit GCM IVs are not supported by Go 1.4 and lower.")
-		toggledlog.Warn.Printf("Please use openssl crypto or recompile using a newer Go runtime.")
+		tlog.Warn.Printf("128 bit GCM IVs are not supported by Go 1.4 and lower.")
+		tlog.Warn.Printf("Please use openssl crypto or recompile using a newer Go runtime.")
 		return nil, fmt.Errorf("128 bit GCM IVs are not supported by Go 1.4 and lower")
 	}
 	return cipher.NewGCM(bc)
