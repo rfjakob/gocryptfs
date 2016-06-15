@@ -49,14 +49,34 @@ func TestPasswd(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Change password using "-extpass"
-	cmd2 := exec.Command(test_helpers.GocryptfsBinary, "-q", "-passwd", "-extpass", "echo test", dir)
-	cmd2.Stdout = os.Stdout
-	cmd2.Stderr = os.Stderr
-	err = cmd2.Run()
+	cmd = exec.Command(test_helpers.GocryptfsBinary, "-q", "-passwd", "-extpass", "echo test", dir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
 	if err != nil {
 		t.Error(err)
 	}
-
+	// Change password using stdin
+	cmd = exec.Command(test_helpers.GocryptfsBinary, "-q", "-passwd", dir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	p, err := cmd.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cmd.Start()
+	if err != nil {
+		t.Error(err)
+	}
+	// Old password
+	p.Write([]byte("test\n"))
+	// New password
+	p.Write([]byte("newpasswd\n"))
+	p.Close()
+	err = cmd.Wait()
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 // Test -init & -config flag

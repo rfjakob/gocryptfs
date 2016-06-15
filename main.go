@@ -28,6 +28,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/prefer_openssl"
+	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/toggledlog"
 )
 
@@ -38,7 +39,6 @@ const (
 	ERREXIT_CIPHERDIR  = 6
 	ERREXIT_INIT       = 7
 	ERREXIT_LOADCONF   = 8
-	ERREXIT_PASSWORD   = 9
 	ERREXIT_MOUNTPOINT = 10
 )
 
@@ -71,7 +71,7 @@ func initDir(args *argContainer) {
 	} else {
 		toggledlog.Info.Printf("Using password provided via -extpass.")
 	}
-	password := readPasswordTwice(args.extpass)
+	password := readpassword.Twice(args.extpass)
 	creator := toggledlog.ProgramName + " " + GitVersion
 	err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator)
 	if err != nil {
@@ -121,17 +121,13 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 		toggledlog.Fatal.Printf(colorRed+"Config file not found: %v\n"+colorReset, err)
 		os.Exit(ERREXIT_LOADCONF)
 	}
-	if args.extpass == "" {
-		fmt.Fprintf(os.Stderr, "Password: ")
-	}
-	pw := readPassword(args.extpass)
-	toggledlog.Info.Printf("Decrypting master key... ")
+	pw := readpassword.Once(args.extpass)
+	toggledlog.Info.Println("Decrypting master key")
 	masterkey, confFile, err = configfile.LoadConfFile(args.config, pw)
 	if err != nil {
 		toggledlog.Fatal.Println(colorRed + err.Error() + colorReset)
 		os.Exit(ERREXIT_LOADCONF)
 	}
-	toggledlog.Info.Printf("done.")
 
 	return masterkey, confFile
 }
@@ -140,7 +136,7 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 func changePassword(args *argContainer) {
 	masterkey, confFile := loadConfig(args)
 	toggledlog.Info.Println("Please enter your new password.")
-	newPw := readPasswordTwice(args.extpass)
+	newPw := readpassword.Twice(args.extpass)
 	confFile.EncryptKey(masterkey, newPw, confFile.ScryptObject.LogN())
 	err := confFile.WriteFile()
 	if err != nil {
