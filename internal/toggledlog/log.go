@@ -5,12 +5,18 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 const (
 	ProgramName = "gocryptfs"
 	wpanicMsg   = "-wpanic turns this warning into a panic: "
 )
+
+// Escape sequences for terminal colors. These will be empty strings if stdout
+// is not a terminal.
+var ColorReset, ColorGrey, ColorRed, ColorGreen, ColorYellow string
 
 func JSONDump(obj interface{}) string {
 	b, err := json.MarshalIndent(obj, "", "\t")
@@ -27,6 +33,10 @@ type toggledLogger struct {
 	Enabled bool
 	// Panic after logging a message, useful in regression tests
 	Wpanic bool
+	// Private prefix and postfix are used for coloring
+	prefix  string
+	postfix string
+
 	*log.Logger
 }
 
@@ -34,7 +44,7 @@ func (l *toggledLogger) Printf(format string, v ...interface{}) {
 	if !l.Enabled {
 		return
 	}
-	l.Logger.Printf(format, v...)
+	l.Logger.Printf(l.prefix + fmt.Sprintf(format, v...) + l.postfix)
 	if l.Wpanic {
 		l.Logger.Panic(wpanicMsg + fmt.Sprintf(format, v...))
 	}
@@ -43,9 +53,9 @@ func (l *toggledLogger) Println(v ...interface{}) {
 	if !l.Enabled {
 		return
 	}
-	l.Logger.Println(v...)
+	l.Logger.Println(l.prefix + fmt.Sprint(v...) + l.postfix)
 	if l.Wpanic {
-		l.Logger.Panic(wpanicMsg + fmt.Sprintln(v...))
+		l.Logger.Panic(wpanicMsg + fmt.Sprint(v...))
 	}
 }
 
@@ -65,8 +75,29 @@ var Warn *toggledLogger
 var Fatal *toggledLogger
 
 func init() {
-	Debug = &toggledLogger{false, false, log.New(os.Stdout, "", 0)}
-	Info = &toggledLogger{true, false, log.New(os.Stdout, "", 0)}
-	Warn = &toggledLogger{true, false, log.New(os.Stderr, "", 0)}
-	Fatal = &toggledLogger{true, false, log.New(os.Stderr, "", 0)}
+	if terminal.IsTerminal(int(os.Stdout.Fd())) {
+		ColorReset = "\033[0m"
+		ColorGrey = "\033[2m"
+		ColorRed = "\033[31m"
+		ColorGreen = "\033[32m"
+		ColorYellow = "\033[33m"
+	}
+
+	Debug = &toggledLogger{
+		Logger: log.New(os.Stdout, "", 0),
+	}
+	Info = &toggledLogger{
+		Enabled: true,
+		Logger:  log.New(os.Stdout, "", 0),
+	}
+	Warn = &toggledLogger{
+		Enabled: true,
+		Logger:  log.New(os.Stderr, "", 0),
+	}
+	Fatal = &toggledLogger{
+		Enabled: true,
+		Logger:  log.New(os.Stderr, "", 0),
+		prefix:  ColorRed,
+		postfix: ColorReset,
+	}
 }

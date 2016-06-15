@@ -35,7 +35,7 @@ If the gocryptfs.conf file becomes corrupted or you ever forget your password,
 there is only one hope for recovery: The master key. Print it to a piece of
 paper and store it in a drawer.
 
-`, colorGrey+hChunked+colorReset)
+`, toggledlog.ColorGrey+hChunked+toggledlog.ColorReset)
 }
 
 // parseMasterKey - Parse a hex-encoded master key that was passed on the command line

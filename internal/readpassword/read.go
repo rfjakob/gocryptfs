@@ -16,9 +16,6 @@ const (
 	exitCode = 9
 )
 
-// TODO
-var colorReset, colorRed string
-
 // Once() tries to get a password from the user, either from the terminal,
 // extpass or stdin.
 func Once(extpass string) string {
@@ -43,7 +40,7 @@ func Twice(extpass string) string {
 	p1 := readPasswordTerminal("Password: ")
 	p2 := readPasswordTerminal("Repeat: ")
 	if p1 != p2 {
-		toggledlog.Fatal.Println(colorRed + "Passwords do not match" + colorReset)
+		toggledlog.Fatal.Println("Passwords do not match")
 		os.Exit(exitCode)
 	}
 	return p1
@@ -57,12 +54,12 @@ func readPasswordTerminal(prompt string) string {
 	// terminal.ReadPassword removes the trailing newline
 	p, err := terminal.ReadPassword(fd)
 	if err != nil {
-		toggledlog.Fatal.Printf(colorRed+"Could not read password from terminal: %v\n"+colorReset, err)
+		toggledlog.Fatal.Printf("Could not read password from terminal: %v\n", err)
 		os.Exit(exitCode)
 	}
 	fmt.Fprintf(os.Stderr, "\n")
 	if len(p) == 0 {
-		toggledlog.Fatal.Println(colorRed + "Password is empty" + colorReset)
+		toggledlog.Fatal.Println("Password is empty")
 		os.Exit(exitCode)
 	}
 	return string(p)
@@ -75,7 +72,7 @@ func readPasswordStdin() string {
 	p := readLineUnbuffered(os.Stdin)
 	if len(p) == 0 {
 		fmt.Fprintf(os.Stderr, "FOOOOOO\n")
-		toggledlog.Fatal.Println(colorRed + "Got empty password from stdin" + colorReset)
+		toggledlog.Fatal.Println("Got empty password from stdin")
 		os.Exit(exitCode)
 	}
 	return p
@@ -91,19 +88,19 @@ func readPasswordExtpass(extpass string) string {
 	cmd.Stderr = os.Stderr
 	pipe, err := cmd.StdoutPipe()
 	if err != nil {
-		toggledlog.Fatal.Printf(colorRed+"extpass pipe setup failed: %v\n"+colorReset, err)
+		toggledlog.Fatal.Printf("extpass pipe setup failed: %v", err)
 		os.Exit(exitCode)
 	}
 	err = cmd.Start()
 	if err != nil {
-		toggledlog.Fatal.Printf(colorRed+"extpass cmd start failed: %v\n"+colorReset, err)
+		toggledlog.Fatal.Printf("extpass cmd start failed: %v", err)
 		os.Exit(exitCode)
 	}
 	p := readLineUnbuffered(pipe)
 	pipe.Close()
 	cmd.Wait()
 	if len(p) == 0 {
-		toggledlog.Fatal.Println(colorRed + "extpass: password is empty" + colorReset)
+		toggledlog.Fatal.Println("extpass: password is empty")
 		os.Exit(exitCode)
 	}
 	return p
@@ -119,7 +116,7 @@ func readLineUnbuffered(r io.Reader) (l string) {
 			return l
 		}
 		if err != nil {
-			toggledlog.Fatal.Printf(colorRed+"readLineUnbuffered: %v\n"+colorReset, err)
+			toggledlog.Fatal.Printf("readLineUnbuffered: %v", err)
 			os.Exit(exitCode)
 		}
 		if n == 0 {

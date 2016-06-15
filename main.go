@@ -16,8 +16,6 @@ import (
 	"syscall"
 	"time"
 
-	"golang.org/x/crypto/ssh/terminal"
-
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
@@ -61,7 +59,7 @@ var GitVersionFuse = "[version not set - please compile using ./build.bash]"
 func initDir(args *argContainer) {
 	err := checkDirEmpty(args.cipherdir)
 	if err != nil {
-		toggledlog.Fatal.Printf("Invalid cipherdir: %v\n", err)
+		toggledlog.Fatal.Printf("Invalid cipherdir: %v", err)
 		os.Exit(ERREXIT_INIT)
 	}
 
@@ -88,7 +86,7 @@ func initDir(args *argContainer) {
 		}
 	}
 
-	toggledlog.Info.Printf(colorGreen + "The filesystem has been created successfully." + colorReset)
+	toggledlog.Info.Printf(toggledlog.ColorGreen + "The filesystem has been created successfully." + toggledlog.ColorReset)
 	wd, _ := os.Getwd()
 	friendlyPath, _ := filepath.Rel(wd, args.cipherdir)
 	if strings.HasPrefix(friendlyPath, "../") {
@@ -96,7 +94,7 @@ func initDir(args *argContainer) {
 		// keep the absolute path.
 		friendlyPath = args.cipherdir
 	}
-	toggledlog.Info.Printf(colorGrey+"You can now mount it using: %s %s MOUNTPOINT"+colorReset,
+	toggledlog.Info.Printf(toggledlog.ColorGrey+"You can now mount it using: %s %s MOUNTPOINT"+toggledlog.ColorReset,
 		toggledlog.ProgramName, friendlyPath)
 	os.Exit(0)
 }
@@ -118,14 +116,14 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 	// Check if the file exists at all before prompting for a password
 	_, err := os.Stat(args.config)
 	if err != nil {
-		toggledlog.Fatal.Printf(colorRed+"Config file not found: %v\n"+colorReset, err)
+		toggledlog.Fatal.Printf("Config file not found: %v", err)
 		os.Exit(ERREXIT_LOADCONF)
 	}
 	pw := readpassword.Once(args.extpass)
 	toggledlog.Info.Println("Decrypting master key")
 	masterkey, confFile, err = configfile.LoadConfFile(args.config, pw)
 	if err != nil {
-		toggledlog.Fatal.Println(colorRed + err.Error() + colorReset)
+		toggledlog.Fatal.Println(err.Error())
 		os.Exit(ERREXIT_LOADCONF)
 	}
 
@@ -158,7 +156,6 @@ func main() {
 	runtime.GOMAXPROCS(4)
 	var err error
 	var args argContainer
-	setupColors()
 
 	// Parse command line arguments
 	var opensslAuto string
@@ -202,7 +199,7 @@ func main() {
 	} else {
 		args.openssl, err = strconv.ParseBool(opensslAuto)
 		if err != nil {
-			toggledlog.Fatal.Printf(colorRed+"Invalid \"-openssl\" setting: %v\n"+colorReset, err)
+			toggledlog.Fatal.Printf("Invalid \"-openssl\" setting: %v", err)
 			os.Exit(ERREXIT_USAGE)
 		}
 	}
@@ -229,7 +226,7 @@ func main() {
 		args.cipherdir, _ = filepath.Abs(flagSet.Arg(0))
 		err = checkDir(args.cipherdir)
 		if err != nil {
-			toggledlog.Fatal.Printf(colorRed+"Invalid cipherdir: %v\n"+colorReset, err)
+			toggledlog.Fatal.Printf("Invalid cipherdir: %v", err)
 			os.Exit(ERREXIT_CIPHERDIR)
 		}
 	} else {
@@ -244,7 +241,7 @@ func main() {
 	if args.config != "" {
 		args.config, err = filepath.Abs(args.config)
 		if err != nil {
-			toggledlog.Fatal.Printf(colorRed+"Invalid \"-config\" setting: %v\n"+colorReset, err)
+			toggledlog.Fatal.Printf("Invalid \"-config\" setting: %v", err)
 			os.Exit(ERREXIT_INIT)
 		}
 		toggledlog.Info.Printf("Using config file at custom location %s", args.config)
@@ -291,7 +288,7 @@ func main() {
 	// "-init"
 	if args.init {
 		if flagSet.NArg() > 1 {
-			toggledlog.Fatal.Printf("Usage: %s -init [OPTIONS] CIPHERDIR\n", toggledlog.ProgramName)
+			toggledlog.Fatal.Printf("Usage: %s -init [OPTIONS] CIPHERDIR", toggledlog.ProgramName)
 			os.Exit(ERREXIT_USAGE)
 		}
 		initDir(&args) // does not return
@@ -299,7 +296,7 @@ func main() {
 	// "-passwd"
 	if args.passwd {
 		if flagSet.NArg() > 1 {
-			toggledlog.Fatal.Printf("Usage: %s -passwd [OPTIONS] CIPHERDIR\n", toggledlog.ProgramName)
+			toggledlog.Fatal.Printf("Usage: %s -passwd [OPTIONS] CIPHERDIR", toggledlog.ProgramName)
 			os.Exit(ERREXIT_USAGE)
 		}
 		changePassword(&args) // does not return
@@ -307,17 +304,17 @@ func main() {
 	// Mount
 	// Check mountpoint
 	if flagSet.NArg() != 2 {
-		toggledlog.Fatal.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT\n", toggledlog.ProgramName)
+		toggledlog.Fatal.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT", toggledlog.ProgramName)
 		os.Exit(ERREXIT_USAGE)
 	}
 	args.mountpoint, err = filepath.Abs(flagSet.Arg(1))
 	if err != nil {
-		toggledlog.Fatal.Printf(colorRed+"Invalid mountpoint: %v\n"+colorReset, err)
+		toggledlog.Fatal.Printf("Invalid mountpoint: %v", err)
 		os.Exit(ERREXIT_MOUNTPOINT)
 	}
 	err = checkDirEmpty(args.mountpoint)
 	if err != nil {
-		toggledlog.Fatal.Printf(colorRed+"Invalid mountpoint: %v\n"+colorReset, err)
+		toggledlog.Fatal.Printf("Invalid mountpoint: %v", err)
 		os.Exit(ERREXIT_MOUNTPOINT)
 	}
 	// Get master key
@@ -341,7 +338,7 @@ func main() {
 	// Initialize FUSE server
 	toggledlog.Debug.Printf("cli args: %v", args)
 	srv := initFuseFrontend(masterkey, args, confFile)
-	toggledlog.Info.Println(colorGreen + "Filesystem mounted and ready." + colorReset)
+	toggledlog.Info.Println(toggledlog.ColorGreen + "Filesystem mounted and ready." + toggledlog.ColorReset)
 	// We are ready - send USR1 signal to our parent and switch to syslog
 	if args.notifypid > 0 {
 		sendUsr1(args.notifypid)
@@ -410,8 +407,8 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	var mOpts fuse.MountOptions
 	mOpts.AllowOther = false
 	if args.allow_other {
-		toggledlog.Info.Printf(colorYellow + "The option \"-allow_other\" is set. Make sure the file " +
-			"permissions protect your data from unwanted access." + colorReset)
+		toggledlog.Info.Printf(toggledlog.ColorYellow + "The option \"-allow_other\" is set. Make sure the file " +
+			"permissions protect your data from unwanted access." + toggledlog.ColorReset)
 		mOpts.AllowOther = true
 		// Make the kernel check the file permissions for us
 		mOpts.Options = append(mOpts.Options, "default_permissions")
@@ -454,17 +451,4 @@ func handleSigint(srv *fuse.Server, mountpoint string) {
 		}
 		os.Exit(1)
 	}()
-}
-
-// Escape sequences for terminal colors
-var colorReset, colorGrey, colorRed, colorGreen, colorYellow string
-
-func setupColors() {
-	if terminal.IsTerminal(int(os.Stdout.Fd())) {
-		colorReset = "\033[0m"
-		colorGrey = "\033[2m"
-		colorRed = "\033[31m"
-		colorGreen = "\033[32m"
-		colorYellow = "\033[33m"
-	}
 }
