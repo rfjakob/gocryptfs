@@ -9,10 +9,28 @@ import (
 	"fmt"
 
 	"github.com/rfjakob/eme"
+
+	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 )
 
+type NameTransform struct {
+	cryptoCore *cryptocore.CryptoCore
+	useEME     bool
+	longNames  bool
+	DirIVCache dirIVCache
+}
+
+func New(c *cryptocore.CryptoCore, useEME bool, longNames bool) *NameTransform {
+	return &NameTransform{
+		cryptoCore: c,
+		longNames:  longNames,
+		useEME:     useEME,
+	}
+}
+
 // DecryptName - decrypt base64-encoded encrypted filename "cipherName"
-// The used encryption is either CBC or EME, depending on "useEME".
+// Used by DecryptPathDirIV().
+// The encryption is either CBC or EME, depending on "useEME".
 //
 // This function is exported because it allows for a very efficient readdir
 // implementation (read IV once, decrypt all names using this function).
@@ -43,11 +61,12 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 	return plain, err
 }
 
-// encryptName - encrypt "plainName", return base64-encoded "cipherName64"
-// The used encryption is either CBC or EME, depending on "useEME".
+// encryptName - encrypt "plainName", return base64-encoded "cipherName64".
+// Used internally by EncryptPathDirIV().
+// The encryption is either CBC or EME, depending on "useEME".
 //
 // This function is exported because fusefrontend needs access to the full (not hashed)
-// name if longname is used
+// name if longname is used. Otherwise you should use EncryptPathDirIV()
 func (n *NameTransform) EncryptName(plainName string, iv []byte) (cipherName64 string) {
 
 	bin := []byte(plainName)
