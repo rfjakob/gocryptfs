@@ -118,10 +118,12 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	if deprecatedFs {
 		fmt.Printf("\033[33m" + `
     This filesystem was created by gocryptfs v0.6 or earlier. You are missing
-    security improvements. gocryptfs v1.0 is scheduled to drop support for this
-    filesystem, please upgrade!
-    If you disagree with the plan or have trouble upgrading, please join the
-    discussion at https://github.com/rfjakob/gocryptfs/issues/29 .
+    security improvements. Mounting read-only, please upgrade!
+    Instructions: https://github.com/rfjakob/gocryptfs/wiki/Upgrading
+
+    gocryptfs v1.0 is scheduled to drop support for this filesystem completely.
+    If you disagree with the plan or have trouble upgrading, please join
+    the discussion at https://github.com/rfjakob/gocryptfs/issues/29 .
 
 ` + "\033[0m")
 	}
@@ -143,8 +145,16 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 		return nil, nil, fmt.Errorf("Password incorrect.")
 	}
 
-	return key, &cf, nil
+	if deprecatedFs {
+		err = DeprecatedFsError{}
+	}
+	return key, &cf, err
 }
+
+// The filesystem is deprecated.
+type DeprecatedFsError struct{}
+
+func (e DeprecatedFsError) Error() string { return "deprecated filesystem" }
 
 // EncryptKey - encrypt "key" using an scrypt hash generated from "password"
 // and store it in cf.EncryptedKey.
