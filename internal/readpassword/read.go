@@ -71,7 +71,6 @@ func readPasswordStdin() string {
 	tlog.Info.Println("Reading password from stdin")
 	p := readLineUnbuffered(os.Stdin)
 	if len(p) == 0 {
-		fmt.Fprintf(os.Stderr, "FOOOOOO\n")
 		tlog.Fatal.Println("Got empty password from stdin")
 		os.Exit(exitCode)
 	}
