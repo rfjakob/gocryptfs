@@ -19,7 +19,7 @@ func TestMain(m *testing.M) {
 }
 
 // checkExampleFS - verify that "dir" contains the expected test files
-func checkExampleFS(t *testing.T, dir string) {
+func checkExampleFS(t *testing.T, dir string, rw bool) {
 	// Read regular file
 	statusFile := filepath.Join(dir, "status.txt")
 	contentBytes, err := ioutil.ReadFile(statusFile)
@@ -48,16 +48,19 @@ func checkExampleFS(t *testing.T, dir string) {
 	if target != "/a/b/c/d" {
 		t.Errorf("Unexpected link target: %s\n", target)
 	}
-	// Test directory operations
-	test_helpers.TestRename(t, dir)
-	test_helpers.TestMkdirRmdir(t, dir)
+
+	if rw {
+		// Test directory operations
+		test_helpers.TestRename(t, dir)
+		test_helpers.TestMkdirRmdir(t, dir)
+	}
 }
 
 // checkExampleFSLongnames - verify that "dir" contains the expected test files
 // plus the long file name test file
 func checkExampleFSLongnames(t *testing.T, dir string) {
 	// regular tests
-	checkExampleFS(t, dir)
+	checkExampleFS(t, dir, true)
 	// long name test file
 	longname := "longname_255_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" +
 		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" +
@@ -84,11 +87,11 @@ func TestExampleFSv04(t *testing.T) {
 		t.Fatal(err)
 	}
 	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test")
-	checkExampleFS(t, pDir)
+	checkExampleFS(t, pDir, false)
 	test_helpers.Unmount(pDir)
 	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey", "74676e34-0b47c145-00dac61a-17a92316-"+
 		"bb57044c-e205b71f-65f4fdca-7cabd4b3", "-diriv=false", "-emenames=false", "-gcmiv128=false")
-	checkExampleFS(t, pDir)
+	checkExampleFS(t, pDir, true)
 	test_helpers.Unmount(pDir)
 	err = os.Remove(pDir)
 	if err != nil {
@@ -106,11 +109,11 @@ func TestExampleFSv05(t *testing.T) {
 		t.Fatal(err)
 	}
 	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test")
-	checkExampleFS(t, pDir)
+	checkExampleFS(t, pDir, false)
 	test_helpers.Unmount(pDir)
 	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey", "199eae55-36bff4af-83b9a3a2-4fa16f65-"+
 		"1549ccdb-2d08d1f0-b1b26965-1b61f896", "-emenames=false", "-gcmiv128=false")
-	checkExampleFS(t, pDir)
+	checkExampleFS(t, pDir, true)
 	test_helpers.Unmount(pDir)
 	err = os.Remove(pDir)
 	if err != nil {
@@ -128,11 +131,11 @@ func TestExampleFSv06(t *testing.T) {
 		t.Fatal(err)
 	}
 	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test")
-	checkExampleFS(t, pDir)
+	checkExampleFS(t, pDir, false)
 	test_helpers.Unmount(pDir)
 	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey", "7bc8deb0-5fc894ef-a093da43-61561a81-"+
 		"0e8dee83-fdc056a4-937c37dd-9df5c520", "-gcmiv128=false")
-	checkExampleFS(t, pDir)
+	checkExampleFS(t, pDir, true)
 	test_helpers.Unmount(pDir)
 	err = os.Remove(pDir)
 	if err != nil {
@@ -152,11 +155,11 @@ func TestExampleFSv06PlaintextNames(t *testing.T) {
 		t.Fatal(err)
 	}
 	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test")
-	checkExampleFS(t, pDir)
+	checkExampleFS(t, pDir, false)
 	test_helpers.Unmount(pDir)
 	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey", "f4690202-595e4593-64c4f7e0-4dddd7d1-"+
 		"303147f9-0ca8aea2-966341a7-52ea8ae9", "-plaintextnames", "-gcmiv128=false")
-	checkExampleFS(t, pDir)
+	checkExampleFS(t, pDir, true)
 	test_helpers.Unmount(pDir)
 	err = os.Remove(pDir)
 	if err != nil {
@@ -175,11 +178,11 @@ func TestExampleFSv07(t *testing.T) {
 		t.Fatal(err)
 	}
 	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test")
-	checkExampleFS(t, pDir)
+	checkExampleFS(t, pDir, true)
 	test_helpers.Unmount(pDir)
 	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey", "ed7f6d83-40cce86c-0e7d79c2-a9438710-"+
 		"575221bf-30a0eb60-2821fa8f-7f3123bf")
-	checkExampleFS(t, pDir)
+	checkExampleFS(t, pDir, true)
 	test_helpers.Unmount(pDir)
 	err = os.Remove(pDir)
 	if err != nil {
