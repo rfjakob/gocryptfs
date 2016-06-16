@@ -22,7 +22,7 @@ func TestLoadV1(t *testing.T) {
 func TestLoadV2(t *testing.T) {
 	t1 := time.Now()
 
-	_, _, err := LoadConfFile("config_test/v2.conf", "foo")
+	_, _, err := LoadConfFile("config_test/v2.conf", "test")
 	if err != nil {
 		t.Errorf("Could not load v2 config file: %v", err)
 	}
