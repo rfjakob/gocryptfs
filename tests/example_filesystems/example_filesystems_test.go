@@ -15,7 +15,7 @@ const statusTxtContent = "It works!\n"
 
 func TestMain(m *testing.M) {
 	test_helpers.ResetTmpDir(true)
-	m.Run()
+	os.Exit(m.Run())
 }
 
 // checkExampleFS - verify that "dir" contains the expected test files

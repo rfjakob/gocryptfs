@@ -11,7 +11,7 @@ import (
 func TestMain(m *testing.M) {
 	// Shut up info output
 	tlog.Info.Enabled = false
-	m.Run()
+	os.Exit(m.Run())
 }
 
 func TestExtpass(t *testing.T) {
