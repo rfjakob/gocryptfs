@@ -21,7 +21,12 @@ const DefaultCipherDir = TmpDir + "cipher/"
 
 const GocryptfsBinary = "../../gocryptfs"
 
-// ResetTmpDir - delete old tmp dir, create new one, write gocryptfs.diriv
+// ResetTmpDir - delete TmpDir, create new dir tree:
+//
+// TmpDir
+// |-- DefaultPlainDir
+// *-- DefaultCipherDir
+//     *-- gocryptfs.diriv
 func ResetTmpDir(plaintextNames bool) {
 
 	// Try to unmount everything
@@ -59,7 +64,33 @@ func ResetTmpDir(plaintextNames bool) {
 	}
 }
 
+// InitFS calls "gocryptfs -init" on a new directory in TmpDir, passing
+// "extraArgs" in addition to practical defaults.
+// The returned "dir" has NO trailing slash.
+func InitFS(t *testing.T, extraArgs ...string) string {
+	dir, err := ioutil.TempDir(TmpDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	args := []string{"-q", "-init", "-extpass", "echo test", "-scryptn=10"}
+	args = append(args, extraArgs...)
+	args = append(args, dir)
+
+	cmd := exec.Command(GocryptfsBinary, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	err = cmd.Run()
+	if err != nil {
+		t.Fatalf("InitFS with args %v failed: %v", args, err)
+	}
+
+	return dir
+}
+
 // Mount CIPHERDIR "c" on PLAINDIR "p"
+// Creates "p" if it does not exist.
 func Mount(c string, p string, extraArgs ...string) error {
 	var args []string
 	args = append(args, extraArgs...)
@@ -68,11 +99,17 @@ func Mount(c string, p string, extraArgs ...string) error {
 	//args = append(args, "-d")
 	args = append(args, c)
 	args = append(args, p)
+
+	if _, err := os.Stat(p); err != nil {
+		err = os.Mkdir(p, 0777)
+		if err != nil {
+			return err
+		}
+	}
+
 	cmd := exec.Command(GocryptfsBinary, args...)
 	cmd.Stderr = os.Stderr
-	if testing.Verbose() {
-		cmd.Stdout = os.Stdout
-	}
+	cmd.Stdout = os.Stdout
 	return cmd.Run()
 }
 

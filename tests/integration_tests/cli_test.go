@@ -3,7 +3,6 @@ package integration_tests
 // Test CLI operations like "-init", "-password" etc
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,18 +16,8 @@ import (
 
 // Test -init flag
 func TestInit(t *testing.T) {
-	dir, err := ioutil.TempDir(test_helpers.TmpDir, "TestInit")
-	if err != nil {
-		t.Fatal(err)
-	}
-	cmd := exec.Command(test_helpers.GocryptfsBinary, "-q", "-init", "-extpass", "echo test", "-scryptn=10", dir)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = os.Stat(filepath.Join(dir, configfile.ConfDefaultName))
+	dir := test_helpers.InitFS(t)
+	_, err := os.Stat(filepath.Join(dir, configfile.ConfDefaultName))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,22 +26,12 @@ func TestInit(t *testing.T) {
 // Test -passwd flag
 func TestPasswd(t *testing.T) {
 	// Create FS
-	dir, err := ioutil.TempDir(test_helpers.TmpDir, "TestPasswd")
-	if err != nil {
-		t.Fatal(err)
-	}
-	cmd := exec.Command(test_helpers.GocryptfsBinary, "-q", "-init", "-extpass", "echo test", "-scryptn=10", dir)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-	if err != nil {
-		t.Fatal(err)
-	}
+	dir := test_helpers.InitFS(t)
 	// Change password using "-extpass"
-	cmd = exec.Command(test_helpers.GocryptfsBinary, "-q", "-passwd", "-extpass", "echo test", dir)
+	cmd := exec.Command(test_helpers.GocryptfsBinary, "-q", "-passwd", "-extpass", "echo test", dir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		t.Error(err)
 	}
@@ -81,21 +60,10 @@ func TestPasswd(t *testing.T) {
 
 // Test -init & -config flag
 func TestInitConfig(t *testing.T) {
-	dir := test_helpers.TmpDir + "TestInitConfig/"
 	config := test_helpers.TmpDir + "TestInitConfig.conf"
-	err := os.Mkdir(dir, 0777)
-	if err != nil {
-		t.Fatal(err)
-	}
-	cmd := exec.Command(test_helpers.GocryptfsBinary, "-q", "-init", "-extpass", "echo test",
-		"-config", config, "-scryptn=10", dir)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = os.Stat(config)
+	dir := test_helpers.InitFS(t, "-config="+config)
+
+	_, err := os.Stat(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,20 +81,9 @@ func TestInitConfig(t *testing.T) {
 
 // Test -init -plaintextnames
 func TestInitPlaintextNames(t *testing.T) {
-	dir := test_helpers.TmpDir + "TestInitPlaintextNames/"
-	err := os.Mkdir(dir, 0777)
-	if err != nil {
-		t.Fatal(err)
-	}
-	cmd := exec.Command(test_helpers.GocryptfsBinary, "-q", "-init", "-extpass", "echo test",
-		"-scryptn=10", "-plaintextnames", dir)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = os.Stat(dir + configfile.ConfDefaultName)
+	dir := test_helpers.InitFS(t, "-plaintextnames")
+	dir = dir + "/"
+	_, err := os.Stat(dir + configfile.ConfDefaultName)
 	if err != nil {
 		t.Fatal(err)
 	}
