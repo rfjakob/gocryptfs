@@ -43,7 +43,7 @@ const (
 type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
 	plaintextnames, quiet, diriv, emenames, gcmiv128, nosyslog, wpanic,
-	longnames, allow_other bool
+	longnames, allow_other, ro bool
 	masterkey, mountpoint, cipherdir, cpuprofile, config, extpass,
 	memprofile string
 	notifypid, scryptn int
@@ -182,6 +182,7 @@ func main() {
 	flagSet.BoolVar(&args.longnames, "longnames", true, "Store names longer than 176 bytes in extra files")
 	flagSet.BoolVar(&args.allow_other, "allow_other", false, "Allow other users to access the filesystem. "+
 		"Only works if user_allow_other is set in /etc/fuse.conf.")
+	flagSet.BoolVar(&args.ro, "ro", false, "Mount the filesystem read-only")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")
@@ -418,6 +419,11 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	mOpts.Options = append(mOpts.Options, "fsname="+args.cipherdir)
 	// Second column, "Type", will be shown as "fuse." + Name
 	mOpts.Name = "gocryptfs"
+
+	// The kernel enforces read-only operation, we just have to pass "ro".
+	if args.ro {
+		mOpts.Options = append(mOpts.Options, "ro")
+	}
 
 	srv, err := fuse.NewServer(conn.RawFS(), args.mountpoint, &mOpts)
 	if err != nil {

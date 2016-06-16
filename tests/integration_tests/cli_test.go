@@ -102,3 +102,21 @@ func TestInitPlaintextNames(t *testing.T) {
 		t.Error("FlagEMENames and FlagDirIV should be not set")
 	}
 }
+
+// Test -ro
+func TestRo(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	mnt := dir + ".mnt"
+	test_helpers.MountOrFatal(t, dir, mnt, "-ro", "-extpass=echo test")
+	defer test_helpers.Unmount(mnt)
+
+	file := mnt + "/file"
+	err := os.Mkdir(file, 0777)
+	if err == nil {
+		t.Errorf("Mkdir should have failed")
+	}
+	_, err = os.Create(file)
+	if err == nil {
+		t.Errorf("Create should have failed")
+	}
+}

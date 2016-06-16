@@ -117,6 +117,9 @@ option.
 **-q, -quiet**
 :	Quiet - silence informational messages
 
+**-ro**
+:	Mount the filesystem read-only
+
 **-scryptn int**
 :	scrypt cost parameter logN. Setting this to a lower value speeds up
 mounting but makes the password susceptible to brute-force attacks (default 16)
