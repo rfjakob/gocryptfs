@@ -107,6 +107,7 @@ v0.12 (not yet released)
  * A warning explaining the situation is printed as well
 * New command line option: `-ro`
  * Mounts the filesystem read-only
+* Accept password from stdin as well [ticket #30](https://github.com/rfjakob/gocryptfs/issues/30)
 
 v0.11, 2016-06-10
 * Deprecate filesystems created by v0.6 and older (stage 1/3)
