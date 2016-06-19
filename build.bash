@@ -6,8 +6,20 @@ cd "$(dirname "$0")"
 
 # gocryptfs version according to git
 GITVERSION=$(git describe --tags --dirty)
+
 # go-fuse version according to git
-GITVERSIONFUSE=$(cd $GOPATH/src/github.com/hanwen/go-fuse && git rev-parse --short HEAD)
+GITVERSIONFUSE=$(
+	cd $GOPATH/src/github.com/hanwen/go-fuse
+	SHORT=$(git rev-parse --short HEAD)
+
+	# Check if the tree is dirty, adapted from
+	# http://stackoverflow.com/a/2659808/1380267
+	if ! git diff-index --quiet HEAD; then
+		echo $SHORT-dirty
+	else
+		echo $SHORT
+	fi
+)
 
 # Make sure we have the go binary
 go version > /dev/null
