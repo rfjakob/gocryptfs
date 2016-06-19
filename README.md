@@ -115,7 +115,7 @@ v0.11, 2016-06-10
  * Filesystems created by v0.6 and older can still be mounted but a
    [warning](https://github.com/rfjakob/gocryptfs/blob/v0.11/internal/configfile/config_file.go#L120)
    is printed
- * See https://github.com/rfjakob/gocryptfs/issues/29 for details and
+ * See [ticket #29](https://github.com/rfjakob/gocryptfs/issues/29) for details and
    join the discussion
 * Add rsync stress test "pingpong-rsync.bash"
  * Fix chown and utimens failures that caused rsync to complain
