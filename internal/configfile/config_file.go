@@ -109,23 +109,23 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	deprecatedFs := false
 	for _, i := range requiredFlags {
 		if !cf.IsFeatureFlagSet(i) {
-			// For now, warn but continue.
-			fmt.Printf("Deprecated filesystem: feature flag %q is missing\n", knownFlags[i])
+			fmt.Fprintf(os.Stderr, "Required feature flag %q is missing\n", knownFlags[i])
 			deprecatedFs = true
-			//return nil, nil, fmt.Errorf("Required feature flag %q is missing", knownFlags[i])
 		}
 	}
 	if deprecatedFs {
-		fmt.Printf("\033[33m" + `
-    This filesystem was created by gocryptfs v0.6 or earlier. You are missing
-    security improvements. Mounting read-only, please upgrade!
-    Instructions: https://github.com/rfjakob/gocryptfs/wiki/Upgrading
+		fmt.Fprintf(os.Stderr, "\033[33m"+`
+    The filesystem was created by gocryptfs v0.6 or earlier. This version of
+    gocryptfs can no longer mount the filesystem.
+    Please download gocryptfs v0.11 and upgrade your filesystem,
+    see https://github.com/rfjakob/gocryptfs/wiki/Upgrading for instructions.
 
-    gocryptfs v1.0 is scheduled to drop support for this filesystem completely.
-    If you disagree with the plan or have trouble upgrading, please join
-    the discussion at https://github.com/rfjakob/gocryptfs/issues/29 .
+    If you have trouble upgrading, join the discussion at
+    https://github.com/rfjakob/gocryptfs/issues/29 .
 
-` + "\033[0m")
+`+"\033[0m")
+
+		return nil, nil, fmt.Errorf("Deprecated filesystem")
 	}
 
 	// Generate derived key from password
@@ -145,16 +145,8 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 		return nil, nil, fmt.Errorf("Password incorrect.")
 	}
 
-	if deprecatedFs {
-		err = DeprecatedFsError{}
-	}
 	return key, &cf, err
 }
-
-// The filesystem is deprecated.
-type DeprecatedFsError struct{}
-
-func (e DeprecatedFsError) Error() string { return "deprecated filesystem" }
 
 // EncryptKey - encrypt "key" using an scrypt hash generated from "password"
 // and store it in cf.EncryptedKey.

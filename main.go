@@ -122,10 +122,7 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 	pw := readpassword.Once(args.extpass)
 	tlog.Info.Println("Decrypting master key")
 	masterkey, confFile, err = configfile.LoadConfFile(args.config, pw)
-	if _, ok := err.(configfile.DeprecatedFsError); ok {
-		// Force read-only mode
-		args.ro = true
-	} else if err != nil {
+	if err != nil {
 		tlog.Fatal.Println(err)
 		os.Exit(ERREXIT_LOADCONF)
 	}
