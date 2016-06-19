@@ -12,9 +12,10 @@ go:
 install:
   - go get .
 
-# Travis does not support FUSE, so we can't just run "go test ./..."
+# Travis does not support FUSE, so we can't just run "./test.bash"
+# Go 1.3.3 does not support testing.M, so skip the tests there.
 script:
   - openssl version
   - go build
   - ./build.bash
-  - go test ./internal/...
+  - if ! go version | grep go1.3.3 ; then go test ./internal/... ; fi
