@@ -109,11 +109,8 @@ func Mount(c string, p string, extraArgs ...string) error {
 
 	cmd := exec.Command(GocryptfsBinary, args...)
 	cmd.Stderr = os.Stderr
-	if testing.Verbose() {
-		// Don't show the "deprecated filesystem" warnings by default. These
-		// are not silenced by "-q".
-		cmd.Stdout = os.Stdout
-	}
+	cmd.Stdout = os.Stdout
+
 	return cmd.Run()
 }
 
