@@ -101,23 +101,26 @@ RM:    4.42
 Changelog
 ---------
 
-v0.12 (not yet released)
-* Deprecate filesystems created by v0.6 and older (stage 2/3)
- * Now they can only be mounted read-only
- * A warning explaining the situation is printed as well
+v0.12, 2016-06-19
+* Deprecate very old filesystems, stage 2 of 3
+ * Filesystems created by v0.6 and older can only be mounted read-only
+ * A [message](https://github.com/rfjakob/gocryptfs/blob/v0.12/internal/configfile/config_file.go#L120)
+   explaining the situation is printed as well
 * New command line option: `-ro`
  * Mounts the filesystem read-only
-* Accept password from stdin as well [ticket #30](https://github.com/rfjakob/gocryptfs/issues/30)
+* Accept password from stdin as well ([ticket #30](https://github.com/rfjakob/gocryptfs/issues/30))
 
 v0.11, 2016-06-10
-* Deprecate filesystems created by v0.6 and older (stage 1/3)
- * Filesystems can still be mounted but a warning is printed
+* Deprecate very old filesystems, stage 1 of 3
+ * Filesystems created by v0.6 and older can still be mounted but a
+   [warning](https://github.com/rfjakob/gocryptfs/blob/v0.11/internal/configfile/config_file.go#L120)
+   is printed
  * See https://github.com/rfjakob/gocryptfs/issues/29 for details and
    join the discussion
 * Add rsync stress test "pingpong-rsync.bash"
  * Fix chown and utimens failures that caused rsync to complain
 * Build release binaries with Go 1.6.2
- * Big speedup for CPUs with AES-NI, see [#23](https://github.com/rfjakob/gocryptfs/issues/23))
+ * Big speedup for CPUs with AES-NI, see [ticket #23](https://github.com/rfjakob/gocryptfs/issues/23)
 
 v0.10, 2016-05-30
 * **Replace `spacemonkeygo/openssl` with `stupidgcm`**
