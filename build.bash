@@ -12,7 +12,7 @@ GITVERSIONFUSE=$(cd $GOPATH/src/github.com/hanwen/go-fuse && git rev-parse --sho
 # Make sure we have the go binary
 go version > /dev/null
 
-# go version go1.5.1 linux/amd64
+# "go version go1.6.2 linux/amd64" -> "1.6"
 V=$(go version | cut -d" " -f3 | cut -c3-5)
 
 if [ $V == "1.3" -o $V == "1.4" ]

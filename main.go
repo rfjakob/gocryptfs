@@ -151,8 +151,8 @@ func changePassword(args *argContainer) {
 // printVersion - print a version string like
 // "gocryptfs v0.3.1-31-g6736212-dirty; on-disk format 2"
 func printVersion() {
-	fmt.Printf("%s %s; on-disk format %d; go-fuse %s\n",
-		tlog.ProgramName, GitVersion, contentenc.CurrentVersion, GitVersionFuse)
+	fmt.Printf("%s %s; go-fuse %s; %s\n",
+		tlog.ProgramName, GitVersion, GitVersionFuse, runtime.Version())
 }
 
 func main() {
@@ -218,6 +218,7 @@ func main() {
 	// "-v"
 	if args.version {
 		tlog.Debug.Printf("openssl=%v\n", args.openssl)
+		tlog.Debug.Printf("on-disk format %d\n", contentenc.CurrentVersion)
 		printVersion()
 		os.Exit(0)
 	}

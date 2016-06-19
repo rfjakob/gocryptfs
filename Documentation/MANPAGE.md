@@ -125,7 +125,10 @@ option.
 mounting but makes the password susceptible to brute-force attacks (default 16)
 
 **-version**
-:	Print version and exit
+:	Print version and exit. The output contains three fields seperated by
+";". Example: "gocryptfs v0.12-2; go-fuse a4c968c; go1.6.2".
+Field 1 is the gocryptfs version, field 2 is the version of the go-fuse
+library, field 3 is the Go version that was used to compile the binary.
 
 **-wpanic**
 :	When encountering a warning, panic and exit immediately. This is
