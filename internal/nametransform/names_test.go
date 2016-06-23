@@ -3,31 +3,7 @@ package nametransform
 import (
 	"bytes"
 	"testing"
-
-	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 )
-
-func TestEncryptPathNoIV(t *testing.T) {
-	var s []string
-	s = append(s, "foo")
-	s = append(s, "foo12312312312312312313123123123")
-	s = append(s, "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890")
-
-	key := make([]byte, cryptocore.KeyLen)
-	cc := cryptocore.New(key, true, true)
-	fs := New(cc, true, false)
-
-	for _, n := range s {
-		c := fs.EncryptPathNoIV(n)
-		d, err := fs.DecryptPathNoIV(c)
-		if err != nil {
-			t.Errorf("Got error from DecryptPathNoIV: %s", err)
-		}
-		if d != n {
-			t.Errorf("Content mismatch, n != d: n=%s c=%s d=%s", n, c, d)
-		}
-	}
-}
 
 func TestPad16(t *testing.T) {
 	var s [][]byte
