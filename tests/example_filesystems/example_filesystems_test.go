@@ -3,9 +3,7 @@ package example_filesystems
 // Mount example filesystems and check that the file "status.txt" is there
 
 import (
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
@@ -18,97 +16,23 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// checkExampleFS - verify that "dir" contains the expected test files
-func checkExampleFS(t *testing.T, dir string, rw bool) {
-	// Read regular file
-	statusFile := filepath.Join(dir, "status.txt")
-	contentBytes, err := ioutil.ReadFile(statusFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	content := string(contentBytes)
-	if content != statusTxtContent {
-		t.Errorf("Unexpected content: %s\n", content)
-	}
-	// Read relative symlink
-	symlink := filepath.Join(dir, "rel")
-	target, err := os.Readlink(symlink)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if target != "status.txt" {
-		t.Errorf("Unexpected link target: %s\n", target)
-	}
-	// Read absolute symlink
-	symlink = filepath.Join(dir, "abs")
-	target, err = os.Readlink(symlink)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if target != "/a/b/c/d" {
-		t.Errorf("Unexpected link target: %s\n", target)
-	}
-
-	if rw {
-		// Test directory operations
-		test_helpers.TestRename(t, dir)
-		test_helpers.TestMkdirRmdir(t, dir)
-	}
-}
-
-// checkExampleFSLongnames - verify that "dir" contains the expected test files
-// plus the long file name test file
-func checkExampleFSLongnames(t *testing.T, dir string) {
-	// regular tests
-	checkExampleFS(t, dir, true)
-	// long name test file
-	longname := "longname_255_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" +
-		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" +
-		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" +
-		"xxxxxxxxxxxxxxxxxxxxxxxx"
-	contentBytes, err := ioutil.ReadFile(filepath.Join(dir, longname))
-	if err != nil {
-		t.Fatal(err)
-	}
-	content := string(contentBytes)
-	if content != statusTxtContent {
-		t.Errorf("longname_255: unexpected content: %s\n", content)
-	}
-
-}
-
-// Test example_filesystems/v0.4
-// with password mount and -masterkey mount
+// This filesystem is not supported anymore.
 func TestExampleFSv04(t *testing.T) {
-	pDir := test_helpers.TmpDir + "TestExampleFsV04/"
 	cDir := "v0.4"
-	err := os.Mkdir(pDir, 0777)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = test_helpers.Mount(cDir, pDir, false, "-extpass", "echo test")
+	pDir := test_helpers.TmpDir + cDir
+	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "echo test")
 	if err == nil {
-		t.Errorf("Mounting deprecated FS should fail")
-	}
-	err = test_helpers.Mount(cDir, pDir, false, "-masterkey", "74676e34-0b47c145-00dac61a-17a92316-"+
-		"bb57044c-e205b71f-65f4fdca-7cabd4b3", "-diriv=false", "-emenames=false", "-gcmiv128=false")
-	if err == nil {
-		t.Errorf("Mounting deprecated FS should fail")
-	}
-	err = os.Remove(pDir)
-	if err != nil {
-		t.Error(err)
+		t.Errorf("Mounting too old FS should fail")
 	}
 }
 
-// Test example_filesystems/v0.5
-// with password mount and -masterkey mount
+// This filesystem is not supported anymore.
 func TestExampleFSv05(t *testing.T) {
 	cDir := "v0.5"
 	pDir := test_helpers.TmpDir + cDir
 	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "echo test")
 	if err == nil {
-		t.Errorf("Mounting deprecated FS should fail")
+		t.Errorf("Mounting too old FS should fail")
 	}
 }
 
