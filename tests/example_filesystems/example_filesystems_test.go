@@ -194,6 +194,26 @@ func TestExampleFSv07(t *testing.T) {
 	}
 }
 
+// gocryptfs v0.7 filesystem created with "-plaintextnames"
+func TestExampleFSv07PlaintextNames(t *testing.T) {
+	cDir := "v0.7-plaintextnames"
+	pDir := test_helpers.TmpDir + cDir + ".mnt"
+
+	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test")
+	checkExampleFS(t, pDir, true)
+	test_helpers.Unmount(pDir)
+
+	test_helpers.MountOrFatal(t, cDir, pDir, "-plaintextnames", "-masterkey",
+		"6d96397b-585631e1-c7cba69d-61e738b6-4d5ad2c2-e21f0fb3-52f60d3a-b08526f7")
+	checkExampleFS(t, pDir, true)
+	test_helpers.Unmount(pDir)
+
+	err := os.Remove(pDir)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 // Test example_filesystems/v0.9
 // (gocryptfs v0.9 introduced long file name support)
 func TestExampleFSv09(t *testing.T) {
