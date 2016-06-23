@@ -42,7 +42,7 @@ const (
 
 type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
-	plaintextnames, quiet, gcmiv128, nosyslog, wpanic,
+	plaintextnames, quiet, nosyslog, wpanic,
 	longnames, allow_other, ro bool
 	masterkey, mountpoint, cipherdir, cpuprofile, config, extpass,
 	memprofile string
@@ -174,7 +174,6 @@ func main() {
 	flagSet.BoolVar(&args.plaintextnames, "plaintextnames", false, "Do not encrypt file names")
 	flagSet.BoolVar(&args.quiet, "q", false, "")
 	flagSet.BoolVar(&args.quiet, "quiet", false, "Quiet - silence informational messages")
-	flagSet.BoolVar(&args.gcmiv128, "gcmiv128", true, "Use an 128-bit IV for GCM encryption instead of Go's default of 96 bits")
 	flagSet.BoolVar(&args.nosyslog, "nosyslog", false, "Do not redirect output to syslog when running in the background")
 	flagSet.BoolVar(&args.wpanic, "wpanic", false, "When encountering a warning, panic and exit immediately")
 	flagSet.BoolVar(&args.longnames, "longnames", true, "Store names longer than 176 bytes in extra files")
@@ -368,14 +367,12 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 		Masterkey:      key,
 		OpenSSL:        args.openssl,
 		PlaintextNames: args.plaintextnames,
-		GCMIV128:       args.gcmiv128,
 		LongNames:      args.longnames,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {
 		// Settings from the config file override command line args
 		frontendArgs.PlaintextNames = confFile.IsFeatureFlagSet(configfile.FlagPlaintextNames)
-		frontendArgs.GCMIV128 = confFile.IsFeatureFlagSet(configfile.FlagGCMIV128)
 	}
 	jsonBytes, _ := json.MarshalIndent(frontendArgs, "", "\t")
 	tlog.Debug.Printf("frontendArgs: %s", string(jsonBytes))

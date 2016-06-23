@@ -36,51 +36,23 @@ func TestExampleFSv05(t *testing.T) {
 	}
 }
 
-// Test example_filesystems/v0.6
-// with password mount and -masterkey mount
+// This filesystem is not supported anymore.
 func TestExampleFSv06(t *testing.T) {
-	pDir := test_helpers.TmpDir + "TestExampleFsV06/"
 	cDir := "v0.6"
-	err := os.Mkdir(pDir, 0777)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = test_helpers.Mount(cDir, pDir, false, "-extpass", "echo test")
+	pDir := test_helpers.TmpDir + cDir
+	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "echo test")
 	if err == nil {
-		t.Errorf("Mounting deprecated FS should fail")
-	}
-	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey", "7bc8deb0-5fc894ef-a093da43-61561a81-"+
-		"0e8dee83-fdc056a4-937c37dd-9df5c520", "-gcmiv128=false")
-	checkExampleFS(t, pDir, true)
-	test_helpers.Unmount(pDir)
-	err = os.Remove(pDir)
-	if err != nil {
-		t.Error(err)
+		t.Errorf("Mounting too old FS should fail")
 	}
 }
 
-// Test example_filesystems/v0.6-plaintextnames
-// with password mount and -masterkey mount
-// v0.6 changed the file name handling a lot, hence the explicit test case for
-// plaintextnames.
+// This filesystem is not supported anymore.
 func TestExampleFSv06PlaintextNames(t *testing.T) {
-	pDir := test_helpers.TmpDir + "TestExampleFsV06PlaintextNames/"
 	cDir := "v0.6-plaintextnames"
-	err := os.Mkdir(pDir, 0777)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = test_helpers.Mount(cDir, pDir, false, "-extpass", "echo test")
+	pDir := test_helpers.TmpDir + cDir
+	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "echo test")
 	if err == nil {
-		t.Errorf("Mounting deprecated FS should fail")
-	}
-	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey", "f4690202-595e4593-64c4f7e0-4dddd7d1-"+
-		"303147f9-0ca8aea2-966341a7-52ea8ae9", "-plaintextnames", "-gcmiv128=false")
-	checkExampleFS(t, pDir, true)
-	test_helpers.Unmount(pDir)
-	err = os.Remove(pDir)
-	if err != nil {
-		t.Error(err)
+		t.Errorf("Mounting too old FS should fail")
 	}
 }
 

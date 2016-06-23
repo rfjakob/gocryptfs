@@ -6,6 +6,5 @@ type Args struct {
 	Cipherdir      string
 	OpenSSL        bool
 	PlaintextNames bool
-	GCMIV128       bool
 	LongNames      bool
 }

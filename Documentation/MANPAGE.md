@@ -58,13 +58,6 @@ to mount the gocryptfs filesytem without user interaction.
 **-fusedebug**
 :	Enable fuse library debug output
 
-**-gcmiv128**
-:	Use an 128-bit IV for GCM encryption instead of Go's default of
-96 bits (default true). This pushes back the birthday bound for IV
-collisions far enough to make it irrelevant.
-This flag is useful when recovering old gocryptfs filesystems using
-"-masterkey". It is ignored (stays at the default) otherwise.
-
 **-init**
 :	Initialize encrypted directory
 
