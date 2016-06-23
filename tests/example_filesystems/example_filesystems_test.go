@@ -86,14 +86,15 @@ func TestExampleFSv04(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = test_helpers.Mount(cDir, pDir, "-extpass", "echo test")
+	err = test_helpers.Mount(cDir, pDir, false, "-extpass", "echo test")
 	if err == nil {
 		t.Errorf("Mounting deprecated FS should fail")
 	}
-	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey", "74676e34-0b47c145-00dac61a-17a92316-"+
+	err = test_helpers.Mount(cDir, pDir, false, "-masterkey", "74676e34-0b47c145-00dac61a-17a92316-"+
 		"bb57044c-e205b71f-65f4fdca-7cabd4b3", "-diriv=false", "-emenames=false", "-gcmiv128=false")
-	checkExampleFS(t, pDir, true)
-	test_helpers.Unmount(pDir)
+	if err == nil {
+		t.Errorf("Mounting deprecated FS should fail")
+	}
 	err = os.Remove(pDir)
 	if err != nil {
 		t.Error(err)
@@ -109,7 +110,7 @@ func TestExampleFSv05(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = test_helpers.Mount(cDir, pDir, "-extpass", "echo test")
+	err = test_helpers.Mount(cDir, pDir, false, "-extpass", "echo test")
 	if err == nil {
 		t.Errorf("Mounting deprecated FS should fail")
 	}
@@ -132,7 +133,7 @@ func TestExampleFSv06(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = test_helpers.Mount(cDir, pDir, "-extpass", "echo test")
+	err = test_helpers.Mount(cDir, pDir, false, "-extpass", "echo test")
 	if err == nil {
 		t.Errorf("Mounting deprecated FS should fail")
 	}
@@ -157,7 +158,7 @@ func TestExampleFSv06PlaintextNames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = test_helpers.Mount(cDir, pDir, "-extpass", "echo test")
+	err = test_helpers.Mount(cDir, pDir, false, "-extpass", "echo test")
 	if err == nil {
 		t.Errorf("Mounting deprecated FS should fail")
 	}

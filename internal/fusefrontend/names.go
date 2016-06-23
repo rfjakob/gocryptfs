@@ -44,9 +44,6 @@ func (fs *FS) encryptPath(plainPath string) (string, error) {
 	if fs.args.PlaintextNames {
 		return plainPath, nil
 	}
-	if !fs.args.DirIV {
-		return fs.nameTransform.EncryptPathNoIV(plainPath), nil
-	}
 	fs.dirIVLock.RLock()
 	cPath, err := fs.nameTransform.EncryptPathDirIV(plainPath, fs.args.Cipherdir)
 	tlog.Debug.Printf("encryptPath '%s' -> '%s' (err: %v)", plainPath, cPath, err)
@@ -58,9 +55,6 @@ func (fs *FS) encryptPath(plainPath string) (string, error) {
 func (fs *FS) decryptPath(cipherPath string) (string, error) {
 	if fs.args.PlaintextNames {
 		return cipherPath, nil
-	}
-	if !fs.args.DirIV {
-		return fs.nameTransform.DecryptPathNoIV(cipherPath)
 	}
 	fs.dirIVLock.RLock()
 	defer fs.dirIVLock.RUnlock()

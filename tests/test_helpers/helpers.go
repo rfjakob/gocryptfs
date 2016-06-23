@@ -91,7 +91,7 @@ func InitFS(t *testing.T, extraArgs ...string) string {
 
 // Mount CIPHERDIR "c" on PLAINDIR "p"
 // Creates "p" if it does not exist.
-func Mount(c string, p string, extraArgs ...string) error {
+func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 	var args []string
 	args = append(args, extraArgs...)
 	args = append(args, "-nosyslog", "-q", "-wpanic")
@@ -108,15 +108,17 @@ func Mount(c string, p string, extraArgs ...string) error {
 	}
 
 	cmd := exec.Command(GocryptfsBinary, args...)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
+	if showOutput {
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+	}
 
 	return cmd.Run()
 }
 
 // MountOrExit calls mount() and exits on failure.
 func MountOrExit(c string, p string, extraArgs ...string) {
-	err := Mount(c, p, extraArgs...)
+	err := Mount(c, p, true, extraArgs...)
 	if err != nil {
 		fmt.Printf("mount failed: %v", err)
 		os.Exit(1)
@@ -125,7 +127,7 @@ func MountOrExit(c string, p string, extraArgs ...string) {
 
 // MountOrFatal calls mount() and calls t.Fatal() on failure.
 func MountOrFatal(t *testing.T, c string, p string, extraArgs ...string) {
-	err := Mount(c, p, extraArgs...)
+	err := Mount(c, p, true, extraArgs...)
 	if err != nil {
 		t.Fatal(fmt.Errorf("mount failed: %v", err))
 	}

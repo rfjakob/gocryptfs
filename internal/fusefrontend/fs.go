@@ -249,17 +249,10 @@ func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status f
 	if status != fuse.OK {
 		return "", status
 	}
-	// Old filesystem: symlinks are encrypted like paths (CBC)
-	if !fs.args.DirIV {
-		var target string
-		target, err = fs.decryptPath(cTarget)
-		if err != nil {
-			tlog.Warn.Printf("Readlink: CBC decryption failed: %v", err)
-			return "", fuse.EIO
-		}
-		return target, fuse.OK
+	if fs.args.PlaintextNames {
+		return cTarget, fuse.OK
 	}
-	// Since gocryptfs v0.5 symlinks are encrypted like file contents (GCM)
+	// Symlinks are encrypted like file contents (GCM) and base64-encoded
 	cBinTarget, err := base64.URLEncoding.DecodeString(cTarget)
 	if err != nil {
 		tlog.Warn.Printf("Readlink: %v", err)
@@ -316,19 +309,11 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	// Before v0.5, symlinks were encrypted like paths (CBC)
-	// TODO drop compatibility and simplify code?
-	if !fs.args.DirIV {
-		var cTarget string
-		cTarget, err = fs.encryptPath(target)
-		if err != nil {
-			tlog.Warn.Printf("Symlink: BUG: we should not get an error here: %v", err)
-			return fuse.ToStatus(err)
-		}
-		err = os.Symlink(cTarget, cPath)
+	if fs.args.PlaintextNames {
+		err = os.Symlink(target, cPath)
 		return fuse.ToStatus(err)
 	}
-
+	// Symlinks are encrypted like file contents (GCM) and base64-encoded
 	cBinTarget := fs.contentEnc.EncryptBlock([]byte(target), 0, nil)
 	cTarget := base64.URLEncoding.EncodeToString(cBinTarget)
 

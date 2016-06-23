@@ -46,11 +46,6 @@ user_allow_other is set in /etc/fuse.conf. This option is equivalent to
 **-d, -debug**
 :	Enable debug output
 
-**-diriv**
-:	Use per-directory file name IV (default true)
-This flag is useful when recovering old gocryptfs filesystems using
-"-masterkey". It is ignored (stays at the default) otherwise.
-
 **-emenames**
 :	Use EME filename encryption (default true), implies diriv.
 This flag is useful when recovering old gocryptfs filesystems using

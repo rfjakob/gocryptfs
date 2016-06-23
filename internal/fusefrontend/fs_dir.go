@@ -46,9 +46,6 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	if !fs.args.DirIV {
-		return fuse.ToStatus(os.Mkdir(cPath, os.FileMode(mode)))
-	}
 	// We need write and execute permissions to create gocryptfs.diriv
 	origMode := mode
 	mode = mode | 0300
@@ -97,9 +94,6 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 	cPath, err := fs.getBackingPath(path)
 	if err != nil {
 		return fuse.ToStatus(err)
-	}
-	if !fs.args.DirIV {
-		return fuse.ToStatus(syscall.Rmdir(cPath))
 	}
 
 	parentDir := filepath.Dir(cPath)
@@ -215,10 +209,10 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 	if cipherEntries == nil {
 		return nil, status
 	}
-	// Get DirIV (stays nil if DirIV if off)
+	// Get DirIV (stays nil if PlaintextNames is used)
 	var cachedIV []byte
 	var cDirAbsPath string
-	if fs.args.DirIV {
+	if !fs.args.PlaintextNames {
 		// Read the DirIV once and use it for all later name decryptions
 		cDirAbsPath = filepath.Join(fs.args.Cipherdir, cDirName)
 		cachedIV, err = nametransform.ReadDirIV(cDirAbsPath)
@@ -237,7 +231,7 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 			// silently ignore "gocryptfs.conf" in the top level dir
 			continue
 		}
-		if fs.args.DirIV && cName == nametransform.DirIVFilename {
+		if !fs.args.PlaintextNames && cName == nametransform.DirIVFilename {
 			// silently ignore "gocryptfs.diriv" everywhere if dirIV is enabled
 			continue
 		}
