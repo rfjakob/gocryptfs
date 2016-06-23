@@ -101,6 +101,12 @@ RM:    4.42
 Changelog
 ---------
 
+v1.0 (not released yet)
+* Deprecate very old filesystems, stage 3 of 3
+ * Filesystems created by v0.6 and older can only be mounted read-only
+ * Drop command-line options `-gcmiv128`, `-emenames`, `-diriv`. These
+   are now always enabled.
+
 v0.12, 2016-06-19
 * Deprecate very old filesystems, stage 2 of 3
  * Filesystems created by v0.6 and older can only be mounted read-only
