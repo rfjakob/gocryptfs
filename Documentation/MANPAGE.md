@@ -46,11 +46,6 @@ user_allow_other is set in /etc/fuse.conf. This option is equivalent to
 **-d, -debug**
 :	Enable debug output
 
-**-emenames**
-:	Use EME filename encryption (default true), implies diriv.
-This flag is useful when recovering old gocryptfs filesystems using
-"-masterkey". It is ignored (stays at the default) otherwise.
-
 **-extpass string**
 :	Use an external program (like ssh-askpass) for the password prompt.
 The program should return the password on stdout, a trailing newline is

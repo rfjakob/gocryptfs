@@ -38,7 +38,7 @@ func NewFS(args Args) *FS {
 
 	cryptoCore := cryptocore.New(args.Masterkey, args.OpenSSL, args.GCMIV128)
 	contentEnc := contentenc.New(cryptoCore, contentenc.DefaultBS)
-	nameTransform := nametransform.New(cryptoCore, args.EMENames, args.LongNames)
+	nameTransform := nametransform.New(cryptoCore, args.LongNames)
 
 	return &FS{
 		FileSystem:    pathfs.NewLoopbackFileSystem(args.Cipherdir),

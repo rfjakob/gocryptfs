@@ -104,23 +104,11 @@ func TestExampleFSv04(t *testing.T) {
 // Test example_filesystems/v0.5
 // with password mount and -masterkey mount
 func TestExampleFSv05(t *testing.T) {
-	pDir := test_helpers.TmpDir + "TestExampleFsV05/"
 	cDir := "v0.5"
-	err := os.Mkdir(pDir, 0777)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = test_helpers.Mount(cDir, pDir, false, "-extpass", "echo test")
+	pDir := test_helpers.TmpDir + cDir
+	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "echo test")
 	if err == nil {
 		t.Errorf("Mounting deprecated FS should fail")
-	}
-	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey", "199eae55-36bff4af-83b9a3a2-4fa16f65-"+
-		"1549ccdb-2d08d1f0-b1b26965-1b61f896", "-emenames=false", "-gcmiv128=false")
-	checkExampleFS(t, pDir, true)
-	test_helpers.Unmount(pDir)
-	err = os.Remove(pDir)
-	if err != nil {
-		t.Error(err)
 	}
 }
 
