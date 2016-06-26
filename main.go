@@ -374,6 +374,11 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 		// Settings from the config file override command line args
 		frontendArgs.PlaintextNames = confFile.IsFeatureFlagSet(configfile.FlagPlaintextNames)
 	}
+	// If allow_other is set and we run as root, try to give newly created files to
+	// the right user.
+	if args.allow_other && os.Getuid() == 0 {
+		frontendArgs.PreserveOwner = true
+	}
 	jsonBytes, _ := json.MarshalIndent(frontendArgs, "", "\t")
 	tlog.Debug.Printf("frontendArgs: %s", string(jsonBytes))
 
