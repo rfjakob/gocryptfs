@@ -406,6 +406,8 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 		// FUSE filesystems are mounted with "nodev" by default. If we run as root,
 		// we can use device files by passing the opposite mount option, "dev".
 		mOpts.Options = append(mOpts.Options, "dev")
+		// Same thing for "nosuid". If we run as root, we can pass "suid".
+		mOpts.Options = append(mOpts.Options, "suid")
 	}
 	// Set values shown in "df -T" and friends
 	// First column, "Filesystem"

@@ -158,11 +158,14 @@ func (fs *FS) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.
 	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
-	cPath, err := fs.encryptPath(path)
+	cPath, err := fs.getBackingPath(path)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	return fs.FileSystem.Chmod(cPath, mode, context)
+	// os.Chmod goes through the "syscallMode" translation function that messes
+	// up the suid and sgid bits. So use syscall.Chmod directly.
+	err = syscall.Chmod(cPath, mode)
+	return fuse.ToStatus(err)
 }
 
 func (fs *FS) Chown(path string, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status) {

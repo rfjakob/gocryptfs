@@ -459,7 +459,10 @@ func (f *file) Chmod(mode uint32) fuse.Status {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 
-	return fuse.ToStatus(f.fd.Chmod(os.FileMode(mode)))
+	// os.File.Chmod goes through the "syscallMode" translation function that messes
+	// up the suid and sgid bits. So use syscall.Fchmod directly.
+	err := syscall.Fchmod(f.intFd(), mode)
+	return fuse.ToStatus(err)
 }
 
 func (f *file) Chown(uid uint32, gid uint32) fuse.Status {
