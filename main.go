@@ -402,6 +402,11 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 		// Make the kernel check the file permissions for us
 		mOpts.Options = append(mOpts.Options, "default_permissions")
 	}
+	if os.Getuid() == 0 {
+		// FUSE filesystems are mounted with "nodev" by default. If we run as root,
+		// we can use device files by passing the opposite mount option, "dev".
+		mOpts.Options = append(mOpts.Options, "dev")
+	}
 	// Set values shown in "df -T" and friends
 	// First column, "Filesystem"
 	mOpts.Options = append(mOpts.Options, "fsname="+args.cipherdir)
