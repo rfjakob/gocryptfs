@@ -104,7 +104,7 @@ option.
 :	Change password
 
 **-plaintextnames**
-:	Do not encrypt file names
+:	Do not encrypt file names and symlink targets
 
 **-q, -quiet**
 :	Quiet - silence informational messages
