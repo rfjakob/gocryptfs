@@ -4,14 +4,26 @@
 package tlog
 
 import (
+	"log"
 	"log/syslog"
 )
 
 func (l *toggledLogger) SwitchToSyslog(p syslog.Priority) {
 	w, err := syslog.New(p, ProgramName)
 	if err != nil {
-		Warn.Printf("Cannot switch 0x%02x to syslog: %v", p, err)
+		Warn.Printf("SwitchToSyslog: %v", err)
 	} else {
 		l.SetOutput(w)
+	}
+}
+
+// SwitchLoggerToSyslog redirects the default log.Logger that the go-fuse lib uses
+// to syslog.
+func SwitchLoggerToSyslog(p syslog.Priority) {
+	w, err := syslog.New(p, ProgramName)
+	if err != nil {
+		Warn.Printf("SwitchLoggerToSyslog: %v", err)
+	} else {
+		log.SetOutput(w)
 	}
 }

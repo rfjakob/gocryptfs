@@ -347,6 +347,7 @@ func main() {
 			tlog.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
 			tlog.Debug.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_DEBUG)
 			tlog.Warn.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
+			tlog.SwitchLoggerToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
 		}
 	}
 	// Wait for SIGINT in the background and unmount ourselves if we get it.
