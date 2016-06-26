@@ -85,6 +85,15 @@ continue be printed to stdout and stderr.
 :	Send USR1 to the specified process after successful mount. This is
 used internally for daemonization.
 
+**-o**
+: Pass additonal mount options to the kernel (comma-separated list).
+FUSE filesystems are mounted with "nodev,nosuid" by default. If gocryptfs
+runs as root, you can enable device files by passing the opposite mount option,
+"dev", and if you want to enable suid-binaries, pass "suid".
+"ro" (equivalent to passing the "-ro" option) and "noexec" may also be
+interesting. For a complete liste see the section
+`FILESYSTEM-INDEPENDENT MOUNT OPTIONS` in mount(8).
+
 **-openssl bool**
 :	Use OpenSSL instead of built-in Go crypto (default "auto"). Using
 built-in crypto is 4x slower unless your CPU has AES instructions and

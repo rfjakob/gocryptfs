@@ -45,7 +45,7 @@ type argContainer struct {
 	plaintextnames, quiet, nosyslog, wpanic,
 	longnames, allow_other, ro bool
 	masterkey, mountpoint, cipherdir, cpuprofile, config, extpass,
-	memprofile string
+	memprofile, o string
 	notifypid, scryptn int
 }
 
@@ -185,6 +185,7 @@ func main() {
 	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")
 	flagSet.StringVar(&args.config, "config", "", "Use specified config file instead of CIPHERDIR/gocryptfs.conf")
 	flagSet.StringVar(&args.extpass, "extpass", "", "Use external program for the password prompt")
+	flagSet.StringVar(&args.o, "o", "", "Pass additional mount options to the kernel, comma-separated list")
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")
 	flagSet.IntVar(&args.scryptn, "scryptn", configfile.ScryptDefaultLogN, "scrypt cost parameter logN. "+
@@ -402,13 +403,6 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 		// Make the kernel check the file permissions for us
 		mOpts.Options = append(mOpts.Options, "default_permissions")
 	}
-	if os.Getuid() == 0 {
-		// FUSE filesystems are mounted with "nodev" by default. If we run as root,
-		// we can use device files by passing the opposite mount option, "dev".
-		mOpts.Options = append(mOpts.Options, "dev")
-		// Same thing for "nosuid". If we run as root, we can pass "suid".
-		mOpts.Options = append(mOpts.Options, "suid")
-	}
 	// Set values shown in "df -T" and friends
 	// First column, "Filesystem"
 	mOpts.Options = append(mOpts.Options, "fsname="+args.cipherdir)
@@ -419,7 +413,13 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	if args.ro {
 		mOpts.Options = append(mOpts.Options, "ro")
 	}
-
+	// Add additional mount options (if any) after the stock ones, so the user has
+	// a chance to override them.
+	if args.o != "" {
+		parts := strings.Split(args.o, ",")
+		tlog.Debug.Printf("Adding -o mount options: %v", parts)
+		mOpts.Options = append(mOpts.Options, parts...)
+	}
 	srv, err := fuse.NewServer(conn.RawFS(), args.mountpoint, &mOpts)
 	if err != nil {
 		tlog.Fatal.Printf("Mount failed: %v", err)
