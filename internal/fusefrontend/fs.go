@@ -207,14 +207,17 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 	return fs.FileSystem.Mknod(cPath, mode, dev, context)
 }
 
-// Only warn once
-var truncateWarnOnce sync.Once
-
+// Support truncate(2) by opening the file and calling ftruncate(2)
+// While the glibc "truncate" wrapper seems to always use ftruncate, fsstress from
+// xfstests uses this a lot by calling "truncate64" directly.
 func (fs *FS) Truncate(path string, offset uint64, context *fuse.Context) (code fuse.Status) {
-	truncateWarnOnce.Do(func() {
-		tlog.Warn.Printf("truncate(2) is not supported, returning ENOSYS - use ftruncate(2)")
-	})
-	return fuse.ENOSYS
+	file, code := fs.Open(path, uint32(os.O_RDWR), context)
+	if code != fuse.OK {
+		return code
+	}
+	code = file.Truncate(offset)
+	file.Release()
+	return code
 }
 
 func (fs *FS) Utimens(path string, Atime *time.Time, Mtime *time.Time, context *fuse.Context) (code fuse.Status) {

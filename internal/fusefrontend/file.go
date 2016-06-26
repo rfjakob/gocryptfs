@@ -489,6 +489,8 @@ func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 var allocateWarnOnce sync.Once
 
 // Allocate - FUSE call, fallocate(2)
+// This is not implemented yet in gocryptfs, but it is neither in EncFS. This
+// suggests that the user demand is low.
 func (f *file) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
 	allocateWarnOnce.Do(func() {
 		tlog.Warn.Printf("fallocate(2) is not supported, returning ENOSYS - see https://github.com/rfjakob/gocryptfs/issues/1")
