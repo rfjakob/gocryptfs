@@ -24,6 +24,9 @@ func SwitchLoggerToSyslog(p syslog.Priority) {
 	if err != nil {
 		Warn.Printf("SwitchLoggerToSyslog: %v", err)
 	} else {
+		log.SetPrefix("go-fuse: ")
+		// Disable printing the timestamp, syslog already provides that
+		log.SetFlags(0)
 		log.SetOutput(w)
 	}
 }
