@@ -66,7 +66,8 @@ func ResetTmpDir(plaintextNames bool) {
 
 // InitFS calls "gocryptfs -init" on a new directory in TmpDir, passing
 // "extraArgs" in addition to practical defaults.
-// The returned "dir" has NO trailing slash.
+//
+// The returned cipherdir has NO trailing slash.
 func InitFS(t *testing.T, extraArgs ...string) string {
 	dir, err := ioutil.TempDir(TmpDir, "")
 	if err != nil {

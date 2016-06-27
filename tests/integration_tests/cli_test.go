@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
-	"github.com/rfjakob/gocryptfs/internal/nametransform"
 
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
@@ -76,30 +75,6 @@ func TestInitConfig(t *testing.T) {
 	err = cmd2.Run()
 	if err != nil {
 		t.Error(err)
-	}
-}
-
-// Test -init -plaintextnames
-func TestInitPlaintextNames(t *testing.T) {
-	dir := test_helpers.InitFS(t, "-plaintextnames")
-	dir = dir + "/"
-	_, err := os.Stat(dir + configfile.ConfDefaultName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = os.Stat(dir + nametransform.DirIVFilename)
-	if err == nil {
-		t.Errorf("gocryptfs.diriv should not have been created with -plaintextnames")
-	}
-	_, cf, err := configfile.LoadConfFile(dir+configfile.ConfDefaultName, "test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !cf.IsFeatureFlagSet(configfile.FlagPlaintextNames) {
-		t.Error("PlaintextNames flag should be set but isnt")
-	}
-	if cf.IsFeatureFlagSet(configfile.FlagEMENames) || cf.IsFeatureFlagSet(configfile.FlagDirIV) {
-		t.Error("FlagEMENames and FlagDirIV should be not set")
 	}
 }
 
