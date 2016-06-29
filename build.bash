@@ -4,12 +4,15 @@ set -eu
 
 cd "$(dirname "$0")"
 
+# GOPATH may contain multiple paths separated by ":"
+GOPATH2=$(echo $GOPATH | cut -f1 -d:)
+
 # gocryptfs version according to git
 GITVERSION=$(git describe --tags --dirty)
 
 # go-fuse version according to git
 GITVERSIONFUSE=$(
-	cd $GOPATH/src/github.com/hanwen/go-fuse
+	cd $GOPATH2/src/github.com/hanwen/go-fuse
 	SHORT=$(git rev-parse --short HEAD)
 
 	# Check if the tree is dirty, adapted from
@@ -37,5 +40,5 @@ fi
 
 ./gocryptfs -version
 
-mkdir -p $GOPATH/bin
-cp -af gocryptfs $GOPATH/bin
+mkdir -p $GOPATH2/bin
+cp -af gocryptfs $GOPATH2/bin
