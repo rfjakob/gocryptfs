@@ -20,7 +20,9 @@ func TestMain(m *testing.M) {
 	cDir = test_helpers.InitFS(nil, "-plaintextnames")
 	pDir = cDir + ".mnt"
 	test_helpers.MountOrExit(cDir, pDir, "-extpass", "echo test")
-	os.Exit(m.Run())
+	r := m.Run()
+	test_helpers.Unmount(pDir)
+	os.Exit(r)
 }
 
 // Only the PlaintextNames feature flag should be set

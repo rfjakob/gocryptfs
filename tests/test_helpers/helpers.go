@@ -10,16 +10,30 @@ import (
 	"path/filepath"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 )
 
-// Note: the code assumes that all have a trailing slash
-const TmpDir = "/tmp/gocryptfs_main_test/"
-const DefaultPlainDir = TmpDir + "plain/"
-const DefaultCipherDir = TmpDir + "cipher/"
-
+const testParentDir = "/tmp/gocryptfs-test-parent"
 const GocryptfsBinary = "../../gocryptfs"
+
+// "go test" runs package tests in parallel! We must create a unique TmpDir on
+// startup or the tests will interfere horribly
+var TmpDir string
+var DefaultPlainDir string
+var DefaultCipherDir string
+
+func init() {
+	os.MkdirAll(testParentDir, 0700)
+	var err error
+	TmpDir, err = ioutil.TempDir(testParentDir, "")
+	if err != nil {
+		panic(err)
+	}
+	DefaultPlainDir = TmpDir + "/default-plain"
+	DefaultCipherDir = TmpDir + "/default-cipher"
+}
 
 // ResetTmpDir - delete TmpDir, create new dir tree:
 //
@@ -28,38 +42,31 @@ const GocryptfsBinary = "../../gocryptfs"
 // *-- DefaultCipherDir
 //     *-- gocryptfs.diriv
 func ResetTmpDir(plaintextNames bool) {
-
-	// Try to unmount everything
+	// Try to unmount and delete everything
 	entries, err := ioutil.ReadDir(TmpDir)
 	if err == nil {
 		for _, e := range entries {
-			fu := exec.Command("fusermount", "-z", "-u", filepath.Join(TmpDir, e.Name()))
-			fu.Run()
+			d := filepath.Join(TmpDir, e.Name())
+			err = os.Remove(d)
+			if err != nil {
+				fu := exec.Command("fusermount", "-z", "-u", d)
+				fu.Run()
+				os.RemoveAll(d)
+			}
 		}
 	}
-
-	err = os.RemoveAll(TmpDir)
+	err = os.Mkdir(DefaultPlainDir, 0700)
 	if err != nil {
-		fmt.Println("resetTmpDir: RemoveAll:" + err.Error())
-		os.Exit(1)
+		panic(err)
 	}
-
-	err = os.MkdirAll(DefaultPlainDir, 0777)
+	err = os.Mkdir(DefaultCipherDir, 0700)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	err = os.MkdirAll(DefaultCipherDir, 0777)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		panic(err)
 	}
 	if !plaintextNames {
 		err = nametransform.WriteDirIV(DefaultCipherDir)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			panic(err)
 		}
 	}
 }
@@ -73,7 +80,6 @@ func InitFS(t *testing.T, extraArgs ...string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	args := []string{"-q", "-init", "-extpass", "echo test", "-scryptn=10"}
 	args = append(args, extraArgs...)
 	args = append(args, dir)
@@ -95,7 +101,7 @@ func InitFS(t *testing.T, extraArgs ...string) string {
 func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 	var args []string
 	args = append(args, extraArgs...)
-	args = append(args, "-nosyslog", "-q", "-wpanic")
+	args = append(args, "-q", "-wpanic")
 	//args = append(args, "-fusedebug")
 	//args = append(args, "-d")
 	args = append(args, c)
@@ -142,7 +148,9 @@ func Unmount(p string) error {
 	err := fu.Run()
 	if err != nil {
 		fmt.Println(err)
+		panic(err)
 	}
+	time.Sleep(10 * time.Millisecond)
 	return err
 }
 
@@ -184,7 +192,7 @@ func VerifySize(t *testing.T, path string, want int) {
 
 // Create and delete a directory
 func TestMkdirRmdir(t *testing.T, plainDir string) {
-	dir := plainDir + "dir1"
+	dir := plainDir + "/dir1"
 	err := os.Mkdir(dir, 0777)
 	if err != nil {
 		t.Fatal(err)
@@ -231,8 +239,8 @@ func TestMkdirRmdir(t *testing.T, plainDir string) {
 
 // Create and rename a file
 func TestRename(t *testing.T, plainDir string) {
-	file1 := plainDir + "rename1"
-	file2 := plainDir + "rename2"
+	file1 := plainDir + "/rename1"
+	file2 := plainDir + "/rename2"
 	err := ioutil.WriteFile(file1, []byte("content"), 0777)
 	if err != nil {
 		t.Fatal(err)
@@ -247,14 +255,12 @@ func TestRename(t *testing.T, plainDir string) {
 // verifyExistence - check in 3 ways that "path" exists:
 // stat, open, readdir
 func VerifyExistence(path string) bool {
-
 	// Check that file can be stated
 	_, err := os.Stat(path)
 	if err != nil {
 		//t.Log(err)
 		return false
 	}
-
 	// Check that file can be opened
 	fd, err := os.Open(path)
 	if err != nil {
@@ -262,7 +268,6 @@ func VerifyExistence(path string) bool {
 		return false
 	}
 	fd.Close()
-
 	// Check that file shows up in directory listing
 	dir := filepath.Dir(path)
 	name := filepath.Base(path)

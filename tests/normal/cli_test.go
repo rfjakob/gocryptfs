@@ -1,4 +1,4 @@
-package integration_tests
+package normal
 
 // Test CLI operations like "-init", "-password" etc
 
@@ -12,6 +12,14 @@ import (
 
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
+
+func TestMain(m *testing.M) {
+	test_helpers.ResetTmpDir(false)
+	test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, "--zerokey")
+	r := m.Run()
+	test_helpers.Unmount(test_helpers.DefaultPlainDir)
+	os.Exit(r)
+}
 
 // Test -init flag
 func TestInit(t *testing.T) {
@@ -59,7 +67,7 @@ func TestPasswd(t *testing.T) {
 
 // Test -init & -config flag
 func TestInitConfig(t *testing.T) {
-	config := test_helpers.TmpDir + "TestInitConfig.conf"
+	config := test_helpers.TmpDir + "/TestInitConfig.conf"
 	dir := test_helpers.InitFS(t, "-config="+config)
 
 	_, err := os.Stat(config)

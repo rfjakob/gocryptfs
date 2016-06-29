@@ -1,4 +1,4 @@
-package integration_tests
+package normal
 
 // Benchmarks
 

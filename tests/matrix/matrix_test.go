@@ -1,6 +1,14 @@
-package integration_tests
+package matrix
 
 // File reading, writing, modification, truncate
+//
+// Runs everything four times, for all combinations of
+// "-plaintextnames" and "-openssl".
+//
+// Test Matrix:
+//                       openssl=true openssl=false
+// plaintextnames=false  X            X
+// plaintextnames=true   X            X
 
 import (
 	"bytes"
@@ -18,61 +26,38 @@ import (
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
-var plaintextNames bool
+// Several tests need to be aware if plaintextnames is active or not, so make this
+// a global variable
+var plaintextnames bool
 
 // This is the entry point for the tests
 func TestMain(m *testing.M) {
-	var defaultonly bool
-	flag.BoolVar(&defaultonly, "defaultonly", false, "Only test default configuration (openssl=true, plaintextnames=false)")
+	// Make "testing.Verbose()" return the correct value
 	flag.Parse()
+	for _, openssl := range []bool{true, false} {
+		for _, plaintextnames = range []bool{true, false} {
+			if testing.Verbose() {
+				fmt.Printf("Testing openssl=%v plaintextnames=%v\n", openssl, plaintextnames)
 
-	if testing.Verbose() {
-		fmt.Println("***** Testing with OpenSSL")
+			}
+			test_helpers.ResetTmpDir(plaintextnames)
+			opts := []string{"--zerokey"}
+			opts = append(opts, fmt.Sprintf("-openssl=%v", openssl))
+			opts = append(opts, fmt.Sprintf("-plaintextnames=%v", plaintextnames))
+			test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, opts...)
+			r := m.Run()
+			test_helpers.Unmount(test_helpers.DefaultPlainDir)
+			if r != 0 {
+				os.Exit(r)
+			}
+		}
 	}
-	test_helpers.ResetTmpDir(false) // <- this also create gocryptfs.diriv
-	test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, "--zerokey")
-	r := m.Run()
-	test_helpers.Unmount(test_helpers.DefaultPlainDir)
-
-	if r != 0 {
-		os.Exit(r)
-	}
-
-	if defaultonly {
-		os.Exit(r)
-	}
-
-	if testing.Verbose() {
-		fmt.Println("***** Testing with native Go crypto")
-	}
-	test_helpers.ResetTmpDir(false)
-	test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, "--zerokey", "--openssl=false")
-	r = m.Run()
-	test_helpers.Unmount(test_helpers.DefaultPlainDir)
-
-	if r != 0 {
-		os.Exit(r)
-	}
-
-	if testing.Verbose() {
-		fmt.Println("***** Testing \"--plaintextnames\"")
-	}
-	test_helpers.ResetTmpDir(true) // do not create gocryptfs.diriv
-	test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, "--zerokey", "--plaintextnames")
-	plaintextNames = true
-	r = m.Run()
-	test_helpers.Unmount(test_helpers.DefaultPlainDir)
-
-	if r != 0 {
-		os.Exit(r)
-	}
-
-	os.Exit(r)
+	os.Exit(0)
 }
 
 // Write "n" zero bytes to filename "fn", read again, compare hash
 func testWriteN(t *testing.T, fn string, n int) string {
-	file, err := os.Create(test_helpers.DefaultPlainDir + fn)
+	file, err := os.Create(test_helpers.DefaultPlainDir + "/" + fn)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,12 +72,12 @@ func testWriteN(t *testing.T, fn string, n int) string {
 		t.Error(err)
 	}
 
-	test_helpers.VerifySize(t, test_helpers.DefaultPlainDir+fn, n)
+	test_helpers.VerifySize(t, test_helpers.DefaultPlainDir+"/"+fn, n)
 
 	bin := md5.Sum(d)
 	hashWant := hex.EncodeToString(bin[:])
 
-	hashActual := test_helpers.Md5fn(test_helpers.DefaultPlainDir + fn)
+	hashActual := test_helpers.Md5fn(test_helpers.DefaultPlainDir + "/" + fn)
 
 	if hashActual != hashWant {
 		t.Errorf("Wrong content, hashWant=%s hashActual=%s", hashWant, hashActual)
@@ -113,14 +98,14 @@ func TestWrite1M(t *testing.T) {
 	testWriteN(t, "1M", 1024*1024)
 }
 
-func TestWrite1Mx100(t *testing.T) {
-	hashWant := testWriteN(t, "1Mx100", 1024*1024)
+func TestWrite100x100(t *testing.T) {
+	hashWant := testWriteN(t, "100x100", 100)
 	// Read and check 100 times to catch race conditions
 	var i int
 	for i = 0; i < 100; i++ {
-		hashActual := test_helpers.Md5fn(test_helpers.DefaultPlainDir + "1M")
+		hashActual := test_helpers.Md5fn(test_helpers.DefaultPlainDir + "/100")
 		if hashActual != hashWant {
-			fmt.Printf("Read corruption in loop # %d\n", i)
+			fmt.Printf("Read corruption in loop #%d\n", i)
 			t.FailNow()
 		} else {
 			//fmt.Print(".")
@@ -129,7 +114,7 @@ func TestWrite1Mx100(t *testing.T) {
 }
 
 func TestTruncate(t *testing.T) {
-	fn := test_helpers.DefaultPlainDir + "truncate"
+	fn := test_helpers.DefaultPlainDir + "/truncate"
 	file, err := os.Create(fn)
 	if err != nil {
 		t.FailNow()
@@ -161,7 +146,7 @@ func TestTruncate(t *testing.T) {
 }
 
 func TestAppend(t *testing.T) {
-	fn := test_helpers.DefaultPlainDir + "append"
+	fn := test_helpers.DefaultPlainDir + "/append"
 	file, err := os.Create(fn)
 	if err != nil {
 		t.FailNow()
@@ -195,7 +180,7 @@ func TestAppend(t *testing.T) {
 // Create a file with holes by writing to offset 0 (block #0) and
 // offset 4096 (block #1).
 func TestFileHoles(t *testing.T) {
-	fn := test_helpers.DefaultPlainDir + "fileholes"
+	fn := test_helpers.DefaultPlainDir + "/fileholes"
 	file, err := os.Create(fn)
 	if err != nil {
 		t.Errorf("file create failed")
@@ -223,7 +208,7 @@ func TestRmwRace(t *testing.T) {
 
 	runtime.GOMAXPROCS(10)
 
-	fn := test_helpers.DefaultPlainDir + "rmwrace"
+	fn := test_helpers.DefaultPlainDir + "/rmwrace"
 	f1, err := os.Create(fn)
 	if err != nil {
 		t.Fatalf("file create failed")
@@ -286,42 +271,38 @@ func TestRmwRace(t *testing.T) {
 			}
 		*/
 	}
-	if testing.Verbose() {
-		fmt.Println(goodMd5)
-	}
 }
 
 // With "--plaintextnames", the name "/gocryptfs.conf" is reserved.
 // Otherwise there should be no restrictions.
 func TestFiltered(t *testing.T) {
-	filteredFile := test_helpers.DefaultPlainDir + "gocryptfs.conf"
+	filteredFile := test_helpers.DefaultPlainDir + "/gocryptfs.conf"
 	file, err := os.Create(filteredFile)
-	if plaintextNames == true && err == nil {
+	if plaintextnames == true && err == nil {
 		t.Errorf("should have failed but didn't")
-	} else if plaintextNames == false && err != nil {
+	} else if plaintextnames == false && err != nil {
 		t.Error(err)
 	}
 	file.Close()
 
 	err = os.Remove(filteredFile)
-	if plaintextNames == true && err == nil {
+	if plaintextnames == true && err == nil {
 		t.Errorf("should have failed but didn't")
-	} else if plaintextNames == false && err != nil {
+	} else if plaintextnames == false && err != nil {
 		t.Error(err)
 	}
 }
 
 func TestFilenameEncryption(t *testing.T) {
-	file, err := os.Create(test_helpers.DefaultPlainDir + "TestFilenameEncryption.txt")
+	file, err := os.Create(test_helpers.DefaultPlainDir + "/TestFilenameEncryption.txt")
 	file.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	_, err = os.Stat(test_helpers.DefaultCipherDir + "TestFilenameEncryption.txt")
-	if plaintextNames == true && err != nil {
+	_, err = os.Stat(test_helpers.DefaultCipherDir + "/TestFilenameEncryption.txt")
+	if plaintextnames == true && err != nil {
 		t.Errorf("plaintextnames not working: %v", err)
-	} else if plaintextNames == false && err == nil {
+	} else if plaintextnames == false && err == nil {
 		t.Errorf("file name encryption not working")
 	}
 }
@@ -338,8 +319,8 @@ func testRename(t *testing.T) {
 
 // Overwrite an empty directory with another directory
 func TestDirOverwrite(t *testing.T) {
-	dir1 := test_helpers.DefaultPlainDir + "DirOverwrite1"
-	dir2 := test_helpers.DefaultPlainDir + "DirOverwrite2"
+	dir1 := test_helpers.DefaultPlainDir + "/DirOverwrite1"
+	dir2 := test_helpers.DefaultPlainDir + "/DirOverwrite2"
 	err := os.Mkdir(dir1, 0777)
 	if err != nil {
 		t.Fatal(err)
@@ -360,7 +341,7 @@ func TestLongNames(t *testing.T) {
 		t.Fatal(err)
 	}
 	cnt1 := len(fi)
-	wd := test_helpers.DefaultPlainDir
+	wd := test_helpers.DefaultPlainDir + "/"
 	// Create file with long name
 	n255x := string(bytes.Repeat([]byte("x"), 255))
 	f, err := os.Create(wd + n255x)
@@ -439,7 +420,7 @@ func TestLongNames(t *testing.T) {
 }
 
 func TestLchown(t *testing.T) {
-	name := test_helpers.DefaultPlainDir + "symlink"
+	name := test_helpers.DefaultPlainDir + "/symlink"
 	err := os.Symlink("/target/does/not/exist", name)
 	if err != nil {
 		t.Fatal(err)
