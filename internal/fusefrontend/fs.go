@@ -408,10 +408,12 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 	}
 	// Actual rename
 	err = syscall.Renameat(finalOldDirFd, finalOldPath, finalNewDirFd, finalNewPath)
-	if err == syscall.ENOTEMPTY {
-		// If an empty directory is overwritten we will always get ENOTEMPTY as
+	if err == syscall.ENOTEMPTY || err == syscall.EEXIST {
+		// If an empty directory is overwritten we will always get an error as
 		// the "empty" directory will still contain gocryptfs.diriv.
-		// Handle that case by removing the target directory and trying again.
+		// Interestingly, ext4 returns ENOTEMPTY while xfs returns EEXIST.
+		// We handle that by trying to fs.Rmdir() the target directory and trying
+		// again.
 		tlog.Debug.Printf("Rename: Handling ENOTEMPTY")
 		if fs.Rmdir(newPath, context) == fuse.OK {
 			err = syscall.Renameat(finalOldDirFd, finalOldPath, finalNewDirFd, finalNewPath)
