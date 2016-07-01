@@ -66,6 +66,7 @@ func (be *ContentEnc) PlainSizeToCipherSize(plainSize uint64) uint64 {
 }
 
 // Split a plaintext byte range into (possibly partial) blocks
+// Returns an empty slice if length == 0.
 func (be *ContentEnc) ExplodePlainRange(offset uint64, length uint64) []intraBlock {
 	var blocks []intraBlock
 	var nextBlock intraBlock

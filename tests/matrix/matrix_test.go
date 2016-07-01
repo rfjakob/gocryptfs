@@ -113,6 +113,8 @@ func TestWrite100x100(t *testing.T) {
 	}
 }
 
+// Hint for calculating reference md5sums:
+// dd if=/dev/zero count=1 bs=XYZ | md5sum
 func TestTruncate(t *testing.T) {
 	fn := test_helpers.DefaultPlainDir + "/truncate"
 	file, err := os.Create(fn)
@@ -141,6 +143,31 @@ func TestTruncate(t *testing.T) {
 	file.Truncate(4096)
 	test_helpers.VerifySize(t, fn, 4096)
 	if test_helpers.Md5fn(fn) != "620f0b67a91f7f74151bc5be745b7110" {
+		t.Errorf("wrong content")
+	}
+	// Truncate to zero
+	file.Truncate(0)
+	test_helpers.VerifySize(t, fn, 0)
+	// Grow to 10MB (creates file holes)
+	var sz int
+	sz = 10 * 1024 * 1024
+	file.Truncate(int64(sz))
+	test_helpers.VerifySize(t, fn, sz)
+	if test_helpers.Md5fn(fn) != "f1c9645dbc14efddc7d8a322685f26eb" {
+		t.Errorf("wrong content")
+	}
+	// Grow to 10MB + 100B (partial block on the end)
+	sz = 10*1024*1024 + 100
+	file.Truncate(int64(sz))
+	test_helpers.VerifySize(t, fn, sz)
+	if test_helpers.Md5fn(fn) != "c23ea79b857b91a7ff07c6ecf185f1ca" {
+		t.Errorf("wrong content")
+	}
+	// Grow to 20MB (creates file holes, partial block on the front)
+	sz = 20 * 1024 * 1024
+	file.Truncate(int64(sz))
+	test_helpers.VerifySize(t, fn, sz)
+	if test_helpers.Md5fn(fn) != "8f4e33f3dc3e414ff94e5fb6905cba8c" {
 		t.Errorf("wrong content")
 	}
 }

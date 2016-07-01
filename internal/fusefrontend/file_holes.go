@@ -22,6 +22,10 @@ func (f *file) createsHole(plainSize uint64, off int64) bool {
 func (f *file) zeroPad(plainSize uint64) fuse.Status {
 	lastBlockLen := plainSize % f.contentEnc.PlainBS()
 	missing := f.contentEnc.PlainBS() - lastBlockLen
+	if missing == 0 {
+		// Already block-aligned
+		return fuse.OK
+	}
 	pad := make([]byte, missing)
 	tlog.Debug.Printf("zeroPad: Writing %d bytes\n", missing)
 	_, status := f.doWrite(pad, int64(plainSize))

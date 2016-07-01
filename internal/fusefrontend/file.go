@@ -217,6 +217,8 @@ const FALLOC_FL_KEEP_SIZE = 0x01
 //
 // Called by Write() for normal writing,
 // and by Truncate() to rewrite the last file block.
+//
+// Empty writes do nothing and are allowed.
 func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 
 	// Read header from disk, create a new one if the file is empty
@@ -282,6 +284,8 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 }
 
 // Write - FUSE call
+//
+// If the write creates a hole, pads the file to the next block boundary.
 func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
@@ -362,7 +366,6 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 	wlock.lock(f.ino)
 	defer wlock.unlock(f.ino)
 	var err error
-
 	// Common case first: Truncate to zero
 	if newSize == 0 {
 		err = syscall.Ftruncate(int(f.fd.Fd()), 0)
@@ -374,7 +377,6 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 		f.header = nil
 		return fuse.OK
 	}
-
 	// We need the old file size to determine if we are growing or shrinking
 	// the file
 	fi, err := f.fd.Stat()
@@ -388,12 +390,10 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 		newB := float32(newSize) / float32(f.contentEnc.PlainBS())
 		tlog.Debug.Printf("ino%d: FUSE Truncate from %.2f to %.2f blocks (%d to %d bytes)", f.ino, oldB, newB, oldSize, newSize)
 	}
-
 	// File size stays the same - nothing to do
 	if newSize == oldSize {
 		return fuse.OK
 	}
-
 	// File grows
 	if newSize > oldSize {
 		// File was empty, create new header
@@ -405,30 +405,22 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 		}
 		// New blocks to add
 		addBlocks := f.contentEnc.ExplodePlainRange(oldSize, newSize-oldSize)
-		for _, b := range addBlocks {
-			// First and last block may be partial and must be actually written
-			if b.IsPartial() {
-				off, _ := b.PlaintextRange()
-				off += b.Skip
-				_, status := f.doWrite(make([]byte, b.Length), int64(off))
-				if status != fuse.OK {
-					return status
-				}
-			} else {
-				// Complete all-zero blocks can stay all-zero because we do file
-				// hole passthrough.
-				// TODO We are growing the file block-by-block which is pretty
-				// inefficient. We could coalesce all the grows into a single
-				// Ftruncate.
-				off, length := b.CiphertextRange()
-				err = syscall.Ftruncate(int(f.fd.Fd()), int64(off+length))
-				if err != nil {
-					tlog.Warn.Printf("grow Ftruncate returned error: %v", err)
-					return fuse.ToStatus(err)
-				}
-			}
+		if len(addBlocks) >= 2 {
+			f.zeroPad(oldSize)
 		}
-		return fuse.OK
+		lastBlock := addBlocks[len(addBlocks)-1]
+		if lastBlock.IsPartial() {
+			off, _ := lastBlock.PlaintextRange()
+			_, status := f.doWrite(make([]byte, lastBlock.Length), int64(off+lastBlock.Skip))
+			return status
+		} else {
+			off, length := lastBlock.CiphertextRange()
+			err = syscall.Ftruncate(f.intFd(), int64(off+length))
+			if err != nil {
+				tlog.Warn.Printf("Truncate: grow Ftruncate returned error: %v", err)
+			}
+			return fuse.ToStatus(err)
+		}
 	} else {
 		// File shrinks
 		blockNo := f.contentEnc.PlainOffToBlockNo(newSize)
@@ -440,14 +432,14 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 			var status fuse.Status
 			data, status = f.doRead(plainOff, lastBlockLen)
 			if status != fuse.OK {
-				tlog.Warn.Printf("shrink doRead returned error: %v", err)
+				tlog.Warn.Printf("Truncate: shrink doRead returned error: %v", err)
 				return status
 			}
 		}
 		// Truncate down to the last complete block
 		err = syscall.Ftruncate(int(f.fd.Fd()), int64(cipherOff))
 		if err != nil {
-			tlog.Warn.Printf("shrink Ftruncate returned error: %v", err)
+			tlog.Warn.Printf("Truncate: shrink Ftruncate returned error: %v", err)
 			return fuse.ToStatus(err)
 		}
 		// Append partial block
