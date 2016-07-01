@@ -244,7 +244,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 		// Incomplete block -> Read-Modify-Write
 		if b.IsPartial() {
 			// Read
-			o, _ := b.PlaintextRange()
+			o := b.BlockPlainOff()
 			var oldData []byte
 			oldData, status = f.doRead(o, f.contentEnc.PlainBS())
 			if status != fuse.OK {
@@ -257,13 +257,13 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 		}
 
 		// Encrypt
-		blockOffset, blockLen := b.CiphertextRange()
+		blockOffset := b.BlockCipherOff()
 		blockData = f.contentEnc.EncryptBlock(blockData, b.BlockNo, f.header.Id)
 		tlog.Debug.Printf("ino%d: Writing %d bytes to block #%d",
 			f.ino, uint64(len(blockData))-f.contentEnc.BlockOverhead(), b.BlockNo)
 
 		// Prevent partially written (=corrupt) blocks by preallocating the space beforehand
-		err := prealloc(int(f.fd.Fd()), int64(blockOffset), int64(blockLen))
+		err := prealloc(int(f.fd.Fd()), int64(blockOffset), int64(len(blockData)))
 		if err != nil {
 			tlog.Warn.Printf("ino%d fh%d: doWrite: prealloc failed: %s", f.ino, f.intFd(), err.Error())
 			status = fuse.ToStatus(err)
@@ -410,12 +410,12 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 		}
 		lastBlock := addBlocks[len(addBlocks)-1]
 		if lastBlock.IsPartial() {
-			off, _ := lastBlock.PlaintextRange()
+			off := lastBlock.BlockPlainOff()
 			_, status := f.doWrite(make([]byte, lastBlock.Length), int64(off+lastBlock.Skip))
 			return status
 		} else {
-			off, length := lastBlock.CiphertextRange()
-			err = syscall.Ftruncate(f.intFd(), int64(off+length))
+			off := lastBlock.BlockCipherOff()
+			err = syscall.Ftruncate(f.intFd(), int64(off+f.contentEnc.CipherBS()))
 			if err != nil {
 				tlog.Warn.Printf("Truncate: grow Ftruncate returned error: %v", err)
 			}

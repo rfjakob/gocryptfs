@@ -40,8 +40,14 @@ func New(cc *cryptocore.CryptoCore, plainBS uint64) *ContentEnc {
 	}
 }
 
+// PlainBS returns the plaintext block size
 func (be *ContentEnc) PlainBS() uint64 {
 	return be.plainBS
+}
+
+// CipherBS returns the ciphertext block size
+func (be *ContentEnc) CipherBS() uint64 {
+	return be.cipherBS
 }
 
 // DecryptBlocks - Decrypt a number of blocks

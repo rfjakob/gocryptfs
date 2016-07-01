@@ -16,16 +16,14 @@ func (ib *intraBlock) IsPartial() bool {
 	return false
 }
 
-// CiphertextRange - get byte range in ciphertext file corresponding to BlockNo
-// (complete block)
-func (ib *intraBlock) CiphertextRange() (offset uint64, length uint64) {
-	return ib.fs.BlockNoToCipherOff(ib.BlockNo), ib.fs.cipherBS
+// BlockCipherOff returns the ciphertext offset corresponding to BlockNo
+func (ib *intraBlock) BlockCipherOff() (offset uint64) {
+	return ib.fs.BlockNoToCipherOff(ib.BlockNo)
 }
 
-// PlaintextRange - get byte range in plaintext corresponding to BlockNo
-// (complete block)
-func (ib *intraBlock) PlaintextRange() (offset uint64, length uint64) {
-	return ib.fs.BlockNoToPlainOff(ib.BlockNo), ib.fs.plainBS
+// BlockPlainOff returns the plaintext offset corresponding to BlockNo
+func (ib *intraBlock) BlockPlainOff() (offset uint64) {
+	return ib.fs.BlockNoToPlainOff(ib.BlockNo)
 }
 
 // CropBlock - crop a potentially larger plaintext block down to the relevant part
