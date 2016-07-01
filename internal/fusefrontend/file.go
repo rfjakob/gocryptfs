@@ -396,7 +396,6 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 
 	// File grows
 	if newSize > oldSize {
-
 		// File was empty, create new header
 		if oldSize == 0 {
 			err = f.createHeader()
@@ -404,10 +403,10 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 				return fuse.ToStatus(err)
 			}
 		}
-
-		blocks := f.contentEnc.ExplodePlainRange(oldSize, newSize-oldSize)
-		for _, b := range blocks {
-			// First and last block may be partial
+		// New blocks to add
+		addBlocks := f.contentEnc.ExplodePlainRange(oldSize, newSize-oldSize)
+		for _, b := range addBlocks {
+			// First and last block may be partial and must be actually written
 			if b.IsPartial() {
 				off, _ := b.PlaintextRange()
 				off += b.Skip
@@ -416,6 +415,11 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 					return status
 				}
 			} else {
+				// Complete all-zero blocks can stay all-zero because we do file
+				// hole passthrough.
+				// TODO We are growing the file block-by-block which is pretty
+				// inefficient. We could coalesce all the grows into a single
+				// Ftruncate.
 				off, length := b.CiphertextRange()
 				err = syscall.Ftruncate(int(f.fd.Fd()), int64(off+length))
 				if err != nil {
@@ -440,7 +444,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 				return status
 			}
 		}
-		// Truncate down to last complete block
+		// Truncate down to the last complete block
 		err = syscall.Ftruncate(int(f.fd.Fd()), int64(cipherOff))
 		if err != nil {
 			tlog.Warn.Printf("shrink Ftruncate returned error: %v", err)
