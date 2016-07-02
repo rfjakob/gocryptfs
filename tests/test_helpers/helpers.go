@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"syscall"
 	"testing"
 	"time"
@@ -142,10 +143,15 @@ func MountOrFatal(t *testing.T, c string, p string, extraArgs ...string) {
 
 // Unmount PLAINDIR "p"
 func Unmount(p string) error {
-	fu := exec.Command("fusermount", "-u", "-z", p)
-	fu.Stdout = os.Stdout
-	fu.Stderr = os.Stderr
-	err := fu.Run()
+	var cmd *exec.Cmd
+	if runtime.GOOS == "darwin" {
+		cmd = exec.Command("umount", p)
+	} else {
+		cmd = exec.Command("fusermount", "-u", "-z", p)
+	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
