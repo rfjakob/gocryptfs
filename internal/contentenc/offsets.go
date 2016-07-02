@@ -76,7 +76,7 @@ func (be *ContentEnc) ExplodePlainRange(offset uint64, length uint64) []intraBlo
 		nextBlock.BlockNo = be.PlainOffToBlockNo(offset)
 		nextBlock.Skip = offset - be.BlockNoToPlainOff(nextBlock.BlockNo)
 
-		// Minimum of remaining data and remaining space in the block
+		// Minimum of remaining plaintext data and remaining space in the block
 		nextBlock.Length = MinUint64(length, be.plainBS-nextBlock.Skip)
 
 		blocks = append(blocks, nextBlock)

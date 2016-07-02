@@ -4,7 +4,7 @@ package contentenc
 type intraBlock struct {
 	BlockNo uint64 // Block number in file
 	Skip    uint64 // Offset into block plaintext
-	Length  uint64 // Length of data from this block
+	Length  uint64 // Length of plaintext data in this block
 	fs      *ContentEnc
 }
 
