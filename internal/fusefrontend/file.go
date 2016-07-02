@@ -208,8 +208,6 @@ func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 	return fuse.ReadResultData(out), status
 }
 
-const FALLOC_FL_KEEP_SIZE = 0x01
-
 // doWrite - encrypt "data" and write it to plaintext offset "off"
 //
 // Arguments do not have to be block-aligned, read-modify-write is

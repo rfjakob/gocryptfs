@@ -124,26 +124,26 @@ func TestTruncate(t *testing.T) {
 	// Grow to two blocks
 	file.Truncate(7000)
 	test_helpers.VerifySize(t, fn, 7000)
-	if test_helpers.Md5fn(fn) != "95d4ec7038e3e4fdbd5f15c34c3f0b34" {
-		t.Errorf("wrong content")
+	if md5 := test_helpers.Md5fn(fn); md5 != "95d4ec7038e3e4fdbd5f15c34c3f0b34" {
+		t.Errorf("Wrong md5 %s", md5)
 	}
 	// Shrink - needs RMW
 	file.Truncate(6999)
 	test_helpers.VerifySize(t, fn, 6999)
-	if test_helpers.Md5fn(fn) != "35fd15873ec6c35380064a41b9b9683b" {
-		t.Errorf("wrong content")
+	if md5 := test_helpers.Md5fn(fn); md5 != "35fd15873ec6c35380064a41b9b9683b" {
+		t.Errorf("Wrong md5 %s", md5)
 	}
 	// Shrink to one partial block
 	file.Truncate(465)
 	test_helpers.VerifySize(t, fn, 465)
-	if test_helpers.Md5fn(fn) != "a1534d6e98a6b21386456a8f66c55260" {
-		t.Errorf("wrong content")
+	if md5 := test_helpers.Md5fn(fn); md5 != "a1534d6e98a6b21386456a8f66c55260" {
+		t.Errorf("Wrong md5 %s", md5)
 	}
 	// Grow to exactly one block
 	file.Truncate(4096)
 	test_helpers.VerifySize(t, fn, 4096)
-	if test_helpers.Md5fn(fn) != "620f0b67a91f7f74151bc5be745b7110" {
-		t.Errorf("wrong content")
+	if md5 := test_helpers.Md5fn(fn); md5 != "620f0b67a91f7f74151bc5be745b7110" {
+		t.Errorf("Wrong md5 %s", md5)
 	}
 	// Truncate to zero
 	file.Truncate(0)
@@ -153,23 +153,131 @@ func TestTruncate(t *testing.T) {
 	sz = 10 * 1024 * 1024
 	file.Truncate(int64(sz))
 	test_helpers.VerifySize(t, fn, sz)
-	if test_helpers.Md5fn(fn) != "f1c9645dbc14efddc7d8a322685f26eb" {
-		t.Errorf("wrong content")
+	if md5 := test_helpers.Md5fn(fn); md5 != "f1c9645dbc14efddc7d8a322685f26eb" {
+		t.Errorf("Wrong md5 %s", md5)
 	}
 	// Grow to 10MB + 100B (partial block on the end)
 	sz = 10*1024*1024 + 100
 	file.Truncate(int64(sz))
 	test_helpers.VerifySize(t, fn, sz)
-	if test_helpers.Md5fn(fn) != "c23ea79b857b91a7ff07c6ecf185f1ca" {
-		t.Errorf("wrong content")
+	if md5 := test_helpers.Md5fn(fn); md5 != "c23ea79b857b91a7ff07c6ecf185f1ca" {
+		t.Errorf("Wrong md5 %s", md5)
 	}
 	// Grow to 20MB (creates file holes, partial block on the front)
 	sz = 20 * 1024 * 1024
 	file.Truncate(int64(sz))
 	test_helpers.VerifySize(t, fn, sz)
-	if test_helpers.Md5fn(fn) != "8f4e33f3dc3e414ff94e5fb6905cba8c" {
-		t.Errorf("wrong content")
+	if md5 := test_helpers.Md5fn(fn); md5 != "8f4e33f3dc3e414ff94e5fb6905cba8c" {
+		t.Errorf("Wrong md5 %s", md5)
 	}
+}
+
+const FALLOC_DEFAULT = 0x00
+const FALLOC_FL_KEEP_SIZE = 0x01
+
+func TestFallocate(t *testing.T) {
+	fn := test_helpers.DefaultPlainDir + "/fallocate"
+	file, err := os.Create(fn)
+	if err != nil {
+		t.FailNow()
+	}
+	var nBlocks int64
+	fd := int(file.Fd())
+	_, nBlocks = test_helpers.Du(t, fd)
+	if nBlocks != 0 {
+		t.Fatalf("Empty file has %d blocks", nBlocks)
+	}
+	// Allocate 30 bytes, keep size
+	// gocryptfs ||        (0 blocks)
+	//      ext4 |  d   |  (1 block)
+	err = syscall.Fallocate(fd, FALLOC_FL_KEEP_SIZE, 0, 30)
+	if err != nil {
+		t.Error(err)
+	}
+	_, nBlocks = test_helpers.Du(t, fd)
+	if want := 1; nBlocks/8 != int64(want) {
+		t.Errorf("Expected %d 4k block(s), got %d", want, nBlocks/8)
+	}
+	test_helpers.VerifySize(t, fn, 0)
+	// Three ciphertext blocks. The middle one should be a file hole.
+	// gocryptfs |  h   |   h  | d|   (1 block)
+	//      ext4 |  d  |  h  |  d  |  (2 blocks)
+	// (Note that gocryptfs blocks are slightly bigger than the ext4 blocks,
+	// but the last one is partial)
+	err = file.Truncate(9000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, nBlocks = test_helpers.Du(t, fd)
+	if want := 2; nBlocks/8 != int64(want) {
+		t.Errorf("Expected %d 4k block(s), got %d", want, nBlocks/8)
+	}
+	if md5 := test_helpers.Md5fn(fn); md5 != "5420afa22f6423a9f59e669540656bb4" {
+		t.Errorf("Wrong md5 %s", md5)
+	}
+	// Allocate the whole file space
+	// gocryptfs |  h   |   h  | d|   (1 block)
+	//      ext4 |  d  |  d  |  d  |  (3 blocks
+	err = syscall.Fallocate(fd, FALLOC_DEFAULT, 0, 9000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, nBlocks = test_helpers.Du(t, fd)
+	if want := 3; nBlocks/8 != int64(want) {
+		t.Errorf("Expected %d 4k block(s), got %d", want, nBlocks/8)
+	}
+	// Neither apparent size nor content should have changed
+	test_helpers.VerifySize(t, fn, 9000)
+	if md5 := test_helpers.Md5fn(fn); md5 != "5420afa22f6423a9f59e669540656bb4" {
+		t.Errorf("Wrong md5 %s", md5)
+	}
+
+	// Partial block on the end. The first ext4 block is dirtied by the header.
+	// gocryptfs |  h   |   h  | d|   (1 block)
+	//      ext4 |  d  |  h  |  d  |  (2 blocks)
+	file.Truncate(0)
+	file.Truncate(9000)
+	_, nBlocks = test_helpers.Du(t, fd)
+	if want := 2; nBlocks/8 != int64(want) {
+		t.Errorf("Expected %d 4k block(s), got %d", want, nBlocks/8)
+	}
+	// Allocate 10 bytes in the second block
+	// gocryptfs |  h   |   h  | d|   (1 block)
+	//      ext4 |  d  |  d  |  d  |  (2 blocks)
+	syscall.Fallocate(fd, FALLOC_DEFAULT, 5000, 10)
+	_, nBlocks = test_helpers.Du(t, fd)
+	if want := 3; nBlocks/8 != int64(want) {
+		t.Errorf("Expected %d 4k block(s), got %d", want, nBlocks/8)
+	}
+	// Neither apparent size nor content should have changed
+	test_helpers.VerifySize(t, fn, 9000)
+	if md5 := test_helpers.Md5fn(fn); md5 != "5420afa22f6423a9f59e669540656bb4" {
+		t.Errorf("Wrong md5 %s", md5)
+	}
+	// Grow the file to 4 blocks
+	// gocryptfs |  h   |  h   |  d   |d|  (2 blocks)
+	//      ext4 |  d  |  d  |  d  |  d  | (3 blocks)
+	syscall.Fallocate(fd, FALLOC_DEFAULT, 15000, 10)
+	_, nBlocks = test_helpers.Du(t, fd)
+	if want := 4; nBlocks/8 != int64(want) {
+		t.Errorf("Expected %d 4k block(s), got %d", want, nBlocks/8)
+	}
+	test_helpers.VerifySize(t, fn, 15010)
+	if md5 := test_helpers.Md5fn(fn); md5 != "c4c44c7a41ab7798a79d093eb44f99fc" {
+		t.Errorf("Wrong md5 %s", md5)
+	}
+	// Shrinking a file using fallocate should have no effect
+	for _, off := range []int64{0, 10, 2000, 5000} {
+		for _, sz := range []int64{0, 1, 42, 6000} {
+			syscall.Fallocate(fd, FALLOC_DEFAULT, off, sz)
+			test_helpers.VerifySize(t, fn, 15010)
+			if md5 := test_helpers.Md5fn(fn); md5 != "c4c44c7a41ab7798a79d093eb44f99fc" {
+				t.Errorf("Wrong md5 %s", md5)
+			}
+		}
+	}
+	// Cleanup
+	syscall.Unlink(fn)
 }
 
 func TestAppend(t *testing.T) {
