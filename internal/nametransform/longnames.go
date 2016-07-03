@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -65,7 +66,7 @@ func ReadLongName(path string) (string, error) {
 
 // DeleteLongName deletes "hashName.name".
 func DeleteLongName(dirfd *os.File, hashName string) error {
-	err := syscall.Unlinkat(int(dirfd.Fd()), hashName+LongNameSuffix)
+	err := syscallcompat.Unlinkat(int(dirfd.Fd()), hashName+LongNameSuffix)
 	if err != nil {
 		tlog.Warn.Printf("DeleteLongName: %v", err)
 	}
@@ -86,7 +87,7 @@ func (n *NameTransform) WriteLongName(dirfd *os.File, hashName string, plainName
 	cName := n.EncryptName(plainName, dirIV)
 
 	// Write the encrypted name into hashName.name
-	fdRaw, err := syscall.Openat(int(dirfd.Fd()), hashName+LongNameSuffix,
+	fdRaw, err := syscallcompat.Openat(int(dirfd.Fd()), hashName+LongNameSuffix,
 		syscall.O_WRONLY|syscall.O_CREAT|syscall.O_EXCL, 0600)
 	if err != nil {
 		tlog.Warn.Printf("WriteLongName: Openat: %v", err)

@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -35,7 +36,7 @@ func ReadDirIV(dir string) (iv []byte, err error) {
 // ReadDirIVAt reads "gocryptfs.diriv" from the directory that is opened as "dirfd".
 // Using the dirfd makes it immune to concurrent renames of the directory.
 func ReadDirIVAt(dirfd *os.File) (iv []byte, err error) {
-	fdRaw, err := syscall.Openat(int(dirfd.Fd()), DirIVFilename, syscall.O_RDONLY, 0)
+	fdRaw, err := syscallcompat.Openat(int(dirfd.Fd()), DirIVFilename, syscall.O_RDONLY, 0)
 	if err != nil {
 		tlog.Warn.Printf("ReadDirIVAt: opening %q in dir %q failed: %v",
 			DirIVFilename, dirfd.Name(), err)

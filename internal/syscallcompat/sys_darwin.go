@@ -69,6 +69,24 @@ func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err e
 	return syscall.Rename(oldpath, newpath)
 }
 
+// Poor man's Unlinkat
+func Unlinkat(dirfd int, path string) (err error) {
+	chdirMutex.Lock()
+	defer chdirMutex.Unlock()
+	if !filepath.IsAbs(path) {
+		oldWd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		defer os.Chdir(oldWd)
+	}
+	path, err = dirfdAbs(dirfd, path)
+	if err != nil {
+		return err
+	}
+	return syscall.Unlink(path)
+}
+
 // dirfdAbs transforms the dirfd-relative "path" to an absolute one. If the
 // path is not already absolute, this function will change the working
 // directory. The caller has to chdir back.

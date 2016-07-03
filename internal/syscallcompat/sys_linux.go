@@ -48,3 +48,7 @@ func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) 
 func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
 	return syscall.Renameat(olddirfd, oldpath, newdirfd, newpath)
 }
+
+func Unlinkat(dirfd int, path string) error {
+	return syscall.Unlinkat(dirfd, path)
+}

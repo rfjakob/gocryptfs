@@ -114,7 +114,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 	defer parentDirFd.Close()
 
 	cName := filepath.Base(cPath)
-	dirfdRaw, err := syscall.Openat(int(parentDirFd.Fd()), cName,
+	dirfdRaw, err := syscallcompat.Openat(int(parentDirFd.Fd()), cName,
 		syscall.O_RDONLY, 0)
 	if err == syscall.EACCES {
 		// We need permission to read and modify the directory
@@ -136,7 +136,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 		// Retry open
 		var st syscall.Stat_t
 		syscall.Lstat(cPath, &st)
-		dirfdRaw, err = syscall.Openat(int(parentDirFd.Fd()), cName,
+		dirfdRaw, err = syscallcompat.Openat(int(parentDirFd.Fd()), cName,
 			syscall.O_RDONLY, 0)
 		// Undo the chmod if removing the directory failed
 		defer func() {
@@ -191,7 +191,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 			return fuse.ToStatus(err)
 		}
 		// Delete "gocryptfs.diriv.rmdir.XYZ"
-		err = syscall.Unlinkat(int(parentDirFd.Fd()), tmpName)
+		err = syscallcompat.Unlinkat(int(parentDirFd.Fd()), tmpName)
 		if err != nil {
 			tlog.Warn.Printf("Rmdir: Could not clean up %s: %v", tmpName, err)
 		}

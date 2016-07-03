@@ -133,7 +133,7 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 
 		// Create content
 		var fdRaw int
-		fdRaw, err = syscall.Openat(int(dirfd.Fd()), cName, iflags|os.O_CREATE, mode)
+		fdRaw, err = syscallcompat.Openat(int(dirfd.Fd()), cName, iflags|os.O_CREATE, mode)
 		if err != nil {
 			nametransform.DeleteLongName(dirfd, cName)
 			return nil, fuse.ToStatus(err)
@@ -295,7 +295,7 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 		}
 		defer dirfd.Close()
 		// Delete content
-		err = syscall.Unlinkat(int(dirfd.Fd()), cName)
+		err = syscallcompat.Unlinkat(int(dirfd.Fd()), cName)
 		if err != nil {
 			return fuse.ToStatus(err)
 		}
