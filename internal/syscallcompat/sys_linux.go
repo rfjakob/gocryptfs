@@ -1,17 +1,19 @@
-package fusefrontend
+package syscallcompat
 
 import (
 	"sync"
 	"syscall"
+
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-import "github.com/rfjakob/gocryptfs/internal/tlog"
+const FALLOC_FL_KEEP_SIZE = 0x01
 
 var preallocWarn sync.Once
 
 // prealloc - preallocate space without changing the file size. This prevents
 // us from running out of space in the middle of an operation.
-func prealloc(fd int, off int64, len int64) (err error) {
+func Prealloc(fd int, off int64, len int64) (err error) {
 	for {
 		err = syscall.Fallocate(fd, FALLOC_FL_KEEP_SIZE, off, len)
 		if err == syscall.EINTR {

@@ -16,6 +16,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -100,7 +101,7 @@ func (f *file) createHeader() error {
 	buf := h.Pack()
 
 	// Prevent partially written (=corrupt) header by preallocating the space beforehand
-	err := prealloc(int(f.fd.Fd()), 0, contentenc.HEADER_LEN)
+	err := syscallcompat.Prealloc(int(f.fd.Fd()), 0, contentenc.HEADER_LEN)
 	if err != nil {
 		tlog.Warn.Printf("ino%d: createHeader: prealloc failed: %s\n", f.ino, err.Error())
 		return err
@@ -261,7 +262,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 			f.ino, uint64(len(blockData))-f.contentEnc.BlockOverhead(), b.BlockNo)
 
 		// Prevent partially written (=corrupt) blocks by preallocating the space beforehand
-		err := prealloc(int(f.fd.Fd()), int64(blockOffset), int64(len(blockData)))
+		err := syscallcompat.Prealloc(int(f.fd.Fd()), int64(blockOffset), int64(len(blockData)))
 		if err != nil {
 			tlog.Warn.Printf("ino%d fh%d: doWrite: prealloc failed: %s", f.ino, f.intFd(), err.Error())
 			status = fuse.ToStatus(err)
