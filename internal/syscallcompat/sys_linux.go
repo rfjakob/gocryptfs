@@ -52,3 +52,7 @@ func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err e
 func Unlinkat(dirfd int, path string) error {
 	return syscall.Unlinkat(dirfd, path)
 }
+
+func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
+	return syscall.Mknodat(dirfd, path, mode, dev)
+}

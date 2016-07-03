@@ -205,7 +205,7 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 		}
 
 		// Create device node
-		err = syscall.Mknodat(int(dirfd.Fd()), cName, uint32(mode), int(dev))
+		err = syscallcompat.Mknodat(int(dirfd.Fd()), cName, uint32(mode), int(dev))
 		if err != nil {
 			nametransform.DeleteLongName(dirfd, cName)
 		}

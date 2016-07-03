@@ -87,6 +87,24 @@ func Unlinkat(dirfd int, path string) (err error) {
 	return syscall.Unlink(path)
 }
 
+// Poor man's Mknodat
+func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
+	chdirMutex.Lock()
+	defer chdirMutex.Unlock()
+	if !filepath.IsAbs(path) {
+		oldWd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		defer os.Chdir(oldWd)
+	}
+	path, err = dirfdAbs(dirfd, path)
+	if err != nil {
+		return err
+	}
+	return syscall.Mknod(path, mode, dev)
+}
+
 // dirfdAbs transforms the dirfd-relative "path" to an absolute one. If the
 // path is not already absolute, this function will change the working
 // directory. The caller has to chdir back.
