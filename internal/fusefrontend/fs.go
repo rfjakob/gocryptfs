@@ -4,7 +4,6 @@ package fusefrontend
 
 import (
 	"encoding/base64"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -411,7 +410,7 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 		}
 	}
 	// Actual rename
-	fmt.Printf("Renameat oldfd=%d oldpath=%s newfd=%d newpath=%s\n", finalOldDirFd, finalOldPath, finalNewDirFd, finalNewPath)
+	tlog.Debug.Printf("Renameat oldfd=%d oldpath=%s newfd=%d newpath=%s\n", finalOldDirFd, finalOldPath, finalNewDirFd, finalNewPath)
 	err = syscallcompat.Renameat(finalOldDirFd, finalOldPath, finalNewDirFd, finalNewPath)
 	if err == syscall.ENOTEMPTY || err == syscall.EEXIST {
 		// If an empty directory is overwritten we will always get an error as
