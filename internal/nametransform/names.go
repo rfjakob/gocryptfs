@@ -10,6 +10,7 @@ import (
 	"github.com/rfjakob/eme"
 
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 type NameTransform struct {
@@ -42,7 +43,11 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 	bin = eme.Transform(n.cryptoCore.BlockCipher, iv, bin, eme.DirectionDecrypt)
 	bin, err = unPad16(bin)
 	if err != nil {
-		return "", err
+		tlog.Debug.Printf("pad16 error detail: %v", err)
+		// unPad16 returns detailed errors including the position of the
+		// incorrect bytes. Kill the padding oracle by lumping everything into
+		// a generic error.
+		return "", fmt.Errorf("Invalid padding")
 	}
 	plain := string(bin)
 	return plain, err

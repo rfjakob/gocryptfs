@@ -265,7 +265,7 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 		if isLong == nametransform.LongNameContent {
 			cNameLong, err := nametransform.ReadLongName(filepath.Join(cDirAbsPath, cName))
 			if err != nil {
-				tlog.Warn.Printf("Skipping file %q in dir %q: Could not read .name: %v",
+				tlog.Warn.Printf("Skipping entry %q in dir %q: Could not read .name: %v",
 					cName, cDirName, err)
 				errorCount++
 				continue
@@ -278,7 +278,7 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 
 		name, err := fs.nameTransform.DecryptName(cName, cachedIV)
 		if err != nil {
-			tlog.Warn.Printf("Skipping invalid name %q in dir %q: %s",
+			tlog.Warn.Printf("Skipping entry %q in dir %q: %s",
 				cName, cDirName, err)
 			errorCount++
 			continue
