@@ -23,6 +23,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
@@ -176,6 +177,10 @@ const FALLOC_DEFAULT = 0x00
 const FALLOC_FL_KEEP_SIZE = 0x01
 
 func TestFallocate(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skipf("OSX does not support fallocate")
+	}
+
 	fn := test_helpers.DefaultPlainDir + "/fallocate"
 	file, err := os.Create(fn)
 	if err != nil {
@@ -190,7 +195,7 @@ func TestFallocate(t *testing.T) {
 	// Allocate 30 bytes, keep size
 	// gocryptfs ||        (0 blocks)
 	//      ext4 |  d   |  (1 block)
-	err = syscall.Fallocate(fd, FALLOC_FL_KEEP_SIZE, 0, 30)
+	err = syscallcompat.Fallocate(fd, FALLOC_FL_KEEP_SIZE, 0, 30)
 	if err != nil {
 		t.Error(err)
 	}
@@ -218,7 +223,7 @@ func TestFallocate(t *testing.T) {
 	// Allocate the whole file space
 	// gocryptfs |  h   |   h  | d|   (1 block)
 	//      ext4 |  d  |  d  |  d  |  (3 blocks
-	err = syscall.Fallocate(fd, FALLOC_DEFAULT, 0, 9000)
+	err = syscallcompat.Fallocate(fd, FALLOC_DEFAULT, 0, 9000)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,7 +249,7 @@ func TestFallocate(t *testing.T) {
 	// Allocate 10 bytes in the second block
 	// gocryptfs |  h   |   h  | d|   (1 block)
 	//      ext4 |  d  |  d  |  d  |  (2 blocks)
-	syscall.Fallocate(fd, FALLOC_DEFAULT, 5000, 10)
+	syscallcompat.Fallocate(fd, FALLOC_DEFAULT, 5000, 10)
 	_, nBlocks = test_helpers.Du(t, fd)
 	if want := 3; nBlocks/8 != int64(want) {
 		t.Errorf("Expected %d 4k block(s), got %d", want, nBlocks/8)
@@ -257,7 +262,7 @@ func TestFallocate(t *testing.T) {
 	// Grow the file to 4 blocks
 	// gocryptfs |  h   |  h   |  d   |d|  (2 blocks)
 	//      ext4 |  d  |  d  |  d  |  d  | (3 blocks)
-	syscall.Fallocate(fd, FALLOC_DEFAULT, 15000, 10)
+	syscallcompat.Fallocate(fd, FALLOC_DEFAULT, 15000, 10)
 	_, nBlocks = test_helpers.Du(t, fd)
 	if want := 4; nBlocks/8 != int64(want) {
 		t.Errorf("Expected %d 4k block(s), got %d", want, nBlocks/8)
@@ -269,7 +274,7 @@ func TestFallocate(t *testing.T) {
 	// Shrinking a file using fallocate should have no effect
 	for _, off := range []int64{0, 10, 2000, 5000} {
 		for _, sz := range []int64{0, 1, 42, 6000} {
-			syscall.Fallocate(fd, FALLOC_DEFAULT, off, sz)
+			syscallcompat.Fallocate(fd, FALLOC_DEFAULT, off, sz)
 			test_helpers.VerifySize(t, fn, 15010)
 			if md5 := test_helpers.Md5fn(fn); md5 != "c4c44c7a41ab7798a79d093eb44f99fc" {
 				t.Errorf("Wrong md5 %s", md5)

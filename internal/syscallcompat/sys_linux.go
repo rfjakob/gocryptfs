@@ -11,9 +11,10 @@ const FALLOC_FL_KEEP_SIZE = 0x01
 
 var preallocWarn sync.Once
 
-// prealloc - preallocate space without changing the file size. This prevents
-// us from running out of space in the middle of an operation.
-func Prealloc(fd int, off int64, len int64) (err error) {
+// EnospcPrealloc preallocates ciphertext space without changing the file
+// size. This guarantees that we don't run out of space while writing a
+// ciphertext block (that would corrupt the block).
+func EnospcPrealloc(fd int, off int64, len int64) (err error) {
 	for {
 		err = syscall.Fallocate(fd, FALLOC_FL_KEEP_SIZE, off, len)
 		if err == syscall.EINTR {
@@ -23,8 +24,8 @@ func Prealloc(fd int, off int64, len int64) (err error) {
 			continue
 		}
 		if err == syscall.EOPNOTSUPP {
-			// ZFS does not support fallocate which caused gocryptfs to abort
-			// every write operation: https://github.com/rfjakob/gocryptfs/issues/22
+			// ZFS and ext3 do not support fallocate. Warn but continue anyway.
+			// https://github.com/rfjakob/gocryptfs/issues/22
 			preallocWarn.Do(func() {
 				tlog.Warn.Printf("Warning: The underlying filesystem " +
 					"does not support fallocate(2). gocryptfs will continue working " +
@@ -34,4 +35,12 @@ func Prealloc(fd int, off int64, len int64) (err error) {
 		}
 		return err
 	}
+}
+
+func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) {
+	return syscall.Openat(dirfd, path, flags, mode)
+}
+
+func Fallocate(fd int, mode uint32, off int64, len int64) (err error) {
+	return syscall.Fallocate(fd, mode, off, len)
 }

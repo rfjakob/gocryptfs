@@ -10,6 +10,7 @@ import (
 
 	"github.com/hanwen/go-fuse/fuse"
 
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -59,7 +60,7 @@ func (f *file) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
 	cipherOff := firstBlock.BlockCipherOff()
 	cipherSz := lastBlock.BlockCipherOff() - cipherOff +
 		f.contentEnc.PlainSizeToCipherSize(lastBlock.Skip+lastBlock.Length)
-	err := syscall.Fallocate(f.intFd(), FALLOC_FL_KEEP_SIZE, int64(cipherOff), int64(cipherSz))
+	err := syscallcompat.Fallocate(f.intFd(), FALLOC_FL_KEEP_SIZE, int64(cipherOff), int64(cipherSz))
 	tlog.Debug.Printf("Allocate off=%d sz=%d mode=%x cipherOff=%d cipherSz=%d\n",
 		off, sz, mode, cipherOff, cipherSz)
 	if err != nil {
