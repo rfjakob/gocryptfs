@@ -324,11 +324,15 @@ func main() {
 		// "-masterkey"
 		tlog.Info.Printf("Using explicit master key.")
 		masterkey = parseMasterKey(args.masterkey)
-		tlog.Info.Printf("THE MASTER KEY IS VISIBLE VIA \"ps -auxwww\", ONLY USE THIS MODE FOR EMERGENCIES.")
+		tlog.Info.Printf(tlog.ColorYellow +
+			"THE MASTER KEY IS VISIBLE VIA \"ps ax\" AND MAY BE STORED IN YOUR SHELL HISTORY!\n" +
+			"ONLY USE THIS MODE FOR EMERGENCIES." + tlog.ColorReset)
 	} else if args.zerokey {
 		// "-zerokey"
 		tlog.Info.Printf("Using all-zero dummy master key.")
-		tlog.Info.Printf("ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING.")
+		tlog.Info.Printf(tlog.ColorYellow +
+			"ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING." +
+			tlog.ColorReset)
 		masterkey = make([]byte, cryptocore.KeyLen)
 	} else {
 		// Load master key from config file
