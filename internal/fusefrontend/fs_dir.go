@@ -14,6 +14,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -168,7 +169,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 		// Protect against concurrent readers.
 		fs.dirIVLock.Lock()
 		defer fs.dirIVLock.Unlock()
-		err = syscall.Renameat(int(dirfd.Fd()), nametransform.DirIVFilename,
+		err = syscallcompat.Renameat(int(dirfd.Fd()), nametransform.DirIVFilename,
 			int(parentDirFd.Fd()), tmpName)
 		if err != nil {
 			tlog.Warn.Printf("Rmdir: Renaming %s to %s failed: %v",
@@ -182,7 +183,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 		if err != nil {
 			// This can happen if another file in the directory was created in the
 			// meantime, undo the rename
-			err2 := syscall.Renameat(int(parentDirFd.Fd()), tmpName,
+			err2 := syscallcompat.Renameat(int(parentDirFd.Fd()), tmpName,
 				int(dirfd.Fd()), nametransform.DirIVFilename)
 			if err != nil {
 				tlog.Warn.Printf("Rmdir: Rename rollback failed: %v", err2)

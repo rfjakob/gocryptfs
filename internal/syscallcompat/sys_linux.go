@@ -37,10 +37,14 @@ func EnospcPrealloc(fd int, off int64, len int64) (err error) {
 	}
 }
 
+func Fallocate(fd int, mode uint32, off int64, len int64) (err error) {
+	return syscall.Fallocate(fd, mode, off, len)
+}
+
 func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) {
 	return syscall.Openat(dirfd, path, flags, mode)
 }
 
-func Fallocate(fd int, mode uint32, off int64, len int64) (err error) {
-	return syscall.Fallocate(fd, mode, off, len)
+func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
+	return syscall.Renameat(olddirfd, oldpath, newdirfd, newpath)
 }

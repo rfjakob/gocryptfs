@@ -2,44 +2,87 @@ package syscallcompat
 
 import (
 	"os"
+	"path/filepath"
 	"sync"
 	"syscall"
 )
 
-// prealloc - preallocate space without changing the file size. This prevents
-// us from running out of space in the middle of an operation.
-func Prealloc(fd int, off int64, len int64) (err error) {
-	//
-	// Sorry, fallocate is not available on OSX at all and
-	// fcntl F_PREALLOCATE is not accessible from Go.
-	//
-	// See https://github.com/rfjakob/gocryptfs/issues/18 if you want to help.
+// Sorry, fallocate is not available on OSX at all and
+// fcntl F_PREALLOCATE is not accessible from Go.
+// See https://github.com/rfjakob/gocryptfs/issues/18 if you want to help.
+func EnospcPrealloc(fd int, off int64, len int64) (err error) {
 	return nil
 }
 
-var openatLock sync.Mutex
+// See above.
+func Fallocate(fd int, mode uint32, off int64, len int64) (err error) {
+	return syscall.EOPNOTSUPP
+}
 
-// Poor man's Openat:
-// 1) fchdir to the dirfd
-// 2) open the file
-// 3) chdir back.
+var chdirMutex sync.Mutex
+
+// Poor man's Openat
 func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) {
-	openatLock.Lock()
-	defer openatLock.Unlock()
-
-	oldWd, err := os.Getwd()
-	if err != nil {
-		return -1, err
+	chdirMutex.Lock()
+	defer chdirMutex.Unlock()
+	if !filepath.IsAbs(path) {
+		// Save the old working directory
+		oldWd, err := os.Getwd()
+		if err != nil {
+			return -1, err
+		}
+		// Chdir to target directory
+		err = syscall.Fchdir(dirfd)
+		if err != nil {
+			return -1, err
+		}
+		// Chdir back at the end
+		defer os.Chdir(oldWd)
 	}
-	err = syscall.Fchdir(dirfd)
-	if err != nil {
-		return -1, err
-	}
-	defer os.Chdir(oldWd)
-
 	return syscall.Open(path, flags, mode)
 }
 
-func Fallocate(fd int, mode uint32, off int64, len int64) (err error) {
-	return syscall.EOPNOTSUPP
+// Poor man's Renameat
+func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
+	chdirMutex.Lock()
+	defer chdirMutex.Unlock()
+	// Unless both paths are absolute we have to save the old working dir and
+	// Chdir(oldWd) back to it in the end. If we error out before the first
+	// chdir, Chdir(oldWd) is unneccassary but does no harm.
+	if !filepath.IsAbs(oldpath) || !filepath.IsAbs(newpath) {
+		oldWd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		defer os.Chdir(oldWd)
+	}
+	// Make oldpath absolute
+	oldpath, err = dirfdAbs(olddirfd, oldpath)
+	if err != nil {
+		return err
+	}
+	// Make newpath absolute
+	newpath, err = dirfdAbs(newdirfd, newpath)
+	if err != nil {
+		return err
+	}
+	return syscall.Rename(oldpath, newpath)
+}
+
+// dirfdAbs transforms the dirfd-relative "path" to an absolute one. If the
+// path is not already absolute, this function will change the working
+// directory. The caller has to chdir back.
+func dirfdAbs(dirfd int, path string) (absPath string, err error) {
+	if filepath.IsAbs(path) {
+		return path, nil
+	}
+	err = syscall.Fchdir(dirfd)
+	if err != nil {
+		return "", err
+	}
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(wd, path), nil
 }

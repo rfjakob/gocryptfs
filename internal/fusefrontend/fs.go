@@ -4,6 +4,7 @@ package fusefrontend
 
 import (
 	"encoding/base64"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -17,6 +18,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -385,6 +387,7 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 		}
 		defer oldDirFd.Close()
 		finalOldDirFd = int(oldDirFd.Fd())
+		// Use relative path
 		finalOldPath = cOldName
 	}
 	// Handle long destination file name
@@ -399,6 +402,7 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 		}
 		defer newDirFd.Close()
 		finalNewDirFd = int(newDirFd.Fd())
+		// Use relative path
 		finalNewPath = cNewName
 		// Create destination .name file
 		err = fs.nameTransform.WriteLongName(newDirFd, cNewName, newPath)
@@ -407,7 +411,8 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 		}
 	}
 	// Actual rename
-	err = syscall.Renameat(finalOldDirFd, finalOldPath, finalNewDirFd, finalNewPath)
+	fmt.Printf("Renameat oldfd=%d oldpath=%s newfd=%d newpath=%s\n", finalOldDirFd, finalOldPath, finalNewDirFd, finalNewPath)
+	err = syscallcompat.Renameat(finalOldDirFd, finalOldPath, finalNewDirFd, finalNewPath)
 	if err == syscall.ENOTEMPTY || err == syscall.EEXIST {
 		// If an empty directory is overwritten we will always get an error as
 		// the "empty" directory will still contain gocryptfs.diriv.
@@ -416,7 +421,7 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 		// again.
 		tlog.Debug.Printf("Rename: Handling ENOTEMPTY")
 		if fs.Rmdir(newPath, context) == fuse.OK {
-			err = syscall.Renameat(finalOldDirFd, finalOldPath, finalNewDirFd, finalNewPath)
+			err = syscallcompat.Renameat(finalOldDirFd, finalOldPath, finalNewDirFd, finalNewPath)
 		}
 	}
 	if err != nil {
