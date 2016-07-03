@@ -24,6 +24,9 @@ GITVERSIONFUSE=$(
 	fi
 )
 
+# Build Unix timestamp, something like 1467554204.
+BUILDTIME=$(date +%s)
+
 # Make sure we have the go binary
 go version > /dev/null
 
@@ -32,10 +35,10 @@ V=$(go version | cut -d" " -f3 | cut -c3-5)
 
 if [ $V == "1.3" -o $V == "1.4" ]
 then
-	go build -ldflags="-X main.GitVersion $GITVERSION -X main.GitVersionFuse $GITVERSIONFUSE"
+	go build -ldflags="-X main.GitVersion $GITVERSION -X main.GitVersionFuse $GITVERSIONFUSE -X main.BuildTime $BUILDTIME"
 else
 	# Go 1.5 wants an "=" here
-	go build -ldflags="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE"
+	go build -ldflags="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildTime=$BUILDTIME"
 fi
 
 ./gocryptfs -version

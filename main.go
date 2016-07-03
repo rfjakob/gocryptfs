@@ -51,9 +51,16 @@ type argContainer struct {
 
 var flagSet *flag.FlagSet
 
-// GitVersion will be set by the build script "build.bash"
-var GitVersion = "[version not set - please compile using ./build.bash]"
-var GitVersionFuse = "[version not set - please compile using ./build.bash]"
+const pleaseBuildBash = "[not set - please compile using ./build.bash]"
+
+// gocryptfs version according to git, set by build.bash
+var GitVersion = pleaseBuildBash
+
+// go-fuse library version, set by build.bash
+var GitVersionFuse = pleaseBuildBash
+
+// Unix timestamp, set by build.bash
+var BuildTime = "0"
 
 // initDir initializes an empty directory for use as a gocryptfs cipherdir.
 func initDir(args *argContainer) {
@@ -145,11 +152,17 @@ func changePassword(args *argContainer) {
 	os.Exit(0)
 }
 
-// printVersion - print a version string like
-// "gocryptfs v0.3.1-31-g6736212-dirty; on-disk format 2"
+// printVersion prints a version string like this:
+// gocryptfs v0.12-36-ge021b9d-dirty; go-fuse a4c968c; 2016-07-03 go1.6.2
 func printVersion() {
+	humanTime := "0000-00-00"
+	if i, _ := strconv.ParseInt(BuildTime, 10, 64); i > 0 {
+		t := time.Unix(i, 0).UTC()
+		humanTime = fmt.Sprintf("%d-%02d-%02d", t.Year(), t.Month(), t.Day())
+	}
+	built := fmt.Sprintf("%s %s", humanTime, runtime.Version())
 	fmt.Printf("%s %s; go-fuse %s; %s\n",
-		tlog.ProgramName, GitVersion, GitVersionFuse, runtime.Version())
+		tlog.ProgramName, GitVersion, GitVersionFuse, built)
 }
 
 func main() {
