@@ -13,7 +13,7 @@ static void dummy_callback(int mode, int n, const char *file, int line) {
 	printf("stupidgcm: thread locking is not implemented and should not be "
 		"needed. Please upgrade openssl.\n");
 	// panic
-	*((int*)0)=0;
+	__builtin_trap();
 }
 static void set_dummy_callback() {
 	CRYPTO_set_locking_callback(dummy_callback);
