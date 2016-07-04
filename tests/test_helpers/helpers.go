@@ -298,5 +298,6 @@ func Du(t *testing.T, fd int) (nBytes int64, nBlocks int64) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return st.Blocks * st.Blksize, st.Blocks
+	// On OSX, Blksize is int32, need to cast to int64.
+	return st.Blocks * int64(st.Blksize), st.Blocks
 }
