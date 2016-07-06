@@ -12,8 +12,6 @@ package matrix
 
 import (
 	"bytes"
-	"crypto/md5"
-	"encoding/hex"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -75,8 +73,7 @@ func testWriteN(t *testing.T, fn string, n int) string {
 
 	test_helpers.VerifySize(t, test_helpers.DefaultPlainDir+"/"+fn, n)
 
-	bin := md5.Sum(d)
-	hashWant := hex.EncodeToString(bin[:])
+	hashWant := test_helpers.Md5hex(d)
 
 	hashActual := test_helpers.Md5fn(test_helpers.DefaultPlainDir + "/" + fn)
 
@@ -297,8 +294,7 @@ func TestAppend(t *testing.T) {
 	for i := 0; i <= 500; i++ {
 		file.Write(data)
 		buf.Write(data)
-		bin := md5.Sum(buf.Bytes())
-		hashWant = hex.EncodeToString(bin[:])
+		hashWant = test_helpers.Md5hex(buf.Bytes())
 		hashActual := test_helpers.Md5fn(fn)
 		if hashWant != hashActual {
 			t.FailNow()
