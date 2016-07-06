@@ -15,8 +15,8 @@ For details on the security of gocryptfs see the
 [Security](https://nuetzlich.net/gocryptfs/security/) design document.
 
 All tags from v0.4 onward are signed by the *gocryptfs signing key*.
-Please check [Signed Releases](https://nuetzlich.net/gocryptfs/releases/) for
-details.
+Please check [Signed Releases](https://nuetzlich.net/gocryptfs/releases/)
+for details.
 
 Current Status
 --------------
@@ -26,7 +26,17 @@ bugs in encryption software can cause catastrophic data loss. Keep a backup
 of your gocryptfs filesystem *and* store a copy of your master key (printed
 on mount) in a safe place. See below for how gocryptfs is tested.
 
-Only Linux is supported at the moment. [Help wanted for a Mac OS X port.](https://github.com/rfjakob/gocryptfs/issues/15)
+Platforms
+---------
+
+Linux is gocryptfs' native platform.
+
+Experimental Mac OS X support is available, check out
+[ticket #25](https://github.com/rfjakob/gocryptfs/issues/15) for
+details.
+
+For Windows, an independent C++ reimplementation has been started:
+[cppcryptfs](https://github.com/bailey27/cppcryptfs)
 
 Testing
 -------
@@ -101,14 +111,22 @@ RM:    4.42
 Changelog
 ---------
 
-v1.0 (not released yet)
-* Deprecate very old filesystems, stage 3 of 3
+v1.0-rc1, 2016-07-06
+* Deprecate very old filesystems, stage 3/3
  * Filesystems created by v0.6 can no longer be mounted
  * Drop command-line options `-gcmiv128`, `-emenames`, `-diriv`. These
    are now always enabled.
+* Add fallocate(2) support
+* New command-line option `-o`
+ * Allows to pass mount options directly to the kernel
+* Add support for device files and suid binaries
+ * Only works when running as root
+ * Must be explicitely enabled by passing "-o dev" or "-o suid" or "-o suid,dev"
+* Experimental Mac OS X support. See
+  [ticket #](https://github.com/rfjakob/gocryptfs/issues/15) for details.
 
 v0.12, 2016-06-19
-* Deprecate very old filesystems, stage 2 of 3
+* Deprecate very old filesystems, stage 2/3
  * Filesystems created by v0.6 and older can only be mounted read-only
  * A [message](https://github.com/rfjakob/gocryptfs/blob/v0.12/internal/configfile/config_file.go#L120)
    explaining the situation is printed as well
@@ -117,7 +135,7 @@ v0.12, 2016-06-19
 * Accept password from stdin as well ([ticket #30](https://github.com/rfjakob/gocryptfs/issues/30))
 
 v0.11, 2016-06-10
-* Deprecate very old filesystems, stage 1 of 3
+* Deprecate very old filesystems, stage 1/3
  * Filesystems created by v0.6 and older can still be mounted but a
    [warning](https://github.com/rfjakob/gocryptfs/blob/v0.11/internal/configfile/config_file.go#L120)
    is printed
