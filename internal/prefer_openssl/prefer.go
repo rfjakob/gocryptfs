@@ -1,3 +1,5 @@
+// Package prefer_openssl tries to determine if we should prefer openssl
+// on the platform we are running on.
 package prefer_openssl
 
 import (

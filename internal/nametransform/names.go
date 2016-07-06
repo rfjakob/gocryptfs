@@ -1,6 +1,5 @@
+// Package namtransforms encrypts and decrypts filenames.
 package nametransform
-
-// Filename encryption / decryption functions
 
 import (
 	"crypto/aes"

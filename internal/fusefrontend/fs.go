@@ -1,3 +1,4 @@
+// Package fusefrontend interfaces directly with the go-fuse library.
 package fusefrontend
 
 // FUSE operations on paths

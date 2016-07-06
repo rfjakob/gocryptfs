@@ -1,3 +1,4 @@
+// Package syscallcompat wraps Linux-specific syscalls.
 package syscallcompat
 
 import (

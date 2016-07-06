@@ -1,3 +1,5 @@
+// Package tlog is a "toggled logger" that can be enabled and disabled and
+// provides coloring.
 package tlog
 
 import (

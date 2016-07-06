@@ -1,3 +1,5 @@
+// Package configfile reads and writes gocryptfs.conf does the key
+// wrapping.
 package configfile
 
 import (

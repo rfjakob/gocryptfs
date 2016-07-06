@@ -1,3 +1,4 @@
+// Package readpassword reads a password from the terminal of from stdin.
 package readpassword
 
 import (

@@ -1,3 +1,5 @@
+// Package cryptocore wraps OpenSSL and Go GCM crypto and provides
+// a nonce generator.
 package cryptocore
 
 import (

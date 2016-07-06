@@ -1,6 +1,5 @@
+// Package contentenc encrypts and decrypts file blocks.
 package contentenc
-
-// File content encryption / decryption
 
 import (
 	"bytes"
