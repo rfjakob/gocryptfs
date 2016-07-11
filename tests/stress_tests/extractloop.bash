@@ -14,14 +14,20 @@ set -eu
 cd "$(dirname "$0")"
 MD5="$PWD/linux-3.0.md5sums"
 
-# Setup
+# Setup dirs
 cd /tmp
 wget -nv --show-progress -c https://www.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz
 DIR1=$(mktemp -d)
 DIR2=$(mktemp -d)
-gocryptfs -q -init -extpass="echo test" $DIR1
-gocryptfs -q -extpass="echo test" -nosyslog $DIR1 $DIR2
-#gocryptfs -q -extpass="echo test" -nosyslog -memprofile /tmp/extractloop-mem $DIR1 $DIR2
+
+# Mount
+if [ $# -eq 1 ] && [ "$1" == "-encfs" ]; then
+	echo "Testing EncFS"
+	encfs --extpass="echo test" --standard $DIR1 $DIR2 > /dev/null
+else
+	gocryptfs -q -init -extpass="echo test" -scryptn=10 $DIR1
+	gocryptfs -q -extpass="echo test" $DIR1 $DIR2
+fi
 cd $DIR2
 
 # Cleanup trap

@@ -12,8 +12,14 @@ cd /tmp
 wget -nv --show-progress -c https://www.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz
 DIR1=$(mktemp -d)
 DIR2=$(mktemp -d)
-gocryptfs -q -init -extpass="echo test" $DIR1
-gocryptfs -q -extpass="echo test" $DIR1 $DIR2
+
+if [ $# -eq 1 ] && [ "$1" == "-encfs" ]; then
+	echo "Testing EncFS"
+	encfs --extpass="echo test" --standard $DIR1 $DIR2 > /dev/null
+else
+	gocryptfs -q -init -extpass="echo test" -scryptn=10 $DIR1
+	gocryptfs -q -extpass="echo test" $DIR1 $DIR2
+fi
 cd $DIR2
 
 # Benchmarks
