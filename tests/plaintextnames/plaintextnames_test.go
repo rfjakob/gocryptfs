@@ -21,7 +21,7 @@ func TestMain(m *testing.M) {
 	pDir = cDir + ".mnt"
 	test_helpers.MountOrExit(cDir, pDir, "-extpass", "echo test")
 	r := m.Run()
-	test_helpers.Unmount(pDir)
+	test_helpers.UnmountPanic(pDir)
 	os.Exit(r)
 }
 

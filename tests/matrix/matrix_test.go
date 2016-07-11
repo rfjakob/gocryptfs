@@ -45,7 +45,7 @@ func TestMain(m *testing.M) {
 			opts = append(opts, fmt.Sprintf("-plaintextnames=%v", plaintextnames))
 			test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, opts...)
 			r := m.Run()
-			test_helpers.Unmount(test_helpers.DefaultPlainDir)
+			test_helpers.UnmountPanic(test_helpers.DefaultPlainDir)
 			if r != 0 {
 				os.Exit(r)
 			}

@@ -7,6 +7,8 @@ package example_filesystems
 // "-openssl=true".
 
 import (
+	"flag"
+	"fmt"
 	"os"
 	"testing"
 
@@ -18,7 +20,12 @@ const statusTxtContent = "It works!\n"
 var opensslOpt string
 
 func TestMain(m *testing.M) {
+	// Make "testing.Verbose()" return the correct value
+	flag.Parse()
 	for _, opensslOpt = range []string{"-openssl=false", "-openssl=true"} {
+		if testing.Verbose() {
+			fmt.Printf("TestMain: testing with %q\n", opensslOpt)
+		}
 		test_helpers.ResetTmpDir(true)
 		r := m.Run()
 		if r != 0 {
@@ -80,12 +87,12 @@ func TestExampleFSv07(t *testing.T) {
 	}
 	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test", opensslOpt)
 	checkExampleFS(t, pDir, true)
-	test_helpers.Unmount(pDir)
+	test_helpers.UnmountPanic(pDir)
 	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey",
 		"ed7f6d83-40cce86c-0e7d79c2-a9438710-575221bf-30a0eb60-2821fa8f-7f3123bf",
 		opensslOpt)
 	checkExampleFS(t, pDir, true)
-	test_helpers.Unmount(pDir)
+	test_helpers.UnmountPanic(pDir)
 }
 
 // gocryptfs v0.7 filesystem created with "-plaintextnames"
@@ -95,7 +102,7 @@ func TestExampleFSv07PlaintextNames(t *testing.T) {
 
 	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test", opensslOpt)
 	checkExampleFS(t, pDir, true)
-	test_helpers.Unmount(pDir)
+	test_helpers.UnmountPanic(pDir)
 	// The actual unmount takes some time, this causes weird problems. Just don't
 	// reuse the mountpoint.
 	pDir = pDir + ".2"
@@ -103,7 +110,7 @@ func TestExampleFSv07PlaintextNames(t *testing.T) {
 		"6d96397b-585631e1-c7cba69d-61e738b6-4d5ad2c2-e21f0fb3-52f60d3a-b08526f7",
 		opensslOpt)
 	checkExampleFS(t, pDir, true)
-	test_helpers.Unmount(pDir)
+	test_helpers.UnmountPanic(pDir)
 }
 
 // Test example_filesystems/v0.9
@@ -117,11 +124,11 @@ func TestExampleFSv09(t *testing.T) {
 	}
 	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test", opensslOpt)
 	checkExampleFSLongnames(t, pDir)
-	test_helpers.Unmount(pDir)
+	test_helpers.UnmountPanic(pDir)
 	pDir = pDir + ".2"
 	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey",
 		"1cafe3f4-bc316466-2214c47c-ecd89bf3-4e078fe4-f5faeea7-8b7cab02-884f5e1c",
 		opensslOpt)
 	checkExampleFSLongnames(t, pDir)
-	test_helpers.Unmount(pDir)
+	test_helpers.UnmountPanic(pDir)
 }

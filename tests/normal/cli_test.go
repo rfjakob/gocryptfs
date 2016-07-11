@@ -17,7 +17,7 @@ func TestMain(m *testing.M) {
 	test_helpers.ResetTmpDir(false)
 	test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, "--zerokey")
 	r := m.Run()
-	test_helpers.Unmount(test_helpers.DefaultPlainDir)
+	test_helpers.UnmountPanic(test_helpers.DefaultPlainDir)
 	os.Exit(r)
 }
 
@@ -91,7 +91,7 @@ func TestRo(t *testing.T) {
 	dir := test_helpers.InitFS(t)
 	mnt := dir + ".mnt"
 	test_helpers.MountOrFatal(t, dir, mnt, "-ro", "-extpass=echo test")
-	defer test_helpers.Unmount(mnt)
+	defer test_helpers.UnmountPanic(mnt)
 
 	file := mnt + "/file"
 	err := os.Mkdir(file, 0777)

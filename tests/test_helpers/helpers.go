@@ -11,7 +11,6 @@ import (
 	"runtime"
 	"syscall"
 	"testing"
-	"time"
 
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 )
@@ -50,9 +49,11 @@ func ResetTmpDir(plaintextNames bool) {
 			d := filepath.Join(TmpDir, e.Name())
 			err = os.Remove(d)
 			if err != nil {
-				fu := exec.Command("fusermount", "-z", "-u", d)
-				fu.Run()
-				os.RemoveAll(d)
+				UnmountErr(d)
+				err = os.RemoveAll(d)
+				if err != nil {
+					panic(err)
+				}
 			}
 		}
 	}
@@ -141,23 +142,26 @@ func MountOrFatal(t *testing.T, c string, p string, extraArgs ...string) {
 	}
 }
 
-// Unmount PLAINDIR "p"
-func Unmount(p string) error {
-	var cmd *exec.Cmd
-	if runtime.GOOS == "darwin" {
-		cmd = exec.Command("umount", p)
-	} else {
-		cmd = exec.Command("fusermount", "-u", "-z", p)
-	}
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+// UnmountPanic tries to umount "dir" and panics on error.
+func UnmountPanic(dir string) {
+	err := UnmountErr(dir)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
 	}
-	time.Sleep(10 * time.Millisecond)
-	return err
+}
+
+// UnmountError tries to unmount "dir" and returns the resulting error.
+func UnmountErr(dir string) error {
+	var cmd *exec.Cmd
+	if runtime.GOOS == "darwin" {
+		cmd = exec.Command("umount", dir)
+	} else {
+		cmd = exec.Command("fusermount", "-u", "-z", dir)
+	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 // Return md5 string for file "filename"
