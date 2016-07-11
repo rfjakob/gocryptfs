@@ -36,8 +36,7 @@ func TestMain(m *testing.M) {
 	for _, openssl := range []bool{true, false} {
 		for _, plaintextnames = range []bool{true, false} {
 			if testing.Verbose() {
-				fmt.Printf("Testing openssl=%v plaintextnames=%v\n", openssl, plaintextnames)
-
+				fmt.Printf("matrix: testing openssl=%v plaintextnames=%v\n", openssl, plaintextnames)
 			}
 			test_helpers.ResetTmpDir(plaintextnames)
 			opts := []string{"--zerokey"}
