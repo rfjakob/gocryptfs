@@ -49,6 +49,9 @@ func ResetTmpDir(plaintextNames bool) {
 			d := filepath.Join(TmpDir, e.Name())
 			err = os.Remove(d)
 			if err != nil {
+				if testing.Verbose() {
+					fmt.Printf("%v, trying umount\n", d, err)
+				}
 				UnmountErr(d)
 				err = os.RemoveAll(d)
 				if err != nil {

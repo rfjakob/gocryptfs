@@ -24,7 +24,7 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 	for _, opensslOpt = range []string{"-openssl=false", "-openssl=true"} {
 		if testing.Verbose() {
-			fmt.Printf("TestMain: testing with %q\n", opensslOpt)
+			fmt.Printf("example_filesystems: testing with %q\n", opensslOpt)
 		}
 		test_helpers.ResetTmpDir(true)
 		r := m.Run()
