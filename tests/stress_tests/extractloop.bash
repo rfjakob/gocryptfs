@@ -17,39 +17,50 @@ MD5="$PWD/linux-3.0.md5sums"
 # Setup dirs
 cd /tmp
 wget -nv --show-progress -c https://www.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz
-DIR1=$(mktemp -d /tmp/extractloop.XXX)
-DIR2=$DIR1.mnt
-mkdir $DIR2
+CRYPT=$(mktemp -d /tmp/extractloop.XXX)
+CSV=$CRYPT.csv
+MNT=$CRYPT.mnt
+mkdir $MNT
 
 # Mount
+FSPID=0
 if [ $# -eq 1 ] && [ "$1" == "-encfs" ]; then
 	echo "Testing EncFS"
-	encfs --extpass="echo test" --standard $DIR1 $DIR2 > /dev/null
+	encfs --extpass="echo test" --standard $CRYPT $MNT > /dev/null
 elif [ $# -eq 1 ] && [ "$1" == "-loopback" ]; then
 	echo "Testing go-fuse loopback"
-	loopback -l $DIR2 $DIR1 &
-	sleep 1
+	rm -f /tmp/loopback*.memprof
+	loopback -l -memprofile=/tmp/loopback $MNT $CRYPT &
+	FSPID=$(jobs -p)
 else
-	gocryptfs -q -init -extpass="echo test" -scryptn=10 $DIR1
-	gocryptfs -q -extpass="echo test" $DIR1 $DIR2
-	#gocryptfs -q -extpass="echo test" -nosyslog -memprofile /tmp/extractloop-mem $DIR1 $DIR2
+	echo "Testing gocryptfs"
+	gocryptfs -q -init -extpass="echo test" -scryptn=10 $CRYPT
+	gocryptfs -q -extpass="echo test" -nosyslog -f $CRYPT $MNT &
+	FSPID=$(jobs -p)
+	#gocryptfs -q -extpass="echo test" -nosyslog -memprofile /tmp/extractloop-mem $CRYPT $MNT
 fi
-cd $DIR2
+echo "Test dir: $CRYPT"
+# Sleep to make sure the FS is already mounted on MNT
+sleep 1
+cd $MNT
+
+ln -sTf $CSV /tmp/extractloop.csv
 
 # Cleanup trap
 # Note: gocryptfs may have already umounted itself because bash relays SIGINT
 # Just ignore fusermount errors.
-trap "cd /; fusermount -u -z $DIR2; rm -rf $DIR1 $DIR2" EXIT
+trap "cd /; fusermount -u -z $MNT; rm -rf $CRYPT $MNT" EXIT
 
 function loop {
-	# Note: In a subshell, $$ returns the PID of the *parent* shell,
-	# we need our own, which is why we have to use $BASHPID.
+	# Note: In a subshell, $$ returns the PID of the parent shell.
+	# We need our own PID, which is why we use $BASHPID.
 	mkdir $BASHPID
 	cd $BASHPID
 
 	echo "[pid $BASHPID] Starting loop"
 
 	N=1
+	RSS=0
 	while true
 	do
 		t1=$SECONDS
@@ -58,11 +69,23 @@ function loop {
 		rm -Rf linux-3.0
 		t2=$SECONDS
 		delta=$((t2-t1))
-		echo "[pid $BASHPID] Iteration $N done, $delta seconds"
+		if [ $FSPID -gt 0 ]; then
+			RSS=$(grep VmRSS /proc/$FSPID/status | tr -s ' ' | cut -f2 -d ' ')
+			echo "$N,$SECONDS,$RSS" >> $CSV
+		fi
+		echo "[pid $BASHPID] Iteration $N done, $delta seconds, RSS $RSS kiB"
 		let N=$N+1
+	done
+}
+
+function memprof {
+	while true; do
+		kill -USR1 $FSPID
+		sleep 60
 	done
 }
 
 loop &
 loop &
+#memprof &
 wait
