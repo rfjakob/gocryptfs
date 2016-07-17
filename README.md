@@ -21,10 +21,14 @@ for details.
 Current Status
 --------------
 
-gocryptfs is a young project. While bugs in any software can cause issues,
-bugs in encryption software can cause catastrophic data loss. Keep a backup
-of your gocryptfs filesystem *and* store a copy of your master key (printed
-on mount) in a safe place. See below for how gocryptfs is tested.
+gocryptfs has reached version 1.0 on Jul 17, 2016. It has gone through
+hours and hours of stress (fsstress, extractloop.bash) and correctness
+testing (xfstests). It is now considered ready for general consumption.
+
+The old principle still applies: Important data should have a backup.
+Also, keep a copy of your master key (printed on mount) in a safe place.
+This allows you to access the data even if the gocryptfs.conf config
+file is damaged or you lose the password.
 
 Platforms
 ---------
@@ -111,7 +115,7 @@ RM:    4.42
 Changelog
 ---------
 
-v1.0-rc1, 2016-07-06
+v1.0, 2016-07-17
 * Deprecate very old filesystems, stage 3/3
  * Filesystems created by v0.6 can no longer be mounted
  * Drop command-line options `-gcmiv128`, `-emenames`, `-diriv`. These
