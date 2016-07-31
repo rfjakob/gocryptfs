@@ -23,6 +23,10 @@ type CryptoCore struct {
 }
 
 // "New" returns a new CryptoCore object or panics.
+//
+// Even though the "GCMIV128" feature flag is now mandatory, we must still
+// support 96-bit IVs here because they are used for encrypting the master
+// key in gocryptfs.conf.
 func New(key []byte, useOpenssl bool, GCMIV128 bool) *CryptoCore {
 
 	if len(key) != KeyLen {
@@ -35,8 +39,8 @@ func New(key []byte, useOpenssl bool, GCMIV128 bool) *CryptoCore {
 		IVLen = 128 / 8
 	}
 
-	// We always use built-in Go crypto for blockCipher because it is not
-	// performance-critical.
+	// Name encryption always uses built-in Go AES through BlockCipher.
+	// Content encryption uses BlockCipher only if useOpenssl=false.
 	blockCipher, err := aes.NewCipher(key)
 	if err != nil {
 		panic(err)
