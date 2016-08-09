@@ -20,6 +20,7 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
@@ -567,5 +568,72 @@ func TestLchown(t *testing.T) {
 	err = os.Lchown(name, os.Getuid(), os.Getgid())
 	if err != nil {
 		t.Error(err)
+	}
+}
+
+// Set nanoseconds by path
+func TestUtimesNano(t *testing.T) {
+	path := test_helpers.DefaultPlainDir + "/utimesnano"
+	err := ioutil.WriteFile(path, []byte("foobar"), 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ts := make([]syscall.Timespec, 2)
+	// atime
+	ts[0].Sec = 1
+	ts[0].Nsec = 2
+	// mtime
+	ts[1].Sec = 3
+	ts[1].Nsec = 4
+	err = syscall.UtimesNano(path, ts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(1 * time.Second)
+	var st syscall.Stat_t
+	err = syscall.Stat(path, &st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Atim != ts[0] {
+		t.Errorf("Wrong atime: %v, want: %v", st.Atim, ts[0])
+	}
+	if st.Mtim != ts[1] {
+		t.Errorf("Wrong mtime: %v, want: %v", st.Mtim, ts[1])
+	}
+}
+
+// Set nanoseconds by fd
+func TestUtimesNanoFd(t *testing.T) {
+	path := test_helpers.DefaultPlainDir + "/utimesnanofd"
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ts := make([]syscall.Timespec, 2)
+	// atime
+	ts[0].Sec = 5
+	ts[0].Nsec = 6
+	// mtime
+	ts[1].Sec = 7
+	ts[1].Nsec = 8
+
+	procPath := fmt.Sprintf("/proc/self/fd/%d", f.Fd())
+	err = syscall.UtimesNano(procPath, ts)
+	if err != nil {
+		t.Fatalf("%s: %v", procPath, err)
+	}
+
+	var st syscall.Stat_t
+	err = syscall.Stat(path, &st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Atim != ts[0] {
+		t.Errorf("Wrong atime: %v, want: %v", st.Atim, ts[0])
+	}
+	if st.Mtim != ts[1] {
+		t.Errorf("Wrong mtime: %v, want: %v", st.Mtim, ts[1])
 	}
 }
