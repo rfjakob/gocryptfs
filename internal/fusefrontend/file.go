@@ -388,23 +388,29 @@ func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 
 const _UTIME_OMIT = ((1 << 30) - 2)
 
+// utimeToTimespec converts a "time.Time" pointer as passed to Utimens to a
+// Timespec that can be passed to the utimensat syscall.
+func utimeToTimespec(t *time.Time) (ts syscall.Timespec) {
+	if t == nil {
+		ts.Nsec = _UTIME_OMIT
+	} else {
+		ts = syscall.NsecToTimespec(t.UnixNano())
+		// For dates before 1970, NsecToTimespec incorrectly returns negative
+		// nanoseconds. Ticket: https://github.com/golang/go/issues/12777
+		if ts.Nsec < 0 {
+			ts.Nsec = 0
+		}
+	}
+	return ts
+}
+
 func (f *file) Utimens(a *time.Time, m *time.Time) fuse.Status {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 
 	ts := make([]syscall.Timespec, 2)
-
-	if a == nil {
-		ts[0].Nsec = _UTIME_OMIT
-	} else {
-		ts[0].Sec = a.Unix()
-	}
-
-	if m == nil {
-		ts[1].Nsec = _UTIME_OMIT
-	} else {
-		ts[1].Sec = m.Unix()
-	}
+	ts[0] = utimeToTimespec(a)
+	ts[1] = utimeToTimespec(m)
 
 	fn := fmt.Sprintf("/proc/self/fd/%d", f.fd.Fd())
 	err := syscall.UtimesNano(fn, ts)

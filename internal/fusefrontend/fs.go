@@ -230,15 +230,18 @@ func (fs *FS) Truncate(path string, offset uint64, context *fuse.Context) (code 
 	return code
 }
 
-func (fs *FS) Utimens(path string, Atime *time.Time, Mtime *time.Time, context *fuse.Context) (code fuse.Status) {
+func (fs *FS) Utimens(path string, a *time.Time, m *time.Time, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
-	cPath, err := fs.encryptPath(path)
+	cPath, err := fs.getBackingPath(path)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	return fs.FileSystem.Utimens(cPath, Atime, Mtime, context)
+	ts := make([]syscall.Timespec, 2)
+	ts[0] = utimeToTimespec(a)
+	ts[1] = utimeToTimespec(m)
+	return fuse.ToStatus(syscall.UtimesNano(cPath, ts))
 }
 
 func (fs *FS) StatFs(path string) *fuse.StatfsOut {
