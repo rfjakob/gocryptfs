@@ -24,6 +24,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
+	"github.com/rfjakob/gocryptfs/internal/fusefrontend_reverse"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/prefer_openssl"
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
@@ -43,7 +44,7 @@ const (
 type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
 	plaintextnames, quiet, nosyslog, wpanic,
-	longnames, allow_other, ro bool
+	longnames, allow_other, ro, reverse bool
 	masterkey, mountpoint, cipherdir, cpuprofile, config, extpass,
 	memprofile, o string
 	notifypid, scryptn int
@@ -193,6 +194,7 @@ func main() {
 	flagSet.BoolVar(&args.allow_other, "allow_other", false, "Allow other users to access the filesystem. "+
 		"Only works if user_allow_other is set in /etc/fuse.conf.")
 	flagSet.BoolVar(&args.ro, "ro", false, "Mount the filesystem read-only")
+	flagSet.BoolVar(&args.reverse, "reverse", false, "Reverse mode")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")
@@ -258,6 +260,8 @@ func main() {
 			os.Exit(ERREXIT_INIT)
 		}
 		tlog.Info.Printf("Using config file at custom location %s", args.config)
+	} else if args.reverse {
+		args.config = filepath.Join(args.cipherdir, configfile.ConfReverseName)
 	} else {
 		args.config = filepath.Join(args.cipherdir, configfile.ConfDefaultName)
 	}
@@ -401,7 +405,12 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	jsonBytes, _ := json.MarshalIndent(frontendArgs, "", "\t")
 	tlog.Debug.Printf("frontendArgs: %s", string(jsonBytes))
 
-	finalFs := fusefrontend.NewFS(frontendArgs)
+	var finalFs pathfs.FileSystem
+	if args.reverse {
+		finalFs = fusefrontend_reverse.NewFS(frontendArgs)
+	} else {
+		finalFs = fusefrontend.NewFS(frontendArgs)
+	}
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
 	pathFs := pathfs.NewPathNodeFs(finalFs, pathFsOpts)
 	fuseOpts := &nodefs.Options{

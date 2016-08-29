@@ -17,6 +17,9 @@ const (
 	// The dot "." is not used in base64url (RFC4648), hence
 	// we can never clash with an encrypted file.
 	ConfDefaultName = "gocryptfs.conf"
+	// In reverse mode, the config file gets stored next to the plain-text
+	// files. Make it hidden (start with dot) to not annoy the user.
+	ConfReverseName = ".gocryptfs.reverse.conf"
 )
 
 type ConfFile struct {
