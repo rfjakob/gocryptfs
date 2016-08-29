@@ -50,6 +50,7 @@ func (be *ContentEnc) CipherBS() uint64 {
 }
 
 // DecryptBlocks - Decrypt a number of blocks
+// TODO refactor to three-param for
 func (be *ContentEnc) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, fileId []byte) ([]byte, error) {
 	cBuf := bytes.NewBuffer(ciphertext)
 	var err error
@@ -108,6 +109,19 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []b
 	}
 
 	return plaintext, nil
+}
+
+// EncryptBlocks - Encrypt a number of blocks
+// Used for reverse mode
+func (be *ContentEnc) EncryptBlocks(plaintext []byte, firstBlockNo uint64, fileId []byte) []byte {
+	inBuf := bytes.NewBuffer(plaintext)
+	var outBuf bytes.Buffer
+	for blockNo := firstBlockNo; inBuf.Len() > 0; blockNo++ {
+		inBlock := inBuf.Next(int(be.plainBS))
+		outBlock := be.EncryptBlock(inBlock, blockNo, fileId)
+		outBuf.Write(outBlock)
+	}
+	return outBuf.Bytes()
 }
 
 // encryptBlock - Encrypt and add IV and MAC

@@ -11,8 +11,11 @@ func (be *ContentEnc) PlainOffToBlockNo(plainOffset uint64) uint64 {
 	return plainOffset / be.plainBS
 }
 
-// get the block number at ciphter-text offset
+// get the block number at cipher-text offset
 func (be *ContentEnc) CipherOffToBlockNo(cipherOffset uint64) uint64 {
+	if cipherOffset < HEADER_LEN {
+		panic("BUG: offset is inside the file header")
+	}
 	return (cipherOffset - HEADER_LEN) / be.cipherBS
 }
 
@@ -81,6 +84,32 @@ func (be *ContentEnc) ExplodePlainRange(offset uint64, length uint64) []intraBlo
 
 		// Minimum of remaining plaintext data and remaining space in the block
 		nextBlock.Length = MinUint64(length, be.plainBS-nextBlock.Skip)
+
+		blocks = append(blocks, nextBlock)
+		offset += nextBlock.Length
+		length -= nextBlock.Length
+	}
+	return blocks
+}
+
+// Split a ciphertext byte range into (possibly partial) blocks
+// This is used in reverse mode when reading files
+func (be *ContentEnc) ExplodeCipherRange(offset uint64, length uint64) []intraBlock {
+	var blocks []intraBlock
+	var nextBlock intraBlock
+	nextBlock.fs = be
+
+	for length > 0 {
+		nextBlock.BlockNo = be.CipherOffToBlockNo(offset)
+		nextBlock.Skip = offset - be.BlockNoToCipherOff(nextBlock.BlockNo)
+
+		// This block can carry up to "maxLen" payload bytes
+		maxLen := be.cipherBS - nextBlock.Skip
+		nextBlock.Length = maxLen
+		// But if the user requested less, we truncate the block to "length".
+		if length < maxLen {
+			nextBlock.Length = length
+		}
 
 		blocks = append(blocks, nextBlock)
 		offset += nextBlock.Length
