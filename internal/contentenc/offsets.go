@@ -28,8 +28,7 @@ func (be *ContentEnc) BlockNoToPlainOff(blockNo uint64) uint64 {
 
 // PlainSize - calculate plaintext size from ciphertext size
 func (be *ContentEnc) CipherSizeToPlainSize(cipherSize uint64) uint64 {
-
-	// Zero sized files stay zero-sized
+	// Zero-sized files stay zero-sized
 	if cipherSize == 0 {
 		return 0
 	}
@@ -55,6 +54,10 @@ func (be *ContentEnc) CipherSizeToPlainSize(cipherSize uint64) uint64 {
 
 // CipherSize - calculate ciphertext size from plaintext size
 func (be *ContentEnc) PlainSizeToCipherSize(plainSize uint64) uint64 {
+	// Zero-sized files stay zero-sized
+	if plainSize == 0 {
+		return 0
+	}
 
 	// Block number at last byte
 	blockNo := be.PlainOffToBlockNo(plainSize - 1)
