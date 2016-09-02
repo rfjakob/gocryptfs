@@ -1,6 +1,7 @@
 package fusefrontend_reverse
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -12,10 +13,12 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-var zeroFileId []byte
+// File header that contains an all-zero File ID
+var zeroFileHeader *contentenc.FileHeader
 
 func init() {
-	zeroFileId = make([]byte, 16)
+	zeroFileHeader = contentenc.RandomHeader()
+	zeroFileHeader.Id = make([]byte, contentenc.HEADER_ID_LEN)
 }
 
 type reverseFile struct {
@@ -41,12 +44,12 @@ func (rf *reverseFile) GetAttr(*fuse.Attr) fuse.Status {
 	return fuse.ENOSYS
 }
 
-// Read - FUSE call
-func (rf *reverseFile) Read(buf []byte, off int64) (resultData fuse.ReadResult, status fuse.Status) {
-	// TODO prefix file header
-
-	length := uint64(len(buf))
-	blocks := rf.contentEnc.ExplodeCipherRange(uint64(off), length)
+// readFile - read from the backing plaintext file, encrypt it, return the
+// ciphertext.
+// "off" ... ciphertext offset (must be >= HEADER_LEN)
+// "length" ... ciphertext length
+func (rf *reverseFile) readFile(off uint64, length uint64) (out []byte, err error) {
+	blocks := rf.contentEnc.ExplodeCipherRange(off, length)
 
 	// Read the backing plaintext in one go
 	alignedOffset, alignedLength := contentenc.JointPlaintextRange(blocks)
@@ -54,26 +57,62 @@ func (rf *reverseFile) Read(buf []byte, off int64) (resultData fuse.ReadResult, 
 	plaintext := make([]byte, int(alignedLength))
 	n, err := rf.fd.ReadAt(plaintext, int64(alignedOffset))
 	if err != nil && err != io.EOF {
-		tlog.Warn.Printf("reverseFile.Read: ReadAt: %s", err.Error())
-		return nil, fuse.ToStatus(err)
+		tlog.Warn.Printf("reverseFile.readFile: ReadAt: %s", err.Error())
+		return nil, err
 	}
 	// Truncate buffer down to actually read bytes
 	plaintext = plaintext[0:n]
 
 	// Encrypt blocks
-	ciphertext := rf.contentEnc.EncryptBlocks(plaintext, blocks[0].BlockNo, zeroFileId)
+	ciphertext := rf.contentEnc.EncryptBlocks(plaintext, blocks[0].BlockNo, zeroFileHeader.Id)
 
 	// Crop down to the relevant part
-	var out []byte
 	lenHave := len(ciphertext)
 	skip := blocks[0].Skip
 	endWant := int(skip + length)
 	if lenHave > endWant {
-		out = plaintext[skip:endWant]
+		out = ciphertext[skip:endWant]
 	} else if lenHave > int(skip) {
-		out = plaintext[skip:lenHave]
-	}
-	// else: out stays empty, file was smaller than the requested offset
+		out = ciphertext[skip:lenHave]
+	} // else: out stays empty, file was smaller than the requested offset
 
-	return fuse.ReadResultData(out), fuse.OK
+	return out, nil
+}
+
+// Read - FUSE call
+func (rf *reverseFile) Read(buf []byte, ioff int64) (resultData fuse.ReadResult, status fuse.Status) {
+	length := uint64(len(buf))
+	off := uint64(ioff)
+	var out bytes.Buffer
+	var headerPart []byte
+
+	// Create a virtual file header
+	if off < contentenc.HEADER_LEN {
+		headerPart = zeroFileHeader.Pack()
+		headerPart = headerPart[off:]
+		if off+length < contentenc.HEADER_LEN {
+			headerPart = headerPart[:length]
+		}
+	}
+	out.Write(headerPart)
+	hLen := uint64(len(headerPart))
+	off += hLen
+	length -= hLen
+
+	// Read actual file data
+	if length > 0 {
+		fileData, err := rf.readFile(off, length)
+		if err != nil {
+			return nil, fuse.ToStatus(err)
+		}
+		if len(fileData) == 0 {
+			// If we could not read any actual data, we also don't want to
+			// return the file header. An empty file stays empty in encrypted
+			// form.
+			return nil, fuse.OK
+		}
+		out.Write(fileData)
+	}
+
+	return fuse.ReadResultData(out.Bytes()), fuse.OK
 }

@@ -1,7 +1,10 @@
 package fusefrontend_reverse
 
 import (
+	"fmt"
 	"os"
+	"path"
+	"strings"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -12,6 +15,10 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
+)
+
+const (
+	DirIVMode = syscall.S_IFREG | 0400
 )
 
 type reverseFS struct {
@@ -44,6 +51,46 @@ func NewFS(args fusefrontend.Args) *reverseFS {
 }
 
 func (rfs *reverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
+	// Handle gocryptfs.diriv
+	if relPath == nametransform.DirIVFilename ||
+		strings.HasSuffix(relPath, nametransform.DirIVFilename) {
+
+		fmt.Printf("Handling gocryptfs.diriv\n")
+
+		cDir := path.Dir(relPath)
+		if cDir == "." {
+			cDir = ""
+		}
+		dir, err := rfs.decryptPath(cDir)
+		if err != nil {
+			fmt.Printf("decrypt err %q\n", cDir)
+			return nil, fuse.ToStatus(err)
+		}
+		// Does the parent dir exist?
+		a, status := rfs.loopbackfs.GetAttr(dir, context)
+		if !status.Ok() {
+			fmt.Printf("missing parent\n")
+			return nil, status
+		}
+		// Is it a dir at all?
+		if !a.IsDir() {
+			fmt.Printf("not isdir\n")
+			return nil, fuse.ENOTDIR
+		}
+		// Does the user have execute permissions?
+		if a.Mode&syscall.S_IXUSR == 0 {
+			fmt.Printf("not exec")
+			return nil, fuse.EPERM
+		}
+		// All good. Let's fake the file.
+		// We use the inode number of the parent dir (can this cause problems?).
+		a.Mode = DirIVMode
+		a.Size = nametransform.DirIVLen
+		a.Nlink = 1
+
+		return a, fuse.OK
+	}
+
 	if rfs.isFiltered(relPath) {
 		return nil, fuse.EPERM
 	}
@@ -52,8 +99,8 @@ func (rfs *reverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 		return nil, fuse.ToStatus(err)
 	}
 	a, status := rfs.loopbackfs.GetAttr(relPath, context)
-	if a == nil {
-		return a, status
+	if !status.Ok() {
+		return nil, status
 	}
 	// Calculate encrypted file size
 	if a.IsRegular() {
@@ -105,5 +152,8 @@ func (rfs *reverseFS) OpenDir(relPath string, context *fuse.Context) ([]fuse.Dir
 			return nil, fuse.ToStatus(err)
 		}
 	}
+	// Add virtual gocryptfs.diriv
+	entries = append(entries, fuse.DirEntry{syscall.S_IFREG | 0400, nametransform.DirIVFilename})
+
 	return entries, fuse.OK
 }
