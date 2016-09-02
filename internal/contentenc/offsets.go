@@ -1,6 +1,8 @@
 package contentenc
 
 import (
+	"log"
+
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -14,7 +16,7 @@ func (be *ContentEnc) PlainOffToBlockNo(plainOffset uint64) uint64 {
 // get the block number at cipher-text offset
 func (be *ContentEnc) CipherOffToBlockNo(cipherOffset uint64) uint64 {
 	if cipherOffset < HEADER_LEN {
-		panic("BUG: offset is inside the file header")
+		log.Panicf("BUG: offset %d is inside the file header", cipherOffset)
 	}
 	return (cipherOffset - HEADER_LEN) / be.cipherBS
 }
