@@ -408,6 +408,7 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	var finalFs pathfs.FileSystem
 	if args.reverse {
 		finalFs = fusefrontend_reverse.NewFS(frontendArgs)
+		tlog.Info.Printf(tlog.ColorYellow + "REVERSE MODE IS EXPERIMENTAL" + tlog.ColorReset)
 	} else {
 		finalFs = fusefrontend.NewFS(frontendArgs)
 	}
@@ -437,7 +438,8 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	mOpts.Name = "gocryptfs"
 
 	// The kernel enforces read-only operation, we just have to pass "ro".
-	if args.ro {
+	// Reverse mounts are always read-only
+	if args.ro || args.reverse {
 		mOpts.Options = append(mOpts.Options, "ro")
 	}
 	// Add additional mount options (if any) after the stock ones, so the user has
