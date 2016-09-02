@@ -15,7 +15,7 @@ import (
 
 const (
 	// identical to AES block size
-	dirIVLen = 16
+	DirIVLen = 16
 	// dirIV is stored in this file. Exported because we have to ignore this
 	// name in directory listing.
 	DirIVFilename = "gocryptfs.diriv"
@@ -45,15 +45,17 @@ func ReadDirIVAt(dirfd *os.File) (iv []byte, err error) {
 	fd := os.NewFile(uintptr(fdRaw), DirIVFilename)
 	defer fd.Close()
 
-	iv = make([]byte, dirIVLen+1)
+	// We want to detect if the file is bigger than DirIVLen, so
+	// make the buffer 1 byte bigger than neccessary.
+	iv = make([]byte, DirIVLen+1)
 	n, err := fd.Read(iv)
 	if err != nil {
 		tlog.Warn.Printf("ReadDirIVAt: Read failed: %v", err)
 		return nil, err
 	}
 	iv = iv[0:n]
-	if len(iv) != dirIVLen {
-		tlog.Warn.Printf("ReadDirIVAt: wanted %d bytes, got %d", dirIVLen, len(iv))
+	if len(iv) != DirIVLen {
+		tlog.Warn.Printf("ReadDirIVAt: wanted %d bytes, got %d", DirIVLen, len(iv))
 		return nil, errors.New("invalid iv length")
 	}
 	return iv, nil
@@ -63,7 +65,7 @@ func ReadDirIVAt(dirfd *os.File) (iv []byte, err error) {
 // This function is exported because it is used from pathfs_frontend, main,
 // and also the automated tests.
 func WriteDirIV(dir string) error {
-	iv := cryptocore.RandBytes(dirIVLen)
+	iv := cryptocore.RandBytes(DirIVLen)
 	file := filepath.Join(dir, DirIVFilename)
 	err := ioutil.WriteFile(file, iv, 0400)
 	if err != nil {
