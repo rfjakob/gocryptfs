@@ -305,6 +305,9 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 		frontendArgs.PlaintextNames = confFile.IsFeatureFlagSet(configfile.FlagPlaintextNames)
 		if confFile.IsFeatureFlagSet(configfile.FlagGCMSIV) {
 			frontendArgs.CryptoBackend = cryptocore.BackendGCMSIV
+		} else if args.reverse {
+			tlog.Fatal.Printf("GCMSIV is required by reverse mode, but not enabled in the config file")
+			os.Exit(ERREXIT_USAGE)
 		}
 	}
 	// If allow_other is set and we run as root, try to give newly created files to

@@ -39,7 +39,7 @@ func initDir(args *argContainer) {
 	}
 	password := readpassword.Twice(args.extpass)
 	creator := tlog.ProgramName + " " + GitVersion
-	err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator)
+	err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator, args.reverse)
 	if err != nil {
 		tlog.Fatal.Println(err)
 		os.Exit(ERREXIT_INIT)

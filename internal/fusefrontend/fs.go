@@ -326,7 +326,7 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 		return fuse.ToStatus(err)
 	}
 	// Symlinks are encrypted like file contents (GCM) and base64-encoded
-	cBinTarget := fs.contentEnc.EncryptBlock([]byte(target), 0, nil)
+	cBinTarget := fs.contentEnc.EncryptBlock([]byte(target), 0, nil, contentenc.RandomNonce)
 	cTarget := base64.URLEncoding.EncodeToString(cBinTarget)
 
 	// Handle long file name

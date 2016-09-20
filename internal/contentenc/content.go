@@ -11,11 +11,17 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
+type NonceMode int
+
 const (
 	// Default plaintext block size
 	DefaultBS = 4096
 	// We always use 128-bit IVs for file content encryption
 	IVBitLen = 128
+
+	_                           = iota // skip zero
+	RandomNonce       NonceMode = iota
+	ReverseDummyNonce NonceMode = iota
 )
 
 type ContentEnc struct {
@@ -27,6 +33,8 @@ type ContentEnc struct {
 	cipherBS uint64
 	// All-zero block of size cipherBS, for fast compares
 	allZeroBlock []byte
+	// All-zero block of size IVBitLen/8, for fast compares
+	allZeroNonce []byte
 }
 
 func New(cc *cryptocore.CryptoCore, plainBS uint64) *ContentEnc {
@@ -38,6 +46,7 @@ func New(cc *cryptocore.CryptoCore, plainBS uint64) *ContentEnc {
 		plainBS:      plainBS,
 		cipherBS:     cipherBS,
 		allZeroBlock: make([]byte, cipherBS),
+		allZeroNonce: make([]byte, IVBitLen/8),
 	}
 }
 
@@ -94,6 +103,9 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []b
 
 	// Extract nonce
 	nonce := ciphertext[:be.cryptoCore.IVLen]
+	if bytes.Equal(nonce, be.allZeroNonce) && be.cryptoCore.AEADBackend != cryptocore.BackendGCMSIV {
+		panic("Hit an all-zero nonce with GCMSIV off. This MUST NOT happen!")
+	}
 	ciphertextOrig := ciphertext
 	ciphertext = ciphertext[be.cryptoCore.IVLen:]
 
@@ -115,27 +127,38 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []b
 
 // EncryptBlocks - Encrypt a number of blocks
 // Used for reverse mode
-func (be *ContentEnc) EncryptBlocks(plaintext []byte, firstBlockNo uint64, fileId []byte) []byte {
+func (be *ContentEnc) EncryptBlocks(plaintext []byte, firstBlockNo uint64, fileId []byte, nMode NonceMode) []byte {
 	inBuf := bytes.NewBuffer(plaintext)
 	var outBuf bytes.Buffer
 	for blockNo := firstBlockNo; inBuf.Len() > 0; blockNo++ {
 		inBlock := inBuf.Next(int(be.plainBS))
-		outBlock := be.EncryptBlock(inBlock, blockNo, fileId)
+		outBlock := be.EncryptBlock(inBlock, blockNo, fileId, nMode)
 		outBuf.Write(outBlock)
 	}
 	return outBuf.Bytes()
 }
 
 // encryptBlock - Encrypt and add IV and MAC
-func (be *ContentEnc) EncryptBlock(plaintext []byte, blockNo uint64, fileID []byte) []byte {
-
+func (be *ContentEnc) EncryptBlock(plaintext []byte, blockNo uint64, fileID []byte, nMode NonceMode) []byte {
 	// Empty block?
 	if len(plaintext) == 0 {
 		return plaintext
 	}
 
-	// Get fresh nonce
-	nonce := be.cryptoCore.IVGenerator.Get()
+	var nonce []byte
+	switch nMode {
+	case ReverseDummyNonce:
+		if be.cryptoCore.AEADBackend != cryptocore.BackendGCMSIV {
+			panic("MUST NOT use dummy nonces unless in GCMSIV mode!")
+		}
+		nonce = make([]byte, IVBitLen/8)
+		binary.BigEndian.PutUint64(nonce, blockNo)
+	case RandomNonce:
+		// Get a fresh random nonce
+		nonce = be.cryptoCore.IVGenerator.Get()
+	default:
+		panic("invalid nonce mode")
+	}
 
 	// Authenticate block with block number and file ID
 	aData := make([]byte, 8)

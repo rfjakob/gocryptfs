@@ -29,6 +29,8 @@ type CryptoCore struct {
 	BlockCipher cipher.Block
 	// GCM or GCM-SIV. This is used for content encryption.
 	AEADCipher cipher.AEAD
+	// Which backend is behind AEADCipher?
+	AEADBackend BackendTypeEnum
 	// GCM needs unique IVs (nonces)
 	IVGenerator *nonceGenerator
 	IVLen       int
@@ -74,6 +76,7 @@ func New(key []byte, backend BackendTypeEnum, IVBitLen int) *CryptoCore {
 	return &CryptoCore{
 		BlockCipher: blockCipher,
 		AEADCipher:  gcm,
+		AEADBackend: backend,
 		IVGenerator: &nonceGenerator{nonceLen: IVLen},
 		IVLen:       IVLen,
 	}

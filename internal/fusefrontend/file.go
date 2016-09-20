@@ -256,7 +256,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 
 		// Encrypt
 		blockOffset := b.BlockCipherOff()
-		blockData = f.contentEnc.EncryptBlock(blockData, b.BlockNo, f.header.Id)
+		blockData = f.contentEnc.EncryptBlock(blockData, b.BlockNo, f.header.Id, contentenc.RandomNonce)
 		tlog.Debug.Printf("ino%d: Writing %d bytes to block #%d",
 			f.ino, uint64(len(blockData))-f.contentEnc.BlockOverhead(), b.BlockNo)
 

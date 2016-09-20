@@ -45,7 +45,7 @@ type ConfFile struct {
 // CreateConfFile - create a new config with a random key encrypted with
 // "password" and write it to "filename".
 // Uses scrypt with cost parameter logN.
-func CreateConfFile(filename string, password string, plaintextNames bool, logN int, creator string) error {
+func CreateConfFile(filename string, password string, plaintextNames bool, logN int, creator string, reverse bool) error {
 	var cf ConfFile
 	cf.filename = filename
 	cf.Creator = creator
@@ -66,6 +66,9 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagDirIV])
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagEMENames])
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagLongNames])
+	}
+	if reverse {
+		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagGCMSIV])
 	}
 
 	// Write file to disk
@@ -165,7 +168,7 @@ func (cf *ConfFile) EncryptKey(key []byte, password string, logN int) {
 	// Lock master key using password-based key
 	cc := cryptocore.New(scryptHash, cryptocore.BackendGoGCM, 96)
 	ce := contentenc.New(cc, 4096)
-	cf.EncryptedKey = ce.EncryptBlock(key, 0, nil)
+	cf.EncryptedKey = ce.EncryptBlock(key, 0, nil, contentenc.RandomNonce)
 }
 
 // WriteFile - write out config in JSON format to file "filename.tmp"

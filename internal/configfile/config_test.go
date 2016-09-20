@@ -60,7 +60,7 @@ func TestLoadV2StrangeFeature(t *testing.T) {
 }
 
 func TestCreateConfFile(t *testing.T) {
-	err := CreateConfFile("config_test/tmp.conf", "test", false, 10, "test")
+	err := CreateConfFile("config_test/tmp.conf", "test", false, 10, "test", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,6 +69,20 @@ func TestCreateConfFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
+}
+
+func TestCreateConfFileReverse(t *testing.T) {
+	err := CreateConfFile("config_test/tmp.conf", "test", false, 10, "test", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, c, err := LoadConfFile("config_test/tmp.conf", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.IsFeatureFlagSet(FlagGCMSIV) {
+		t.Error("GCMSIV flag should be set but is not")
+	}
 }
 
 func TestIsFeatureFlagKnown(t *testing.T) {

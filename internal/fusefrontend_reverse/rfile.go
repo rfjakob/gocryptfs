@@ -64,7 +64,7 @@ func (rf *reverseFile) readBackingFile(off uint64, length uint64) (out []byte, e
 	plaintext = plaintext[0:n]
 
 	// Encrypt blocks
-	ciphertext := rf.contentEnc.EncryptBlocks(plaintext, blocks[0].BlockNo, zeroFileHeader.Id)
+	ciphertext := rf.contentEnc.EncryptBlocks(plaintext, blocks[0].BlockNo, zeroFileHeader.Id, contentenc.ReverseDummyNonce)
 
 	// Crop down to the relevant part
 	lenHave := len(ciphertext)
