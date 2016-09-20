@@ -10,6 +10,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 
+	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
@@ -98,6 +99,7 @@ func isDirIV(relPath string) bool {
 	return filepath.Base(relPath) == nametransform.DirIVFilename
 }
 
+// GetAttr - FUSE call
 func (rfs *reverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	if isDirIV(relPath) {
 		return rfs.dirIVAttr(relPath, context)
@@ -120,6 +122,7 @@ func (rfs *reverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 	return a, fuse.OK
 }
 
+// Access - FUSE call
 func (rfs *reverseFS) Access(relPath string, mode uint32, context *fuse.Context) fuse.Status {
 	if isDirIV(relPath) {
 		return fuse.OK
@@ -134,7 +137,12 @@ func (rfs *reverseFS) Access(relPath string, mode uint32, context *fuse.Context)
 	return fuse.ToStatus(syscall.Access(absPath, mode))
 }
 
+// Open - FUSE call
 func (rfs *reverseFS) Open(relPath string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
+	if relPath == configfile.ConfDefaultName {
+		// gocryptfs.conf maps to .gocryptfs.reverse.conf in the plaintext directory
+		return rfs.loopbackfs.Open(configfile.ConfReverseName, flags, context)
+	}
 	if isDirIV(relPath) {
 		return NewDirIVFile(relDir(relPath))
 	}
@@ -152,6 +160,7 @@ func (rfs *reverseFS) Open(relPath string, flags uint32, context *fuse.Context) 
 	return NewFile(f, rfs.contentEnc)
 }
 
+// OpenDir - FUSE readdir call
 func (rfs *reverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
 	relPath, err := rfs.decryptPath(cipherPath)
 	if err != nil {
@@ -169,6 +178,14 @@ func (rfs *reverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 	}
 	// Add virtual gocryptfs.diriv
 	entries = append(entries, fuse.DirEntry{syscall.S_IFREG | 0400, nametransform.DirIVFilename})
+	// Add gocryptfs.conf in the root directory,
+	// maps to .gocryptfs.reverse.conf in the plaintext directory.
+	if cipherPath == "" {
+		_, err = os.Stat(filepath.Join(rfs.args.Cipherdir, configfile.ConfReverseName))
+		if err == nil {
+			entries = append(entries, fuse.DirEntry{syscall.S_IFREG | 0400, configfile.ConfDefaultName})
+		}
+	}
 
 	return entries, fuse.OK
 }
