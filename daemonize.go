@@ -21,7 +21,7 @@ func exitOnUsr1() {
 // forkChild - execute ourselves once again, this time with the "-f" flag, and
 // wait for SIGUSR1 or child exit.
 // This is a workaround for the missing true fork function in Go.
-func forkChild() {
+func forkChild() int {
 	go exitOnUsr1()
 	name := os.Args[0]
 	newArgs := []string{"-f", fmt.Sprintf("-notifypid=%d", os.Getpid())}
@@ -33,7 +33,7 @@ func forkChild() {
 	err := c.Start()
 	if err != nil {
 		tlog.Fatal.Printf("forkChild: starting %s failed: %v\n", name, err)
-		os.Exit(1)
+		return 1
 	}
 	err = c.Wait()
 	if err != nil {
@@ -43,8 +43,8 @@ func forkChild() {
 			}
 		}
 		tlog.Fatal.Printf("forkChild: wait returned an unknown error: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 	// The child exited with 0 - let's do the same.
-	os.Exit(0)
+	return 0
 }
