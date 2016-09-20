@@ -11,15 +11,21 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-// initDir initializes an empty directory for use as a gocryptfs cipherdir.
+// initDir prepares a directory for use as a gocryptfs storage directory.
+// In forward mode, this means creating the gocryptfs.conf and gocryptfs.diriv
+// files in an empty directory.
+// In reverse mode, we create .gocryptfs.reverse.conf and the directory does
+// not to be empty.
 func initDir(args *argContainer) {
-	err := checkDirEmpty(args.cipherdir)
-	if err != nil {
-		tlog.Fatal.Printf("Invalid cipherdir: %v", err)
-		os.Exit(ERREXIT_INIT)
+	var err error
+	if !args.reverse {
+		err = checkDirEmpty(args.cipherdir)
+		if err != nil {
+			tlog.Fatal.Printf("Invalid cipherdir: %v", err)
+			os.Exit(ERREXIT_INIT)
+		}
 	}
-
-	// Create gocryptfs.conf
+	// Choose password for config file
 	if args.extpass == "" {
 		tlog.Info.Printf("Choose a password for protecting your files.")
 	} else {
@@ -32,9 +38,9 @@ func initDir(args *argContainer) {
 		tlog.Fatal.Println(err)
 		os.Exit(ERREXIT_INIT)
 	}
-
-	if !args.plaintextnames {
-		// Create gocryptfs.diriv in the root dir
+	// Forward mode with filename encryption enabled needs a gocryptfs.diriv
+	// in the root dir
+	if !args.plaintextnames && !args.reverse {
 		err = nametransform.WriteDirIV(args.cipherdir)
 		if err != nil {
 			tlog.Fatal.Println(err)
