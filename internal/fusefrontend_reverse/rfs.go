@@ -136,7 +136,7 @@ func (rfs *reverseFS) Access(relPath string, mode uint32, context *fuse.Context)
 
 func (rfs *reverseFS) Open(relPath string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
 	if isDirIV(relPath) {
-		return NewDirIVFile(relPath)
+		return NewDirIVFile(relDir(relPath))
 	}
 	if rfs.isFiltered(relPath) {
 		return nil, fuse.EPERM
