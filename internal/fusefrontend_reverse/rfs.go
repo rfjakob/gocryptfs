@@ -101,6 +101,9 @@ func isDirIV(relPath string) bool {
 
 // GetAttr - FUSE call
 func (rfs *reverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
+	if relPath == configfile.ConfDefaultName {
+		return rfs.loopbackfs.GetAttr(configfile.ConfReverseName, context)
+	}
 	if isDirIV(relPath) {
 		return rfs.dirIVAttr(relPath, context)
 	}
@@ -174,18 +177,15 @@ func (rfs *reverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 	// Encrypt names
 	dirIV := deriveDirIV(cipherPath)
 	for i := range entries {
-		entries[i].Name = rfs.nameTransform.EncryptName(entries[i].Name, dirIV)
+		// ".gocryptfs.reverse.conf" in the root directory is mapped to "gocryptfs.conf"
+		if cipherPath == "" && entries[i].Name == configfile.ConfReverseName {
+			entries[i].Name = configfile.ConfDefaultName
+		} else {
+			entries[i].Name = rfs.nameTransform.EncryptName(entries[i].Name, dirIV)
+		}
 	}
 	// Add virtual gocryptfs.diriv
 	entries = append(entries, fuse.DirEntry{syscall.S_IFREG | 0400, nametransform.DirIVFilename})
-	// Add gocryptfs.conf in the root directory,
-	// maps to .gocryptfs.reverse.conf in the plaintext directory.
-	if cipherPath == "" {
-		_, err = os.Stat(filepath.Join(rfs.args.Cipherdir, configfile.ConfReverseName))
-		if err == nil {
-			entries = append(entries, fuse.DirEntry{syscall.S_IFREG | 0400, configfile.ConfDefaultName})
-		}
-	}
 
 	return entries, fuse.OK
 }
