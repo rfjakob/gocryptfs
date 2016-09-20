@@ -18,6 +18,7 @@ var zeroFileHeader *contentenc.FileHeader
 
 func init() {
 	zeroFileHeader = contentenc.RandomHeader()
+	// Overwrite with zeros
 	zeroFileHeader.Id = make([]byte, contentenc.HEADER_ID_LEN)
 }
 
@@ -53,11 +54,10 @@ func (rf *reverseFile) readBackingFile(off uint64, length uint64) (out []byte, e
 
 	// Read the backing plaintext in one go
 	alignedOffset, alignedLength := contentenc.JointPlaintextRange(blocks)
-	tlog.Warn.Printf("alignedOffset=%d, alignedLength=%d\n", alignedOffset, alignedLength)
 	plaintext := make([]byte, int(alignedLength))
 	n, err := rf.fd.ReadAt(plaintext, int64(alignedOffset))
 	if err != nil && err != io.EOF {
-		tlog.Warn.Printf("reverseFile.readFile: ReadAt: %s", err.Error())
+		tlog.Warn.Printf("readBackingFile: ReadAt: %s", err.Error())
 		return nil, err
 	}
 	// Truncate buffer down to actually read bytes
