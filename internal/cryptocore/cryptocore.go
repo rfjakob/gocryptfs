@@ -8,17 +8,29 @@ import (
 	"fmt"
 
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
+
+	"github.com/rfjakob/gcmsiv"
 )
+
+type BackendTypeEnum int
 
 const (
 	KeyLen     = 32 // AES-256
 	AuthTagLen = 16
+
+	_                              = iota // Skip zero
+	BackendOpenSSL BackendTypeEnum = iota
+	BackendGoGCM   BackendTypeEnum = iota
+	BackendGCMSIV  BackendTypeEnum = iota
 )
 
 type CryptoCore struct {
+	// AES-256 block cipher. This is used for EME filename encryption.
 	BlockCipher cipher.Block
-	Gcm         cipher.AEAD
-	GcmIVGen    *nonceGenerator
+	// GCM or GCM-SIV. This is used for content encryption.
+	AEADCipher cipher.AEAD
+	// GCM needs unique IVs (nonces)
+	IVGenerator *nonceGenerator
 	IVLen       int
 }
 
@@ -27,17 +39,12 @@ type CryptoCore struct {
 // Even though the "GCMIV128" feature flag is now mandatory, we must still
 // support 96-bit IVs here because they are used for encrypting the master
 // key in gocryptfs.conf.
-func New(key []byte, useOpenssl bool, GCMIV128 bool) *CryptoCore {
-
+func New(key []byte, backend BackendTypeEnum, IVBitLen int) *CryptoCore {
 	if len(key) != KeyLen {
 		panic(fmt.Sprintf("Unsupported key length %d", len(key)))
 	}
-
 	// We want the IV size in bytes
-	IVLen := 96 / 8
-	if GCMIV128 {
-		IVLen = 128 / 8
-	}
+	IVLen := IVBitLen / 8
 
 	// Name encryption always uses built-in Go AES through BlockCipher.
 	// Content encryption uses BlockCipher only if useOpenssl=false.
@@ -47,20 +54,27 @@ func New(key []byte, useOpenssl bool, GCMIV128 bool) *CryptoCore {
 	}
 
 	var gcm cipher.AEAD
-	if useOpenssl && GCMIV128 {
-		// stupidgcm only supports 128-bit IVs
-		gcm = stupidgcm.New(key)
-	} else {
-		gcm, err = goGCMWrapper(blockCipher, IVLen)
-		if err != nil {
-			panic(err)
+	switch backend {
+	case BackendOpenSSL:
+		if IVLen != 16 {
+			panic("stupidgcm only supports 128-bit IVs")
 		}
+		gcm = stupidgcm.New(key)
+	case BackendGoGCM:
+		gcm, err = goGCMWrapper(blockCipher, IVLen)
+	case BackendGCMSIV:
+		gcm, err = gcmsiv.NewGCMSIV(key)
+	default:
+		panic("unknown backend cipher")
+	}
+	if err != nil {
+		panic(err)
 	}
 
 	return &CryptoCore{
 		BlockCipher: blockCipher,
-		Gcm:         gcm,
-		GcmIVGen:    &nonceGenerator{nonceLen: IVLen},
+		AEADCipher:  gcm,
+		IVGenerator: &nonceGenerator{nonceLen: IVLen},
 		IVLen:       IVLen,
 	}
 }

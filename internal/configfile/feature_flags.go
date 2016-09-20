@@ -8,6 +8,7 @@ const (
 	FlagEMENames
 	FlagGCMIV128
 	FlagLongNames
+	FlagGCMSIV
 )
 
 // knownFlags stores the known feature flags and their string representation
@@ -17,6 +18,7 @@ var knownFlags map[flagIota]string = map[flagIota]string{
 	FlagEMENames:       "EMENames",
 	FlagGCMIV128:       "GCMIV128",
 	FlagLongNames:      "LongNames",
+	FlagGCMSIV:         "GCMSIV",
 }
 
 // Filesystems that do not have these feature flags set are deprecated.
@@ -27,7 +29,7 @@ var requiredFlagsNormal []flagIota = []flagIota{
 }
 
 // Filesystems without filename encryption obviously don't have or need the
-// related feature flags.
+// filename related feature flags.
 var requiredFlagsPlaintextNames []flagIota = []flagIota{
 	FlagGCMIV128,
 }

@@ -282,20 +282,30 @@ func main() {
 // initFuseFrontend - initialize gocryptfs/fusefrontend
 // Calls os.Exit on errors
 func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFile) *fuse.Server {
-
-	// Reconciliate CLI and config file arguments into a Args struct that is passed to the
-	// filesystem implementation
+	// Reconciliate CLI and config file arguments into a fusefrontend.Args struct
+	// that is passed to the filesystem implementation
+	cryptoBackend := cryptocore.BackendGoGCM
+	if args.openssl {
+		cryptoBackend = cryptocore.BackendOpenSSL
+	}
+	if args.reverse {
+		// reverse implies GCMSIV
+		cryptoBackend = cryptocore.BackendGCMSIV
+	}
 	frontendArgs := fusefrontend.Args{
 		Cipherdir:      args.cipherdir,
 		Masterkey:      key,
-		OpenSSL:        args.openssl,
 		PlaintextNames: args.plaintextnames,
 		LongNames:      args.longnames,
+		CryptoBackend:  cryptoBackend,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {
 		// Settings from the config file override command line args
 		frontendArgs.PlaintextNames = confFile.IsFeatureFlagSet(configfile.FlagPlaintextNames)
+		if confFile.IsFeatureFlagSet(configfile.FlagGCMSIV) {
+			frontendArgs.CryptoBackend = cryptocore.BackendGCMSIV
+		}
 	}
 	// If allow_other is set and we run as root, try to give newly created files to
 	// the right user.
@@ -308,7 +318,7 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	var finalFs pathfs.FileSystem
 	if args.reverse {
 		finalFs = fusefrontend_reverse.NewFS(frontendArgs)
-		tlog.Info.Printf(tlog.ColorYellow + "REVERSE MODE IS EXPERIMENTAL" + tlog.ColorReset)
+		tlog.Info.Printf(tlog.ColorYellow + "REVERSE MODE IS EXPERIMENTAL!" + tlog.ColorReset)
 	} else {
 		finalFs = fusefrontend.NewFS(frontendArgs)
 	}

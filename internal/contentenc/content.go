@@ -14,6 +14,8 @@ import (
 const (
 	// Default plaintext block size
 	DefaultBS = 4096
+	// We always use 128-bit IVs for file content encryption
+	IVBitLen = 128
 )
 
 type ContentEnc struct {
@@ -100,7 +102,7 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []b
 	aData := make([]byte, 8)
 	aData = append(aData, fileId...)
 	binary.BigEndian.PutUint64(aData, blockNo)
-	plaintext, err := be.cryptoCore.Gcm.Open(plaintext, nonce, ciphertext, aData)
+	plaintext, err := be.cryptoCore.AEADCipher.Open(plaintext, nonce, ciphertext, aData)
 
 	if err != nil {
 		tlog.Warn.Printf("DecryptBlock: %s, len=%d", err.Error(), len(ciphertextOrig))
@@ -133,7 +135,7 @@ func (be *ContentEnc) EncryptBlock(plaintext []byte, blockNo uint64, fileID []by
 	}
 
 	// Get fresh nonce
-	nonce := be.cryptoCore.GcmIVGen.Get()
+	nonce := be.cryptoCore.IVGenerator.Get()
 
 	// Authenticate block with block number and file ID
 	aData := make([]byte, 8)
@@ -141,7 +143,7 @@ func (be *ContentEnc) EncryptBlock(plaintext []byte, blockNo uint64, fileID []by
 	aData = append(aData, fileID...)
 
 	// Encrypt plaintext and append to nonce
-	ciphertext := be.cryptoCore.Gcm.Seal(nonce, nonce, plaintext, aData)
+	ciphertext := be.cryptoCore.AEADCipher.Seal(nonce, nonce, plaintext, aData)
 
 	return ciphertext
 }

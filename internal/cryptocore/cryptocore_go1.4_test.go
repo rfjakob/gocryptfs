@@ -7,7 +7,8 @@ import (
 	"testing"
 )
 
-// Native Go crypto with 128-bit IVs is only supported on Go 1.5 and up
+// Native Go crypto with 128-bit IVs is only supported on Go 1.5 and up,
+// this should panic.
 func TestCryptoCoreNewGo14(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
@@ -15,5 +16,5 @@ func TestCryptoCoreNewGo14(t *testing.T) {
 		}
 	}()
 	key := make([]byte, 32)
-	New(key, false, true)
+	New(key, BackendGoGCM, 128)
 }

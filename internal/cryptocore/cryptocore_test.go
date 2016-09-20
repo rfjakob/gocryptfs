@@ -4,23 +4,19 @@ import (
 	"testing"
 )
 
-// "New" should accept all param combinations
+// "New" should accept at least these param combinations
 func TestCryptoCoreNew(t *testing.T) {
 	key := make([]byte, 32)
 
-	c := New(key, true, true)
+	c := New(key, BackendOpenSSL, 128)
 	if c.IVLen != 16 {
 		t.Fail()
 	}
-	c = New(key, true, false)
+	c = New(key, BackendGoGCM, 96)
 	if c.IVLen != 12 {
 		t.Fail()
 	}
-	c = New(key, false, false)
-	if c.IVLen != 12 {
-		t.Fail()
-	}
-	// "New(key, false, true)" is tested for Go 1.4 and 1.5+ seperately
+	// "New(key, BackendGoGCM, 128)" is tested for Go 1.4 and 1.5+ seperately
 }
 
 // "New" should panic on any key not 32 bytes long
@@ -32,5 +28,5 @@ func TestNewPanic(t *testing.T) {
 	}()
 
 	key := make([]byte, 16)
-	New(key, true, true)
+	New(key, BackendOpenSSL, 128)
 }

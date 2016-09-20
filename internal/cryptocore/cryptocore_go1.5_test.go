@@ -9,7 +9,7 @@ import (
 
 func TestCryptoCoreNewGo15(t *testing.T) {
 	key := make([]byte, 32)
-	c := New(key, false, true)
+	c := New(key, BackendGoGCM, 128)
 	if c.IVLen != 16 {
 		t.Fail()
 	}
