@@ -18,7 +18,13 @@ import (
 // not to be empty.
 func initDir(args *argContainer) {
 	var err error
-	if !args.reverse {
+	if args.reverse {
+		_, err = os.Stat(args.config)
+		if err == nil {
+			tlog.Fatal.Printf("Config file %q already exists", args.config)
+			os.Exit(ERREXIT_INIT)
+		}
+	} else {
 		err = checkDirEmpty(args.cipherdir)
 		if err != nil {
 			tlog.Fatal.Printf("Invalid cipherdir: %v", err)
