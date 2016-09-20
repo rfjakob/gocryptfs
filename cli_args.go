@@ -10,20 +10,22 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-// argContainer stores the parsed CLI arguments
+// argContainer stores the parsed CLI options and arguments
 type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
 	plaintextnames, quiet, nosyslog, wpanic,
 	longnames, allow_other, ro, reverse bool
-	masterkey, mountpoint, cipherdir, cpuprofile, config, extpass,
+	masterkey, mountpoint, cipherdir, cpuprofile, extpass,
 	memprofile, o string
+	// Configuration file name override
+	config             string
 	notifypid, scryptn int
 }
 
 var flagSet *flag.FlagSet
 
-// parseCliArgs - parse command line arguments
-func parseCliArgs() (args argContainer) {
+// parseCliOpts - parse command line options (i.e. arguments that start with "-")
+func parseCliOpts() (args argContainer) {
 	var err error
 	var opensslAuto string
 
