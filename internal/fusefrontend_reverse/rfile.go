@@ -44,11 +44,11 @@ func (rf *reverseFile) GetAttr(*fuse.Attr) fuse.Status {
 	return fuse.ENOSYS
 }
 
-// readFile - read from the backing plaintext file, encrypt it, return the
+// readBackingFile: read from the backing plaintext file, encrypt it, return the
 // ciphertext.
 // "off" ... ciphertext offset (must be >= HEADER_LEN)
 // "length" ... ciphertext length
-func (rf *reverseFile) readFile(off uint64, length uint64) (out []byte, err error) {
+func (rf *reverseFile) readBackingFile(off uint64, length uint64) (out []byte, err error) {
 	blocks := rf.contentEnc.ExplodeCipherRange(off, length)
 
 	// Read the backing plaintext in one go
@@ -84,24 +84,27 @@ func (rf *reverseFile) Read(buf []byte, ioff int64) (resultData fuse.ReadResult,
 	length := uint64(len(buf))
 	off := uint64(ioff)
 	var out bytes.Buffer
-	var headerPart []byte
+	var header []byte
 
-	// Create a virtual file header
+	// Synthesize file header
 	if off < contentenc.HEADER_LEN {
-		headerPart = zeroFileHeader.Pack()
-		headerPart = headerPart[off:]
-		if off+length < contentenc.HEADER_LEN {
-			headerPart = headerPart[:length]
+		header = zeroFileHeader.Pack()
+		// Truncate to requested part
+		end := int(off) + len(buf)
+		if end > len(header) {
+			end = len(header)
 		}
+		header = header[off:end]
+		// Write into output buffer and adjust offsets
+		out.Write(header)
+		hLen := uint64(len(header))
+		off += hLen
+		length -= hLen
 	}
-	out.Write(headerPart)
-	hLen := uint64(len(headerPart))
-	off += hLen
-	length -= hLen
 
 	// Read actual file data
 	if length > 0 {
-		fileData, err := rf.readFile(off, length)
+		fileData, err := rf.readBackingFile(off, length)
 		if err != nil {
 			return nil, fuse.ToStatus(err)
 		}
