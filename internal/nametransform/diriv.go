@@ -24,13 +24,12 @@ const (
 // ReadDirIV - read the "gocryptfs.diriv" file from "dir" (absolute ciphertext path)
 // This function is exported because it allows for an efficient readdir implementation.
 func ReadDirIV(dir string) (iv []byte, err error) {
-	dirfd, err := os.Open(dir)
+	fd, err := os.Open(filepath.Join(dir, DirIVFilename))
 	if err != nil {
 		return nil, err
 	}
-	defer dirfd.Close()
-
-	return ReadDirIVAt(dirfd)
+	defer fd.Close()
+	return fdReadDirIV(fd)
 }
 
 // ReadDirIVAt reads "gocryptfs.diriv" from the directory that is opened as "dirfd".
@@ -44,7 +43,11 @@ func ReadDirIVAt(dirfd *os.File) (iv []byte, err error) {
 	}
 	fd := os.NewFile(uintptr(fdRaw), DirIVFilename)
 	defer fd.Close()
+	return fdReadDirIV(fd)
+}
 
+// fdReadDirIV reads and verifies the DirIV from an opened gocryptfs.diriv file.
+func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 	// We want to detect if the file is bigger than DirIVLen, so
 	// make the buffer 1 byte bigger than neccessary.
 	iv = make([]byte, DirIVLen+1)
