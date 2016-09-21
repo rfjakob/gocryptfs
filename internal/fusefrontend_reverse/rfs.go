@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -32,6 +33,12 @@ type reverseFS struct {
 	nameTransform *nametransform.NameTransform
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
+	// Inode number generator
+	inoGen *inoGenT
+	// Maps backing files device+inode pairs to user-facing unique inode numbers
+	inoMap map[devIno]uint64
+	// Protects map access
+	inoMapLock sync.Mutex
 }
 
 // Encrypted FUSE overlay filesystem
@@ -47,6 +54,8 @@ func NewFS(args fusefrontend.Args) *reverseFS {
 		args:          args,
 		nameTransform: nameTransform,
 		contentEnc:    contentEnc,
+		inoGen:        NewInoGen(),
+		inoMap:        map[devIno]uint64{},
 	}
 }
 
@@ -85,11 +94,11 @@ func (rfs *reverseFS) dirIVAttr(relPath string, context *fuse.Context) (*fuse.At
 		fmt.Printf("not exec")
 		return nil, fuse.EPERM
 	}
-	// All good. Let's fake the file.
-	// We use the inode number of the parent dir (can this cause problems?).
+	// All good. Let's fake the file. We use the timestamps from the parent dir.
 	a.Mode = DirIVMode
 	a.Size = nametransform.DirIVLen
 	a.Nlink = 1
+	a.Ino = rfs.inoGen.next()
 
 	return a, fuse.OK
 }
@@ -99,10 +108,45 @@ func isDirIV(relPath string) bool {
 	return filepath.Base(relPath) == nametransform.DirIVFilename
 }
 
+func (rfs *reverseFS) inoAwareStat(relPlainPath string) (*fuse.Attr, fuse.Status) {
+	absPath, err := rfs.abs(relPlainPath, nil)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	var fi os.FileInfo
+	if relPlainPath == "" {
+		// Look through symlinks for the root dir
+		fi, err = os.Stat(absPath)
+	} else {
+		fi, err = os.Lstat(absPath)
+	}
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	st := fi.Sys().(*syscall.Stat_t)
+	// The file has hard links. We have to give it a stable inode number so
+	// tar or rsync can find them.
+	if fi.Mode().IsRegular() && st.Nlink > 1 {
+		di := devIno{st.Dev, st.Ino}
+		rfs.inoMapLock.Lock()
+		stableIno := rfs.inoMap[di]
+		if stableIno == 0 {
+			rfs.inoMap[di] = rfs.inoGen.next()
+		}
+		rfs.inoMapLock.Unlock()
+		st.Ino = stableIno
+	} else {
+		st.Ino = rfs.inoGen.next()
+	}
+	a := &fuse.Attr{}
+	a.FromStat(st)
+	return a, fuse.OK
+}
+
 // GetAttr - FUSE call
 func (rfs *reverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	if relPath == configfile.ConfDefaultName {
-		return rfs.loopbackfs.GetAttr(configfile.ConfReverseName, context)
+		return rfs.inoAwareStat(configfile.ConfReverseName)
 	}
 	if isDirIV(relPath) {
 		return rfs.dirIVAttr(relPath, context)
@@ -110,11 +154,11 @@ func (rfs *reverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 	if rfs.isFiltered(relPath) {
 		return nil, fuse.EPERM
 	}
-	relPath, err := rfs.decryptPath(relPath)
+	cPath, err := rfs.decryptPath(relPath)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	a, status := rfs.loopbackfs.GetAttr(relPath, context)
+	a, status := rfs.inoAwareStat(cPath)
 	if !status.Ok() {
 		return nil, status
 	}
@@ -188,4 +232,9 @@ func (rfs *reverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 	entries = append(entries, fuse.DirEntry{syscall.S_IFREG | 0400, nametransform.DirIVFilename})
 
 	return entries, fuse.OK
+}
+
+// StatFs - FUSE call
+func (rfs *reverseFS) StatFs(name string) *fuse.StatfsOut {
+	return rfs.loopbackfs.StatFs(name)
 }

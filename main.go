@@ -349,6 +349,9 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	mOpts.Options = append(mOpts.Options, "fsname="+args.cipherdir)
 	// Second column, "Type", will be shown as "fuse." + Name
 	mOpts.Name = "gocryptfs"
+	if args.reverse {
+		mOpts.Name += "-reverse"
+	}
 
 	// The kernel enforces read-only operation, we just have to pass "ro".
 	// Reverse mounts are always read-only
