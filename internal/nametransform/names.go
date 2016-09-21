@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"encoding/base64"
 	"fmt"
+	"syscall"
 
 	"github.com/rfjakob/eme"
 
@@ -46,7 +47,7 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 		// unPad16 returns detailed errors including the position of the
 		// incorrect bytes. Kill the padding oracle by lumping everything into
 		// a generic error.
-		return "", fmt.Errorf("Invalid padding")
+		return "", syscall.EINVAL
 	}
 	plain := string(bin)
 	return plain, err
