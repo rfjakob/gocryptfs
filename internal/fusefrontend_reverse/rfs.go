@@ -108,6 +108,13 @@ func isDirIV(relPath string) bool {
 	return filepath.Base(relPath) == nametransform.DirIVFilename
 }
 
+// isNameFile determines if the path points to a gocryptfs.longname.*.name
+// file
+func isNameFile(relPath string) bool {
+	fileType := nametransform.NameType(filepath.Base(relPath))
+	return fileType == nametransform.LongNameFilename
+}
+
 func (rfs *reverseFS) inoAwareStat(relPlainPath string) (*fuse.Attr, fuse.Status) {
 	absPath, err := rfs.abs(relPlainPath, nil)
 	if err != nil {
@@ -148,12 +155,32 @@ func (rfs *reverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 	if relPath == configfile.ConfDefaultName {
 		return rfs.inoAwareStat(configfile.ConfReverseName)
 	}
-	if isDirIV(relPath) {
-		return rfs.dirIVAttr(relPath, context)
-	}
 	if rfs.isFiltered(relPath) {
 		return nil, fuse.EPERM
 	}
+
+	// Handle virtual files
+	var f nodefs.File
+	var status fuse.Status
+	virtual := false
+	if isDirIV(relPath) {
+		virtual = true
+		f, status = rfs.newDirIVFile(relPath)
+	}
+	if isNameFile(relPath) {
+		virtual = true
+		f, status = rfs.newNameFile(relPath)
+	}
+	if virtual {
+		if !status.Ok() {
+			fmt.Printf("GetAttr %q: newXFile failed: %v\n", relPath, status)
+			return nil, status
+		}
+		var a fuse.Attr
+		status = f.GetAttr(&a)
+		return &a, status
+	}
+
 	cPath, err := rfs.decryptPath(relPath)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
@@ -191,7 +218,10 @@ func (rfs *reverseFS) Open(relPath string, flags uint32, context *fuse.Context) 
 		return rfs.loopbackfs.Open(configfile.ConfReverseName, flags, context)
 	}
 	if isDirIV(relPath) {
-		return NewDirIVFile(relDir(relPath))
+		return rfs.newDirIVFile(relPath)
+	}
+	if isNameFile(relPath) {
+		return rfs.newNameFile(relPath)
 	}
 	if rfs.isFiltered(relPath) {
 		return nil, fuse.EPERM
