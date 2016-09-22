@@ -218,19 +218,27 @@ func (rfs *reverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 	if entries == nil {
 		return nil, status
 	}
+	// Virtual gocryptfs.diriv file
+	dirIVEntry := fuse.DirEntry{syscall.S_IFREG | 0400, nametransform.DirIVFilename}
+	virtualFiles := []fuse.DirEntry{dirIVEntry}
 	// Encrypt names
 	dirIV := deriveDirIV(cipherPath)
 	for i := range entries {
+		var cName string
 		// ".gocryptfs.reverse.conf" in the root directory is mapped to "gocryptfs.conf"
 		if cipherPath == "" && entries[i].Name == configfile.ConfReverseName {
-			entries[i].Name = configfile.ConfDefaultName
+			cName = configfile.ConfDefaultName
 		} else {
-			entries[i].Name = rfs.nameTransform.EncryptName(entries[i].Name, dirIV)
+			cName = rfs.nameTransform.EncryptName(entries[i].Name, dirIV)
+			if len(cName) > syscall.NAME_MAX {
+				cName = nametransform.HashLongName(cName)
+				dotNameFile := fuse.DirEntry{syscall.S_IFREG | 0600, cName + nametransform.LongNameSuffix}
+				virtualFiles = append(virtualFiles, dotNameFile)
+			}
 		}
+		entries[i].Name = cName
 	}
-	// Add virtual gocryptfs.diriv
-	entries = append(entries, fuse.DirEntry{syscall.S_IFREG | 0400, nametransform.DirIVFilename})
-
+	entries = append(entries, virtualFiles...)
 	return entries, fuse.OK
 }
 
