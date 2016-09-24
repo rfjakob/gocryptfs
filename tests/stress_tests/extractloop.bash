@@ -13,11 +13,12 @@ set -eu
 
 cd "$(dirname "$0")"
 MD5="$PWD/linux-3.0.md5sums"
+MYNAME=$(basename "$0")
 
 # Setup dirs
 cd /tmp
 wget -nv --show-progress -c https://www.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz
-CRYPT=$(mktemp -d /tmp/extractloop.XXX)
+CRYPT=$(mktemp -d /tmp/$MYNAME.XXX)
 CSV=$CRYPT.csv
 MNT=$CRYPT.mnt
 mkdir $MNT
