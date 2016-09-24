@@ -15,13 +15,18 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 )
 
+// TmpDir will be created inside this directory
 const testParentDir = "/tmp/gocryptfs-test-parent"
 const GocryptfsBinary = "../../gocryptfs"
 
-// "go test" runs package tests in parallel! We must create a unique TmpDir on
-// startup or the tests will interfere horribly
+// "go test" runs package tests in parallel! We create a unique TmpDir in
+// init() so the tests do not interfere.
 var TmpDir string
+
+// TmpDir + "/default-plain"
 var DefaultPlainDir string
+
+// TmpDir + "/default-cipher"
 var DefaultCipherDir string
 
 func init() {
@@ -77,7 +82,7 @@ func ResetTmpDir(plaintextNames bool) {
 }
 
 // InitFS calls "gocryptfs -init" on a new directory in TmpDir, passing
-// "extraArgs" in addition to practical defaults.
+// "extraArgs" in addition to useful defaults.
 //
 // The returned cipherdir has NO trailing slash.
 func InitFS(t *testing.T, extraArgs ...string) string {
@@ -128,7 +133,7 @@ func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 	return cmd.Run()
 }
 
-// MountOrExit calls mount() and exits on failure.
+// MountOrExit calls Mount() and exits on failure.
 func MountOrExit(c string, p string, extraArgs ...string) {
 	err := Mount(c, p, true, extraArgs...)
 	if err != nil {
@@ -137,7 +142,7 @@ func MountOrExit(c string, p string, extraArgs ...string) {
 	}
 }
 
-// MountOrFatal calls mount() and calls t.Fatal() on failure.
+// MountOrFatal calls Mount() and calls t.Fatal() on failure.
 func MountOrFatal(t *testing.T, c string, p string, extraArgs ...string) {
 	err := Mount(c, p, true, extraArgs...)
 	if err != nil {
