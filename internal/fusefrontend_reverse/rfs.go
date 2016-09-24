@@ -248,9 +248,15 @@ func (rfs *reverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 	if entries == nil {
 		return nil, status
 	}
+	// Allocate maximum possible number of virtual files.
+	// If all files have long names we need a virtual ".name" file for each,
+	// plus one for gocryptfs.diriv.
+	virtualFiles := make([]fuse.DirEntry, len(entries)+1)
 	// Virtual gocryptfs.diriv file
-	dirIVEntry := fuse.DirEntry{syscall.S_IFREG | 0400, nametransform.DirIVFilename}
-	virtualFiles := []fuse.DirEntry{dirIVEntry}
+	virtualFiles[0] = fuse.DirEntry{syscall.S_IFREG | 0400, nametransform.DirIVFilename}
+	// Actually used entries
+	nVirtual := 1
+
 	// Encrypt names
 	dirIV := deriveDirIV(cipherPath)
 	for i := range entries {
@@ -263,12 +269,13 @@ func (rfs *reverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 			if len(cName) > syscall.NAME_MAX {
 				cName = nametransform.HashLongName(cName)
 				dotNameFile := fuse.DirEntry{syscall.S_IFREG | 0600, cName + nametransform.LongNameSuffix}
-				virtualFiles = append(virtualFiles, dotNameFile)
+				virtualFiles[nVirtual] = dotNameFile
+				nVirtual++
 			}
 		}
 		entries[i].Name = cName
 	}
-	entries = append(entries, virtualFiles...)
+	entries = append(entries, virtualFiles[:nVirtual]...)
 	return entries, fuse.OK
 }
 
