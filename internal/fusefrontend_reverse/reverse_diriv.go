@@ -9,10 +9,9 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 )
 
-// deriveDirIV derives the DirIV from the encrypted directory path by
-// hashing it
-func deriveDirIV(dirPath string) []byte {
-	hash := sha256.Sum256([]byte(dirPath))
+// derivePathIV derives an IV from an encrypted path by hashing it
+func derivePathIV(path string) []byte {
+	hash := sha256.Sum256([]byte(path))
 	return hash[:nametransform.DirIVLen]
 }
 
@@ -22,5 +21,5 @@ func (rfs *reverseFS) newDirIVFile(cRelPath string) (nodefs.File, fuse.Status) {
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	return rfs.NewVirtualFile(deriveDirIV(cDir), absDir)
+	return rfs.NewVirtualFile(derivePathIV(cDir), absDir)
 }

@@ -36,7 +36,7 @@ func (rfs *reverseFS) decryptPath(relPath string) (string, error) {
 		// Start at the top and recurse
 		currentDir := filepath.Join(parts[:i]...)
 		nameType := nametransform.NameType(part)
-		dirIV := deriveDirIV(currentDir)
+		dirIV := derivePathIV(currentDir)
 		var transformedPart string
 		if nameType == nametransform.LongNameNone {
 			transformedPart, err = rfs.nameTransform.DecryptName(part, dirIV)

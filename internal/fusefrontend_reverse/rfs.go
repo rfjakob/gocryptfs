@@ -226,15 +226,7 @@ func (rfs *reverseFS) Open(relPath string, flags uint32, context *fuse.Context) 
 	if rfs.isFiltered(relPath) {
 		return nil, fuse.EPERM
 	}
-	absPath, err := rfs.abs(rfs.decryptPath(relPath))
-	if err != nil {
-		return nil, fuse.ToStatus(err)
-	}
-	f, err := os.OpenFile(absPath, int(flags), 0666)
-	if err != nil {
-		return nil, fuse.ToStatus(err)
-	}
-	return NewFile(f, rfs.contentEnc)
+	return rfs.NewFile(relPath, flags)
 }
 
 // OpenDir - FUSE readdir call
@@ -258,7 +250,7 @@ func (rfs *reverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 	nVirtual := 1
 
 	// Encrypt names
-	dirIV := deriveDirIV(cipherPath)
+	dirIV := derivePathIV(cipherPath)
 	for i := range entries {
 		var cName string
 		// ".gocryptfs.reverse.conf" in the root directory is mapped to "gocryptfs.conf"

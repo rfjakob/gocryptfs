@@ -19,9 +19,9 @@ const (
 	// We always use 128-bit IVs for file content encryption
 	IVBitLen = 128
 
-	_                           = iota // skip zero
-	RandomNonce       NonceMode = iota
-	ReverseDummyNonce NonceMode = iota
+	_                                   = iota // skip zero
+	RandomNonce               NonceMode = iota
+	ReverseDeterministicNonce NonceMode = iota
 )
 
 type ContentEnc struct {
@@ -147,12 +147,17 @@ func (be *ContentEnc) EncryptBlock(plaintext []byte, blockNo uint64, fileID []by
 
 	var nonce []byte
 	switch nMode {
-	case ReverseDummyNonce:
+	case ReverseDeterministicNonce:
 		if be.cryptoCore.AEADBackend != cryptocore.BackendGCMSIV {
-			panic("MUST NOT use dummy nonces unless in GCMSIV mode!")
+			panic("MUST NOT use deterministic nonces unless in GCMSIV mode!")
 		}
-		nonce = make([]byte, IVBitLen/8)
-		binary.BigEndian.PutUint64(nonce, blockNo)
+		l := IVBitLen / 8
+		nonce = make([]byte, l)
+		copy(nonce, fileID)
+		// Add the block number to the last 8 byte. Plus one so the block-zero
+		// IV is distinct from the fileID.
+		counter := binary.BigEndian.Uint64(nonce[l-8 : l])
+		binary.BigEndian.PutUint64(nonce[l-8:l], counter+blockNo+1)
 	case RandomNonce:
 		// Get a fresh random nonce
 		nonce = be.cryptoCore.IVGenerator.Get()

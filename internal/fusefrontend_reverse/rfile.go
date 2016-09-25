@@ -13,29 +13,32 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-// File header that contains an all-zero File ID
-var zeroFileHeader *contentenc.FileHeader
-
-func init() {
-	zeroFileHeader = contentenc.RandomHeader()
-	// Overwrite with zeros
-	zeroFileHeader.Id = make([]byte, contentenc.HEADER_ID_LEN)
-}
-
 type reverseFile struct {
 	// Embed nodefs.defaultFile for a ENOSYS implementation of all methods
 	nodefs.File
 	// Backing FD
 	fd *os.File
+	// File header (contains the IV)
+	header contentenc.FileHeader
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
 }
 
-func NewFile(fd *os.File, contentEnc *contentenc.ContentEnc) (nodefs.File, fuse.Status) {
+func (rfs *reverseFS) NewFile(relPath string, flags uint32) (nodefs.File, fuse.Status) {
+	absPath, err := rfs.abs(rfs.decryptPath(relPath))
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	fd, err := os.OpenFile(absPath, int(flags), 0666)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	id := derivePathIV(relPath)
 	return &reverseFile{
 		File:       nodefs.NewDefaultFile(),
 		fd:         fd,
-		contentEnc: contentEnc,
+		header:     contentenc.FileHeader{contentenc.CurrentVersion, id},
+		contentEnc: rfs.contentEnc,
 	}, fuse.OK
 }
 
@@ -64,7 +67,7 @@ func (rf *reverseFile) readBackingFile(off uint64, length uint64) (out []byte, e
 	plaintext = plaintext[0:n]
 
 	// Encrypt blocks
-	ciphertext := rf.contentEnc.EncryptBlocks(plaintext, blocks[0].BlockNo, zeroFileHeader.Id, contentenc.ReverseDummyNonce)
+	ciphertext := rf.contentEnc.EncryptBlocks(plaintext, blocks[0].BlockNo, rf.header.Id, contentenc.ReverseDeterministicNonce)
 
 	// Crop down to the relevant part
 	lenHave := len(ciphertext)
@@ -88,7 +91,7 @@ func (rf *reverseFile) Read(buf []byte, ioff int64) (resultData fuse.ReadResult,
 
 	// Synthesize file header
 	if off < contentenc.HEADER_LEN {
-		header = zeroFileHeader.Pack()
+		header = rf.header.Pack()
 		// Truncate to requested part
 		end := int(off) + len(buf)
 		if end > len(header) {
@@ -118,4 +121,9 @@ func (rf *reverseFile) Read(buf []byte, ioff int64) (resultData fuse.ReadResult,
 	}
 
 	return fuse.ReadResultData(out.Bytes()), fuse.OK
+}
+
+// Release - FUSE call, close file
+func (rf *reverseFile) Release() {
+	rf.fd.Close()
 }
