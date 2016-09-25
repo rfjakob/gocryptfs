@@ -35,7 +35,7 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 		return "", err
 	}
 	if len(bin)%aes.BlockSize != 0 {
-		tlog.Warn.Printf("DecryptName %q: decoded length %d is not a multiple of 16", cipherName, len(bin))
+		tlog.Debug.Printf("DecryptName %q: decoded length %d is not a multiple of 16", cipherName, len(bin))
 		return "", syscall.EINVAL
 	}
 	bin = eme.Transform(n.cryptoCore.BlockCipher, iv, bin, eme.DirectionDecrypt)
