@@ -10,14 +10,14 @@ func TestCurrentCPU(t *testing.T) {
 
 // Has AES instructions
 func TestXeonE312xx(t *testing.T) {
-	if filePreferOpenSSL("cpuinfo.xeon_e312xx.txt") == true {
+	if filePreferOpenSSL("cpuinfo.xeon_e312xx.txt") {
 		t.Fail()
 	}
 }
 
 // Pentium G do not have AES instructions
 func TestPentiumG630(t *testing.T) {
-	if filePreferOpenSSL("cpuinfo.pentium_g630.txt") == false {
+	if !filePreferOpenSSL("cpuinfo.pentium_g630.txt") {
 		t.Fail()
 	}
 }

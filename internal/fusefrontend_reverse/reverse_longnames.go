@@ -17,11 +17,6 @@ const (
 	shortNameMax = 176
 )
 
-type dirIVNameStruct struct {
-	dirIV [nametransform.DirIVLen]byte
-	name  string
-}
-
 var longnameParentCache map[string]string
 var longnameCacheLock sync.Mutex
 

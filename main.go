@@ -198,7 +198,7 @@ func main() {
 		tlog.Info.Printf("Note: You must unmount gracefully, otherwise the profile file(s) will stay empty!\n")
 	}
 	// "-openssl"
-	if args.openssl == false {
+	if !args.openssl {
 		tlog.Debug.Printf("OpenSSL disabled, using Go GCM")
 	} else {
 		tlog.Debug.Printf("OpenSSL enabled")

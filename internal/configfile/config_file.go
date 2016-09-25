@@ -198,9 +198,5 @@ func (cf *ConfFile) WriteFile() error {
 		return err
 	}
 	err = os.Rename(tmp, cf.filename)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

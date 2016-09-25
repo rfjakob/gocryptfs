@@ -52,7 +52,7 @@ func TestEncryptDecrypt(t *testing.T) {
 		gOut := gGCM.Seal(dst, iv, in, authData)
 
 		// Ciphertext must be identical to Go GCM
-		if bytes.Compare(sOut, gOut) != 0 {
+		if !bytes.Equal(sOut, gOut) {
 			t.Fatalf("Compare failed for encryption, size %d", i)
 			t.Log("sOut:")
 			t.Log("\n" + hex.Dump(sOut))
@@ -70,7 +70,7 @@ func TestEncryptDecrypt(t *testing.T) {
 		}
 
 		// Plaintext must be identical to Go GCM
-		if bytes.Compare(sOut2, gOut2) != 0 {
+		if !bytes.Equal(sOut2, gOut2) {
 			t.Fatalf("Compare failed for decryption, size %d", i)
 		}
 	}
@@ -90,7 +90,7 @@ func TestCorruption(t *testing.T) {
 	if sErr != nil {
 		t.Fatal(sErr)
 	}
-	if bytes.Compare(in, sOut2) != 0 {
+	if !bytes.Equal(in, sOut2) {
 		t.Fatalf("Compare failed")
 	}
 

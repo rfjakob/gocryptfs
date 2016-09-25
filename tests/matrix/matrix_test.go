@@ -414,17 +414,17 @@ func TestRmwRace(t *testing.T) {
 func TestFiltered(t *testing.T) {
 	filteredFile := test_helpers.DefaultPlainDir + "/gocryptfs.conf"
 	file, err := os.Create(filteredFile)
-	if plaintextnames == true && err == nil {
+	if plaintextnames && err == nil {
 		t.Errorf("should have failed but didn't")
-	} else if plaintextnames == false && err != nil {
+	} else if !plaintextnames && err != nil {
 		t.Error(err)
 	}
 	file.Close()
 
 	err = os.Remove(filteredFile)
-	if plaintextnames == true && err == nil {
+	if plaintextnames && err == nil {
 		t.Errorf("should have failed but didn't")
-	} else if plaintextnames == false && err != nil {
+	} else if !plaintextnames && err != nil {
 		t.Error(err)
 	}
 }
@@ -436,9 +436,9 @@ func TestFilenameEncryption(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = os.Stat(test_helpers.DefaultCipherDir + "/TestFilenameEncryption.txt")
-	if plaintextnames == true && err != nil {
+	if plaintextnames && err != nil {
 		t.Errorf("plaintextnames not working: %v", err)
-	} else if plaintextnames == false && err == nil {
+	} else if !plaintextnames && err == nil {
 		t.Errorf("file name encryption not working")
 	}
 }

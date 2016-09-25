@@ -12,10 +12,7 @@ import (
 func (f *file) createsHole(plainSize uint64, off int64) bool {
 	nextBlock := f.contentEnc.PlainOffToBlockNo(plainSize)
 	targetBlock := f.contentEnc.PlainOffToBlockNo(uint64(off))
-	if targetBlock > nextBlock {
-		return true
-	}
-	return false
+	return targetBlock > nextBlock
 }
 
 // Zero-pad the file of size plainSize to the next block boundary
