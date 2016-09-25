@@ -1,6 +1,7 @@
 package reverse_test
 
 import (
+	"bytes"
 	"os"
 	"testing"
 
@@ -8,8 +9,10 @@ import (
 )
 
 var dirA, dirB, dirC string
+var x240 string
 
 func TestMain(m *testing.M) {
+	x240 = string(bytes.Repeat([]byte("x"), 240))
 	dirA = test_helpers.TmpDir + "/a"
 	dirB = test_helpers.TmpDir + "/b"
 	dirC = test_helpers.TmpDir + "/c"

@@ -1,7 +1,6 @@
 package reverse_test
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"testing"
@@ -13,7 +12,6 @@ func genName(i int, postfix string) string {
 
 // Create 10000 files with long names
 func generateLongnameFiles(dir string) {
-	x240 := string(bytes.Repeat([]byte("x"), 240))
 	for i := 0; i < 100000; i++ {
 		n := genName(i, x240)
 		f, err := os.Create(dir + "/" + n)
