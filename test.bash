@@ -13,4 +13,4 @@ go test ./... $*
 # The tests cannot to this themselves as they are run in parallel
 rm -Rf --one-file-system /tmp/gocryptfs-test-parent
 
-go tool vet -shadow=true .
+go tool vet -all -shadow .

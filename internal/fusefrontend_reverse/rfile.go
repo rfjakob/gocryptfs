@@ -34,10 +34,14 @@ func (rfs *reverseFS) NewFile(relPath string, flags uint32) (nodefs.File, fuse.S
 		return nil, fuse.ToStatus(err)
 	}
 	id := derivePathIV(relPath)
+	header := contentenc.FileHeader{
+		Version: contentenc.CurrentVersion,
+		Id:      id,
+	}
 	return &reverseFile{
 		File:       nodefs.NewDefaultFile(),
 		fd:         fd,
-		header:     contentenc.FileHeader{contentenc.CurrentVersion, id},
+		header:     header,
 		contentEnc: rfs.contentEnc,
 	}, fuse.OK
 }
