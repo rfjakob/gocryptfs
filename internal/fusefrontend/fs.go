@@ -234,14 +234,11 @@ func (fs *FS) Utimens(path string, a *time.Time, m *time.Time, context *fuse.Con
 	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
-	cPath, err := fs.getBackingPath(path)
+	cPath, err := fs.encryptPath(path)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	ts := make([]syscall.Timespec, 2)
-	ts[0] = utimeToTimespec(a)
-	ts[1] = utimeToTimespec(m)
-	return fuse.ToStatus(syscall.UtimesNano(cPath, ts))
+	return fs.FileSystem.Utimens(cPath, a, m, context)
 }
 
 func (fs *FS) StatFs(path string) *fuse.StatfsOut {

@@ -33,18 +33,16 @@ type file struct {
 	// Every FUSE entrypoint should RLock(). The only user of Lock() is
 	// Release(), which closes the fd and sets "released" to true.
 	fdLock sync.RWMutex
-
 	// Was the file opened O_WRONLY?
 	writeOnly bool
-
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
-
 	// Inode number
 	ino uint64
-
 	// File header
 	header *contentenc.FileHeader
+	// go-fuse nodefs.loopbackFile
+	loopbackFile nodefs.File
 }
 
 func NewFile(fd *os.File, writeOnly bool, contentEnc *contentenc.ContentEnc) (nodefs.File, fuse.Status) {
@@ -57,10 +55,11 @@ func NewFile(fd *os.File, writeOnly bool, contentEnc *contentenc.ContentEnc) (no
 	wlock.register(st.Ino)
 
 	return &file{
-		fd:         fd,
-		writeOnly:  writeOnly,
-		contentEnc: contentEnc,
-		ino:        st.Ino,
+		fd:           fd,
+		writeOnly:    writeOnly,
+		contentEnc:   contentEnc,
+		ino:          st.Ino,
+		loopbackFile: nodefs.NewLoopbackFile(fd),
 	}, fuse.OK
 }
 
@@ -386,41 +385,8 @@ func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 	return fuse.OK
 }
 
-const _UTIME_OMIT = ((1 << 30) - 2)
-
-// utimeToTimespec converts a "time.Time" pointer as passed to Utimens to a
-// Timespec that can be passed to the utimensat syscall.
-func utimeToTimespec(t *time.Time) (ts syscall.Timespec) {
-	if t == nil {
-		ts.Nsec = _UTIME_OMIT
-	} else {
-		ts = syscall.NsecToTimespec(t.UnixNano())
-		// For dates before 1970, NsecToTimespec incorrectly returns negative
-		// nanoseconds. Ticket: https://github.com/golang/go/issues/12777
-		if ts.Nsec < 0 {
-			ts.Nsec = 0
-		}
-	}
-	return ts
-}
-
 func (f *file) Utimens(a *time.Time, m *time.Time) fuse.Status {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
-
-	ts := make([]syscall.Timespec, 2)
-	ts[0] = utimeToTimespec(a)
-	ts[1] = utimeToTimespec(m)
-
-	fn := fmt.Sprintf("/proc/self/fd/%d", f.fd.Fd())
-	err := syscall.UtimesNano(fn, ts)
-	if err != nil {
-		tlog.Debug.Printf("UtimesNano on %q failed: %v", fn, err)
-	}
-	if err == syscall.ENOENT {
-		// If /proc/self/fd/X did not exist, the actual error is that the file
-		// descriptor was invalid.
-		return fuse.EBADF
-	}
-	return fuse.ToStatus(err)
+	return f.loopbackFile.Utimens(a, m)
 }
