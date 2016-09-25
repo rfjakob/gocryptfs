@@ -54,10 +54,18 @@ func ResetTmpDir(plaintextNames bool) {
 			d := filepath.Join(TmpDir, e.Name())
 			err = os.Remove(d)
 			if err != nil {
-				if testing.Verbose() {
-					fmt.Printf("%v, trying umount\n", d, err)
+				pe := err.(*os.PathError)
+				if pe.Err == syscall.EBUSY {
+					if testing.Verbose() {
+						fmt.Printf("Remove failed: %v. Maybe still mounted?\n", pe)
+					}
+					err = UnmountErr(d)
+					if err != nil {
+						panic(err)
+					}
+				} else if pe.Err != syscall.ENOTEMPTY {
+					panic("Unhandled error: " + pe.Err.Error())
 				}
-				UnmountErr(d)
 				err = os.RemoveAll(d)
 				if err != nil {
 					panic(err)
