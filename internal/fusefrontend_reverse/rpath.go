@@ -47,6 +47,12 @@ func (rfs *reverseFS) decryptPath(relPath string) (string, error) {
 				if _, ok := err.(base64.CorruptInputError); ok {
 					return "", syscall.ENOENT
 				}
+				// Stat attempts on the link target of encrypted symlinks.
+				// These are always valid base64 but the length is not a
+				// multiple of 16.
+				if err == syscall.EINVAL {
+					return "", syscall.ENOENT
+				}
 				return "", err
 			}
 		} else if nameType == nametransform.LongNameContent {

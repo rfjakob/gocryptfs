@@ -4,7 +4,6 @@ package nametransform
 import (
 	"crypto/aes"
 	"encoding/base64"
-	"fmt"
 	"syscall"
 
 	"github.com/rfjakob/eme"
@@ -38,7 +37,8 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 		return "", err
 	}
 	if len(bin)%aes.BlockSize != 0 {
-		return "", fmt.Errorf("Decoded length %d is not a multiple of the AES block size", len(bin))
+		tlog.Warn.Printf("DecryptName %q: decoded length %d is not a multiple of 16", cipherName, len(bin))
+		return "", syscall.EINVAL
 	}
 	bin = eme.Transform(n.cryptoCore.BlockCipher, iv, bin, eme.DirectionDecrypt)
 	bin, err = unPad16(bin)

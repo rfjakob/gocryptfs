@@ -1,6 +1,7 @@
 package fusefrontend_reverse
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -274,4 +275,24 @@ func (rfs *reverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 // StatFs - FUSE call
 func (rfs *reverseFS) StatFs(name string) *fuse.StatfsOut {
 	return rfs.loopbackfs.StatFs(name)
+}
+
+// Readlink - FUSE call
+func (rfs *reverseFS) Readlink(cipherPath string, context *fuse.Context) (string, fuse.Status) {
+	absPath, err := rfs.abs(rfs.decryptPath(cipherPath))
+	if err != nil {
+		return "", fuse.ToStatus(err)
+	}
+	plainTarget, err := os.Readlink(absPath)
+	if err != nil {
+		return "", fuse.ToStatus(err)
+	}
+	if rfs.args.PlaintextNames {
+		return plainTarget, fuse.OK
+	}
+	nonce := derivePathIV(cipherPath)
+	// Symlinks are encrypted like file contents and base64-encoded
+	cBinTarget := rfs.contentEnc.EncryptBlock([]byte(plainTarget), 0, nil, contentenc.ExternalNonce, nonce)
+	cTarget := base64.URLEncoding.EncodeToString(cBinTarget)
+	return cTarget, fuse.OK
 }

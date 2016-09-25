@@ -28,3 +28,24 @@ func TestLongnameStat(t *testing.T) {
 		test_helpers.VerifySize(t, path, 10)
 	*/
 }
+
+func TestSymlinks(t *testing.T) {
+	target := "/"
+	os.Symlink(target, dirA+"/symlink")
+	cSymlink := dirC + "/symlink"
+	_, err := os.Lstat(cSymlink)
+	if err != nil {
+		t.Errorf("Lstat: %v", err)
+	}
+	_, err = os.Stat(cSymlink)
+	if err != nil {
+		t.Errorf("Stat: %v", err)
+	}
+	actualTarget, err := os.Readlink(cSymlink)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if target != actualTarget {
+		t.Errorf("wrong symlink target: want=%q have=%q", target, actualTarget)
+	}
+}
