@@ -16,8 +16,9 @@ type NonceMode int
 const (
 	// Default plaintext block size
 	DefaultBS = 4096
-	// We always use 128-bit IVs for file content encryption
-	IVBitLen = 128
+	// We always use 128-bit IVs for file content, but the
+	// key in the config file is encrypted with a 96-bit IV.
+	DefaultIVBits = 128
 
 	_                                   = iota // skip zero
 	RandomNonce               NonceMode = iota

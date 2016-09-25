@@ -37,7 +37,7 @@ type FS struct {
 
 // Encrypted FUSE overlay filesystem
 func NewFS(args Args) *FS {
-	cryptoCore := cryptocore.New(args.Masterkey, args.CryptoBackend, contentenc.IVBitLen)
+	cryptoCore := cryptocore.New(args.Masterkey, args.CryptoBackend, contentenc.DefaultIVBits)
 	contentEnc := contentenc.New(cryptoCore, contentenc.DefaultBS)
 	nameTransform := nametransform.New(cryptoCore, args.LongNames)
 

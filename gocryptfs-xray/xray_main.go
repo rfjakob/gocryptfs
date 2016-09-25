@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	IVLen     = contentenc.IVBitLen / 8
+	IVLen     = contentenc.DefaultIVBits / 8
 	blockSize = contentenc.DefaultBS + IVLen + cryptocore.AuthTagLen
 )
 
