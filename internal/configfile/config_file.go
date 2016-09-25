@@ -168,7 +168,7 @@ func (cf *ConfFile) EncryptKey(key []byte, password string, logN int) {
 	// Lock master key using password-based key
 	cc := cryptocore.New(scryptHash, cryptocore.BackendGoGCM, 96)
 	ce := contentenc.New(cc, 4096)
-	cf.EncryptedKey = ce.EncryptBlock(key, 0, nil, contentenc.RandomNonce)
+	cf.EncryptedKey = ce.EncryptBlock(key, 0, nil, contentenc.RandomNonce, nil)
 }
 
 // WriteFile - write out config in JSON format to file "filename.tmp"

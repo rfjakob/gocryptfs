@@ -22,6 +22,7 @@ const (
 	_                                   = iota // skip zero
 	RandomNonce               NonceMode = iota
 	ReverseDeterministicNonce NonceMode = iota
+	ExternalNonce             NonceMode = iota
 )
 
 type ContentEnc struct {
@@ -46,7 +47,7 @@ func New(cc *cryptocore.CryptoCore, plainBS uint64) *ContentEnc {
 		plainBS:      plainBS,
 		cipherBS:     cipherBS,
 		allZeroBlock: make([]byte, cipherBS),
-		allZeroNonce: make([]byte, IVBitLen/8),
+		allZeroNonce: make([]byte, cc.IVLen),
 	}
 }
 
@@ -132,14 +133,14 @@ func (be *ContentEnc) EncryptBlocks(plaintext []byte, firstBlockNo uint64, fileI
 	var outBuf bytes.Buffer
 	for blockNo := firstBlockNo; inBuf.Len() > 0; blockNo++ {
 		inBlock := inBuf.Next(int(be.plainBS))
-		outBlock := be.EncryptBlock(inBlock, blockNo, fileId, nMode)
+		outBlock := be.EncryptBlock(inBlock, blockNo, fileId, nMode, nil)
 		outBuf.Write(outBlock)
 	}
 	return outBuf.Bytes()
 }
 
 // encryptBlock - Encrypt and add IV and MAC
-func (be *ContentEnc) EncryptBlock(plaintext []byte, blockNo uint64, fileID []byte, nMode NonceMode) []byte {
+func (be *ContentEnc) EncryptBlock(plaintext []byte, blockNo uint64, fileID []byte, nMode NonceMode, externalNonce []byte) []byte {
 	// Empty block?
 	if len(plaintext) == 0 {
 		return plaintext
@@ -147,11 +148,16 @@ func (be *ContentEnc) EncryptBlock(plaintext []byte, blockNo uint64, fileID []by
 
 	var nonce []byte
 	switch nMode {
+	case ExternalNonce:
+		if be.cryptoCore.AEADBackend != cryptocore.BackendGCMSIV {
+			panic("MUST NOT use deterministic nonces unless in GCMSIV mode!")
+		}
+		nonce = externalNonce
 	case ReverseDeterministicNonce:
 		if be.cryptoCore.AEADBackend != cryptocore.BackendGCMSIV {
 			panic("MUST NOT use deterministic nonces unless in GCMSIV mode!")
 		}
-		l := IVBitLen / 8
+		l := be.cryptoCore.IVLen
 		nonce = make([]byte, l)
 		copy(nonce, fileID)
 		// Add the block number to the last 8 byte. Plus one so the block-zero
@@ -163,6 +169,9 @@ func (be *ContentEnc) EncryptBlock(plaintext []byte, blockNo uint64, fileID []by
 		nonce = be.cryptoCore.IVGenerator.Get()
 	default:
 		panic("invalid nonce mode")
+	}
+	if len(nonce) != be.cryptoCore.IVLen {
+		panic("wrong nonce length")
 	}
 
 	// Authenticate block with block number and file ID
