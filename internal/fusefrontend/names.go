@@ -50,13 +50,3 @@ func (fs *FS) encryptPath(plainPath string) (string, error) {
 	fs.dirIVLock.RUnlock()
 	return cPath, err
 }
-
-// decryptPath - decrypt relative ciphertext path
-func (fs *FS) decryptPath(cipherPath string) (string, error) {
-	if fs.args.PlaintextNames {
-		return cipherPath, nil
-	}
-	fs.dirIVLock.RLock()
-	defer fs.dirIVLock.RUnlock()
-	return fs.nameTransform.DecryptPathDirIV(cipherPath, fs.args.Cipherdir)
-}

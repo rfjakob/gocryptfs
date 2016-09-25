@@ -123,27 +123,3 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cip
 	be.DirIVCache.store(parentDir, iv, cParentDir)
 	return cipherPath, nil
 }
-
-// DecryptPathDirIV - decrypt path using EME with DirIV
-//
-// TODO This has only a single user, Readlink(), and only for compatability with
-// gocryptfs v0.5. Drop?
-func (be *NameTransform) DecryptPathDirIV(encryptedPath string, rootDir string) (string, error) {
-	var wd = rootDir
-	var plainNames []string
-	encryptedNames := strings.Split(encryptedPath, "/")
-	tlog.Debug.Printf("DecryptPathDirIV: decrypting %v\n", encryptedNames)
-	for _, encryptedName := range encryptedNames {
-		iv, err := ReadDirIV(wd)
-		if err != nil {
-			return "", err
-		}
-		plainName, err := be.DecryptName(encryptedName, iv)
-		if err != nil {
-			return "", err
-		}
-		plainNames = append(plainNames, plainName)
-		wd = filepath.Join(wd, encryptedName)
-	}
-	return filepath.Join(plainNames...), nil
-}

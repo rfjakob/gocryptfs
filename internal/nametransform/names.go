@@ -26,8 +26,6 @@ func New(c *cryptocore.CryptoCore, longNames bool) *NameTransform {
 }
 
 // DecryptName - decrypt base64-encoded encrypted filename "cipherName"
-// Used by DecryptPathDirIV().
-// The encryption is either CBC or EME, depending on "useEME".
 //
 // This function is exported because it allows for a very efficient readdir
 // implementation (read IV once, decrypt all names using this function).
