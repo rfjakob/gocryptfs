@@ -16,11 +16,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"runtime"
 	"sync"
 	"syscall"
 	"testing"
-	"time"
 
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
@@ -571,7 +571,7 @@ func TestLchown(t *testing.T) {
 	}
 }
 
-// Set nanoseconds by path
+// Set nanoseconds by path, normal file
 func TestUtimesNano(t *testing.T) {
 	path := test_helpers.DefaultPlainDir + "/utimesnano"
 	err := ioutil.WriteFile(path, []byte("foobar"), 0600)
@@ -589,7 +589,6 @@ func TestUtimesNano(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(1 * time.Second)
 	var st syscall.Stat_t
 	err = syscall.Stat(path, &st)
 	if err != nil {
@@ -600,6 +599,24 @@ func TestUtimesNano(t *testing.T) {
 	}
 	if st.Mtim != ts[1] {
 		t.Errorf("Wrong mtime: %v, want: %v", st.Mtim, ts[1])
+	}
+}
+
+// Set nanoseconds by path, symlink
+func TestUtimesNanoSymlink(t *testing.T) {
+	path := test_helpers.DefaultPlainDir + "/utimesnano_symlink"
+	err := os.Symlink("/some/nonexisting/file", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// syscall.UtimesNano does not provide a way to pass AT_SYMLINK_NOFOLLOW,
+	// so we call the external utility "touch", which does.
+	cmd := exec.Command("touch", "--no-dereference", path)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	err = cmd.Run()
+	if err != nil {
+		t.Error(err)
 	}
 }
 
