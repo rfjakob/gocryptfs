@@ -253,13 +253,13 @@ func (fs *FS) StatFs(path string) *fuse.StatfsOut {
 }
 
 func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status fuse.Status) {
-	cPath, err := fs.encryptPath(path)
+	cPath, err := fs.getBackingPath(path)
 	if err != nil {
 		return "", fuse.ToStatus(err)
 	}
-	cTarget, status := fs.FileSystem.Readlink(cPath, context)
-	if status != fuse.OK {
-		return "", status
+	cTarget, err := os.Readlink(cPath)
+	if err != nil {
+		return "", fuse.ToStatus(err)
 	}
 	if fs.args.PlaintextNames {
 		return cTarget, fuse.OK
