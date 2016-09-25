@@ -14,6 +14,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"testing"
+
+	"github.com/rfjakob/gcmsiv"
 )
 
 // Get "n" random bytes from /dev/urandom or panic
@@ -154,6 +156,22 @@ func Benchmark4kEncGoGCM(b *testing.B) {
 		b.Fatal(err)
 	}
 
+	for i := 0; i < b.N; i++ {
+		// Encrypt and append to nonce
+		gGCM.Seal(iv, iv, in, authData)
+	}
+}
+
+func Benchmark4kEncGCMSIV(b *testing.B) {
+	key := randBytes(32)
+	authData := randBytes(24)
+	iv := randBytes(16)
+	in := make([]byte, 4096)
+	b.SetBytes(int64(len(in)))
+	gGCM, err := gcmsiv.NewGCMSIV(key)
+	if err != nil {
+		b.Fatal(err)
+	}
 	for i := 0; i < b.N; i++ {
 		// Encrypt and append to nonce
 		gGCM.Seal(iv, iv, in, authData)
