@@ -39,7 +39,7 @@ func initDir(args *argContainer) {
 	}
 	password := readpassword.Twice(args.extpass)
 	creator := tlog.ProgramName + " " + GitVersion
-	err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator, args.reverse)
+	err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator, args.gcmsiv)
 	if err != nil {
 		tlog.Fatal.Println(err)
 		os.Exit(ERREXIT_INIT)
@@ -53,8 +53,14 @@ func initDir(args *argContainer) {
 			os.Exit(ERREXIT_INIT)
 		}
 	}
-
-	tlog.Info.Printf(tlog.ColorGreen + "The filesystem has been created successfully." + tlog.ColorReset)
+	mountArgs := ""
+	fsName := "gocryptfs"
+	if args.reverse {
+		mountArgs = " -reverse"
+		fsName = "gocryptfs-reverse"
+	}
+	tlog.Info.Printf(tlog.ColorGreen+"The %s filesystem has been created successfully."+tlog.ColorReset,
+		fsName)
 	wd, _ := os.Getwd()
 	friendlyPath, _ := filepath.Rel(wd, args.cipherdir)
 	if strings.HasPrefix(friendlyPath, "../") {
@@ -62,7 +68,7 @@ func initDir(args *argContainer) {
 		// keep the absolute path.
 		friendlyPath = args.cipherdir
 	}
-	tlog.Info.Printf(tlog.ColorGrey+"You can now mount it using: %s %s MOUNTPOINT"+tlog.ColorReset,
-		tlog.ProgramName, friendlyPath)
+	tlog.Info.Printf(tlog.ColorGrey+"You can now mount it using: %s%s %s MOUNTPOINT"+tlog.ColorReset,
+		tlog.ProgramName, mountArgs, friendlyPath)
 	os.Exit(0)
 }

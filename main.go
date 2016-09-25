@@ -111,11 +111,9 @@ func printVersion() {
 func main() {
 	runtime.GOMAXPROCS(4)
 	var err error
-
 	// Parse all command-line options (i.e. arguments starting with "-")
 	// into "args". Path arguments are parsed below.
 	args := parseCliOpts()
-
 	// Fork a child into the background if "-f" is not set AND we are mounting
 	// a filesystem. The child will do all the work.
 	if !args.foreground && flagSet.NArg() == 2 {
@@ -151,6 +149,10 @@ func main() {
 	// "-q"
 	if args.quiet {
 		tlog.Info.Enabled = false
+	}
+	// "-reverse" implies "-gcmsiv"
+	if args.reverse {
+		args.gcmsiv = true
 	}
 	// "-config"
 	if args.config != "" {
@@ -201,7 +203,7 @@ func main() {
 	} else {
 		tlog.Debug.Printf("OpenSSL enabled")
 	}
-	// Operation flags: init, passwd or mount
+	// Operation flags: -init or -passwd; otherwise: mount
 	// "-init"
 	if args.init {
 		if flagSet.NArg() > 1 {
@@ -288,8 +290,7 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	if args.openssl {
 		cryptoBackend = cryptocore.BackendOpenSSL
 	}
-	if args.reverse {
-		// reverse implies GCMSIV
+	if args.gcmsiv {
 		cryptoBackend = cryptocore.BackendGCMSIV
 	}
 	frontendArgs := fusefrontend.Args{
@@ -306,7 +307,7 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 		if confFile.IsFeatureFlagSet(configfile.FlagGCMSIV) {
 			frontendArgs.CryptoBackend = cryptocore.BackendGCMSIV
 		} else if args.reverse {
-			tlog.Fatal.Printf("GCMSIV is required by reverse mode, but not enabled in the config file")
+			tlog.Fatal.Printf("GCM-SIV is required by reverse mode, but not enabled in the config file")
 			os.Exit(ERREXIT_USAGE)
 		}
 	}
@@ -317,11 +318,14 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	}
 	jsonBytes, _ := json.MarshalIndent(frontendArgs, "", "\t")
 	tlog.Debug.Printf("frontendArgs: %s", string(jsonBytes))
-
+	if frontendArgs.CryptoBackend == cryptocore.BackendGCMSIV {
+		tlog.Info.Printf(tlog.ColorYellow +
+			"Warning: The GCM-SIV format used by reverse mode is not yet finalized.\n" +
+			"The on-disk format will change in the future." + tlog.ColorReset)
+	}
 	var finalFs pathfs.FileSystem
 	if args.reverse {
 		finalFs = fusefrontend_reverse.NewFS(frontendArgs)
-		tlog.Info.Printf(tlog.ColorYellow + "REVERSE MODE IS EXPERIMENTAL!" + tlog.ColorReset)
 	} else {
 		finalFs = fusefrontend.NewFS(frontendArgs)
 	}

@@ -5,34 +5,17 @@ import (
 	"fmt"
 	"os"
 	"testing"
-
-	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
-var dirA, dirB, x240 string
-
-func TestMain(m *testing.M) {
-	x240 = string(bytes.Repeat([]byte("x"), 240))
-	dirA = test_helpers.TmpDir + "/a"
-	dirB = test_helpers.TmpDir + "/b"
-	os.Mkdir(dirA, 0700)
-	os.Mkdir(dirB, 0700)
-	generateFiles(dirA)
-	test_helpers.MountOrExit(dirA, dirB, "-zerokey", "-reverse")
-	r := m.Run()
-	test_helpers.UnmountPanic(dirB)
-	os.RemoveAll(test_helpers.TmpDir)
-	os.Exit(r)
-}
-
-func genName(i int) string {
-	return fmt.Sprintf("%04d.%s", i, x240)
+func genName(i int, postfix string) string {
+	return fmt.Sprintf("%04d.%s", i, postfix)
 }
 
 // Create 10000 files with long names
-func generateFiles(dir string) {
+func generateLongnameFiles(dir string) {
+	x240 := string(bytes.Repeat([]byte("x"), 240))
 	for i := 0; i < 100000; i++ {
-		n := genName(i)
+		n := genName(i, x240)
 		f, err := os.Create(dir + "/" + n)
 		if err != nil {
 			panic(err)
@@ -41,18 +24,9 @@ func generateFiles(dir string) {
 	}
 }
 
-func TestLongnameStat(t *testing.T) {
-	_, err := os.Stat(dirA + "/" + genName(0))
-	if err != nil {
-		t.Error(err)
-	}
-	_, err = os.Stat(dirA + "/" + genName(9999))
-	if err != nil {
-		t.Error(err)
-	}
-}
-
 func BenchmarkLongnameStat(b *testing.B) {
+	// Setup
+	generateLongnameFiles(dirA)
 	dirFd, err := os.Open(dirB)
 	if err != nil {
 		b.Fatal(err)
@@ -63,6 +37,7 @@ func BenchmarkLongnameStat(b *testing.B) {
 	}
 	l := len(encryptedNames)
 	dirFd.Close()
+	// Benchmark
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := os.Stat(dirB + "/" + encryptedNames[i%l])
@@ -70,4 +45,8 @@ func BenchmarkLongnameStat(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+	// Cleanup
+	b.StopTimer()
+	os.RemoveAll(dirA)
+	os.Mkdir(dirA, 0700)
 }

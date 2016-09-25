@@ -5,7 +5,6 @@ package normal
 import (
 	"os"
 	"os/exec"
-	"path/filepath"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
@@ -24,18 +23,45 @@ func TestMain(m *testing.M) {
 // Test -init flag
 func TestInit(t *testing.T) {
 	dir := test_helpers.InitFS(t)
-	_, err := os.Stat(filepath.Join(dir, configfile.ConfDefaultName))
+	_, c, err := configfile.LoadConfFile(dir+"/"+configfile.ConfDefaultName, "test")
 	if err != nil {
 		t.Fatal(err)
 	}
+	if c.IsFeatureFlagSet(configfile.FlagGCMSIV) {
+		t.Error("GCMSIV flag should not be set")
+	}
 }
 
-// Test -passwd flag
-func TestPasswd(t *testing.T) {
-	// Create FS
-	dir := test_helpers.InitFS(t)
+// Test -init with -gcmsiv
+func TestInitGcmsiv(t *testing.T) {
+	dir := test_helpers.InitFS(t, "-gcmsiv")
+	_, c, err := configfile.LoadConfFile(dir+"/"+configfile.ConfDefaultName, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.IsFeatureFlagSet(configfile.FlagGCMSIV) {
+		t.Error("GCMSIV flag should be set but is not")
+	}
+}
+
+// Test -init with -reverse
+func TestInitReverse(t *testing.T) {
+	dir := test_helpers.InitFS(t, "-reverse")
+	_, c, err := configfile.LoadConfFile(dir+"/"+configfile.ConfReverseName, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.IsFeatureFlagSet(configfile.FlagGCMSIV) {
+		t.Error("GCMSIV flag should be set but is not")
+	}
+}
+
+func testPasswd(t *testing.T, dir string, extraArgs ...string) {
 	// Change password using "-extpass"
-	cmd := exec.Command(test_helpers.GocryptfsBinary, "-q", "-passwd", "-extpass", "echo test", dir)
+	args := []string{"-q", "-passwd", "-extpass", "echo test"}
+	args = append(args, extraArgs...)
+	args = append(args, dir)
+	cmd := exec.Command(test_helpers.GocryptfsBinary, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
@@ -43,7 +69,10 @@ func TestPasswd(t *testing.T) {
 		t.Error(err)
 	}
 	// Change password using stdin
-	cmd = exec.Command(test_helpers.GocryptfsBinary, "-q", "-passwd", dir)
+	args = []string{"-q", "-passwd", "-extpass", "echo test"}
+	args = append(args, extraArgs...)
+	args = append(args, dir)
+	cmd = exec.Command(test_helpers.GocryptfsBinary, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	p, err := cmd.StdinPipe()
@@ -63,6 +92,20 @@ func TestPasswd(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+}
+
+// Test -passwd flag
+func TestPasswd(t *testing.T) {
+	// Create FS
+	dir := test_helpers.InitFS(t)
+	testPasswd(t, dir)
+}
+
+// Test -passwd with -reverse
+func TestPasswdReverse(t *testing.T) {
+	// Create FS
+	dir := test_helpers.InitFS(t, "-reverse")
+	testPasswd(t, dir, "-reverse")
 }
 
 // Test -init & -config flag

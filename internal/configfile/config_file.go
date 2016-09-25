@@ -45,7 +45,7 @@ type ConfFile struct {
 // CreateConfFile - create a new config with a random key encrypted with
 // "password" and write it to "filename".
 // Uses scrypt with cost parameter logN.
-func CreateConfFile(filename string, password string, plaintextNames bool, logN int, creator string, reverse bool) error {
+func CreateConfFile(filename string, password string, plaintextNames bool, logN int, creator string, gcmsiv bool) error {
 	var cf ConfFile
 	cf.filename = filename
 	cf.Creator = creator
@@ -59,7 +59,7 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 	cf.EncryptKey(key, password, logN)
 
 	// Set feature flags
-	cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagGCMIV128])
+	cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagGCMIV128]) // 128-bit IVs
 	if plaintextNames {
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagPlaintextNames])
 	} else {
@@ -67,8 +67,8 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagEMENames])
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagLongNames])
 	}
-	if reverse {
-		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagGCMSIV])
+	if gcmsiv {
+		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagGCMSIV]) // GCM-SIV encryption mode
 	}
 
 	// Write file to disk

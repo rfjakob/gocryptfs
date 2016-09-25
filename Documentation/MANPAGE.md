@@ -58,6 +58,9 @@ to mount the gocryptfs filesytem without user interaction.
 **-fusedebug**
 :	Enable fuse library debug output
 
+**-gcmsiv**
+:	Use the GCM-SIV encryption mode (implied by -reverse)
+
 **-init**
 :	Initialize encrypted directory
 
@@ -94,7 +97,7 @@ runs as root, you can enable device files by passing the opposite mount option,
 interesting. For a complete liste see the section
 `FILESYSTEM-INDEPENDENT MOUNT OPTIONS` in mount(8).
 
-**-openssl bool**
+**-openssl bool/"auto"**
 :	Use OpenSSL instead of built-in Go crypto (default "auto"). Using
 built-in crypto is 4x slower unless your CPU has AES instructions and
 you are using Go 1.6+. In mode "auto", gocrypts chooses the faster
@@ -108,6 +111,10 @@ option.
 
 **-q, -quiet**
 :	Quiet - silence informational messages
+
+**-reverse**
+:	Reverse mode shows a read-only encrypted view of a plaintext
+directory
 
 **-ro**
 :	Mount the filesystem read-only
