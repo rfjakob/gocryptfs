@@ -7,9 +7,8 @@ import (
 	"crypto/cipher"
 	"fmt"
 
+	"github.com/rfjakob/gocryptfs/internal/siv_aead"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
-
-	"github.com/rfjakob/gcmsiv"
 )
 
 type BackendTypeEnum int
@@ -21,13 +20,13 @@ const (
 	_                              = iota // Skip zero
 	BackendOpenSSL BackendTypeEnum = iota
 	BackendGoGCM   BackendTypeEnum = iota
-	BackendGCMSIV  BackendTypeEnum = iota
+	BackendAESSIV  BackendTypeEnum = iota
 )
 
 type CryptoCore struct {
 	// AES-256 block cipher. This is used for EME filename encryption.
 	BlockCipher cipher.Block
-	// GCM or GCM-SIV. This is used for content encryption.
+	// GCM or AES-SIV. This is used for content encryption.
 	AEADCipher cipher.AEAD
 	// Which backend is behind AEADCipher?
 	AEADBackend BackendTypeEnum
@@ -64,8 +63,8 @@ func New(key []byte, backend BackendTypeEnum, IVBitLen int) *CryptoCore {
 		gcm = stupidgcm.New(key)
 	case BackendGoGCM:
 		gcm, err = goGCMWrapper(blockCipher, IVLen)
-	case BackendGCMSIV:
-		gcm, err = gcmsiv.NewGCMSIV(key)
+	case BackendAESSIV:
+		gcm = siv_aead.New(key)
 	default:
 		panic("unknown backend cipher")
 	}

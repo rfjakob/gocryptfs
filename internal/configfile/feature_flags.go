@@ -8,7 +8,7 @@ const (
 	FlagEMENames
 	FlagGCMIV128
 	FlagLongNames
-	FlagGCMSIV
+	FlagAESSIV
 )
 
 // knownFlags stores the known feature flags and their string representation
@@ -18,7 +18,7 @@ var knownFlags map[flagIota]string = map[flagIota]string{
 	FlagEMENames:       "EMENames",
 	FlagGCMIV128:       "GCMIV128",
 	FlagLongNames:      "LongNames",
-	FlagGCMSIV:         "GCMSIV",
+	FlagAESSIV:         "AESSIV",
 }
 
 // Filesystems that do not have these feature flags set are deprecated.

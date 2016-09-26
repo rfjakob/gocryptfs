@@ -15,7 +15,8 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/rfjakob/gcmsiv"
+	// For benchmark comparison
+	"github.com/rfjakob/gocryptfs/internal/siv_aead"
 )
 
 // Get "n" random bytes from /dev/urandom or panic
@@ -162,16 +163,13 @@ func Benchmark4kEncGoGCM(b *testing.B) {
 	}
 }
 
-func Benchmark4kEncGCMSIV(b *testing.B) {
+func Benchmark4kEncAESSIV(b *testing.B) {
 	key := randBytes(32)
 	authData := randBytes(24)
 	iv := randBytes(16)
 	in := make([]byte, 4096)
 	b.SetBytes(int64(len(in)))
-	gGCM, err := gcmsiv.NewGCMSIV(key)
-	if err != nil {
-		b.Fatal(err)
-	}
+	gGCM := siv_aead.New(key)
 	for i := 0; i < b.N; i++ {
 		// Encrypt and append to nonce
 		gGCM.Seal(iv, iv, in, authData)

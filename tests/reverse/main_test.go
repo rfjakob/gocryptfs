@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	test_helpers.MountOrExit(dirA, dirB, "-zerokey", "-reverse")
-	test_helpers.MountOrExit(dirB, dirC, "-zerokey", "-gcmsiv")
+	test_helpers.MountOrExit(dirB, dirC, "-zerokey", "-aessiv")
 	r := m.Run()
 	test_helpers.UnmountPanic(dirC)
 	test_helpers.UnmountPanic(dirB)

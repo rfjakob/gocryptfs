@@ -27,20 +27,20 @@ func TestInit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.IsFeatureFlagSet(configfile.FlagGCMSIV) {
-		t.Error("GCMSIV flag should not be set")
+	if c.IsFeatureFlagSet(configfile.FlagAESSIV) {
+		t.Error("AESSIV flag should not be set")
 	}
 }
 
-// Test -init with -gcmsiv
-func TestInitGcmsiv(t *testing.T) {
-	dir := test_helpers.InitFS(t, "-gcmsiv")
+// Test -init with -aessiv
+func TestInitAessiv(t *testing.T) {
+	dir := test_helpers.InitFS(t, "-aessiv")
 	_, c, err := configfile.LoadConfFile(dir+"/"+configfile.ConfDefaultName, "test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !c.IsFeatureFlagSet(configfile.FlagGCMSIV) {
-		t.Error("GCMSIV flag should be set but is not")
+	if !c.IsFeatureFlagSet(configfile.FlagAESSIV) {
+		t.Error("AESSIV flag should be set but is not")
 	}
 }
 
@@ -51,8 +51,8 @@ func TestInitReverse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !c.IsFeatureFlagSet(configfile.FlagGCMSIV) {
-		t.Error("GCMSIV flag should be set but is not")
+	if !c.IsFeatureFlagSet(configfile.FlagAESSIV) {
+		t.Error("AESSIV flag should be set but is not")
 	}
 }
 

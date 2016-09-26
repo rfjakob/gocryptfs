@@ -150,9 +150,9 @@ func main() {
 	if args.quiet {
 		tlog.Info.Enabled = false
 	}
-	// "-reverse" implies "-gcmsiv"
+	// "-reverse" implies "-aessiv"
 	if args.reverse {
-		args.gcmsiv = true
+		args.aessiv = true
 	}
 	// "-config"
 	if args.config != "" {
@@ -290,8 +290,8 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	if args.openssl {
 		cryptoBackend = cryptocore.BackendOpenSSL
 	}
-	if args.gcmsiv {
-		cryptoBackend = cryptocore.BackendGCMSIV
+	if args.aessiv {
+		cryptoBackend = cryptocore.BackendAESSIV
 	}
 	frontendArgs := fusefrontend.Args{
 		Cipherdir:      args.cipherdir,
@@ -304,10 +304,10 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	if confFile != nil {
 		// Settings from the config file override command line args
 		frontendArgs.PlaintextNames = confFile.IsFeatureFlagSet(configfile.FlagPlaintextNames)
-		if confFile.IsFeatureFlagSet(configfile.FlagGCMSIV) {
-			frontendArgs.CryptoBackend = cryptocore.BackendGCMSIV
+		if confFile.IsFeatureFlagSet(configfile.FlagAESSIV) {
+			frontendArgs.CryptoBackend = cryptocore.BackendAESSIV
 		} else if args.reverse {
-			tlog.Fatal.Printf("GCM-SIV is required by reverse mode, but not enabled in the config file")
+			tlog.Fatal.Printf("AES-SIV is required by reverse mode, but not enabled in the config file")
 			os.Exit(ERREXIT_USAGE)
 		}
 	}
@@ -318,11 +318,6 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	}
 	jsonBytes, _ := json.MarshalIndent(frontendArgs, "", "\t")
 	tlog.Debug.Printf("frontendArgs: %s", string(jsonBytes))
-	if frontendArgs.CryptoBackend == cryptocore.BackendGCMSIV {
-		tlog.Info.Printf(tlog.ColorYellow +
-			"Warning: The GCM-SIV format used by reverse mode is not yet finalized.\n" +
-			"The on-disk format will change in the future." + tlog.ColorReset)
-	}
 	var finalFs pathfs.FileSystem
 	if args.reverse {
 		finalFs = fusefrontend_reverse.NewFS(frontendArgs)

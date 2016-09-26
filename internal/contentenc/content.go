@@ -105,8 +105,8 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []b
 
 	// Extract nonce
 	nonce := ciphertext[:be.cryptoCore.IVLen]
-	if bytes.Equal(nonce, be.allZeroNonce) && be.cryptoCore.AEADBackend != cryptocore.BackendGCMSIV {
-		panic("Hit an all-zero nonce with GCMSIV off. This MUST NOT happen!")
+	if bytes.Equal(nonce, be.allZeroNonce) {
+		panic("Hit an all-zero nonce. This MUST NOT happen!")
 	}
 	ciphertextOrig := ciphertext
 	ciphertext = ciphertext[be.cryptoCore.IVLen:]
@@ -150,13 +150,13 @@ func (be *ContentEnc) EncryptBlock(plaintext []byte, blockNo uint64, fileID []by
 	var nonce []byte
 	switch nMode {
 	case ExternalNonce:
-		if be.cryptoCore.AEADBackend != cryptocore.BackendGCMSIV {
-			panic("MUST NOT use deterministic nonces unless in GCMSIV mode!")
+		if be.cryptoCore.AEADBackend != cryptocore.BackendAESSIV {
+			panic("MUST NOT use deterministic nonces unless in AESSIV mode!")
 		}
 		nonce = externalNonce
 	case ReverseDeterministicNonce:
-		if be.cryptoCore.AEADBackend != cryptocore.BackendGCMSIV {
-			panic("MUST NOT use deterministic nonces unless in GCMSIV mode!")
+		if be.cryptoCore.AEADBackend != cryptocore.BackendAESSIV {
+			panic("MUST NOT use deterministic nonces unless in AESSIV mode!")
 		}
 		l := be.cryptoCore.IVLen
 		nonce = make([]byte, l)

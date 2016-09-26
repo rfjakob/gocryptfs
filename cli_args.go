@@ -14,7 +14,7 @@ import (
 type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
 	plaintextnames, quiet, nosyslog, wpanic,
-	longnames, allow_other, ro, reverse, gcmsiv bool
+	longnames, allow_other, ro, reverse, aessiv bool
 	masterkey, mountpoint, cipherdir, cpuprofile, extpass,
 	memprofile, o string
 	// Configuration file name override
@@ -51,7 +51,7 @@ func parseCliOpts() (args argContainer) {
 		"Only works if user_allow_other is set in /etc/fuse.conf.")
 	flagSet.BoolVar(&args.ro, "ro", false, "Mount the filesystem read-only")
 	flagSet.BoolVar(&args.reverse, "reverse", false, "Reverse mode")
-	flagSet.BoolVar(&args.gcmsiv, "gcmsiv", false, "GCM-SIV encryption")
+	flagSet.BoolVar(&args.aessiv, "aessiv", false, "AES-SIV encryption")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")

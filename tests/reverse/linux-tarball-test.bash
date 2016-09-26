@@ -28,4 +28,5 @@ gocryptfs -q -extpass="echo test" b c
 # Check md5 sums
 cd c
 echo "Checking md5 sums"
-md5sum --status -c $MD5
+set -o pipefail
+md5sum -c $MD5 | pv -l -s 36782 -N "files checked" | (grep -v ": OK" || true)

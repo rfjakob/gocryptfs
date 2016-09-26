@@ -71,7 +71,7 @@ func TestCreateConfFile(t *testing.T) {
 
 }
 
-func TestCreateConfFileGCMSIV(t *testing.T) {
+func TestCreateConfFileAESSIV(t *testing.T) {
 	err := CreateConfFile("config_test/tmp.conf", "test", false, 10, "test", true)
 	if err != nil {
 		t.Fatal(err)
@@ -80,14 +80,14 @@ func TestCreateConfFileGCMSIV(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !c.IsFeatureFlagSet(FlagGCMSIV) {
-		t.Error("GCMSIV flag should be set but is not")
+	if !c.IsFeatureFlagSet(FlagAESSIV) {
+		t.Error("AESSIV flag should be set but is not")
 	}
 }
 
 func TestIsFeatureFlagKnown(t *testing.T) {
 	// Test a few hardcoded values
-	testKnownFlags := []string{"DirIV", "PlaintextNames", "EMENames", "GCMIV128", "LongNames", "GCMSIV"}
+	testKnownFlags := []string{"DirIV", "PlaintextNames", "EMENames", "GCMIV128", "LongNames", "AESSIV"}
 	// And also everything in knownFlags (yes, it is likely that we end up with
 	// some duplicates. Does not matter.)
 	for _, f := range knownFlags {

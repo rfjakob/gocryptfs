@@ -30,6 +30,9 @@ DESCRIPTION
 
 Options:
 
+**-aessiv**
+:	Use the AES-SIV encryption mode (implied by -reverse)
+
 **-allow_other**
 :	By default, the Linux kernel prevents any other user (even root) to
 access a mounted FUSE filesystem. Settings this option allows access for
@@ -57,9 +60,6 @@ to mount the gocryptfs filesytem without user interaction.
 
 **-fusedebug**
 :	Enable fuse library debug output
-
-**-gcmsiv**
-:	Use the GCM-SIV encryption mode (implied by -reverse)
 
 **-init**
 :	Initialize encrypted directory
