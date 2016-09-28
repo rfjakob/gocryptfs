@@ -19,3 +19,21 @@ script:
   - go build
   - ./build.bash
   - if ! go version | grep go1.3.3 ; then go test ./internal/... ; fi
+  - mkdir /tmp/cipherdir /tmp/mnt
+  - echo 'pass' | gocryptfs -init /tmp/cipherdir
+  - echo 'pass' | gocryptfs /tmp/cipherdir /tmp/mnt
+  - echo 'bar' > /tmp/mnt/foo
+  - fusermount -u /tmp/mnt
+  - ls /tmp/cipherdir
+
+sudo: required
+dist: trusty
+before_install:
+  - sudo apt-get install -qq fuse
+  - sudo modprobe fuse
+  - sudo /bin/sh -c 'echo user_allow_other > /etc/fuse.conf'
+  - sudo chmod 666 /dev/fuse
+  - sudo chown root:$USER /etc/fuse.conf
+    #  - sudo apt-get install -qq build-essential uuid-dev xfslibs-dev attr-dev acl-dev dmapi-dev
+    #  - git clone https://github.com/rfjakob/fuse-xfstests /tmp/fuse-xfstests
+    #  - cd /tmp/fuse-xfstests && make && cd -
