@@ -17,8 +17,9 @@ script:
   - go build
   - ./build.bash
   - if ! go version | grep go1.3.3 ; then go test ./internal/... ; fi
-  - cd /tmp/fuse-xfstests
-  - sudo PATH=$(sudo bash -c 'echo $PATH'):$PATH ./check-gocryptfs
+  - ./test.bash
+    #- cd /tmp/fuse-xfstests
+    #- sudo PATH=$(sudo bash -c 'echo $PATH'):$PATH ./check-gocryptfs
 
 # fuse on travis
 sudo: required
@@ -29,7 +30,7 @@ before_install:
   - sudo /bin/sh -c 'echo user_allow_other > /etc/fuse.conf'
   - sudo chmod 666 /dev/fuse
   - sudo chown root:$USER /etc/fuse.conf
-    # fuse-xfstests specific
-  - sudo apt-get install -qq build-essential uuid-dev xfslibs-dev attr-dev acl-dev dmapi-dev attr
-  - git clone https://github.com/rfjakob/fuse-xfstests /tmp/fuse-xfstests
-  - cd /tmp/fuse-xfstests && make && cd -
+    ## fuse-xfstests specific
+    #- sudo apt-get install -qq build-essential uuid-dev xfslibs-dev attr-dev acl-dev dmapi-dev attr
+    #- git clone https://github.com/rfjakob/fuse-xfstests /tmp/fuse-xfstests
+    #- cd /tmp/fuse-xfstests && make && cd -
