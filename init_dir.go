@@ -34,8 +34,6 @@ func initDir(args *argContainer) {
 	// Choose password for config file
 	if args.extpass == "" {
 		tlog.Info.Printf("Choose a password for protecting your files.")
-	} else {
-		tlog.Info.Printf("Using password provided via -extpass.")
 	}
 	password := readpassword.Twice(args.extpass)
 	creator := tlog.ProgramName + " " + GitVersion
