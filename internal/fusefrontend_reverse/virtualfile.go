@@ -8,6 +8,15 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
+func (rfs *reverseFS) newDirIVFile(cRelPath string) (nodefs.File, fuse.Status) {
+	cDir := saneDir(cRelPath)
+	absDir, err := rfs.abs(rfs.decryptPath(cDir))
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	return rfs.NewVirtualFile(derivePathIV(cDir), absDir)
+}
+
 type virtualFile struct {
 	// Embed nodefs.defaultFile for a ENOSYS implementation of all methods
 	nodefs.File

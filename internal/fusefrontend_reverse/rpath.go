@@ -1,6 +1,7 @@
 package fusefrontend_reverse
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
 	"path/filepath"
 	"strings"
@@ -16,6 +17,12 @@ func saneDir(path string) string {
 		return ""
 	}
 	return d
+}
+
+// derivePathIV derives an IV from an encrypted path by hashing it
+func derivePathIV(path string) []byte {
+	hash := sha256.Sum256([]byte(path))
+	return hash[:nametransform.DirIVLen]
 }
 
 func (rfs *reverseFS) abs(relPath string, err error) (string, error) {
