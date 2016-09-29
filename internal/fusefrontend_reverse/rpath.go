@@ -19,9 +19,20 @@ func saneDir(path string) string {
 	return d
 }
 
-// derivePathIV derives an IV from an encrypted path by hashing it
-func derivePathIV(path string) []byte {
-	hash := sha256.Sum256([]byte(path))
+type ivPurposeType string
+
+const (
+	ivPurposeDirIV     ivPurposeType = "DIRIV"
+	ivPurposeFileID    ivPurposeType = "FILEID"
+	ivPurposeSymlinkIV ivPurposeType = "SYMLINKIV"
+	ivPurposeBlock0IV  ivPurposeType = "BLOCK0IV"
+)
+
+// derivePathIV derives an IV from an encrypted path by hashing it with sha256
+func derivePathIV(path string, purpose ivPurposeType) []byte {
+	// Use null byte as separator as it cannot occour in the path
+	extended := []byte(path + "\000" + string(purpose))
+	hash := sha256.Sum256(extended)
 	return hash[:nametransform.DirIVLen]
 }
 
@@ -43,7 +54,7 @@ func (rfs *reverseFS) decryptPath(relPath string) (string, error) {
 		// Start at the top and recurse
 		currentDir := filepath.Join(parts[:i]...)
 		nameType := nametransform.NameType(part)
-		dirIV := derivePathIV(currentDir)
+		dirIV := derivePathIV(currentDir, ivPurposeDirIV)
 		var transformedPart string
 		if nameType == nametransform.LongNameNone {
 			transformedPart, err = rfs.nameTransform.DecryptName(part, dirIV)

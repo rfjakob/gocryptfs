@@ -14,7 +14,7 @@ func (rfs *reverseFS) newDirIVFile(cRelPath string) (nodefs.File, fuse.Status) {
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	return rfs.NewVirtualFile(derivePathIV(cDir), absDir)
+	return rfs.NewVirtualFile(derivePathIV(cDir, ivPurposeDirIV), absDir)
 }
 
 type virtualFile struct {

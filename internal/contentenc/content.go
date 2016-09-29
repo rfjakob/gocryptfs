@@ -127,49 +127,33 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []b
 	return plaintext, nil
 }
 
-// EncryptBlocks - Encrypt a number of blocks
-// Used for reverse mode
-func (be *ContentEnc) EncryptBlocks(plaintext []byte, firstBlockNo uint64, fileId []byte, nMode NonceMode) []byte {
-	inBuf := bytes.NewBuffer(plaintext)
-	var outBuf bytes.Buffer
-	for blockNo := firstBlockNo; inBuf.Len() > 0; blockNo++ {
-		inBlock := inBuf.Next(int(be.plainBS))
-		outBlock := be.EncryptBlock(inBlock, blockNo, fileId, nMode, nil)
-		outBuf.Write(outBlock)
-	}
-	return outBuf.Bytes()
+// EncryptBlock - Encrypt plaintext using a random nonce.
+// blockNo and fileID are used as associated data.
+// The output is nonce + ciphertext + tag.
+func (be *ContentEnc) EncryptBlock(plaintext []byte, blockNo uint64, fileID []byte) []byte {
+	// Get a fresh random nonce
+	nonce := be.cryptoCore.IVGenerator.Get()
+	return be.doEncryptBlock(plaintext, blockNo, fileID, nonce)
 }
 
-// encryptBlock - Encrypt and add IV and MAC
-func (be *ContentEnc) EncryptBlock(plaintext []byte, blockNo uint64, fileID []byte, nMode NonceMode, externalNonce []byte) []byte {
+// EncryptBlockNonce - Encrypt plaintext using a nonce chosen by the caller.
+// blockNo and fileID are used as associated data.
+// The output is nonce + ciphertext + tag.
+// This function can only be used in SIV mode.
+func (be *ContentEnc) EncryptBlockNonce(plaintext []byte, blockNo uint64, fileID []byte, nonce []byte) []byte {
+	if be.cryptoCore.AEADBackend != cryptocore.BackendAESSIV {
+		panic("deterministic nonces are only secure in SIV mode")
+	}
+	return be.doEncryptBlock(plaintext, blockNo, fileID, nonce)
+}
+
+// doEncryptBlock is the backend for EncryptBlock and EncryptBlockNonce.
+// blockNo and fileID are used as associated data.
+// The output is nonce + ciphertext + tag.
+func (be *ContentEnc) doEncryptBlock(plaintext []byte, blockNo uint64, fileID []byte, nonce []byte) []byte {
 	// Empty block?
 	if len(plaintext) == 0 {
 		return plaintext
-	}
-
-	var nonce []byte
-	switch nMode {
-	case ExternalNonce:
-		if be.cryptoCore.AEADBackend != cryptocore.BackendAESSIV {
-			panic("MUST NOT use deterministic nonces unless in AESSIV mode!")
-		}
-		nonce = externalNonce
-	case ReverseDeterministicNonce:
-		if be.cryptoCore.AEADBackend != cryptocore.BackendAESSIV {
-			panic("MUST NOT use deterministic nonces unless in AESSIV mode!")
-		}
-		l := be.cryptoCore.IVLen
-		nonce = make([]byte, l)
-		copy(nonce, fileID)
-		// Add the block number to the last 8 byte. Plus one so the block-zero
-		// IV is distinct from the fileID.
-		counter := binary.BigEndian.Uint64(nonce[l-8 : l])
-		binary.BigEndian.PutUint64(nonce[l-8:l], counter+blockNo+1)
-	case RandomNonce:
-		// Get a fresh random nonce
-		nonce = be.cryptoCore.IVGenerator.Get()
-	default:
-		panic("invalid nonce mode")
 	}
 	if len(nonce) != be.cryptoCore.IVLen {
 		panic("wrong nonce length")

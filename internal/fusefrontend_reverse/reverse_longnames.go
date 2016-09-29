@@ -84,7 +84,7 @@ func (rfs *reverseFS) newNameFile(relPath string) (nodefs.File, fuse.Status) {
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	dirIV := derivePathIV(cDir)
+	dirIV := derivePathIV(cDir, ivPurposeDirIV)
 	e, err := rfs.findLongnameParent(pDir, dirIV, longname)
 	if err != nil {
 		return nil, fuse.ToStatus(err)

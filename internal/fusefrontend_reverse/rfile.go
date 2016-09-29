@@ -2,6 +2,7 @@ package fusefrontend_reverse
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
@@ -20,6 +21,8 @@ type reverseFile struct {
 	fd *os.File
 	// File header (contains the IV)
 	header contentenc.FileHeader
+	// IV for block 0
+	block0IV []byte
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
 }
@@ -33,7 +36,7 @@ func (rfs *reverseFS) NewFile(relPath string, flags uint32) (nodefs.File, fuse.S
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	id := derivePathIV(relPath)
+	id := derivePathIV(relPath, ivPurposeFileID)
 	header := contentenc.FileHeader{
 		Version: contentenc.CurrentVersion,
 		Id:      id,
@@ -42,6 +45,7 @@ func (rfs *reverseFS) NewFile(relPath string, flags uint32) (nodefs.File, fuse.S
 		File:       nodefs.NewDefaultFile(),
 		fd:         fd,
 		header:     header,
+		block0IV:   derivePathIV(relPath, ivPurposeBlock0IV),
 		contentEnc: rfs.contentEnc,
 	}, fuse.OK
 }
@@ -50,6 +54,26 @@ func (rfs *reverseFS) NewFile(relPath string, flags uint32) (nodefs.File, fuse.S
 func (rf *reverseFile) GetAttr(*fuse.Attr) fuse.Status {
 	fmt.Printf("reverseFile.GetAttr fd=%d\n", rf.fd.Fd())
 	return fuse.ENOSYS
+}
+
+// encryptBlocks - encrypt "plaintext" into a number of ciphertext blocks.
+// "plaintext" must already be block-aligned.
+func (rf *reverseFile) encryptBlocks(plaintext []byte, firstBlockNo uint64, fileId []byte, block0IV []byte) []byte {
+	nonce := make([]byte, len(block0IV))
+	copy(nonce, block0IV)
+	block0IVlow := binary.BigEndian.Uint64(block0IV[8:])
+	nonceLow := nonce[8:]
+
+	inBuf := bytes.NewBuffer(plaintext)
+	var outBuf bytes.Buffer
+	bs := int(rf.contentEnc.PlainBS())
+	for blockNo := firstBlockNo; inBuf.Len() > 0; blockNo++ {
+		binary.BigEndian.PutUint64(nonceLow, block0IVlow+blockNo)
+		inBlock := inBuf.Next(bs)
+		outBlock := rf.contentEnc.EncryptBlockNonce(inBlock, blockNo, fileId, nonce)
+		outBuf.Write(outBlock)
+	}
+	return outBuf.Bytes()
 }
 
 // readBackingFile: read from the backing plaintext file, encrypt it, return the
@@ -71,7 +95,7 @@ func (rf *reverseFile) readBackingFile(off uint64, length uint64) (out []byte, e
 	plaintext = plaintext[0:n]
 
 	// Encrypt blocks
-	ciphertext := rf.contentEnc.EncryptBlocks(plaintext, blocks[0].BlockNo, rf.header.Id, contentenc.ReverseDeterministicNonce)
+	ciphertext := rf.encryptBlocks(plaintext, blocks[0].BlockNo, rf.header.Id, rf.block0IV)
 
 	// Crop down to the relevant part
 	lenHave := len(ciphertext)

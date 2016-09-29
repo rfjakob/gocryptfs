@@ -254,7 +254,7 @@ func (rfs *reverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 	nVirtual := 1
 
 	// Encrypt names
-	dirIV := derivePathIV(cipherPath)
+	dirIV := derivePathIV(cipherPath, ivPurposeDirIV)
 	for i := range entries {
 		var cName string
 		// ".gocryptfs.reverse.conf" in the root directory is mapped to "gocryptfs.conf"
@@ -296,9 +296,9 @@ func (rfs *reverseFS) Readlink(cipherPath string, context *fuse.Context) (string
 	if rfs.args.PlaintextNames {
 		return plainTarget, fuse.OK
 	}
-	nonce := derivePathIV(cipherPath)
+	nonce := derivePathIV(cipherPath, ivPurposeSymlinkIV)
 	// Symlinks are encrypted like file contents and base64-encoded
-	cBinTarget := rfs.contentEnc.EncryptBlock([]byte(plainTarget), 0, nil, contentenc.ExternalNonce, nonce)
+	cBinTarget := rfs.contentEnc.EncryptBlockNonce([]byte(plainTarget), 0, nil, nonce)
 	cTarget := base64.URLEncoding.EncodeToString(cBinTarget)
 	return cTarget, fuse.OK
 }
