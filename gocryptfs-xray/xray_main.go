@@ -80,6 +80,7 @@ func main() {
 		} else if err != nil {
 			errExit(err)
 		}
-		fmt.Printf("Block %2d: IV: %s, Tag: %s, Len: %d\n", i, hex.EncodeToString(iv), hex.EncodeToString(tag), blockLen)
+		fmt.Printf("Block %2d: IV: %s, Tag: %s, Offset: %5d Len: %d\n",
+			i, hex.EncodeToString(iv), hex.EncodeToString(tag), off, blockLen)
 	}
 }
