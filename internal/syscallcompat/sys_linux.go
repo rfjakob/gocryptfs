@@ -8,7 +8,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-const fAllocFLKeepSize = 0x01
+const FALLOC_FL_KEEP_SIZE = 0x01
 
 var preallocWarn sync.Once
 
@@ -17,7 +17,7 @@ var preallocWarn sync.Once
 // ciphertext block (that would corrupt the block).
 func EnospcPrealloc(fd int, off int64, len int64) (err error) {
 	for {
-		err = syscall.Fallocate(fd, fAllocFLKeepSize, off, len)
+		err = syscall.Fallocate(fd, FALLOC_FL_KEEP_SIZE, off, len)
 		if err == syscall.EINTR {
 			// fallocate, like many syscalls, can return EINTR. This is not an
 			// error and just signifies that the operation was interrupted by a

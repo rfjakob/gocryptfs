@@ -14,22 +14,22 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-// FallocDefault uses truncate to allocate file storage.
-const FallocDefault = 0x00
+// FALLOC_DEFAULT uses truncate to allocate file storage.
+const FALLOC_DEFAULT = 0x00
 
-// FallocFLKeepSize is a direct implementation of file allocation.
-const FallocFLKeepSize = 0x01
+// FALLOC_FL_KEEP_SIZE is a direct implementation of file allocation.
+const FALLOC_FL_KEEP_SIZE = 0x01
 
 // Only warn once
 var allocateWarnOnce sync.Once
 
 // Allocate - FUSE call for fallocate(2)
 //
-// mode=FallocFLKeepSize is implemented directly.
+// mode=FALLOC_FL_KEEP_SIZE is implemented directly.
 //
-// mode=FallocDefault is implemented as a two-step process:
+// mode=FALLOC_DEFAULT is implemented as a two-step process:
 //
-//   (1) Allocate the space using FallocFLKeepSize
+//   (1) Allocate the space using FALLOC_FL_KEEP_SIZE
 //   (2) Set the file size using ftruncate (via truncateGrowFile)
 //
 // This allows us to reuse the file grow mechanics from Truncate as they are
@@ -37,7 +37,7 @@ var allocateWarnOnce sync.Once
 //
 // Other modes (hole punching, zeroing) are not supported.
 func (f *file) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
-	if mode != FallocDefault && mode != FallocFLKeepSize {
+	if mode != FALLOC_DEFAULT && mode != FALLOC_FL_KEEP_SIZE {
 		f := func() {
 			tlog.Warn.Print("fallocate: only mode 0 (default) and 1 (keep size) are supported")
 		}
@@ -57,19 +57,19 @@ func (f *file) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
 	firstBlock := blocks[0]
 	lastBlock := blocks[len(blocks)-1]
 
-	// Step (1): Allocate the space the user wants using FallocFLKeepSize.
+	// Step (1): Allocate the space the user wants using FALLOC_FL_KEEP_SIZE.
 	// This will fill file holes and/or allocate additional space past the end of
 	// the file.
 	cipherOff := firstBlock.BlockCipherOff()
 	cipherSz := lastBlock.BlockCipherOff() - cipherOff +
 		f.contentEnc.PlainSizeToCipherSize(lastBlock.Skip+lastBlock.Length)
-	err := syscallcompat.Fallocate(f.intFd(), FallocFLKeepSize, int64(cipherOff), int64(cipherSz))
+	err := syscallcompat.Fallocate(f.intFd(), FALLOC_FL_KEEP_SIZE, int64(cipherOff), int64(cipherSz))
 	tlog.Debug.Printf("Allocate off=%d sz=%d mode=%x cipherOff=%d cipherSz=%d\n",
 		off, sz, mode, cipherOff, cipherSz)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	if mode == FallocFLKeepSize {
+	if mode == FALLOC_FL_KEEP_SIZE {
 		// The user did not want to change the apparent size. We are done.
 		return fuse.OK
 	}

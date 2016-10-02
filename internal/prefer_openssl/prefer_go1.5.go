@@ -1,4 +1,4 @@
-// +build !go1.6,!go1.7 !amd64
+// +build !go1.6 !amd64
 // not go1.6+ OR not amd64
 
 package prefer_openssl

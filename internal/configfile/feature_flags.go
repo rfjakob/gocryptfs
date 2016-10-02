@@ -7,11 +7,13 @@ const (
 	FlagPlaintextNames flagIota = iota
 	// FlagDirIV indicates that a per-directory IV file is used.
 	FlagDirIV
-	// FlagEMENames is unused.
+	// FlagEMENames indicates EME (ECB-Mix-ECB) filename encryption.
+	// This flag is mandatory since gocryptfs v1.0.
 	FlagEMENames
-	// FlagGCMIV128 is unused.
+	// FlagGCMIV128 indicates 128-bit GCM IVs.
+	// This flag is mandatory since gocryptfs v1.0.
 	FlagGCMIV128
-	// FlagLongNames is unused.
+	// FlagLongNames allows file names longer than 176 bytes.
 	FlagLongNames
 	// FlagAESSIV selects an AES based crypto backend.
 	FlagAESSIV

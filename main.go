@@ -313,7 +313,7 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	}
 	// If allow_other is set and we run as root, try to give newly created files to
 	// the right user.
-	if args.allowOther && os.Getuid() == 0 {
+	if args.allow_other && os.Getuid() == 0 {
 		frontendArgs.PreserveOwner = true
 	}
 	jsonBytes, _ := json.MarshalIndent(frontendArgs, "", "\t")
@@ -336,7 +336,7 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	conn := nodefs.NewFileSystemConnector(pathFs.Root(), fuseOpts)
 	var mOpts fuse.MountOptions
 	mOpts.AllowOther = false
-	if args.allowOther {
+	if args.allow_other {
 		tlog.Info.Printf(tlog.ColorYellow + "The option \"-allow_other\" is set. Make sure the file " +
 			"permissions protect your data from unwanted access." + tlog.ColorReset)
 		mOpts.AllowOther = true

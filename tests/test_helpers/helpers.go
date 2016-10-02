@@ -21,7 +21,7 @@ const testParentDir = "/tmp/gocryptfs-test-parent"
 // GocryptfsBinary is the assumed path to the gocryptfs build.
 const GocryptfsBinary = "../../gocryptfs"
 
-// TmpDir is used by "go test" running package test s in parallel! We create a
+// TmpDir is a unique temporary directory. "go test" runs package tests in parallel. We create a
 // unique TmpDir in init() so the tests do not interfere.
 var TmpDir string
 
