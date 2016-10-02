@@ -22,6 +22,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
+// FS implements the go-fuse virtual filesystem interface.
 type FS struct {
 	pathfs.FileSystem      // loopbackFileSystem, see go-fuse/fuse/pathfs/loopback.go
 	args              Args // Stores configuration arguments
@@ -35,7 +36,9 @@ type FS struct {
 	contentEnc *contentenc.ContentEnc
 }
 
-// Encrypted FUSE overlay filesystem
+var _ pathfs.FileSystem = &FS{} // Verify that interface is implemented.
+
+// NewFS returns a new encrypted FUSE overlay filesystem.
 func NewFS(args Args) *FS {
 	cryptoCore := cryptocore.New(args.Masterkey, args.CryptoBackend, contentenc.DefaultIVBits)
 	contentEnc := contentenc.New(cryptoCore, contentenc.DefaultBS)
@@ -49,6 +52,7 @@ func NewFS(args Args) *FS {
 	}
 }
 
+// GetAttr implements pathfs.Filesystem.
 func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	tlog.Debug.Printf("FS.GetAttr('%s')", name)
 	if fs.isFiltered(name) {
@@ -85,6 +89,7 @@ func (fs *FS) mangleOpenFlags(flags uint32) (newFlags int, writeOnly bool) {
 	return newFlags, writeOnly
 }
 
+// Open implements pathfs.Filesystem.
 func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
 	if fs.isFiltered(path) {
 		return nil, fuse.EPERM
@@ -104,6 +109,7 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 	return NewFile(f, writeOnly, fs.contentEnc)
 }
 
+// Create implements pathfs.Filesystem.
 func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Context) (fuseFile nodefs.File, code fuse.Status) {
 	if fs.isFiltered(path) {
 		return nil, fuse.EPERM
@@ -156,6 +162,7 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 	return NewFile(fd, writeOnly, fs.contentEnc)
 }
 
+// Chmod implements pathfs.Filesystem.
 func (fs *FS) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
@@ -170,6 +177,7 @@ func (fs *FS) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.
 	return fuse.ToStatus(err)
 }
 
+// Chown implements pathfs.Filesystem.
 func (fs *FS) Chown(path string, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
@@ -181,6 +189,7 @@ func (fs *FS) Chown(path string, uid uint32, gid uint32, context *fuse.Context) 
 	return fuse.ToStatus(os.Lchown(cPath, int(uid), int(gid)))
 }
 
+// Mknod implements pathfs.Filesystem.
 func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
@@ -217,6 +226,7 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 	return fs.FileSystem.Mknod(cPath, mode, dev, context)
 }
 
+// Truncate implements pathfs.Filesystem.
 // Support truncate(2) by opening the file and calling ftruncate(2)
 // While the glibc "truncate" wrapper seems to always use ftruncate, fsstress from
 // xfstests uses this a lot by calling "truncate64" directly.
@@ -230,6 +240,7 @@ func (fs *FS) Truncate(path string, offset uint64, context *fuse.Context) (code 
 	return code
 }
 
+// Utimens implements pathfs.Filesystem.
 func (fs *FS) Utimens(path string, a *time.Time, m *time.Time, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
@@ -241,6 +252,7 @@ func (fs *FS) Utimens(path string, a *time.Time, m *time.Time, context *fuse.Con
 	return fs.FileSystem.Utimens(cPath, a, m, context)
 }
 
+// StatFs implements pathfs.Filesystem.
 func (fs *FS) StatFs(path string) *fuse.StatfsOut {
 	if fs.isFiltered(path) {
 		return nil
@@ -252,6 +264,7 @@ func (fs *FS) StatFs(path string) *fuse.StatfsOut {
 	return fs.FileSystem.StatFs(cPath)
 }
 
+// Readlink implements pathfs.Filesystem.
 func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status fuse.Status) {
 	cPath, err := fs.getBackingPath(path)
 	if err != nil {
@@ -278,6 +291,7 @@ func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status f
 	return string(target), fuse.OK
 }
 
+// Unlink implements pathfs.Filesystem.
 func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
@@ -312,6 +326,7 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	return fuse.ToStatus(err)
 }
 
+// Symlink implements pathfs.Filesystem.
 func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (code fuse.Status) {
 	tlog.Debug.Printf("Symlink(\"%s\", \"%s\")", target, linkName)
 	if fs.isFiltered(linkName) {
@@ -359,6 +374,7 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	return fuse.ToStatus(err)
 }
 
+// Rename implements pathfs.Filesystem.
 func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(newPath) {
 		return fuse.EPERM
@@ -437,6 +453,7 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 	return fuse.OK
 }
 
+// Link implements pathfs.Filesystem.
 func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(newPath) {
 		return fuse.EPERM
@@ -474,6 +491,7 @@ func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code 
 	return fuse.ToStatus(os.Link(cOldPath, cNewPath))
 }
 
+// Access implements pathfs.Filesystem.
 func (fs *FS) Access(path string, mode uint32, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
@@ -485,18 +503,22 @@ func (fs *FS) Access(path string, mode uint32, context *fuse.Context) (code fuse
 	return fuse.ToStatus(syscall.Access(cPath, mode))
 }
 
+// GetXAttr implements pathfs.Filesystem.
 func (fs *FS) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
+// SetXAttr implements pathfs.Filesystem.
 func (fs *FS) SetXAttr(name string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
 	return fuse.ENOSYS
 }
 
+// ListXAttr implements pathfs.Filesystem.
 func (fs *FS) ListXAttr(name string, context *fuse.Context) ([]string, fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
+// RemoveXAttr implements pathfs.Filesystem.
 func (fs *FS) RemoveXAttr(name string, attr string, context *fuse.Context) fuse.Status {
 	return fuse.ENOSYS
 }

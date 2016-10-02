@@ -14,31 +14,35 @@ import (
 import "os"
 
 const (
+	// ConfDefaultName is the default configuration file name.
 	// The dot "." is not used in base64url (RFC4648), hence
 	// we can never clash with an encrypted file.
 	ConfDefaultName = "gocryptfs.conf"
-	// In reverse mode, the config file gets stored next to the plain-text
-	// files. Make it hidden (start with dot) to not annoy the user.
+	// ConfReverseName is the default configuration file name in reverse mode,
+	// the config file gets stored next to the plain-text files. Make it hidden
+	// (start with dot) to not annoy the user.
 	ConfReverseName = ".gocryptfs.reverse.conf"
 )
 
+// ConfFile is the content of a config file.
 type ConfFile struct {
-	// gocryptfs version string
+	// Creator is the gocryptfs version string.
 	// This only documents the config file for humans who look at it. The actual
 	// technical info is contained in FeatureFlags.
 	Creator string
-	// Encrypted AES key, unlocked using a password hashed with scrypt
+	// EncryptedKey holds an encrypted AES key, unlocked using a password
+	// hashed with scrypt
 	EncryptedKey []byte
-	// Stores parameters for scrypt hashing (key derivation)
-	ScryptObject scryptKdf
-	// The On-Disk-Format version this filesystem uses
+	// ScryptObject stores parameters for scrypt hashing (key derivation)
+	ScryptObject ScryptKDF
+	// Version is the On-Disk-Format version this filesystem uses
 	Version uint16
-	// List of feature flags this filesystem has enabled.
+	// FeatureFlags is a list of feature flags this filesystem has enabled.
 	// If gocryptfs encounters a feature flag it does not support, it will refuse
 	// mounting. This mechanism is analogous to the ext4 feature flags that are
 	// stored in the superblock.
 	FeatureFlags []string
-	// File the config is saved to. Not exported to JSON.
+	// Filename is the name of the config file. Not exported to JSON.
 	filename string
 }
 
@@ -162,7 +166,7 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 // cf.ScryptObject.
 func (cf *ConfFile) EncryptKey(key []byte, password string, logN int) {
 	// Generate derived key from password
-	cf.ScryptObject = NewScryptKdf(logN)
+	cf.ScryptObject = NewScryptKDF(logN)
 	scryptHash := cf.ScryptObject.DeriveKey(password)
 
 	// Lock master key using password-based key

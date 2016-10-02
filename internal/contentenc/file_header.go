@@ -12,42 +12,44 @@ import (
 )
 
 const (
-	// Current On-Disk-Format version
+	// CurrentVersion is the current On-Disk-Format version
 	CurrentVersion = 2
 
-	HEADER_VERSION_LEN = 2                                  // uint16
-	HEADER_ID_LEN      = 16                                 // 128 bit random file id
-	HEADER_LEN         = HEADER_VERSION_LEN + HEADER_ID_LEN // Total header length
+	headerVersionLen = 2  // uint16
+	headerIDLen      = 16 // 128 bit random file id
+	// HeaderLen is the total header length
+	HeaderLen = headerVersionLen + headerIDLen
 )
 
+// FileHeader represents the header stored on each non-empty file.
 type FileHeader struct {
 	Version uint16
-	Id      []byte
+	ID      []byte
 }
 
 // Pack - serialize fileHeader object
 func (h *FileHeader) Pack() []byte {
-	if len(h.Id) != HEADER_ID_LEN || h.Version != CurrentVersion {
+	if len(h.ID) != headerIDLen || h.Version != CurrentVersion {
 		panic("FileHeader object not properly initialized")
 	}
-	buf := make([]byte, HEADER_LEN)
-	binary.BigEndian.PutUint16(buf[0:HEADER_VERSION_LEN], h.Version)
-	copy(buf[HEADER_VERSION_LEN:], h.Id)
+	buf := make([]byte, HeaderLen)
+	binary.BigEndian.PutUint16(buf[0:headerVersionLen], h.Version)
+	copy(buf[headerVersionLen:], h.ID)
 	return buf
 
 }
 
 // ParseHeader - parse "buf" into fileHeader object
 func ParseHeader(buf []byte) (*FileHeader, error) {
-	if len(buf) != HEADER_LEN {
-		return nil, fmt.Errorf("ParseHeader: invalid length: got %d, want %d", len(buf), HEADER_LEN)
+	if len(buf) != HeaderLen {
+		return nil, fmt.Errorf("ParseHeader: invalid length: got %d, want %d", len(buf), HeaderLen)
 	}
 	var h FileHeader
-	h.Version = binary.BigEndian.Uint16(buf[0:HEADER_VERSION_LEN])
+	h.Version = binary.BigEndian.Uint16(buf[0:headerVersionLen])
 	if h.Version != CurrentVersion {
 		return nil, fmt.Errorf("ParseHeader: invalid version: got %d, want %d", h.Version, CurrentVersion)
 	}
-	h.Id = buf[HEADER_VERSION_LEN:]
+	h.ID = buf[headerVersionLen:]
 	return &h, nil
 }
 
@@ -55,6 +57,6 @@ func ParseHeader(buf []byte) (*FileHeader, error) {
 func RandomHeader() *FileHeader {
 	var h FileHeader
 	h.Version = CurrentVersion
-	h.Id = cryptocore.RandBytes(HEADER_ID_LEN)
+	h.ID = cryptocore.RandBytes(headerIDLen)
 	return &h
 }

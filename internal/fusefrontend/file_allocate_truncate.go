@@ -14,7 +14,10 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
+// FALLOC_DEFAULT is a "normal" fallocate operation
 const FALLOC_DEFAULT = 0x00
+
+// FALLOC_FL_KEEP_SIZE allocates disk space while not modifying the file size
 const FALLOC_FL_KEEP_SIZE = 0x01
 
 // Only warn once
@@ -116,11 +119,12 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 	oldSize, err := f.statPlainSize()
 	if err != nil {
 		return fuse.ToStatus(err)
-	} else {
-		oldB := float32(oldSize) / float32(f.contentEnc.PlainBS())
-		newB := float32(newSize) / float32(f.contentEnc.PlainBS())
-		tlog.Debug.Printf("ino%d: FUSE Truncate from %.2f to %.2f blocks (%d to %d bytes)", f.ino, oldB, newB, oldSize, newSize)
 	}
+
+	oldB := float32(oldSize) / float32(f.contentEnc.PlainBS())
+	newB := float32(newSize) / float32(f.contentEnc.PlainBS())
+	tlog.Debug.Printf("ino%d: FUSE Truncate from %.2f to %.2f blocks (%d to %d bytes)", f.ino, oldB, newB, oldSize, newSize)
+
 	// File size stays the same - nothing to do
 	if newSize == oldSize {
 		return fuse.OK
@@ -128,34 +132,34 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 	// File grows
 	if newSize > oldSize {
 		return f.truncateGrowFile(oldSize, newSize)
-	} else {
-		// File shrinks
-		blockNo := f.contentEnc.PlainOffToBlockNo(newSize)
-		cipherOff := f.contentEnc.BlockNoToCipherOff(blockNo)
-		plainOff := f.contentEnc.BlockNoToPlainOff(blockNo)
-		lastBlockLen := newSize - plainOff
-		var data []byte
-		if lastBlockLen > 0 {
-			var status fuse.Status
-			data, status = f.doRead(plainOff, lastBlockLen)
-			if status != fuse.OK {
-				tlog.Warn.Printf("Truncate: shrink doRead returned error: %v", err)
-				return status
-			}
-		}
-		// Truncate down to the last complete block
-		err = syscall.Ftruncate(int(f.fd.Fd()), int64(cipherOff))
-		if err != nil {
-			tlog.Warn.Printf("Truncate: shrink Ftruncate returned error: %v", err)
-			return fuse.ToStatus(err)
-		}
-		// Append partial block
-		if lastBlockLen > 0 {
-			_, status := f.doWrite(data, int64(plainOff))
+	}
+
+	// File shrinks
+	blockNo := f.contentEnc.PlainOffToBlockNo(newSize)
+	cipherOff := f.contentEnc.BlockNoToCipherOff(blockNo)
+	plainOff := f.contentEnc.BlockNoToPlainOff(blockNo)
+	lastBlockLen := newSize - plainOff
+	var data []byte
+	if lastBlockLen > 0 {
+		var status fuse.Status
+		data, status = f.doRead(plainOff, lastBlockLen)
+		if status != fuse.OK {
+			tlog.Warn.Printf("Truncate: shrink doRead returned error: %v", err)
 			return status
 		}
-		return fuse.OK
 	}
+	// Truncate down to the last complete block
+	err = syscall.Ftruncate(int(f.fd.Fd()), int64(cipherOff))
+	if err != nil {
+		tlog.Warn.Printf("Truncate: shrink Ftruncate returned error: %v", err)
+		return fuse.ToStatus(err)
+	}
+	// Append partial block
+	if lastBlockLen > 0 {
+		_, status := f.doWrite(data, int64(plainOff))
+		return status
+	}
+	return fuse.OK
 }
 
 // statPlainSize stats the file and returns the plaintext size
@@ -198,12 +202,12 @@ func (f *file) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) fuse.Statu
 		off := lastBlock.BlockPlainOff()
 		_, status := f.doWrite(make([]byte, lastBlock.Length), int64(off+lastBlock.Skip))
 		return status
-	} else {
-		off := lastBlock.BlockCipherOff()
-		err = syscall.Ftruncate(f.intFd(), int64(off+f.contentEnc.CipherBS()))
-		if err != nil {
-			tlog.Warn.Printf("Truncate: grow Ftruncate returned error: %v", err)
-		}
-		return fuse.ToStatus(err)
 	}
+
+	off := lastBlock.BlockCipherOff()
+	err = syscall.Ftruncate(f.intFd(), int64(off+f.contentEnc.CipherBS()))
+	if err != nil {
+		tlog.Warn.Printf("Truncate: grow Ftruncate returned error: %v", err)
+	}
+	return fuse.ToStatus(err)
 }

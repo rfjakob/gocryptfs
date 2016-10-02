@@ -29,25 +29,25 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
+// Exit codes
 const (
-	// Exit codes
-	ERREXIT_USAGE      = 1
-	ERREXIT_MOUNT      = 3
-	ERREXIT_CIPHERDIR  = 6
-	ERREXIT_INIT       = 7
-	ERREXIT_LOADCONF   = 8
-	ERREXIT_MOUNTPOINT = 10
+	ErrExitUsage      = 1
+	ErrExitMount      = 3
+	ErrExitCipherDir  = 6
+	ErrExitInit       = 7
+	ErrExitLoadConf   = 8
+	ErrExitMountPoint = 10
 )
 
 const pleaseBuildBash = "[not set - please compile using ./build.bash]"
 
-// gocryptfs version according to git, set by build.bash
+// GitVersion is the gocryptfs version according to git, set by build.bash
 var GitVersion = pleaseBuildBash
 
-// go-fuse library version, set by build.bash
+// GitVersionFuse is the go-fuse library version, set by build.bash
 var GitVersionFuse = pleaseBuildBash
 
-// Unix timestamp, set by build.bash
+// BuildTime is the Unix timestamp, set by build.bash
 var BuildTime = "0"
 
 func usageText() {
@@ -68,14 +68,14 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 	_, err := os.Stat(args.config)
 	if err != nil {
 		tlog.Fatal.Printf("Config file not found: %v", err)
-		os.Exit(ERREXIT_LOADCONF)
+		os.Exit(ErrExitLoadConf)
 	}
 	pw := readpassword.Once(args.extpass)
 	tlog.Info.Println("Decrypting master key")
 	masterkey, confFile, err = configfile.LoadConfFile(args.config, pw)
 	if err != nil {
 		tlog.Fatal.Println(err)
-		os.Exit(ERREXIT_LOADCONF)
+		os.Exit(ErrExitLoadConf)
 	}
 
 	return masterkey, confFile
@@ -90,7 +90,7 @@ func changePassword(args *argContainer) {
 	err := confFile.WriteFile()
 	if err != nil {
 		tlog.Fatal.Println(err)
-		os.Exit(ERREXIT_INIT)
+		os.Exit(ErrExitInit)
 	}
 	tlog.Info.Printf("Password changed.")
 	os.Exit(0)
@@ -145,11 +145,11 @@ func main() {
 		err = checkDir(args.cipherdir)
 		if err != nil {
 			tlog.Fatal.Printf("Invalid cipherdir: %v", err)
-			os.Exit(ERREXIT_CIPHERDIR)
+			os.Exit(ErrExitCipherDir)
 		}
 	} else {
 		usageText()
-		os.Exit(ERREXIT_USAGE)
+		os.Exit(ErrExitUsage)
 	}
 	// "-q"
 	if args.quiet {
@@ -164,7 +164,7 @@ func main() {
 		args.config, err = filepath.Abs(args.config)
 		if err != nil {
 			tlog.Fatal.Printf("Invalid \"-config\" setting: %v", err)
-			os.Exit(ERREXIT_INIT)
+			os.Exit(ErrExitInit)
 		}
 		tlog.Info.Printf("Using config file at custom location %s", args.config)
 	} else if args.reverse {
@@ -179,7 +179,7 @@ func main() {
 		f, err = os.Create(args.cpuprofile)
 		if err != nil {
 			tlog.Fatal.Println(err)
-			os.Exit(ERREXIT_INIT)
+			os.Exit(ErrExitInit)
 		}
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
@@ -191,7 +191,7 @@ func main() {
 		f, err = os.Create(args.memprofile)
 		if err != nil {
 			tlog.Fatal.Println(err)
-			os.Exit(ERREXIT_INIT)
+			os.Exit(ErrExitInit)
 		}
 		defer func() {
 			pprof.WriteHeapProfile(f)
@@ -213,7 +213,7 @@ func main() {
 	if args.init {
 		if flagSet.NArg() > 1 {
 			tlog.Fatal.Printf("Usage: %s -init [OPTIONS] CIPHERDIR", tlog.ProgramName)
-			os.Exit(ERREXIT_USAGE)
+			os.Exit(ErrExitUsage)
 		}
 		initDir(&args) // does not return
 	}
@@ -221,7 +221,7 @@ func main() {
 	if args.passwd {
 		if flagSet.NArg() > 1 {
 			tlog.Fatal.Printf("Usage: %s -passwd [OPTIONS] CIPHERDIR", tlog.ProgramName)
-			os.Exit(ERREXIT_USAGE)
+			os.Exit(ErrExitUsage)
 		}
 		changePassword(&args) // does not return
 	}
@@ -229,17 +229,17 @@ func main() {
 	// Check mountpoint
 	if flagSet.NArg() != 2 {
 		tlog.Fatal.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT", tlog.ProgramName)
-		os.Exit(ERREXIT_USAGE)
+		os.Exit(ErrExitUsage)
 	}
 	args.mountpoint, err = filepath.Abs(flagSet.Arg(1))
 	if err != nil {
 		tlog.Fatal.Printf("Invalid mountpoint: %v", err)
-		os.Exit(ERREXIT_MOUNTPOINT)
+		os.Exit(ErrExitMountPoint)
 	}
 	err = checkDirEmpty(args.mountpoint)
 	if err != nil {
 		tlog.Fatal.Printf("Invalid mountpoint: %v", err)
-		os.Exit(ERREXIT_MOUNTPOINT)
+		os.Exit(ErrExitMountPoint)
 	}
 	// Get master key
 	var masterkey []byte
@@ -313,7 +313,7 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 			frontendArgs.CryptoBackend = cryptocore.BackendAESSIV
 		} else if args.reverse {
 			tlog.Fatal.Printf("AES-SIV is required by reverse mode, but not enabled in the config file")
-			os.Exit(ERREXIT_USAGE)
+			os.Exit(ErrExitUsage)
 		}
 	}
 	// If allow_other is set and we run as root, try to give newly created files to
@@ -372,7 +372,7 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 	srv, err := fuse.NewServer(conn.RawFS(), args.mountpoint, &mOpts)
 	if err != nil {
 		tlog.Fatal.Printf("Mount failed: %v", err)
-		os.Exit(ERREXIT_MOUNT)
+		os.Exit(ErrExitMount)
 	}
 	srv.SetDebug(args.fusedebug)
 

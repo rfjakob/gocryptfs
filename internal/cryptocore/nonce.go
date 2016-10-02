@@ -10,7 +10,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-// Get "n" random bytes from /dev/urandom or panic
+// RandBytes gets "n" random bytes from /dev/urandom or panics
 func RandBytes(n int) []byte {
 	b := make([]byte, n)
 	_, err := rand.Read(b)
@@ -20,7 +20,7 @@ func RandBytes(n int) []byte {
 	return b
 }
 
-// Return a secure random uint64
+// RandUint64 returns a secure random uint64
 func RandUint64() uint64 {
 	b := RandBytes(8)
 	return binary.BigEndian.Uint64(b)

@@ -70,9 +70,9 @@ func (rfs *reverseFS) findLongnameParent(dir string, dirIV []byte, longname stri
 	}
 	if hit == "" {
 		return "", syscall.ENOENT
-	} else {
-		return hit, nil
 	}
+
+	return hit, nil
 }
 
 func (rfs *reverseFS) newNameFile(relPath string) (nodefs.File, fuse.Status) {

@@ -1,10 +1,10 @@
 package contentenc
 
-// intraBlock identifies a part of a file block
-type intraBlock struct {
-	// Block number in the file
+// IntraBlock identifies a part of a file block
+type IntraBlock struct {
+	// BlockNo is the block number in the file
 	BlockNo uint64
-	// Offset into block payload
+	// Skip is an offset into the block payload
 	// In forwared mode: block plaintext
 	// In reverse mode: offset into block ciphertext. Takes the header into
 	// account.
@@ -17,8 +17,8 @@ type intraBlock struct {
 	fs     *ContentEnc
 }
 
-// isPartial - is the block partial? This means we have to do read-modify-write.
-func (ib *intraBlock) IsPartial() bool {
+// IsPartial - is the block partial? This means we have to do read-modify-write.
+func (ib *IntraBlock) IsPartial() bool {
 	if ib.Skip > 0 || ib.Length < ib.fs.plainBS {
 		return true
 	}
@@ -26,17 +26,17 @@ func (ib *intraBlock) IsPartial() bool {
 }
 
 // BlockCipherOff returns the ciphertext offset corresponding to BlockNo
-func (ib *intraBlock) BlockCipherOff() (offset uint64) {
+func (ib *IntraBlock) BlockCipherOff() (offset uint64) {
 	return ib.fs.BlockNoToCipherOff(ib.BlockNo)
 }
 
 // BlockPlainOff returns the plaintext offset corresponding to BlockNo
-func (ib *intraBlock) BlockPlainOff() (offset uint64) {
+func (ib *IntraBlock) BlockPlainOff() (offset uint64) {
 	return ib.fs.BlockNoToPlainOff(ib.BlockNo)
 }
 
 // CropBlock - crop a potentially larger plaintext block down to the relevant part
-func (ib *intraBlock) CropBlock(d []byte) []byte {
+func (ib *IntraBlock) CropBlock(d []byte) []byte {
 	lenHave := len(d)
 	lenWant := int(ib.Skip + ib.Length)
 	if lenHave < lenWant {
@@ -45,8 +45,9 @@ func (ib *intraBlock) CropBlock(d []byte) []byte {
 	return d[ib.Skip:lenWant]
 }
 
-// Ciphertext range corresponding to the sum of all "blocks" (complete blocks)
-func (ib *intraBlock) JointCiphertextRange(blocks []intraBlock) (offset uint64, length uint64) {
+// JointCiphertextRange is the ciphertext range corresponding to the sum of all
+// "blocks" (complete blocks)
+func (ib *IntraBlock) JointCiphertextRange(blocks []IntraBlock) (offset uint64, length uint64) {
 	firstBlock := blocks[0]
 	lastBlock := blocks[len(blocks)-1]
 
@@ -57,8 +58,9 @@ func (ib *intraBlock) JointCiphertextRange(blocks []intraBlock) (offset uint64, 
 	return offset, length
 }
 
-// Plaintext range corresponding to the sum of all "blocks" (complete blocks)
-func JointPlaintextRange(blocks []intraBlock) (offset uint64, length uint64) {
+// JointPlaintextRange is the plaintext range corresponding to the sum of all
+// "blocks" (complete blocks)
+func JointPlaintextRange(blocks []IntraBlock) (offset uint64, length uint64) {
 	firstBlock := blocks[0]
 	lastBlock := blocks[len(blocks)-1]
 

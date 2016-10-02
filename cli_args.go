@@ -71,7 +71,7 @@ func parseCliOpts() (args argContainer) {
 		args.openssl, err = strconv.ParseBool(opensslAuto)
 		if err != nil {
 			tlog.Fatal.Printf("Invalid \"-openssl\" setting: %v", err)
-			os.Exit(ERREXIT_USAGE)
+			os.Exit(ErrExitUsage)
 		}
 	}
 

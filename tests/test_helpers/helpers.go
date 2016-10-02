@@ -17,16 +17,18 @@ import (
 
 // TmpDir will be created inside this directory
 const testParentDir = "/tmp/gocryptfs-test-parent"
+
+// GocryptfsBinary is the assumed path to the gocryptfs build.
 const GocryptfsBinary = "../../gocryptfs"
 
-// "go test" runs package tests in parallel! We create a unique TmpDir in
-// init() so the tests do not interfere.
+// TmpDir is a unique temporary directory. "go test" runs package tests in parallel. We create a
+// unique TmpDir in init() so the tests do not interfere.
 var TmpDir string
 
-// TmpDir + "/default-plain"
+// DefaultPlainDir is TmpDir + "/default-plain"
 var DefaultPlainDir string
 
-// TmpDir + "/default-cipher"
+// DefaultCipherDir is TmpDir + "/default-cipher"
 var DefaultCipherDir string
 
 func init() {
@@ -40,7 +42,7 @@ func init() {
 	DefaultCipherDir = TmpDir + "/default-cipher"
 }
 
-// ResetTmpDir - delete TmpDir, create new dir tree:
+// ResetTmpDir deletes TmpDir, create new dir tree:
 //
 // TmpDir
 // |-- DefaultPlainDir
@@ -167,7 +169,7 @@ func UnmountPanic(dir string) {
 	}
 }
 
-// UnmountError tries to unmount "dir" and returns the resulting error.
+// UnmountErr tries to unmount "dir" and returns the resulting error.
 func UnmountErr(dir string) error {
 	var cmd *exec.Cmd
 	if runtime.GOOS == "darwin" {
@@ -180,7 +182,7 @@ func UnmountErr(dir string) error {
 	return cmd.Run()
 }
 
-// Return md5 string for file "filename"
+// Md5fn returns an md5 string for file "filename"
 func Md5fn(filename string) string {
 	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -190,14 +192,14 @@ func Md5fn(filename string) string {
 	return Md5hex(buf)
 }
 
-// Return md5 string for "buf"
+// Md5hex returns an md5 string for "buf"
 func Md5hex(buf []byte) string {
 	rawHash := md5.Sum(buf)
 	hash := hex.EncodeToString(rawHash[:])
 	return hash
 }
 
-// Verify that the file size equals "want". This checks:
+// VerifySize checks that the file size equals "want". This checks:
 // 1) Size reported by Stat()
 // 2) Number of bytes returned when reading the whole file
 func VerifySize(t *testing.T, path string, want int) {
@@ -216,7 +218,7 @@ func VerifySize(t *testing.T, path string, want int) {
 	}
 }
 
-// Create and delete a directory
+// TestMkdirRmdir creates and deletes a directory
 func TestMkdirRmdir(t *testing.T, plainDir string) {
 	dir := plainDir + "/dir1"
 	err := os.Mkdir(dir, 0777)
@@ -263,7 +265,7 @@ func TestMkdirRmdir(t *testing.T, plainDir string) {
 	}
 }
 
-// Create and rename a file
+// TestRename creates and renames a file
 func TestRename(t *testing.T, plainDir string) {
 	file1 := plainDir + "/rename1"
 	file2 := plainDir + "/rename2"
@@ -278,7 +280,7 @@ func TestRename(t *testing.T, plainDir string) {
 	syscall.Unlink(file2)
 }
 
-// verifyExistence - check in 3 ways that "path" exists:
+// VerifyExistence checks in 3 ways that "path" exists:
 // stat, open, readdir
 func VerifyExistence(path string) bool {
 	// Check that file can be stated

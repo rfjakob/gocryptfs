@@ -12,12 +12,14 @@ import (
 )
 
 const (
+	// ScryptDefaultLogN is the default scrypt logN configuration parameter.
 	// 1 << 16 uses 64MB of memory,
 	// takes 4 seconds on my Atom Z3735F netbook
 	ScryptDefaultLogN = 16
 )
 
-type scryptKdf struct {
+// ScryptKDF is an instance of the scrypt key deriviation function.
+type ScryptKDF struct {
 	Salt   []byte
 	N      int
 	R      int
@@ -25,8 +27,9 @@ type scryptKdf struct {
 	KeyLen int
 }
 
-func NewScryptKdf(logN int) scryptKdf {
-	var s scryptKdf
+// NewScryptKDF returns a new instance of ScryptKDF.
+func NewScryptKDF(logN int) ScryptKDF {
+	var s ScryptKDF
 	s.Salt = cryptocore.RandBytes(cryptocore.KeyLen)
 	if logN <= 0 {
 		s.N = 1 << ScryptDefaultLogN
@@ -43,7 +46,8 @@ func NewScryptKdf(logN int) scryptKdf {
 	return s
 }
 
-func (s *scryptKdf) DeriveKey(pw string) []byte {
+// DeriveKey returns a new key from a supplied password.
+func (s *ScryptKDF) DeriveKey(pw string) []byte {
 	k, err := scrypt.Key([]byte(pw), s.Salt, s.N, s.R, s.P, s.KeyLen)
 	if err != nil {
 		log.Panicf("DeriveKey failed: %v", err)
@@ -53,6 +57,6 @@ func (s *scryptKdf) DeriveKey(pw string) []byte {
 
 // LogN - N is saved as 2^LogN, but LogN is much easier to work with.
 // This function gives you LogN = Log2(N).
-func (s *scryptKdf) LogN() int {
+func (s *ScryptKDF) LogN() int {
 	return int(math.Log2(float64(s.N)) + 0.5)
 }

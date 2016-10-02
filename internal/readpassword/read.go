@@ -17,8 +17,8 @@ const (
 	exitCode = 9
 )
 
-// Once() tries to get a password from the user, either from the terminal,
-// extpass or stdin.
+// Once tries to get a password from the user, either from the terminal, extpass
+// or stdin.
 func Once(extpass string) string {
 	if extpass != "" {
 		return readPasswordExtpass(extpass)
@@ -29,8 +29,8 @@ func Once(extpass string) string {
 	return readPasswordTerminal("Password: ")
 }
 
-// Twice() is the same as Once but will prompt twice if we get
-// the password from the terminal.
+// Twice is the same as Once but will prompt twice if we get the password from
+// the terminal.
 func Twice(extpass string) string {
 	if extpass != "" {
 		return readPasswordExtpass(extpass)

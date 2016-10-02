@@ -7,6 +7,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 )
 
+// PreferOpenSSL returns true if OpenSSL should be used.
 func PreferOpenSSL() bool {
 	if stupidgcm.BuiltWithoutOpenssl {
 		return false

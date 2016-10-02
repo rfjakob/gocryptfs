@@ -22,13 +22,13 @@ func initDir(args *argContainer) {
 		_, err = os.Stat(args.config)
 		if err == nil {
 			tlog.Fatal.Printf("Config file %q already exists", args.config)
-			os.Exit(ERREXIT_INIT)
+			os.Exit(ErrExitInit)
 		}
 	} else {
 		err = checkDirEmpty(args.cipherdir)
 		if err != nil {
 			tlog.Fatal.Printf("Invalid cipherdir: %v", err)
-			os.Exit(ERREXIT_INIT)
+			os.Exit(ErrExitInit)
 		}
 	}
 	// Choose password for config file
@@ -40,7 +40,7 @@ func initDir(args *argContainer) {
 	err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator, args.aessiv)
 	if err != nil {
 		tlog.Fatal.Println(err)
-		os.Exit(ERREXIT_INIT)
+		os.Exit(ErrExitInit)
 	}
 	// Forward mode with filename encryption enabled needs a gocryptfs.diriv
 	// in the root dir
@@ -48,7 +48,7 @@ func initDir(args *argContainer) {
 		err = nametransform.WriteDirIV(args.cipherdir)
 		if err != nil {
 			tlog.Fatal.Println(err)
-			os.Exit(ERREXIT_INIT)
+			os.Exit(ErrExitInit)
 		}
 	}
 	mountArgs := ""

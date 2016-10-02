@@ -20,6 +20,7 @@ import (
 )
 
 const (
+	// DirIVMode is the mode to use for Dir IV files.
 	DirIVMode = syscall.S_IFREG | 0400
 )
 
@@ -42,8 +43,10 @@ type reverseFS struct {
 	inoMapLock sync.Mutex
 }
 
-// Encrypted FUSE overlay filesystem
-func NewFS(args fusefrontend.Args) *reverseFS {
+var _ pathfs.FileSystem = &reverseFS{}
+
+// NewFS returns an encrypted FUSE overlay filesystem
+func NewFS(args fusefrontend.Args) pathfs.FileSystem {
 	cryptoCore := cryptocore.New(args.Masterkey, args.CryptoBackend, contentenc.DefaultIVBits)
 	contentEnc := contentenc.New(cryptoCore, contentenc.DefaultBS)
 	nameTransform := nametransform.New(cryptoCore, args.LongNames)
@@ -55,7 +58,7 @@ func NewFS(args fusefrontend.Args) *reverseFS {
 		args:          args,
 		nameTransform: nameTransform,
 		contentEnc:    contentEnc,
-		inoGen:        NewInoGen(),
+		inoGen:        newInoGen(),
 		inoMap:        map[devIno]uint64{},
 	}
 }
