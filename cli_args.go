@@ -14,7 +14,7 @@ import (
 type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
 	plaintextnames, quiet, nosyslog, wpanic,
-	longnames, allow_other, ro, reverse, aessiv bool
+	longnames, allowOther, ro, reverse, aessiv bool
 	masterkey, mountpoint, cipherdir, cpuprofile, extpass,
 	memprofile, o string
 	// Configuration file name override
@@ -47,7 +47,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.BoolVar(&args.nosyslog, "nosyslog", false, "Do not redirect output to syslog when running in the background")
 	flagSet.BoolVar(&args.wpanic, "wpanic", false, "When encountering a warning, panic and exit immediately")
 	flagSet.BoolVar(&args.longnames, "longnames", true, "Store names longer than 176 bytes in extra files")
-	flagSet.BoolVar(&args.allow_other, "allow_other", false, "Allow other users to access the filesystem. "+
+	flagSet.BoolVar(&args.allowOther, "allow_other", false, "Allow other users to access the filesystem. "+
 		"Only works if user_allow_other is set in /etc/fuse.conf.")
 	flagSet.BoolVar(&args.ro, "ro", false, "Mount the filesystem read-only")
 	flagSet.BoolVar(&args.reverse, "reverse", false, "Reverse mode")
@@ -71,7 +71,7 @@ func parseCliOpts() (args argContainer) {
 		args.openssl, err = strconv.ParseBool(opensslAuto)
 		if err != nil {
 			tlog.Fatal.Printf("Invalid \"-openssl\" setting: %v", err)
-			os.Exit(ERREXIT_USAGE)
+			os.Exit(ErrExitUsage)
 		}
 	}
 

@@ -3,16 +3,22 @@ package configfile
 type flagIota int
 
 const (
+	// FlagPlaintextNames indicates that filenames are unencrypted.
 	FlagPlaintextNames flagIota = iota
+	// FlagDirIV indicates that a per-directory IV file is used.
 	FlagDirIV
+	// FlagEMENames is unused.
 	FlagEMENames
+	// FlagGCMIV128 is unused.
 	FlagGCMIV128
+	// FlagLongNames is unused.
 	FlagLongNames
+	// FlagAESSIV selects an AES based crypto backend.
 	FlagAESSIV
 )
 
 // knownFlags stores the known feature flags and their string representation
-var knownFlags map[flagIota]string = map[flagIota]string{
+var knownFlags = map[flagIota]string{
 	FlagPlaintextNames: "PlaintextNames",
 	FlagDirIV:          "DirIV",
 	FlagEMENames:       "EMENames",
@@ -22,7 +28,7 @@ var knownFlags map[flagIota]string = map[flagIota]string{
 }
 
 // Filesystems that do not have these feature flags set are deprecated.
-var requiredFlagsNormal []flagIota = []flagIota{
+var requiredFlagsNormal = []flagIota{
 	FlagDirIV,
 	FlagEMENames,
 	FlagGCMIV128,
@@ -30,11 +36,11 @@ var requiredFlagsNormal []flagIota = []flagIota{
 
 // Filesystems without filename encryption obviously don't have or need the
 // filename related feature flags.
-var requiredFlagsPlaintextNames []flagIota = []flagIota{
+var requiredFlagsPlaintextNames = []flagIota{
 	FlagGCMIV128,
 }
 
-// isFeatureFlagKnown verifies that we understand a feature flag
+// isFeatureFlagKnown verifies that we understand a feature flag.
 func (cf *ConfFile) isFeatureFlagKnown(flag string) bool {
 	for _, knownFlag := range knownFlags {
 		if knownFlag == flag {
@@ -44,7 +50,7 @@ func (cf *ConfFile) isFeatureFlagKnown(flag string) bool {
 	return false
 }
 
-// isFeatureFlagSet - is the feature flag "flagWant" enabled?
+// IsFeatureFlagSet returns true if the feature flag "flagWant" is enabled.
 func (cf *ConfFile) IsFeatureFlagSet(flagWant flagIota) bool {
 	flagString := knownFlags[flagWant]
 	for _, flag := range cf.FeatureFlags {

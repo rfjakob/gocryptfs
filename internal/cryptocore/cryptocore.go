@@ -11,18 +11,25 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 )
 
+// BackendTypeEnum indicates the type of backend in use.
 type BackendTypeEnum int
 
 const (
-	KeyLen     = 32 // AES-256
+	// KeyLen is the cipher key length in bytes.  32 for AES-256.
+	KeyLen = 32
+	// AuthTagLen is the length of a GCM auth tag in bytes.
 	AuthTagLen = 16
 
-	_                              = iota // Skip zero
+	_ = iota // Skip zero
+	// BackendOpenSSL specifies the OpenSSL backend.
 	BackendOpenSSL BackendTypeEnum = iota
-	BackendGoGCM   BackendTypeEnum = iota
-	BackendAESSIV  BackendTypeEnum = iota
+	// BackendGoGCM specifies the Go based GCM backend.
+	BackendGoGCM BackendTypeEnum = iota
+	// BackendAESSIV specifies an AESSIV backend.
+	BackendAESSIV BackendTypeEnum = iota
 )
 
+// CryptoCore is the low level crypto implementation.
 type CryptoCore struct {
 	// AES-256 block cipher. This is used for EME filename encryption.
 	BlockCipher cipher.Block
@@ -35,7 +42,7 @@ type CryptoCore struct {
 	IVLen       int
 }
 
-// "New" returns a new CryptoCore object or panics.
+// New returns a new CryptoCore object or panics.
 //
 // Even though the "GCMIV128" feature flag is now mandatory, we must still
 // support 96-bit IVs here because they are used for encrypting the master

@@ -1,4 +1,4 @@
-// +build go1.6,amd64
+// +build go1.7,amd64 go1.6,amd64
 // go1.6+ AND amd64
 
 package prefer_openssl

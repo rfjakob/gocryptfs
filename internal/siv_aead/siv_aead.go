@@ -3,6 +3,8 @@
 package siv_aead
 
 import (
+	"crypto/cipher"
+
 	"github.com/jacobsa/crypto/siv"
 )
 
@@ -10,7 +12,10 @@ type sivAead struct {
 	key []byte
 }
 
-func New(key []byte) *sivAead {
+var _ cipher.AEAD = &sivAead{}
+
+// New returns a new cipher.AEAD implementation.
+func New(key []byte) cipher.AEAD {
 	return &sivAead{
 		key: key,
 	}
@@ -29,7 +34,7 @@ func (s *sivAead) Overhead() int {
 
 }
 
-// Seal - encrypt "in" using "nonce" and "authData" and append the result to "dst"
+// Seal encrypts "in" using "nonce" and "authData" and append the result to "dst"
 func (s *sivAead) Seal(dst, nonce, plaintext, authData []byte) []byte {
 	if len(nonce) != 16 {
 		// SIV supports any nonce size, but in gocryptfs we exclusively use 16.
@@ -47,7 +52,7 @@ func (s *sivAead) Seal(dst, nonce, plaintext, authData []byte) []byte {
 	return out
 }
 
-// Open - decrypt "in" using "nonce" and "authData" and append the result to "dst"
+// Open decrypts "in" using "nonce" and "authData" and append the result to "dst"
 func (s *sivAead) Open(dst, nonce, ciphertext, authData []byte) ([]byte, error) {
 	if len(nonce) != 16 {
 		// SIV supports any nonce size, but in gocryptfs we exclusively use 16.

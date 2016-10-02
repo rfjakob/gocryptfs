@@ -11,21 +11,28 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
+// NonceMode determines how nonces are created.
 type NonceMode int
 
 const (
-	// Default plaintext block size
+	// DefaultBS is the default plaintext block size
 	DefaultBS = 4096
+	// DefaultIVBits is the default length of IV, in bits.
 	// We always use 128-bit IVs for file content, but the
 	// key in the config file is encrypted with a 96-bit IV.
 	DefaultIVBits = 128
 
-	_                                   = iota // skip zero
-	RandomNonce               NonceMode = iota
+	_ = iota // skip zero
+	// RandomNonce chooses a random nonce.
+	RandomNonce NonceMode = iota
+	// ReverseDeterministicNonce chooses a deterministic nonce, suitable for
+	// use in reverse mode.
 	ReverseDeterministicNonce NonceMode = iota
-	ExternalNonce             NonceMode = iota
+	// ExternalNonce derives a nonce from external sources.
+	ExternalNonce NonceMode = iota
 )
 
+// ContentEnc is used to encipher and decipher file content.
 type ContentEnc struct {
 	// Cryptographic primitives
 	cryptoCore *cryptocore.CryptoCore
@@ -39,8 +46,8 @@ type ContentEnc struct {
 	allZeroNonce []byte
 }
 
+// New returns an initialized ContentEnc instance.
 func New(cc *cryptocore.CryptoCore, plainBS uint64) *ContentEnc {
-
 	cipherBS := plainBS + uint64(cc.IVLen) + cryptocore.AuthTagLen
 
 	return &ContentEnc{
@@ -64,14 +71,14 @@ func (be *ContentEnc) CipherBS() uint64 {
 
 // DecryptBlocks - Decrypt a number of blocks
 // TODO refactor to three-param for
-func (be *ContentEnc) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, fileId []byte) ([]byte, error) {
+func (be *ContentEnc) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, fileID []byte) ([]byte, error) {
 	cBuf := bytes.NewBuffer(ciphertext)
 	var err error
 	var pBuf bytes.Buffer
 	for cBuf.Len() > 0 {
 		cBlock := cBuf.Next(int(be.cipherBS))
 		var pBlock []byte
-		pBlock, err = be.DecryptBlock(cBlock, firstBlockNo, fileId)
+		pBlock, err = be.DecryptBlock(cBlock, firstBlockNo, fileID)
 		if err != nil {
 			break
 		}
@@ -85,7 +92,7 @@ func (be *ContentEnc) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, file
 //
 // Corner case: A full-sized block of all-zero ciphertext bytes is translated
 // to an all-zero plaintext block, i.e. file hole passtrough.
-func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []byte) ([]byte, error) {
+func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileID []byte) ([]byte, error) {
 
 	// Empty block?
 	if len(ciphertext) == 0 {
@@ -114,7 +121,7 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileId []b
 	// Decrypt
 	var plaintext []byte
 	aData := make([]byte, 8)
-	aData = append(aData, fileId...)
+	aData = append(aData, fileID...)
 	binary.BigEndian.PutUint64(aData, blockNo)
 	plaintext, err := be.cryptoCore.AEADCipher.Open(plaintext, nonce, ciphertext, aData)
 
