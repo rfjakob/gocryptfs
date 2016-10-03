@@ -22,11 +22,7 @@ func (s *sivAead) NonceSize() int {
 }
 
 func (s *sivAead) Overhead() int {
-	// RFC5297:
-	// [...] the key length used by AES in CTR and S2V is len(K)/2 and will
-	// each be either 128 bits, 192 bits, or 256 bits.
-	return len(s.key) / 2
-
+	return 16
 }
 
 // Seal - encrypt "in" using "nonce" and "authData" and append the result to "dst"
