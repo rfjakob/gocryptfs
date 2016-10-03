@@ -5,6 +5,7 @@ package cryptocore
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/sha512"
 	"fmt"
 
 	"github.com/rfjakob/gocryptfs/internal/siv_aead"
@@ -64,7 +65,11 @@ func New(key []byte, backend BackendTypeEnum, IVBitLen int) *CryptoCore {
 	case BackendGoGCM:
 		gcm, err = goGCMWrapper(blockCipher, IVLen)
 	case BackendAESSIV:
-		gcm = siv_aead.New(key)
+		// AES-SIV uses 1/2 of the key for authentication, 1/2 for
+		// encryption, so we need a 64-bytes key for AES-256. Derive it from
+		// the master key by hashing it with SHA-512.
+		key64 := sha512.Sum512(key)
+		gcm = siv_aead.New(key64[:])
 	default:
 		panic("unknown backend cipher")
 	}
