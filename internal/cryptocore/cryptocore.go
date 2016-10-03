@@ -55,21 +55,21 @@ func New(key []byte, backend BackendTypeEnum, IVBitLen int) *CryptoCore {
 		panic(err)
 	}
 
-	var gcm cipher.AEAD
+	var aeadCipher cipher.AEAD
 	switch backend {
 	case BackendOpenSSL:
 		if IVLen != 16 {
 			panic("stupidgcm only supports 128-bit IVs")
 		}
-		gcm = stupidgcm.New(key)
+		aeadCipher = stupidgcm.New(key)
 	case BackendGoGCM:
-		gcm, err = goGCMWrapper(blockCipher, IVLen)
+		aeadCipher, err = goGCMWrapper(blockCipher, IVLen)
 	case BackendAESSIV:
 		// AES-SIV uses 1/2 of the key for authentication, 1/2 for
 		// encryption, so we need a 64-bytes key for AES-256. Derive it from
 		// the master key by hashing it with SHA-512.
 		key64 := sha512.Sum512(key)
-		gcm = siv_aead.New(key64[:])
+		aeadCipher = siv_aead.New(key64[:])
 	default:
 		panic("unknown backend cipher")
 	}
@@ -79,7 +79,7 @@ func New(key []byte, backend BackendTypeEnum, IVBitLen int) *CryptoCore {
 
 	return &CryptoCore{
 		BlockCipher: blockCipher,
-		AEADCipher:  gcm,
+		AEADCipher:  aeadCipher,
 		AEADBackend: backend,
 		IVGenerator: &nonceGenerator{nonceLen: IVLen},
 		IVLen:       IVLen,
