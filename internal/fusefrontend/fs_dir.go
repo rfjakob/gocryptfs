@@ -40,6 +40,7 @@ func (fs *FS) mkdirWithIv(cPath string, mode uint32) error {
 	return err
 }
 
+// Mkdir implements pathfs.FileSystem
 func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(newPath) {
 		return fuse.EPERM
@@ -97,6 +98,7 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 	return fuse.OK
 }
 
+// Rmdir implements pathfs.FileSystem
 func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 	cPath, err := fs.getBackingPath(path)
 	if err != nil {
@@ -215,6 +217,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 	return fuse.OK
 }
 
+// OpenDir implements pathfs.FileSystem
 func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
 	tlog.Debug.Printf("OpenDir(%s)", dirName)
 	cDirName, err := fs.encryptPath(dirName)

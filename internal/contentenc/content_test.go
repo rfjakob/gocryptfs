@@ -63,7 +63,7 @@ func TestCiphertextRange(t *testing.T) {
 		if alignedLength < r.length {
 			t.Errorf("alignedLength=%d is smaller than length=%d", alignedLength, r.length)
 		}
-		if (alignedOffset-HEADER_LEN)%f.cipherBS != 0 {
+		if (alignedOffset-HeaderLen)%f.cipherBS != 0 {
 			t.Errorf("alignedOffset=%d is not aligned", alignedOffset)
 		}
 		if r.offset%f.plainBS != 0 && skipBytes == 0 {
@@ -81,7 +81,7 @@ func TestBlockNo(t *testing.T) {
 	if b != 0 {
 		t.Errorf("actual: %d", b)
 	}
-	b = f.CipherOffToBlockNo(HEADER_LEN + f.cipherBS)
+	b = f.CipherOffToBlockNo(HeaderLen + f.cipherBS)
 	if b != 1 {
 		t.Errorf("actual: %d", b)
 	}

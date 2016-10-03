@@ -14,10 +14,10 @@ import (
 )
 
 const (
-	// identical to AES block size
+	// DirIVLen is identical to AES block size
 	DirIVLen = 16
-	// dirIV is stored in this file. Exported because we have to ignore this
-	// name in directory listing.
+	// DirIVFilename is the filename used to store directory IV.
+	// Exported because we have to ignore this name in directory listing.
 	DirIVFilename = "gocryptfs.diriv"
 )
 

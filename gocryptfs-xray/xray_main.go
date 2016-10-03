@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	IVLen     = contentenc.DefaultIVBits / 8
-	blockSize = contentenc.DefaultBS + IVLen + cryptocore.AuthTagLen
+	ivLen     = contentenc.DefaultIVBits / 8
+	blockSize = contentenc.DefaultBS + ivLen + cryptocore.AuthTagLen
 )
 
 func errExit(err error) {
@@ -22,7 +22,7 @@ func errExit(err error) {
 }
 
 func prettyPrintHeader(h *contentenc.FileHeader) {
-	id := hex.EncodeToString(h.Id)
+	id := hex.EncodeToString(h.ID)
 	fmt.Printf("Header: Version: %d, Id: %s\n", h.Version, id)
 }
 
@@ -38,13 +38,13 @@ func main() {
 		errExit(err)
 	}
 
-	headerBytes := make([]byte, contentenc.HEADER_LEN)
+	headerBytes := make([]byte, contentenc.HeaderLen)
 	n, err := fd.ReadAt(headerBytes, 0)
 	if err == io.EOF && n == 0 {
 		fmt.Println("empty file")
 		os.Exit(0)
 	} else if err == io.EOF {
-		fmt.Printf("incomplete file header: read %d bytes, want %d\n", n, contentenc.HEADER_LEN)
+		fmt.Printf("incomplete file header: read %d bytes, want %d\n", n, contentenc.HeaderLen)
 		os.Exit(1)
 	} else if err != nil {
 		errExit(err)
@@ -57,8 +57,8 @@ func main() {
 	var i int64
 	for i = 0; ; i++ {
 		blockLen := int64(blockSize)
-		off := contentenc.HEADER_LEN + i*blockSize
-		iv := make([]byte, IVLen)
+		off := contentenc.HeaderLen + i*blockSize
+		iv := make([]byte, ivLen)
 		_, err := fd.ReadAt(iv, off)
 		if err == io.EOF {
 			break
@@ -76,7 +76,7 @@ func main() {
 			if err2 != nil {
 				errExit(err2)
 			}
-			blockLen = (fi.Size() - contentenc.HEADER_LEN) % blockSize
+			blockLen = (fi.Size() - contentenc.HeaderLen) % blockSize
 		} else if err != nil {
 			errExit(err)
 		}

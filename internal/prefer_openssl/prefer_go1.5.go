@@ -3,6 +3,7 @@
 
 package prefer_openssl
 
+// PreferOpenSSL returns true if OpenSSL should be used.
 func PreferOpenSSL() bool {
 	// OpenSSL is always faster than Go GCM on old Go versions or on anything
 	// other than amd64

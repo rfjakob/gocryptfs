@@ -1,4 +1,4 @@
-// Package namtransforms encrypts and decrypts filenames.
+// Package nametransform encrypts and decrypts filenames.
 package nametransform
 
 import (
@@ -12,12 +12,14 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
+// NameTransform is used to transform filenames.
 type NameTransform struct {
 	cryptoCore *cryptocore.CryptoCore
 	longNames  bool
 	DirIVCache dirIVCache
 }
 
+// New returns a new NameTransform instance.
 func New(c *cryptocore.CryptoCore, longNames bool) *NameTransform {
 	return &NameTransform{
 		cryptoCore: c,
@@ -51,7 +53,7 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 	return plain, err
 }
 
-// encryptName - encrypt "plainName", return base64-encoded "cipherName64".
+// EncryptName encrypts "plainName", returns a base64-encoded "cipherName64".
 // Used internally by EncryptPathDirIV().
 // The encryption is either CBC or EME, depending on "useEME".
 //

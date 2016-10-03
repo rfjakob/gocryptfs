@@ -211,7 +211,7 @@ func TestFallocate(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, nBlocks = test_helpers.Du(t, fd)
-	if want := 2; nBlocks/8 != int64(want) {
+	if want, got := int64(2), nBlocks/8; want != got {
 		t.Errorf("Expected %d 4k block(s), got %d", want, nBlocks/8)
 	}
 	if md5 := test_helpers.Md5fn(fn); md5 != "5420afa22f6423a9f59e669540656bb4" {

@@ -4,7 +4,7 @@ import (
 	"sync/atomic"
 )
 
-func NewInoGen() *inoGenT {
+func newInoGen() *inoGenT {
 	var ino uint64 = 1
 	return &inoGenT{&ino}
 }

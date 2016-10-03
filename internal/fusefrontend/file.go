@@ -45,6 +45,7 @@ type file struct {
 	loopbackFile nodefs.File
 }
 
+// NewFile returns a new go-fuse File instance.
 func NewFile(fd *os.File, writeOnly bool, contentEnc *contentenc.ContentEnc) (nodefs.File, fuse.Status) {
 	var st syscall.Stat_t
 	err := syscall.Fstat(int(fd.Fd()), &st)
@@ -80,7 +81,7 @@ func (f *file) SetInode(n *nodefs.Inode) {
 //
 // Returns io.EOF if the file is empty
 func (f *file) readHeader() error {
-	buf := make([]byte, contentenc.HEADER_LEN)
+	buf := make([]byte, contentenc.HeaderLen)
 	_, err := f.fd.ReadAt(buf, 0)
 	if err != nil {
 		return err
@@ -100,7 +101,7 @@ func (f *file) createHeader() error {
 	buf := h.Pack()
 
 	// Prevent partially written (=corrupt) header by preallocating the space beforehand
-	err := syscallcompat.EnospcPrealloc(int(f.fd.Fd()), 0, contentenc.HEADER_LEN)
+	err := syscallcompat.EnospcPrealloc(int(f.fd.Fd()), 0, contentenc.HeaderLen)
 	if err != nil {
 		tlog.Warn.Printf("ino%d: createHeader: prealloc failed: %s\n", f.ino, err.Error())
 		return err
@@ -159,7 +160,7 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	tlog.Debug.Printf("ReadAt offset=%d bytes (%d blocks), want=%d, got=%d", alignedOffset, firstBlockNo, alignedLength, n)
 
 	// Decrypt it
-	plaintext, err := f.contentEnc.DecryptBlocks(ciphertext, firstBlockNo, f.header.Id)
+	plaintext, err := f.contentEnc.DecryptBlocks(ciphertext, firstBlockNo, f.header.ID)
 	if err != nil {
 		curruptBlockNo := firstBlockNo + f.contentEnc.PlainOffToBlockNo(uint64(len(plaintext)))
 		cipherOff := f.contentEnc.BlockNoToCipherOff(curruptBlockNo)
@@ -256,7 +257,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 
 		// Encrypt
 		blockOffset := b.BlockCipherOff()
-		blockData = f.contentEnc.EncryptBlock(blockData, b.BlockNo, f.header.Id)
+		blockData = f.contentEnc.EncryptBlock(blockData, b.BlockNo, f.header.ID)
 		tlog.Debug.Printf("ino%d: Writing %d bytes to block #%d",
 			f.ino, uint64(len(blockData))-f.contentEnc.BlockOverhead(), b.BlockNo)
 

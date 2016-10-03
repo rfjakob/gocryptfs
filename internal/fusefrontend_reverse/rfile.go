@@ -39,7 +39,7 @@ func (rfs *reverseFS) NewFile(relPath string, flags uint32) (nodefs.File, fuse.S
 	id := derivePathIV(relPath, ivPurposeFileID)
 	header := contentenc.FileHeader{
 		Version: contentenc.CurrentVersion,
-		Id:      id,
+		ID:      id,
 	}
 	return &reverseFile{
 		File:       nodefs.NewDefaultFile(),
@@ -58,7 +58,7 @@ func (rf *reverseFile) GetAttr(*fuse.Attr) fuse.Status {
 
 // encryptBlocks - encrypt "plaintext" into a number of ciphertext blocks.
 // "plaintext" must already be block-aligned.
-func (rf *reverseFile) encryptBlocks(plaintext []byte, firstBlockNo uint64, fileId []byte, block0IV []byte) []byte {
+func (rf *reverseFile) encryptBlocks(plaintext []byte, firstBlockNo uint64, fileID []byte, block0IV []byte) []byte {
 	nonce := make([]byte, len(block0IV))
 	copy(nonce, block0IV)
 	block0IVlow := binary.BigEndian.Uint64(block0IV[8:])
@@ -70,7 +70,7 @@ func (rf *reverseFile) encryptBlocks(plaintext []byte, firstBlockNo uint64, file
 	for blockNo := firstBlockNo; inBuf.Len() > 0; blockNo++ {
 		binary.BigEndian.PutUint64(nonceLow, block0IVlow+blockNo)
 		inBlock := inBuf.Next(bs)
-		outBlock := rf.contentEnc.EncryptBlockNonce(inBlock, blockNo, fileId, nonce)
+		outBlock := rf.contentEnc.EncryptBlockNonce(inBlock, blockNo, fileID, nonce)
 		outBuf.Write(outBlock)
 	}
 	return outBuf.Bytes()
@@ -95,7 +95,7 @@ func (rf *reverseFile) readBackingFile(off uint64, length uint64) (out []byte, e
 	plaintext = plaintext[0:n]
 
 	// Encrypt blocks
-	ciphertext := rf.encryptBlocks(plaintext, blocks[0].BlockNo, rf.header.Id, rf.block0IV)
+	ciphertext := rf.encryptBlocks(plaintext, blocks[0].BlockNo, rf.header.ID, rf.block0IV)
 
 	// Crop down to the relevant part
 	lenHave := len(ciphertext)
@@ -118,7 +118,7 @@ func (rf *reverseFile) Read(buf []byte, ioff int64) (resultData fuse.ReadResult,
 	var header []byte
 
 	// Synthesize file header
-	if off < contentenc.HEADER_LEN {
+	if off < contentenc.HeaderLen {
 		header = rf.header.Pack()
 		// Truncate to requested part
 		end := int(off) + len(buf)

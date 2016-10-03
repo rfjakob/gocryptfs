@@ -38,22 +38,27 @@ func EnospcPrealloc(fd int, off int64, len int64) (err error) {
 	}
 }
 
+// Fallocate wraps the Fallocate syscall.
 func Fallocate(fd int, mode uint32, off int64, len int64) (err error) {
 	return syscall.Fallocate(fd, mode, off, len)
 }
 
+// Openat wraps the Fallocate syscall.
 func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) {
 	return syscall.Openat(dirfd, path, flags, mode)
 }
 
+// Renameat wraps the Fallocate syscall.
 func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
 	return syscall.Renameat(olddirfd, oldpath, newdirfd, newpath)
 }
 
+// Unlinkat wraps the Fallocate syscall.
 func Unlinkat(dirfd int, path string) error {
 	return syscall.Unlinkat(dirfd, path)
 }
 
+// Mknodat wraps the Fallocate syscall.
 func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 	return syscall.Mknodat(dirfd, path, mode, dev)
 }

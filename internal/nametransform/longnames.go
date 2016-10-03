@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	// LongNameSuffix is the suffix used for files with long names.
 	// Files with long names are stored in two files:
 	// gocryptfs.longname.[sha256]       <--- File content, prefix = gocryptfs.longname.
 	// gocryptfs.longname.[sha256].name  <--- File name, suffix = .name
@@ -31,12 +32,13 @@ func HashLongName(name string) string {
 
 // Values returned by IsLongName
 const (
-	// File that stores the file content.
+	// LongNameContent is the file that stores the file content.
 	// Example: gocryptfs.longname.URrM8kgxTKYMgCk4hKk7RO9Lcfr30XQof4L_5bD9Iro=
 	LongNameContent = iota
-	// File that stores the full encrypted filename.
+	// LongNameFilename is the file that stores the full encrypted filename.
 	// Example: gocryptfs.longname.URrM8kgxTKYMgCk4hKk7RO9Lcfr30XQof4L_5bD9Iro=.name
 	LongNameFilename = iota
+	// LongNameNone is used when the file does not have a long name.
 	// Example: i1bpTaVLZq7sRNA9mL_2Ig==
 	LongNameNone = iota
 )

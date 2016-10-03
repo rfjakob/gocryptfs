@@ -4,7 +4,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 )
 
-// Container for arguments that are passed from main() to fusefrontend
+// Args is a container for arguments that are passed from main() to fusefrontend
 type Args struct {
 	Masterkey      []byte
 	Cipherdir      string
