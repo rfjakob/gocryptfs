@@ -22,6 +22,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
@@ -34,7 +35,12 @@ var plaintextnames bool
 func TestMain(m *testing.M) {
 	// Make "testing.Verbose()" return the correct value
 	flag.Parse()
-	for _, openssl := range []bool{true, false} {
+	opensslVariants := []bool{true, false}
+	if !cryptocore.HaveModernGoGCM {
+		fmt.Printf("Skipping Go GCM variant, Go installation is too old")
+		opensslVariants = opensslVariants[:1]
+	}
+	for _, openssl := range opensslVariants {
 		for _, plaintextnames = range []bool{true, false} {
 			if testing.Verbose() {
 				fmt.Printf("matrix: testing openssl=%v plaintextnames=%v\n", openssl, plaintextnames)

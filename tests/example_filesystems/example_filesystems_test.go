@@ -12,6 +12,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
@@ -22,7 +23,12 @@ var opensslOpt string
 func TestMain(m *testing.M) {
 	// Make "testing.Verbose()" return the correct value
 	flag.Parse()
-	for _, opensslOpt = range []string{"-openssl=false", "-openssl=true"} {
+	variants := []string{"-openssl=true", "-openssl=false"}
+	if !cryptocore.HaveModernGoGCM {
+		fmt.Printf("Skipping Go GCM variant, Go installation is too old")
+		variants = variants[:1]
+	}
+	for _, opensslOpt = range variants {
 		if testing.Verbose() {
 			fmt.Printf("example_filesystems: testing with %q\n", opensslOpt)
 		}

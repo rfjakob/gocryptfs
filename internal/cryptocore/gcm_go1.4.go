@@ -10,6 +10,10 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
+const (
+	HaveModernGoGCM = false
+)
+
 // goGCMWrapper - This wrapper makes sure gocryptfs can be compiled on Go
 // versions 1.4 and lower that lack NewGCMWithNonceSize().
 // 128 bit GCM IVs will not work when using built-in Go crypto, obviously, when
