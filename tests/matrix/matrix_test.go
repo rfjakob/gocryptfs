@@ -556,7 +556,7 @@ func TestLongNames(t *testing.T) {
 	}
 	// Long symlink
 	n255s := string(bytes.Repeat([]byte("s"), 255))
-	err = os.Symlink("/etc/motd", wd+n255s)
+	err = os.Symlink("/", wd+n255s)
 	if err != nil {
 		t.Fatal(err)
 	}
