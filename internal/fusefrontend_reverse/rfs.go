@@ -135,7 +135,7 @@ func (rfs *reverseFS) inoAwareStat(relPlainPath string) (*fuse.Attr, fuse.Status
 	// The file has hard links. We have to give it a stable inode number so
 	// tar or rsync can find them.
 	if fi.Mode().IsRegular() && st.Nlink > 1 {
-		di := devIno{st.Dev, st.Ino}
+		di := devIno{uint64(st.Dev), st.Ino}
 		rfs.inoMapLock.Lock()
 		stableIno := rfs.inoMap[di]
 		if stableIno == 0 {
