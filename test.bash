@@ -13,4 +13,8 @@ go test ./... $*
 # The tests cannot to this themselves as they are run in parallel
 rm -Rf --one-file-system /tmp/gocryptfs-test-parent
 
-go tool vet -all -shadow .
+if go tool | grep vet > /dev/null ; then
+	go tool vet -all -shadow .
+else
+	echo "\"go tool vet\" not available - skipping"
+fi
