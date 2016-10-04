@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	// HaveModernGoGCM indicates if Go GCM supports 128-bit nonces
 	HaveModernGoGCM = true
 )
 

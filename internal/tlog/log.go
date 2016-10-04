@@ -74,15 +74,16 @@ func (l *toggledLogger) Println(v ...interface{}) {
 	}
 }
 
-// Debug messages
+// Debug logs debug messages
 // Can be enabled by passing "-d"
 var Debug *toggledLogger
 
-// Informational message
+// Info logs informational message
 // Can be disabled by passing "-q"
 var Info *toggledLogger
 
-// A warning, meaning nothing serious by itself but might indicate problems.
+// Warn logs warnings,
+// meaning nothing serious by itself but might indicate problems.
 // Passing "-wpanic" will make this function panic after printing the message.
 var Warn *toggledLogger
 

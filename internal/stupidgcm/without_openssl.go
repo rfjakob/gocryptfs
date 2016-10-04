@@ -11,7 +11,7 @@ import (
 type stupidGCM struct{}
 
 const (
-	// Has openssl been disabled at compile-time?
+	// BuiltWithoutOpenssl indicates if openssl been disabled at compile-time
 	BuiltWithoutOpenssl = true
 )
 
