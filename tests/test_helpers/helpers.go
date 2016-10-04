@@ -312,12 +312,12 @@ func VerifyExistence(path string) bool {
 
 // Du returns the disk usage of the file "fd" points to, in bytes.
 // Same as "du --block-size=1".
-func Du(t *testing.T, fd int) (nBytes int64, nBlocks int64) {
+func Du(t *testing.T, fd int) (nBytes int64) {
 	var st syscall.Stat_t
 	err := syscall.Fstat(fd, &st)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// On OSX, Blksize is int32, need to cast to int64.
-	return st.Blocks * int64(st.Blksize), st.Blocks
+	// st.Blocks = number of 512-byte blocks
+	return st.Blocks * 512
 }

@@ -170,6 +170,27 @@ func TestTruncate(t *testing.T) {
 	}
 }
 
+const (
+	// From man statfs
+	TMPFS_MAGIC      = 0x01021994
+	EXT4_SUPER_MAGIC = 0xef53
+)
+
+// isWellKnownFS decides if the backing filesystem is well-known.
+// The expected allocated sizes are only valid on tmpfs and ext4. btrfs
+// gives different results, but that's not an error.
+func isWellKnownFS(fn string) bool {
+	var fs syscall.Statfs_t
+	err := syscall.Statfs(fn, &fs)
+	if err != nil {
+		panic(err)
+	}
+	if fs.Type == EXT4_SUPER_MAGIC || fs.Type == TMPFS_MAGIC {
+		return true
+	}
+	return false
+}
+
 const FALLOC_DEFAULT = 0x00
 const FALLOC_FL_KEEP_SIZE = 0x01
 
@@ -177,17 +198,16 @@ func TestFallocate(t *testing.T) {
 	if runtime.GOOS == "darwin" {
 		t.Skipf("OSX does not support fallocate")
 	}
-
 	fn := test_helpers.DefaultPlainDir + "/fallocate"
 	file, err := os.Create(fn)
 	if err != nil {
 		t.FailNow()
 	}
-	var nBlocks int64
+	wellKnown := isWellKnownFS(test_helpers.DefaultCipherDir)
 	fd := int(file.Fd())
-	_, nBlocks = test_helpers.Du(t, fd)
-	if nBlocks != 0 {
-		t.Fatalf("Empty file has %d blocks", nBlocks)
+	nBytes := test_helpers.Du(t, fd)
+	if nBytes != 0 {
+		t.Fatalf("Empty file has %d bytes", nBytes)
 	}
 	// Allocate 30 bytes, keep size
 	// gocryptfs ||        (0 blocks)
@@ -196,9 +216,11 @@ func TestFallocate(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, nBlocks = test_helpers.Du(t, fd)
-	if want := 1; nBlocks/8 != int64(want) {
-		t.Errorf("Expected %d 4k block(s), got %d", want, nBlocks/8)
+	var want int64
+	nBytes = test_helpers.Du(t, fd)
+	want = 4096
+	if nBytes != want {
+		t.Errorf("Expected %d allocated bytes, have %d", want, nBytes)
 	}
 	test_helpers.VerifySize(t, fn, 0)
 	// Three ciphertext blocks. The middle one should be a file hole.
@@ -210,9 +232,10 @@ func TestFallocate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, nBlocks = test_helpers.Du(t, fd)
-	if want := 2; nBlocks/8 != int64(want) {
-		t.Errorf("Expected %d 4k block(s), got %d", want, nBlocks/8)
+	nBytes = test_helpers.Du(t, fd)
+	want = 2 * 4096
+	if wellKnown && nBytes != want {
+		t.Errorf("Expected %d allocated bytes, have %d", want, nBytes)
 	}
 	if md5 := test_helpers.Md5fn(fn); md5 != "5420afa22f6423a9f59e669540656bb4" {
 		t.Errorf("Wrong md5 %s", md5)
@@ -224,9 +247,10 @@ func TestFallocate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, nBlocks = test_helpers.Du(t, fd)
-	if want := 3; nBlocks/8 != int64(want) {
-		t.Errorf("Expected %d 4k block(s), got %d", want, nBlocks/8)
+	nBytes = test_helpers.Du(t, fd)
+	want = 3 * 4096
+	if nBytes != want {
+		t.Errorf("Expected %d allocated bytes, have %d", want, nBytes)
 	}
 	// Neither apparent size nor content should have changed
 	test_helpers.VerifySize(t, fn, 9000)
@@ -239,17 +263,19 @@ func TestFallocate(t *testing.T) {
 	//      ext4 |  d  |  h  |  d  |  (2 blocks)
 	file.Truncate(0)
 	file.Truncate(9000)
-	_, nBlocks = test_helpers.Du(t, fd)
-	if want := 2; nBlocks/8 != int64(want) {
-		t.Errorf("Expected %d 4k block(s), got %d", want, nBlocks/8)
+	nBytes = test_helpers.Du(t, fd)
+	want = 2 * 4096
+	if wellKnown && nBytes != want {
+		t.Errorf("Expected %d allocated bytes, have %d", want, nBytes)
 	}
 	// Allocate 10 bytes in the second block
 	// gocryptfs |  h   |   h  | d|   (1 block)
-	//      ext4 |  d  |  d  |  d  |  (2 blocks)
+	//      ext4 |  d  |  d  |  d  |  (3 blocks)
 	syscallcompat.Fallocate(fd, FALLOC_DEFAULT, 5000, 10)
-	_, nBlocks = test_helpers.Du(t, fd)
-	if want := 3; nBlocks/8 != int64(want) {
-		t.Errorf("Expected %d 4k block(s), got %d", want, nBlocks/8)
+	nBytes = test_helpers.Du(t, fd)
+	want = 3 * 4096
+	if wellKnown && nBytes != want {
+		t.Errorf("Expected %d allocated bytes, have %d", want, nBytes)
 	}
 	// Neither apparent size nor content should have changed
 	test_helpers.VerifySize(t, fn, 9000)
@@ -258,11 +284,12 @@ func TestFallocate(t *testing.T) {
 	}
 	// Grow the file to 4 blocks
 	// gocryptfs |  h   |  h   |  d   |d|  (2 blocks)
-	//      ext4 |  d  |  d  |  d  |  d  | (3 blocks)
+	//      ext4 |  d  |  d  |  d  |  d  | (4 blocks)
 	syscallcompat.Fallocate(fd, FALLOC_DEFAULT, 15000, 10)
-	_, nBlocks = test_helpers.Du(t, fd)
-	if want := 4; nBlocks/8 != int64(want) {
-		t.Errorf("Expected %d 4k block(s), got %d", want, nBlocks/8)
+	nBytes = test_helpers.Du(t, fd)
+	want = 4 * 4096
+	if wellKnown && nBytes != want {
+		t.Errorf("Expected %d allocated bytes, have %d", want, nBytes)
 	}
 	test_helpers.VerifySize(t, fn, 15010)
 	if md5 := test_helpers.Md5fn(fn); md5 != "c4c44c7a41ab7798a79d093eb44f99fc" {
@@ -279,7 +306,13 @@ func TestFallocate(t *testing.T) {
 		}
 	}
 	// Cleanup
+	file.Close()
 	syscall.Unlink(fn)
+	if !wellKnown {
+		// Even though most tests have been executed still, inform the user
+		// that some were disabled
+		t.Skipf("backing fs is not ext4 or tmpfs, skipped some disk-usage checks\n")
+	}
 }
 
 func TestAppend(t *testing.T) {
