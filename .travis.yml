@@ -12,10 +12,18 @@ go:
 install:
   - go get .
 
-# Travis does not support FUSE, so we can't just run "./test.bash"
 # Go 1.3.3 does not support testing.M, so skip the tests there.
 script:
   - openssl version
   - go build
   - ./build.bash
-  - if ! go version | grep go1.3.3 ; then go test ./internal/... ; fi
+  - if ! go version | grep go1.3.3 ; then ./test.bash ; fi
+
+# fuse on travis
+sudo: required
+dist: trusty
+before_install:
+  - sudo apt-get install -qq fuse
+  - sudo modprobe fuse
+  - sudo chmod 666 /dev/fuse
+  - sudo chown root:$USER /etc/fuse.conf
