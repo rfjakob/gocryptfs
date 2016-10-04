@@ -6,13 +6,13 @@
 # https://nuetzlich.net/gocryptfs/
 
 NAME="maxlen."
-LEN=7
+LEN=0
 
 while [ $LEN -le 10000 ]; do
 	touch $NAME 2> /dev/null || break
 	rm $NAME
+	LEN=${#NAME}
 	NAME="${NAME}x"
-	let LEN=LEN+1
 done
 
 echo $LEN
