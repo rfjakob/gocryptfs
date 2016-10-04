@@ -25,6 +25,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend_reverse"
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
+	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -103,9 +104,13 @@ func printVersion() {
 		t := time.Unix(i, 0).UTC()
 		humanTime = fmt.Sprintf("%d-%02d-%02d", t.Year(), t.Month(), t.Day())
 	}
+	buildFlags := ""
+	if stupidgcm.BuiltWithoutOpenssl {
+		buildFlags = " without_openssl"
+	}
 	built := fmt.Sprintf("%s %s", humanTime, runtime.Version())
-	fmt.Printf("%s %s; go-fuse %s; %s\n",
-		tlog.ProgramName, GitVersion, GitVersionFuse, built)
+	fmt.Printf("%s %s%s; go-fuse %s; %s\n",
+		tlog.ProgramName, GitVersion, buildFlags, GitVersionFuse, built)
 }
 
 func main() {

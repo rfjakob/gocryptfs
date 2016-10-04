@@ -35,10 +35,10 @@ V=$(go version | cut -d" " -f3 | cut -c3-5)
 
 if [ $V == "1.3" -o $V == "1.4" ]
 then
-	go build -ldflags="-X main.GitVersion $GITVERSION -X main.GitVersionFuse $GITVERSIONFUSE -X main.BuildTime $BUILDTIME"
+	go build -ldflags="-X main.GitVersion $GITVERSION -X main.GitVersionFuse $GITVERSIONFUSE -X main.BuildTime $BUILDTIME" $@
 else
 	# Go 1.5 wants an "=" here
-	go build -ldflags="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildTime=$BUILDTIME"
+	go build -ldflags="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildTime=$BUILDTIME" $@
 fi
 (cd gocryptfs-xray; go build)
 

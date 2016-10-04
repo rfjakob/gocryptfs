@@ -1,3 +1,5 @@
+// +build !without_openssl
+
 // Package stupidgcm is a thin wrapper for OpenSSL's GCM encryption and
 // decryption functions. It only support 32-byte keys and 16-bit IVs.
 package stupidgcm
@@ -13,6 +15,9 @@ import (
 )
 
 const (
+	// Has openssl been disabled at compile-time?
+	BuiltWithoutOpenssl = false
+
 	keyLen = 32
 	ivLen  = 16
 	tagLen = 16

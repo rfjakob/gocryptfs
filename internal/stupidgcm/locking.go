@@ -1,3 +1,5 @@
+// +build !without_openssl
+
 package stupidgcm
 
 // In general, OpenSSL is only threadsafe if you provide a locking function
