@@ -30,7 +30,10 @@ func longnameCacheCleaner() {
 	}
 }
 
-func init() {
+func initLongnameCache() {
+	if longnameParentCache != nil {
+		return
+	}
 	longnameParentCache = map[string]string{}
 	go longnameCacheCleaner()
 }

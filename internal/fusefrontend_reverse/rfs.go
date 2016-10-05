@@ -47,6 +47,8 @@ var _ pathfs.FileSystem = &reverseFS{}
 
 // NewFS returns an encrypted FUSE overlay filesystem
 func NewFS(args fusefrontend.Args) pathfs.FileSystem {
+	initLongnameCache()
+
 	cryptoCore := cryptocore.New(args.Masterkey, args.CryptoBackend, contentenc.DefaultIVBits)
 	contentEnc := contentenc.New(cryptoCore, contentenc.DefaultBS)
 	nameTransform := nametransform.New(cryptoCore, args.LongNames)
