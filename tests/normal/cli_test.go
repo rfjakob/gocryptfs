@@ -3,6 +3,7 @@ package normal
 // Test CLI operations like "-init", "-password" etc
 
 import (
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"testing"
@@ -145,4 +146,25 @@ func TestRo(t *testing.T) {
 	if err == nil {
 		t.Errorf("Create should have failed")
 	}
+}
+
+// Test "-nonempty"
+func TestNonempty(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	mnt := dir + ".mnt"
+	err := os.Mkdir(mnt, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ioutil.WriteFile(mnt+"/somefile", []byte("xyz"), 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = test_helpers.Mount(dir, mnt, false, "-extpass=echo test")
+	if err == nil {
+		t.Errorf("Mounting over a file should fail per default")
+	}
+	// Should work with "-nonempty"
+	test_helpers.MountOrFatal(t, dir, mnt, "-nonempty", "-extpass=echo test")
+	test_helpers.UnmountPanic(mnt)
 }

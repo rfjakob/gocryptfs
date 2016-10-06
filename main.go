@@ -236,7 +236,11 @@ func main() {
 		tlog.Fatal.Printf("Invalid mountpoint: %v", err)
 		os.Exit(ErrExitMountPoint)
 	}
-	err = checkDirEmpty(args.mountpoint)
+	if args.nonempty {
+		err = checkDir(args.mountpoint)
+	} else {
+		err = checkDirEmpty(args.mountpoint)
+	}
 	if err != nil {
 		tlog.Fatal.Printf("Invalid mountpoint: %v", err)
 		os.Exit(ErrExitMountPoint)
@@ -347,6 +351,9 @@ func initFuseFrontend(key []byte, args argContainer, confFile *configfile.ConfFi
 		mOpts.AllowOther = true
 		// Make the kernel check the file permissions for us
 		mOpts.Options = append(mOpts.Options, "default_permissions")
+	}
+	if args.nonempty {
+		mOpts.Options = append(mOpts.Options, "nonempty")
 	}
 	// Set values shown in "df -T" and friends
 	// First column, "Filesystem"

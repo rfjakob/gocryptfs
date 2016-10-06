@@ -79,6 +79,10 @@ anybody on the machine who can execute "ps -auxwww".
 :	Write memory profile to specified file. This is useful when debugging
 memory usage of gocryptfs.
 
+**-nonempty**
+:	Allow mounting over non-empty directories. FUSE by default disallows
+this because to prevent accidential shadowing of files.
+
 **-nosyslog**
 :	Diagnostic messages are normally redirected to syslog once gocryptfs
 daemonizes. This option disables the redirection and messages will
