@@ -271,16 +271,17 @@ func main() {
 	tlog.Debug.Printf("cli args: %v", args)
 	srv := initFuseFrontend(masterkey, args, confFile)
 	tlog.Info.Println(tlog.ColorGreen + "Filesystem mounted and ready." + tlog.ColorReset)
-	// We are ready - send USR1 signal to our parent and switch to syslog
+	// We are ready - send USR1 signal to our parent
 	if args.notifypid > 0 {
 		sendUsr1(args.notifypid)
-
-		if !args.nosyslog {
-			tlog.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
-			tlog.Debug.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_DEBUG)
-			tlog.Warn.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
-			tlog.SwitchLoggerToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
-		}
+	}
+	// If we have been forked into the background, as evidenced by the set
+	// "notifypid", switch to syslog. Unless "nosyslog" is set.
+	if args.notifypid > 0 && !args.nosyslog {
+		tlog.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
+		tlog.Debug.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_DEBUG)
+		tlog.Warn.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
+		tlog.SwitchLoggerToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
 	}
 	// Wait for SIGINT in the background and unmount ourselves if we get it.
 	// This prevents a dangling "Transport endpoint is not connected" mountpoint.
