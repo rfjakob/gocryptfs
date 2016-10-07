@@ -271,20 +271,30 @@ func main() {
 	tlog.Debug.Printf("cli args: %v", args)
 	srv := initFuseFrontend(masterkey, args, confFile)
 	tlog.Info.Println(tlog.ColorGreen + "Filesystem mounted and ready." + tlog.ColorReset)
-	// We are ready - send USR1 signal to our parent
+	// We have been forked into the background, as evidenced by the set
+	// "notifypid".
 	if args.notifypid > 0 {
+		// Chdir to the root directory so we don't block unmounting the CWD
+		os.Chdir("/")
+		// Switch to syslog
+		if !args.nosyslog {
+			tlog.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
+			tlog.Debug.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_DEBUG)
+			tlog.Warn.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
+			tlog.SwitchLoggerToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
+			// Daemons should close all fds (and we don't want to get killed by
+			// SIGPIPE if any of those get closed on the other end)
+			os.Stderr.Close()
+			os.Stdout.Close()
+			os.Stdin.Close()
+
+		}
+		// Send SIGUSR1 to our parent
 		sendUsr1(args.notifypid)
 	}
-	// If we have been forked into the background, as evidenced by the set
-	// "notifypid", switch to syslog. Unless "nosyslog" is set.
-	if args.notifypid > 0 && !args.nosyslog {
-		tlog.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
-		tlog.Debug.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_DEBUG)
-		tlog.Warn.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
-		tlog.SwitchLoggerToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
-	}
 	// Wait for SIGINT in the background and unmount ourselves if we get it.
-	// This prevents a dangling "Transport endpoint is not connected" mountpoint.
+	// This prevents a dangling "Transport endpoint is not connected"
+	// mountpoint if the user hits CTRL-C.
 	handleSigint(srv, args.mountpoint)
 	// Jump into server loop. Returns when it gets an umount request from the kernel.
 	srv.Serve()
