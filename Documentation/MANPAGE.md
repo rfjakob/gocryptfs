@@ -31,7 +31,8 @@ DESCRIPTION
 Options:
 
 **-aessiv**
-:	Use the AES-SIV encryption mode (implied by -reverse)
+:	Use the AES-SIV encryption mode. This is slower than GCM but is
+secure with deterministic nonces as used in "-reverse" mode.
 
 **-allow_other**
 :	By default, the Linux kernel prevents any other user (even root) to
@@ -56,7 +57,7 @@ stripped by gocryptfs. Using something like "cat /mypassword.txt" allows
 to mount the gocryptfs filesytem without user interaction.
 
 **-f**
-:	Stay in the foreground instead of forking away.
+:	Stay in the foreground instead of forking away. Implies "-nosyslog".
 
 **-fusedebug**
 :	Enable fuse library debug output
@@ -98,7 +99,7 @@ FUSE filesystems are mounted with "nodev,nosuid" by default. If gocryptfs
 runs as root, you can enable device files by passing the opposite mount option,
 "dev", and if you want to enable suid-binaries, pass "suid".
 "ro" (equivalent to passing the "-ro" option) and "noexec" may also be
-interesting. For a complete liste see the section
+interesting. For a complete list see the section
 `FILESYSTEM-INDEPENDENT MOUNT OPTIONS` in mount(8).
 
 **-openssl bool/"auto"**
@@ -118,7 +119,7 @@ option.
 
 **-reverse**
 :	Reverse mode shows a read-only encrypted view of a plaintext
-directory
+directory. Implies "-aessiv".
 
 **-ro**
 :	Mount the filesystem read-only

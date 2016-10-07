@@ -287,7 +287,6 @@ func main() {
 			os.Stderr.Close()
 			os.Stdout.Close()
 			os.Stdin.Close()
-
 		}
 		// Send SIGUSR1 to our parent
 		sendUsr1(args.notifypid)
