@@ -1,7 +1,6 @@
 package nametransform
 
 import (
-	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -26,6 +25,7 @@ const (
 func ReadDirIV(dir string) (iv []byte, err error) {
 	fd, err := os.Open(filepath.Join(dir, DirIVFilename))
 	if err != nil {
+		// Note: getting errors here is normal because of concurrent deletes.
 		return nil, err
 	}
 	defer fd.Close()
@@ -59,7 +59,7 @@ func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 	iv = iv[0:n]
 	if len(iv) != DirIVLen {
 		tlog.Warn.Printf("ReadDirIVAt: wanted %d bytes, got %d", DirIVLen, len(iv))
-		return nil, errors.New("invalid iv length")
+		return nil, syscall.EINVAL
 	}
 	return iv, nil
 }
