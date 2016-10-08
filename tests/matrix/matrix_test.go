@@ -12,6 +12,7 @@ package matrix
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -31,30 +32,50 @@ import (
 // a global variable
 var plaintextnames bool
 
+type testcaseMatrix struct {
+	// Exported so we can dump the struct using json.Marshal
+	Plaintextnames bool
+	Openssl        string
+	Aessiv         bool
+}
+
+var matrix []testcaseMatrix = []testcaseMatrix{
+	// Normal
+	{false, "auto", false},
+	{false, "true", false},
+	{false, "false", false},
+	// Plaintextnames
+	{true, "true", false},
+	{true, "false", false},
+	// AES-SIV (does not use openssl, no need to test permutations)
+	{false, "auto", true},
+	{true, "auto", true},
+}
+
 // This is the entry point for the tests
 func TestMain(m *testing.M) {
 	// Make "testing.Verbose()" return the correct value
 	flag.Parse()
-	opensslVariants := []bool{true, false}
-	if !cryptocore.HaveModernGoGCM {
-		fmt.Printf("Skipping Go GCM variant, Go installation is too old")
-		opensslVariants = opensslVariants[:1]
-	}
-	for _, openssl := range opensslVariants {
-		for _, plaintextnames = range []bool{true, false} {
-			if testing.Verbose() {
-				fmt.Printf("matrix: testing openssl=%v plaintextnames=%v\n", openssl, plaintextnames)
-			}
-			test_helpers.ResetTmpDir(plaintextnames)
-			opts := []string{"--zerokey"}
-			opts = append(opts, fmt.Sprintf("-openssl=%v", openssl))
-			opts = append(opts, fmt.Sprintf("-plaintextnames=%v", plaintextnames))
-			test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, opts...)
-			r := m.Run()
-			test_helpers.UnmountPanic(test_helpers.DefaultPlainDir)
-			if r != 0 {
-				os.Exit(r)
-			}
+	for _, testcase := range matrix {
+		if !cryptocore.HaveModernGoGCM && testcase.Openssl != "true" {
+			fmt.Printf("Skipping Go GCM variant, Go installation is too old")
+			continue
+		}
+		if testing.Verbose() {
+			j, _ := json.Marshal(testcase)
+			fmt.Printf("matrix: testcase = %s\n", string(j))
+		}
+		plaintextnames = testcase.Plaintextnames
+		test_helpers.ResetTmpDir(plaintextnames)
+		opts := []string{"-zerokey"}
+		opts = append(opts, fmt.Sprintf("-openssl=%v", testcase.Openssl))
+		opts = append(opts, fmt.Sprintf("-plaintextnames=%v", testcase.Plaintextnames))
+		opts = append(opts, fmt.Sprintf("-aessiv=%v", testcase.Aessiv))
+		test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, opts...)
+		r := m.Run()
+		test_helpers.UnmountPanic(test_helpers.DefaultPlainDir)
+		if r != 0 {
+			os.Exit(r)
 		}
 	}
 	os.Exit(0)
