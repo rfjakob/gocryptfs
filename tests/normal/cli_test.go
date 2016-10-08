@@ -168,3 +168,26 @@ func TestNonempty(t *testing.T) {
 	test_helpers.MountOrFatal(t, dir, mnt, "-nonempty", "-extpass=echo test")
 	test_helpers.UnmountPanic(mnt)
 }
+
+// Test "mountpoint shadows cipherdir" handling
+func TestShadows(t *testing.T) {
+	mnt := test_helpers.InitFS(t)
+	cipher := mnt + ".cipher"
+	err := os.Rename(mnt, cipher)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// This should work
+	test_helpers.MountOrFatal(t, cipher, mnt, "-extpass=echo test")
+	test_helpers.UnmountPanic(mnt)
+	cipher2 := mnt + "/cipher"
+	err = os.Rename(cipher, cipher2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// This should fail
+	err = test_helpers.Mount(cipher2, mnt, false, "-extpass=echo test")
+	if err == nil {
+		t.Errorf("Should have failed")
+	}
+}
