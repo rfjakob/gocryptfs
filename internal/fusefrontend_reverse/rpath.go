@@ -85,7 +85,3 @@ func (rfs *reverseFS) decryptPath(relPath string) (string, error) {
 	}
 	return filepath.Join(transformedParts...), nil
 }
-
-func (rfs *reverseFS) isFiltered(relPath string) bool {
-	return false
-}

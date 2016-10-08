@@ -128,6 +128,20 @@ func (rfs *reverseFS) isNameFile(relPath string) bool {
 	return fileType == nametransform.LongNameFilename
 }
 
+// isTranslatedConfig returns true if the default config file name is in
+// and the ciphertext path is "gocryptfs.conf".
+// "gocryptfs.conf" then maps to ".gocryptfs.reverse.conf" in the plaintext
+// directory.
+func (rfs *reverseFS) isTranslatedConfig(relPath string) bool {
+	if rfs.args.ConfigCustom {
+		return false
+	}
+	if relPath == configfile.ConfDefaultName {
+		return true
+	}
+	return false
+}
+
 func (rfs *reverseFS) inoAwareStat(relPlainPath string) (*fuse.Attr, fuse.Status) {
 	absPath, err := rfs.abs(relPlainPath, nil)
 	if err != nil {
@@ -165,7 +179,7 @@ func (rfs *reverseFS) inoAwareStat(relPlainPath string) (*fuse.Attr, fuse.Status
 
 // GetAttr - FUSE call
 func (rfs *reverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
-	if relPath == configfile.ConfDefaultName {
+	if rfs.isTranslatedConfig(relPath) {
 		return rfs.inoAwareStat(configfile.ConfReverseName)
 	}
 	// Handle virtual files
@@ -207,11 +221,11 @@ func (rfs *reverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 
 // Access - FUSE call
 func (rfs *reverseFS) Access(relPath string, mode uint32, context *fuse.Context) fuse.Status {
-	if rfs.isDirIV(relPath) {
+	if rfs.isTranslatedConfig(relPath) {
 		return fuse.OK
 	}
-	if rfs.isFiltered(relPath) {
-		return fuse.EPERM
+	if rfs.isDirIV(relPath) {
+		return fuse.OK
 	}
 	absPath, err := rfs.abs(rfs.decryptPath(relPath))
 	if err != nil {
@@ -222,8 +236,7 @@ func (rfs *reverseFS) Access(relPath string, mode uint32, context *fuse.Context)
 
 // Open - FUSE call
 func (rfs *reverseFS) Open(relPath string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
-	if relPath == configfile.ConfDefaultName {
-		// gocryptfs.conf maps to .gocryptfs.reverse.conf in the plaintext directory
+	if rfs.isTranslatedConfig(relPath) {
 		return rfs.loopbackfs.Open(configfile.ConfReverseName, flags, context)
 	}
 	if rfs.isDirIV(relPath) {
@@ -231,9 +244,6 @@ func (rfs *reverseFS) Open(relPath string, flags uint32, context *fuse.Context) 
 	}
 	if rfs.isNameFile(relPath) {
 		return rfs.newNameFile(relPath)
-	}
-	if rfs.isFiltered(relPath) {
-		return nil, fuse.EPERM
 	}
 	return rfs.NewFile(relPath, flags)
 }
@@ -294,7 +304,7 @@ func (rfs *reverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 	for i := range entries {
 		var cName string
 		// ".gocryptfs.reverse.conf" in the root directory is mapped to "gocryptfs.conf"
-		if cipherPath == "" && entries[i].Name == configfile.ConfReverseName {
+		if cipherPath == "" && rfs.isTranslatedConfig(entries[i].Name) {
 			cName = configfile.ConfDefaultName
 		} else {
 			cName = rfs.nameTransform.EncryptName(entries[i].Name, dirIV)
