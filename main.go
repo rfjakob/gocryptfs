@@ -64,12 +64,13 @@ Options:
 
 // loadConfig - load the config file "filename", prompting the user for the password
 func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.ConfFile) {
-	// Check if the file exists at all before prompting for a password
-	_, err := os.Stat(args.config)
+	// Check if the file can be opened at all before prompting for a password
+	fd, err := os.Open(args.config)
 	if err != nil {
-		tlog.Fatal.Printf("Config file not found: %v", err)
+		tlog.Fatal.Printf("Cannot open config file: %v", err)
 		os.Exit(ErrExitLoadConf)
 	}
+	fd.Close()
 	pw := readpassword.Once(args.extpass)
 	tlog.Info.Println("Decrypting master key")
 	masterkey, confFile, err = configfile.LoadConfFile(args.config, pw)
