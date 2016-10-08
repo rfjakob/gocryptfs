@@ -36,6 +36,13 @@ func doMount(args *argContainer) int {
 		tlog.Fatal.Printf("Invalid mountpoint: %v", err)
 		os.Exit(ErrExitMountPoint)
 	}
+	// We cannot mount "/home/user/.cipher" at "/home/user" because the mount
+	// will hide ".cipher" also for us.
+	if strings.HasPrefix(args.cipherdir, args.mountpoint) {
+		tlog.Fatal.Printf("Mountpoint %q would shadow cipherdir %q, this is not supported",
+			args.mountpoint, args.cipherdir)
+		os.Exit(ErrExitMountPoint)
+	}
 	if args.nonempty {
 		err = checkDir(args.mountpoint)
 	} else {
