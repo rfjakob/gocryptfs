@@ -116,7 +116,7 @@ Changelog
 ---------
 
 v1.1-rc1, 2016-10-09
-* **Add reverse mode ([#34](https://github.com/rfjakob/gocryptfs/issues/34))**
+* **Add reverse mode ([#19](https://github.com/rfjakob/gocryptfs/issues/19))**
  * AES-SIV (RFC5297) encryption to implement deterministic encryption
    securely. Uses the excellent
    [jacobsa/crypto](https://github.com/jacobsa/crypto) library.
