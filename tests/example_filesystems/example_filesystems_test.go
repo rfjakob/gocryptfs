@@ -184,3 +184,30 @@ func TestExampleFSv11reverse(t *testing.T) {
 	test_helpers.UnmountPanic(dirC)
 	test_helpers.UnmountPanic(dirB)
 }
+
+// gocryptfs v1.1 introduced reverse mode
+func TestExampleFSv11reversePlaintextnames(t *testing.T) {
+	dirA := "v1.1-reverse-plaintextnames"
+	dirB := test_helpers.TmpDir + "/" + dirA + ".B"
+	err := os.Mkdir(dirB, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dirC := test_helpers.TmpDir + "/" + dirA + ".C"
+	err = os.Mkdir(dirC, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-extpass", "echo test", opensslOpt)
+	test_helpers.MountOrFatal(t, dirB, dirC, "-extpass", "echo test", opensslOpt)
+	checkExampleFSrw(t, dirC, false)
+	test_helpers.UnmountPanic(dirC)
+	test_helpers.UnmountPanic(dirB)
+
+	m := "e7fb8f0d-2a81df9e-26611e4b-5540b218-e48aa458-c2a623af-d0c82637-1466b5f2"
+	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-masterkey", m, opensslOpt)
+	test_helpers.MountOrFatal(t, dirB, dirC, "-aessiv", "-masterkey", m, opensslOpt)
+	checkExampleFSrw(t, dirC, false)
+	test_helpers.UnmountPanic(dirC)
+	test_helpers.UnmountPanic(dirB)
+}
