@@ -48,10 +48,17 @@ func checkExampleFS(t *testing.T, dir string, rw bool) {
 }
 
 // checkExampleFSLongnames - verify that "dir" contains the expected test files
-// plus the long file name test file
+// plus the long file name test file.
+// Also tests simple directory operations.
 func checkExampleFSLongnames(t *testing.T, dir string) {
+	checkExampleFSrw(t, dir, true)
+}
+
+// checkExampleFSrw is like checkExampleFSLongnames but gives the caller the
+// choice if he wants to run tests that write to the FS.
+func checkExampleFSrw(t *testing.T, dir string, rw bool) {
 	// regular tests
-	checkExampleFS(t, dir, true)
+	checkExampleFS(t, dir, rw)
 	// long name test file
 	longname := "longname_255_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" +
 		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" +
@@ -65,5 +72,4 @@ func checkExampleFSLongnames(t *testing.T, dir string) {
 	if content != statusTxtContent {
 		t.Errorf("longname_255: unexpected content: %s\n", content)
 	}
-
 }
