@@ -138,3 +138,22 @@ func TestExampleFSv09(t *testing.T) {
 	checkExampleFSLongnames(t, pDir)
 	test_helpers.UnmountPanic(pDir)
 }
+
+// gocryptfs v1.1 introduced AES-SIV
+func TestExampleFSv11(t *testing.T) {
+	cDir := "v1.1-aessiv"
+	pDir := test_helpers.TmpDir + "/" + cDir
+	err := os.Mkdir(pDir, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test", opensslOpt)
+	checkExampleFSLongnames(t, pDir)
+	test_helpers.UnmountPanic(pDir)
+	pDir = pDir + ".2"
+	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey",
+		"be505f7d-54871394-2c0c2481-1bdcd0d8-9113b08a-0f7b4dfc-851c96da-55ef36b5",
+		"-aessiv", opensslOpt)
+	checkExampleFSLongnames(t, pDir)
+	test_helpers.UnmountPanic(pDir)
+}
