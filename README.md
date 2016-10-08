@@ -115,6 +115,17 @@ RM:    4.42
 Changelog
 ---------
 
+v1.1-rc1, 2016-10-09
+* **Add reverse mode ([#34](https://github.com/rfjakob/gocryptfs/issues/34))**
+ * AES-SIV (RFC5297) encryption to implement deterministic encryption
+   securely. Uses the excellent
+   [jacobsa/crypto](https://github.com/jacobsa/crypto) library.
+ * New command-line options: `-reverse`, `-aessiv`
+ * Filesystems using reverse mode can only be mounted with gocryptfs v1.1
+   and later.
+* The default, forward mode, stays fully compatible with older versions.
+  Forward mode will keep using GCM because it is much faster.
+
 v1.0, 2016-07-17
 * Deprecate very old filesystems, stage 3/3
  * Filesystems created by v0.6 can no longer be mounted
