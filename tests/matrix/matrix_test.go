@@ -30,7 +30,7 @@ import (
 
 // Several tests need to be aware if plaintextnames is active or not, so make this
 // a global variable
-var plaintextnames bool
+var testcase testcaseMatrix
 
 type testcaseMatrix struct {
 	// Exported so we can dump the struct using json.Marshal
@@ -56,7 +56,7 @@ var matrix []testcaseMatrix = []testcaseMatrix{
 func TestMain(m *testing.M) {
 	// Make "testing.Verbose()" return the correct value
 	flag.Parse()
-	for _, testcase := range matrix {
+	for _, testcase = range matrix {
 		if !cryptocore.HaveModernGoGCM && testcase.Openssl != "true" {
 			fmt.Printf("Skipping Go GCM variant, Go installation is too old")
 			continue
@@ -65,8 +65,8 @@ func TestMain(m *testing.M) {
 			j, _ := json.Marshal(testcase)
 			fmt.Printf("matrix: testcase = %s\n", string(j))
 		}
-		plaintextnames = testcase.Plaintextnames
-		test_helpers.ResetTmpDir(plaintextnames)
+		testcase.Plaintextnames = testcase.Plaintextnames
+		test_helpers.ResetTmpDir(testcase.Plaintextnames)
 		opts := []string{"-zerokey"}
 		opts = append(opts, fmt.Sprintf("-openssl=%v", testcase.Openssl))
 		opts = append(opts, fmt.Sprintf("-plaintextnames=%v", testcase.Plaintextnames))
@@ -474,17 +474,17 @@ func TestRmwRace(t *testing.T) {
 func TestFiltered(t *testing.T) {
 	filteredFile := test_helpers.DefaultPlainDir + "/gocryptfs.conf"
 	file, err := os.Create(filteredFile)
-	if plaintextnames && err == nil {
+	if testcase.Plaintextnames && err == nil {
 		t.Errorf("should have failed but didn't")
-	} else if !plaintextnames && err != nil {
+	} else if !testcase.Plaintextnames && err != nil {
 		t.Error(err)
 	}
 	file.Close()
 
 	err = os.Remove(filteredFile)
-	if plaintextnames && err == nil {
+	if testcase.Plaintextnames && err == nil {
 		t.Errorf("should have failed but didn't")
-	} else if !plaintextnames && err != nil {
+	} else if !testcase.Plaintextnames && err != nil {
 		t.Error(err)
 	}
 }
@@ -496,9 +496,9 @@ func TestFilenameEncryption(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = os.Stat(test_helpers.DefaultCipherDir + "/TestFilenameEncryption.txt")
-	if plaintextnames && err != nil {
+	if testcase.Plaintextnames && err != nil {
 		t.Errorf("plaintextnames not working: %v", err)
-	} else if !plaintextnames && err == nil {
+	} else if !testcase.Plaintextnames && err == nil {
 		t.Errorf("file name encryption not working")
 	}
 }
