@@ -32,7 +32,7 @@ func TestMain(m *testing.M) {
 		if testing.Verbose() {
 			fmt.Printf("example_filesystems: testing with %q\n", opensslOpt)
 		}
-		test_helpers.ResetTmpDir(true)
+		test_helpers.ResetTmpDir(false)
 		r := m.Run()
 		if r != 0 {
 			os.Exit(r)

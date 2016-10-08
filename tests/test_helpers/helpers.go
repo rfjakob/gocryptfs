@@ -48,7 +48,7 @@ func init() {
 // |-- DefaultPlainDir
 // *-- DefaultCipherDir
 //     *-- gocryptfs.diriv
-func ResetTmpDir(plaintextNames bool) {
+func ResetTmpDir(createDirIV bool) {
 	// Try to unmount and delete everything
 	entries, err := ioutil.ReadDir(TmpDir)
 	if err == nil {
@@ -83,7 +83,7 @@ func ResetTmpDir(plaintextNames bool) {
 	if err != nil {
 		panic(err)
 	}
-	if !plaintextNames {
+	if createDirIV {
 		err = nametransform.WriteDirIV(DefaultCipherDir)
 		if err != nil {
 			panic(err)

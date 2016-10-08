@@ -65,8 +65,7 @@ func TestMain(m *testing.M) {
 			j, _ := json.Marshal(testcase)
 			fmt.Printf("matrix: testcase = %s\n", string(j))
 		}
-		testcase.Plaintextnames = testcase.Plaintextnames
-		test_helpers.ResetTmpDir(testcase.Plaintextnames)
+		test_helpers.ResetTmpDir(!testcase.Plaintextnames)
 		opts := []string{"-zerokey"}
 		opts = append(opts, fmt.Sprintf("-openssl=%v", testcase.Openssl))
 		opts = append(opts, fmt.Sprintf("-plaintextnames=%v", testcase.Plaintextnames))
