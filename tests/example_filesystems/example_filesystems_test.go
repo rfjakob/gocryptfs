@@ -172,6 +172,10 @@ func TestExampleFSv11reverse(t *testing.T) {
 		t.Fatal(err)
 	}
 	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-extpass", "echo test", opensslOpt)
+	c := dirB + "/gocryptfs.conf"
+	if !test_helpers.VerifyExistence(c) {
+		t.Errorf("%s missing", c)
+	}
 	test_helpers.MountOrFatal(t, dirB, dirC, "-extpass", "echo test", opensslOpt)
 	checkExampleFSrw(t, dirC, false)
 	test_helpers.UnmountPanic(dirC)
@@ -179,6 +183,9 @@ func TestExampleFSv11reverse(t *testing.T) {
 
 	m := "68b51855-042abd80-635ae1ba-90152a78-2ec2d243-832ac72a-eab0561a-f2d37913"
 	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-masterkey", m, opensslOpt)
+	if !test_helpers.VerifyExistence(c) {
+		t.Errorf("%s missing", c)
+	}
 	test_helpers.MountOrFatal(t, dirB, dirC, "-aessiv", "-masterkey", m, opensslOpt)
 	checkExampleFSrw(t, dirC, false)
 	test_helpers.UnmountPanic(dirC)
@@ -199,6 +206,10 @@ func TestExampleFSv11reversePlaintextnames(t *testing.T) {
 		t.Fatal(err)
 	}
 	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-extpass", "echo test", opensslOpt)
+	c := dirB + "/gocryptfs.conf"
+	if !test_helpers.VerifyExistence(c) {
+		t.Errorf("%s missing", c)
+	}
 	test_helpers.MountOrFatal(t, dirB, dirC, "-extpass", "echo test", opensslOpt)
 	checkExampleFSrw(t, dirC, false)
 	test_helpers.UnmountPanic(dirC)
@@ -206,6 +217,9 @@ func TestExampleFSv11reversePlaintextnames(t *testing.T) {
 
 	m := "e7fb8f0d-2a81df9e-26611e4b-5540b218-e48aa458-c2a623af-d0c82637-1466b5f2"
 	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-masterkey", m, opensslOpt)
+	if !test_helpers.VerifyExistence(c) {
+		t.Errorf("%s missing", c)
+	}
 	test_helpers.MountOrFatal(t, dirB, dirC, "-aessiv", "-masterkey", m, opensslOpt)
 	checkExampleFSrw(t, dirC, false)
 	test_helpers.UnmountPanic(dirC)

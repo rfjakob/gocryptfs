@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-	//"time"
 
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
@@ -55,7 +54,9 @@ func TestSymlinks(t *testing.T) {
 // gocryptfs.conf
 func TestConfigMapping(t *testing.T) {
 	c := dirB + "/gocryptfs.conf"
-	test_helpers.VerifyExistence(c)
+	if !test_helpers.VerifyExistence(c) {
+		t.Errorf("%s missing", c)
+	}
 	data, err := ioutil.ReadFile(c)
 	if err != nil {
 		t.Fatal(err)
