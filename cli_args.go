@@ -20,6 +20,9 @@ type argContainer struct {
 	// Configuration file name override
 	config             string
 	notifypid, scryptn int
+	// _configCustom is true when the user sets a custom config file name.
+	// This is not a CLI option.
+	_configCustom bool
 }
 
 var flagSet *flag.FlagSet

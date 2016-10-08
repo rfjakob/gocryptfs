@@ -125,6 +125,7 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 		PlaintextNames: args.plaintextnames,
 		LongNames:      args.longnames,
 		CryptoBackend:  cryptoBackend,
+		ConfigCustom:   args._configCustom,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {

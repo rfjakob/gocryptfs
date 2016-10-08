@@ -17,6 +17,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 const (
@@ -110,13 +111,19 @@ func (rfs *reverseFS) dirIVAttr(relPath string, context *fuse.Context) (*fuse.At
 }
 
 // isDirIV determines if the path points to a gocryptfs.diriv file
-func isDirIV(relPath string) bool {
+func (rfs *reverseFS) isDirIV(relPath string) bool {
+	if rfs.args.PlaintextNames {
+		return false
+	}
 	return filepath.Base(relPath) == nametransform.DirIVFilename
 }
 
 // isNameFile determines if the path points to a gocryptfs.longname.*.name
 // file
-func isNameFile(relPath string) bool {
+func (rfs *reverseFS) isNameFile(relPath string) bool {
+	if rfs.args.PlaintextNames {
+		return false
+	}
 	fileType := nametransform.NameType(filepath.Base(relPath))
 	return fileType == nametransform.LongNameFilename
 }
@@ -161,19 +168,15 @@ func (rfs *reverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 	if relPath == configfile.ConfDefaultName {
 		return rfs.inoAwareStat(configfile.ConfReverseName)
 	}
-	if rfs.isFiltered(relPath) {
-		return nil, fuse.EPERM
-	}
-
 	// Handle virtual files
 	var f nodefs.File
 	var status fuse.Status
 	virtual := false
-	if isDirIV(relPath) {
+	if rfs.isDirIV(relPath) {
 		virtual = true
 		f, status = rfs.newDirIVFile(relPath)
 	}
-	if isNameFile(relPath) {
+	if rfs.isNameFile(relPath) {
 		virtual = true
 		f, status = rfs.newNameFile(relPath)
 	}
@@ -204,7 +207,7 @@ func (rfs *reverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 
 // Access - FUSE call
 func (rfs *reverseFS) Access(relPath string, mode uint32, context *fuse.Context) fuse.Status {
-	if isDirIV(relPath) {
+	if rfs.isDirIV(relPath) {
 		return fuse.OK
 	}
 	if rfs.isFiltered(relPath) {
@@ -223,16 +226,41 @@ func (rfs *reverseFS) Open(relPath string, flags uint32, context *fuse.Context) 
 		// gocryptfs.conf maps to .gocryptfs.reverse.conf in the plaintext directory
 		return rfs.loopbackfs.Open(configfile.ConfReverseName, flags, context)
 	}
-	if isDirIV(relPath) {
+	if rfs.isDirIV(relPath) {
 		return rfs.newDirIVFile(relPath)
 	}
-	if isNameFile(relPath) {
+	if rfs.isNameFile(relPath) {
 		return rfs.newNameFile(relPath)
 	}
 	if rfs.isFiltered(relPath) {
 		return nil, fuse.EPERM
 	}
 	return rfs.NewFile(relPath, flags)
+}
+
+func (rfs *reverseFS) openDirPlaintextnames(relPath string, entries []fuse.DirEntry) ([]fuse.DirEntry, fuse.Status) {
+	if relPath != "" || rfs.args.ConfigCustom {
+		return entries, fuse.OK
+	}
+	// We are in the root dir and the default config file name
+	// ".gocryptfs.reverse.conf" is used. We map it to "gocryptfs.conf".
+	dupe := -1
+	status := fuse.OK
+	for i := range entries {
+		if entries[i].Name == configfile.ConfReverseName {
+			entries[i].Name = configfile.ConfDefaultName
+		} else if entries[i].Name == configfile.ConfDefaultName {
+			dupe = i
+		}
+	}
+	if dupe >= 0 {
+		// Warn the user loudly: The gocryptfs.conf_NAME_COLLISION file will
+		// throw ENOENT errors that are hard to miss.
+		tlog.Warn.Printf("The file %s is mapped to %s and shadows another file. Please rename %s in %s .",
+			configfile.ConfReverseName, configfile.ConfDefaultName, configfile.ConfDefaultName, rfs.args.Cipherdir)
+		entries[dupe].Name = "gocryptfs.conf_NAME_COLLISION_" + fmt.Sprintf("%d", cryptocore.RandUint64())
+	}
+	return entries, status
 }
 
 // OpenDir - FUSE readdir call
@@ -245,6 +273,9 @@ func (rfs *reverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 	entries, status := rfs.loopbackfs.OpenDir(relPath, context)
 	if entries == nil {
 		return nil, status
+	}
+	if rfs.args.PlaintextNames {
+		return rfs.openDirPlaintextnames(cipherPath, entries)
 	}
 	// Allocate maximum possible number of virtual files.
 	// If all files have long names we need a virtual ".name" file for each,

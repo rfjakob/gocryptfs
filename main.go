@@ -155,6 +155,7 @@ func main() {
 			os.Exit(ErrExitInit)
 		}
 		tlog.Info.Printf("Using config file at custom location %s", args.config)
+		args._configCustom = true
 	} else if args.reverse {
 		args.config = filepath.Join(args.cipherdir, configfile.ConfReverseName)
 	} else {

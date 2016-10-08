@@ -1,6 +1,7 @@
 package reverse_test
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
 	//"time"
@@ -47,5 +48,19 @@ func TestSymlinks(t *testing.T) {
 	}
 	if target != actualTarget {
 		t.Errorf("wrong symlink target: want=%q have=%q", target, actualTarget)
+	}
+}
+
+// .gocryptfs.reverse.conf in the plaintext dir should be visible as
+// gocryptfs.conf
+func TestConfigMapping(t *testing.T) {
+	c := dirB + "/gocryptfs.conf"
+	test_helpers.VerifyExistence(c)
+	data, err := ioutil.ReadFile(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(data) == 0 {
+		t.Errorf("empty file")
 	}
 }
