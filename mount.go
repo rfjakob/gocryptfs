@@ -38,7 +38,7 @@ func doMount(args *argContainer) int {
 	}
 	// We cannot mount "/home/user/.cipher" at "/home/user" because the mount
 	// will hide ".cipher" also for us.
-	if strings.HasPrefix(args.cipherdir, args.mountpoint) {
+	if args.cipherdir == args.mountpoint || strings.HasPrefix(args.cipherdir, args.mountpoint+"/") {
 		tlog.Fatal.Printf("Mountpoint %q would shadow cipherdir %q, this is not supported",
 			args.mountpoint, args.cipherdir)
 		os.Exit(ErrExitMountPoint)
