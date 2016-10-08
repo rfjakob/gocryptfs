@@ -31,6 +31,8 @@ path="/usr/local/bin/gocryptfs_pam_mount.bash#/home/%(USER)/cipher"
 mountpoint="/home/%(USER)/plain" />
 ```
 
+Replace `testuser` with your user name.
+
 If you want to disable the display of the masterkey on mount, replace
 `options="defaults"` with `options="quiet"`.
 
@@ -39,7 +41,8 @@ PAM config
 
 An example `/etc/pam.d/login` on Fedora 24 is shown below. pam_mount
 MUST be called AFTER `pam_selinux.so open` because that puts us in the
-right SELinux context.
+right SELinux context. If are logging in via gcm, also add the line in
+`/etc/pam.d/gdm-password`.
 
 ```
 #%PAM-1.0
@@ -61,3 +64,16 @@ session    include      system-auth
 session    include      postlogin
 -session   optional     pam_ck_connector.so
 ```
+
+Encrypting the whole home directory
+-----------------------------------
+
+Use this volume definition in `/etc/security/pam_mount.conf.xml`:
+
+```
+<volume user="testuser-whole-home" fstype="fuse" options="nonempty,allow_other"
+path="/usr/local/bin/gocryptfs_pam_mount.bash#/home/%(USER).cipher"
+mountpoint="/home/%(USER)" />
+```
+
+Replace `testuser-whole-home` with your user name.
