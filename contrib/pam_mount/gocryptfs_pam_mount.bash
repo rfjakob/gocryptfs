@@ -9,9 +9,9 @@
 
 exec >&2
 set -eu
+MYNAME=$(basename $0)
 
 if [[ $# != 4 ]]; then
-	MYNAME=$(basename $0)
 	echo "$MYNAME: expected 4 arguments, got $#"
 	echo "Example: $MYNAME /home/user.crypt /home/user.plain -o allow_other"
 	echo "Example: $MYNAME /home/user.crypt /home/user.plain -o defaults"
@@ -20,6 +20,12 @@ fi
 
 SRC=$1
 DST=$2
+
+if mountpoint "$DST" > /dev/null; then
+	echo "$MYNAME: something is already mounted on $DST, refusing"
+	exit 2
+fi
+
 GOPTS=""
 for OPT in nonempty allow_other quiet; do
 	if [[ $4 == *$OPT* ]]; then
