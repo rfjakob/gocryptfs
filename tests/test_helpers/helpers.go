@@ -121,7 +121,7 @@ func InitFS(t *testing.T, extraArgs ...string) string {
 func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 	var args []string
 	args = append(args, extraArgs...)
-	args = append(args, "-q", "-wpanic")
+	args = append(args, "-q", "-wpanic", "-nosyslog")
 	//args = append(args, "-fusedebug")
 	//args = append(args, "-d")
 	args = append(args, c)
