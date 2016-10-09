@@ -130,6 +130,8 @@ v1.1 (not yet released)
   precede the passed paths.
  * This allows mounting from /etc/fstab. See
    (#45)[https://github.com/rfjakob/gocryptfs/issues/45] for details.
+ * Mounting on login using pam_mount works as well. It is
+   [described in the wiki](https://github.com/rfjakob/gocryptfs/wiki/Mounting-on-login-using-pam_mount).
 * To prevent confusion, the old `-o` option had to be renamed. It is now
   called `-ko`. Arguments to `-ko` are passed directly to the kernel.
 * New `-passfile` command-line option. Provides an easier way to read
