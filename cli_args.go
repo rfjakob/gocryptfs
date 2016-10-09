@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/prefer_openssl"
@@ -27,8 +28,32 @@ type argContainer struct {
 
 var flagSet *flag.FlagSet
 
+// prefixOArgs transform options passed via "-o foo,bar" into regular options
+// like "-foo -bar" and prefixes them to the command line.
+func prefixOArgs(osArgs []string) []string {
+	l := len(osArgs)
+	// Need at least 3, example: gocryptfs -o foo,bar
+	if l < 3 {
+		return osArgs
+	}
+	if osArgs[l-2] != "-o" {
+		return osArgs
+	}
+	oOpts := strings.Split(osArgs[l-1], ",")
+	osArgs = osArgs[:l-2]
+	newArgs := []string{osArgs[0]}
+	// Add options from "-o"
+	for _, a := range oOpts {
+		newArgs = append(newArgs, "-"+a)
+	}
+	newArgs = append(newArgs, osArgs[1:]...)
+	return newArgs
+}
+
 // parseCliOpts - parse command line options (i.e. arguments that start with "-")
 func parseCliOpts() (args argContainer) {
+	os.Args = prefixOArgs(os.Args)
+
 	var err error
 	var opensslAuto string
 

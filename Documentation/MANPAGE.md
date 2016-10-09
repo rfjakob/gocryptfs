@@ -18,7 +18,7 @@ gocryptfs -init [OPTIONS] CIPHERDIR
 Mount
 -----
 
-gocryptfs [OPTIONS] CIPHERDIR MOUNTPOINT
+gocryptfs [OPTIONS] CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]
 
 Change password
 ---------------
@@ -142,6 +142,12 @@ useful in regression testing.
 :	Use all-zero dummy master key. This options is only intended for
 automated testing as it does not provide any security.
 
+
+Comma-Separated-Options:
+
+For compatability with mount(1), options are also accepted as
+"-o COMMA-SEPARATED-OPTIONS" at the end of the command line.
+For example, "-o q,zerokey" is equivalent to "-q -zerokey".
 
 EXAMPLES
 ========

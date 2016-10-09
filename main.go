@@ -42,7 +42,7 @@ func usageText() {
 	printVersion()
 	fmt.Printf(`
 Usage: %s -init|-passwd [OPTIONS] CIPHERDIR
-  or   %s [OPTIONS] CIPHERDIR MOUNTPOINT
+  or   %s [OPTIONS] CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]
 
 Options:
 `, tlog.ProgramName, tlog.ProgramName)
@@ -221,7 +221,7 @@ func main() {
 		prettyArgs = prettyArgs[1 : len(prettyArgs)-1]
 		tlog.Info.Printf("Wrong number of arguments (have %d, want 2). You passed: %s",
 			flagSet.NArg(), prettyArgs)
-		tlog.Fatal.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT", tlog.ProgramName)
+		tlog.Fatal.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]", tlog.ProgramName)
 		os.Exit(ErrExitUsage)
 	}
 	os.Exit(doMount(&args))
