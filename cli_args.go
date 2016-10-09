@@ -17,7 +17,7 @@ type argContainer struct {
 	plaintextnames, quiet, nosyslog, wpanic,
 	longnames, allow_other, ro, reverse, aessiv, nonempty bool
 	masterkey, mountpoint, cipherdir, cpuprofile, extpass,
-	memprofile, ko string
+	memprofile, ko, passfile string
 	// Configuration file name override
 	config             string
 	notifypid, scryptn int
@@ -86,6 +86,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")
 	flagSet.StringVar(&args.config, "config", "", "Use specified config file instead of CIPHERDIR/gocryptfs.conf")
 	flagSet.StringVar(&args.extpass, "extpass", "", "Use external program for the password prompt")
+	flagSet.StringVar(&args.passfile, "passfile", "", "Read password from file")
 	flagSet.StringVar(&args.ko, "ko", "", "Pass additional options directly to the kernel, comma-separated list")
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")
@@ -110,6 +111,9 @@ func parseCliOpts() (args argContainer) {
 			os.Exit(ErrExitUsage)
 		}
 	}
-
+	// "-passfile FILE" is a shortcut for "-extpass=/bin/cat FILE"
+	if args.passfile != "" {
+		args.extpass = "/bin/cat " + args.passfile
+	}
 	return args
 }

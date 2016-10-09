@@ -108,6 +108,10 @@ built-in crypto is 4x slower unless your CPU has AES instructions and
 you are using Go 1.6+. In mode "auto", gocrypts chooses the faster
 option.
 
+**-passfile string**
+:	Read password from the specified file. This is a shortcut for
+specifying "-extpass /bin/cat FILE".
+
 **-passwd**
 :	Change password
 
