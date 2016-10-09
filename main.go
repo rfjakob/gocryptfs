@@ -214,6 +214,15 @@ func main() {
 		}
 		changePassword(&args) // does not return
 	}
-	// Mount
+	// Default operation: mount.
+	if flagSet.NArg() != 2 {
+		prettyArgs := fmt.Sprintf("%q", os.Args[1:])
+		// Get rid of "[" and "]"
+		prettyArgs = prettyArgs[1 : len(prettyArgs)-1]
+		tlog.Info.Printf("Wrong number of arguments (have %d, want 2). You passed: %s",
+			flagSet.NArg(), prettyArgs)
+		tlog.Fatal.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT", tlog.ProgramName)
+		os.Exit(ErrExitUsage)
+	}
 	os.Exit(doMount(&args))
 }

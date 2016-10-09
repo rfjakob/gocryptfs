@@ -26,10 +26,6 @@ import (
 // Called from main.
 func doMount(args *argContainer) int {
 	// Check mountpoint
-	if flagSet.NArg() != 2 {
-		tlog.Fatal.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT", tlog.ProgramName)
-		os.Exit(ErrExitUsage)
-	}
 	var err error
 	args.mountpoint, err = filepath.Abs(flagSet.Arg(1))
 	if err != nil {
