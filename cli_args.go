@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -57,7 +58,7 @@ func parseCliOpts() (args argContainer) {
 	var err error
 	var opensslAuto string
 
-	flagSet = flag.NewFlagSet(tlog.ProgramName, flag.ExitOnError)
+	flagSet = flag.NewFlagSet(tlog.ProgramName, flag.ContinueOnError)
 	flagSet.Usage = usageText
 	flagSet.BoolVar(&args.debug, "d", false, "")
 	flagSet.BoolVar(&args.debug, "debug", false, "Enable debug output")
@@ -99,7 +100,12 @@ func parseCliOpts() (args argContainer) {
 	flagSet.BoolVar(&ignoredBool, "nosuid", false, ignoreText)
 	flagSet.BoolVar(&ignoredBool, "nodev", false, ignoreText)
 	// Actual parsing
-	flagSet.Parse(os.Args[1:])
+	err = flagSet.Parse(os.Args[1:])
+	if err != nil {
+		tlog.Warn.Printf("You passed: %s", prettyArgs())
+		tlog.Fatal.Printf("%v", err)
+		os.Exit(2)
+	}
 
 	// "-openssl" needs some post-processing
 	if opensslAuto == "auto" {
@@ -116,4 +122,12 @@ func parseCliOpts() (args argContainer) {
 		args.extpass = "/bin/cat " + args.passfile
 	}
 	return args
+}
+
+// prettyArgs pretty-prints the command-line arguments.
+func prettyArgs() string {
+	pa := fmt.Sprintf("%q", os.Args[1:])
+	// Get rid of "[" and "]"
+	pa = pa[1 : len(pa)-1]
+	return pa
 }

@@ -216,9 +216,7 @@ func main() {
 	}
 	// Default operation: mount.
 	if flagSet.NArg() != 2 {
-		prettyArgs := fmt.Sprintf("%q", os.Args[1:])
-		// Get rid of "[" and "]"
-		prettyArgs = prettyArgs[1 : len(prettyArgs)-1]
+		prettyArgs := prettyArgs()
 		tlog.Info.Printf("Wrong number of arguments (have %d, want 2). You passed: %s",
 			flagSet.NArg(), prettyArgs)
 		tlog.Fatal.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]", tlog.ProgramName)
