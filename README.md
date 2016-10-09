@@ -115,7 +115,7 @@ RM:    4.42
 Changelog
 ---------
 
-v1.1-rc1, 2016-10-09
+v1.1 (not yet released)
 * **Add reverse mode ([#19](https://github.com/rfjakob/gocryptfs/issues/19))**
  * AES-SIV (RFC5297) encryption to implement deterministic encryption
    securely. Uses the excellent
@@ -123,8 +123,19 @@ v1.1-rc1, 2016-10-09
  * New command-line options: `-reverse`, `-aessiv`
  * Filesystems using reverse mode can only be mounted with gocryptfs v1.1
    and later.
-* The default, forward mode, stays fully compatible with older versions.
-  Forward mode will keep using GCM because it is much faster.
+ * The default, forward mode, stays fully compatible with older versions.
+   Forward mode will keep using GCM because it is much faster.
+* Accept "-o a,b,c"-style options that are passed at the end of
+  the command-line, like mount(1) does. All other options must still
+  precede the passed paths.
+ * This allows mounting from /etc/fstab. See
+   (#45)[https://github.com/rfjakob/gocryptfs/issues/45] for details.
+* To prevent confusion, the old `-o` option had to be renamed. It is now
+  called `-ko`. Arguments to `-ko` are passed directly to the kernel.
+* New `-passfile` command-line option. Provides an easier way to read
+  the password from a file. Internally, this is equivalent to
+  `-extpass "/bin/cat FILE"`.
+
 
 v1.0, 2016-07-17
 * Deprecate very old filesystems, stage 3/3
