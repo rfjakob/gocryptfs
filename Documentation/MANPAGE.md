@@ -65,6 +65,15 @@ to mount the gocryptfs filesytem without user interaction.
 **-init**
 :	Initialize encrypted directory
 
+**-ko**
+: Pass additonal mount options to the kernel (comma-separated list).
+FUSE filesystems are mounted with "nodev,nosuid" by default. If gocryptfs
+runs as root, you can enable device files by passing the opposite mount option,
+"dev", and if you want to enable suid-binaries, pass "suid".
+"ro" (equivalent to passing the "-ro" option) and "noexec" may also be
+interesting. For a complete list see the section
+`FILESYSTEM-INDEPENDENT MOUNT OPTIONS` in mount(8).
+
 **-longnames**
 :	Store names longer than 176 bytes in extra files (default true)
 This flag is useful when recovering old gocryptfs filesystems using
@@ -92,15 +101,6 @@ continue be printed to stdout and stderr.
 **-notifypid int**
 :	Send USR1 to the specified process after successful mount. This is
 used internally for daemonization.
-
-**-o**
-: Pass additonal mount options to the kernel (comma-separated list).
-FUSE filesystems are mounted with "nodev,nosuid" by default. If gocryptfs
-runs as root, you can enable device files by passing the opposite mount option,
-"dev", and if you want to enable suid-binaries, pass "suid".
-"ro" (equivalent to passing the "-ro" option) and "noexec" may also be
-interesting. For a complete list see the section
-`FILESYSTEM-INDEPENDENT MOUNT OPTIONS` in mount(8).
 
 **-openssl bool/"auto"**
 :	Use OpenSSL instead of built-in Go crypto (default "auto"). Using

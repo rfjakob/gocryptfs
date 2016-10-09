@@ -185,9 +185,9 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 	}
 	// Add additional mount options (if any) after the stock ones, so the user has
 	// a chance to override them.
-	if args.o != "" {
-		parts := strings.Split(args.o, ",")
-		tlog.Debug.Printf("Adding -o mount options: %v", parts)
+	if args.ko != "" {
+		parts := strings.Split(args.ko, ",")
+		tlog.Debug.Printf("Adding -ko mount options: %v", parts)
 		mOpts.Options = append(mOpts.Options, parts...)
 	}
 	srv, err := fuse.NewServer(conn.RawFS(), args.mountpoint, &mOpts)
