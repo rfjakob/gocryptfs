@@ -125,12 +125,12 @@ v1.1 (not yet released)
    and later.
  * The default, forward mode, stays fully compatible with older versions.
    Forward mode will keep using GCM because it is much faster.
-* Accept "-o a,b,c"-style options that are passed at the end of
+* Accept `-o foo,bar,baz`-style options that are passed at the end of
   the command-line, like mount(1) does. All other options must still
   precede the passed paths.
- * This allows mounting from /etc/fstab. See
-   (#45)[https://github.com/rfjakob/gocryptfs/issues/45] for details.
- * Mounting on login using pam_mount works as well. It is
+ * This allows **mounting from /etc/fstab**. See
+   [#45](https://github.com/rfjakob/gocryptfs/issues/45) for details.
+ * **Mounting on login using pam_mount** works as well. It is
    [described in the wiki](https://github.com/rfjakob/gocryptfs/wiki/Mounting-on-login-using-pam_mount).
 * To prevent confusion, the old `-o` option had to be renamed. It is now
   called `-ko`. Arguments to `-ko` are passed directly to the kernel.
