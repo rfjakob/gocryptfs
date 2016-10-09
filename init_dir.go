@@ -66,6 +66,9 @@ func initDir(args *argContainer) {
 		// keep the absolute path.
 		friendlyPath = args.cipherdir
 	}
+	if strings.Contains(friendlyPath, " ") {
+		friendlyPath = "\"" + friendlyPath + "\""
+	}
 	tlog.Info.Printf(tlog.ColorGrey+"You can now mount it using: %s%s %s MOUNTPOINT"+tlog.ColorReset,
 		tlog.ProgramName, mountArgs, friendlyPath)
 	os.Exit(0)
