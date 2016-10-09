@@ -91,6 +91,13 @@ func parseCliOpts() (args argContainer) {
 		"successful mount - used internally for daemonization")
 	flagSet.IntVar(&args.scryptn, "scryptn", configfile.ScryptDefaultLogN, "scrypt cost parameter logN. "+
 		"Setting this to a lower value speeds up mounting but makes the password susceptible to brute-force attacks")
+	// Ignored otions
+	var ignoredBool bool
+	ignoreText := "(ignored for compatability)"
+	flagSet.BoolVar(&ignoredBool, "rw", false, ignoreText)
+	flagSet.BoolVar(&ignoredBool, "nosuid", false, ignoreText)
+	flagSet.BoolVar(&ignoredBool, "nodev", false, ignoreText)
+	// Actual parsing
 	flagSet.Parse(os.Args[1:])
 
 	// "-openssl" needs some post-processing
