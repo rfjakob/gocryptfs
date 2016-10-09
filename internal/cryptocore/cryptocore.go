@@ -72,6 +72,10 @@ func New(key []byte, backend BackendTypeEnum, IVBitLen int) *CryptoCore {
 	case BackendGoGCM:
 		aeadCipher, err = goGCMWrapper(blockCipher, IVLen)
 	case BackendAESSIV:
+		if IVLen != 16 {
+			// SIV supports any nonce size, but we only use 16.
+			panic("AES-SIV must use 16-byte nonces")
+		}
 		// AES-SIV uses 1/2 of the key for authentication, 1/2 for
 		// encryption, so we need a 64-bytes key for AES-256. Derive it from
 		// the master key by hashing it with SHA-512.

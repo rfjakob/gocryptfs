@@ -46,10 +46,14 @@ type reverseFS struct {
 
 var _ pathfs.FileSystem = &reverseFS{}
 
-// NewFS returns an encrypted FUSE overlay filesystem
+// NewFS returns an encrypted FUSE overlay filesystem.
+// In this case (reverse mode) the backing directory is plain-text and
+// reverseFS provides an encrypted view.
 func NewFS(args fusefrontend.Args) pathfs.FileSystem {
+	if args.CryptoBackend != cryptocore.BackendAESSIV {
+		panic("reverse mode must use AES-SIV, everything else is insecure")
+	}
 	initLongnameCache()
-
 	cryptoCore := cryptocore.New(args.Masterkey, args.CryptoBackend, contentenc.DefaultIVBits)
 	contentEnc := contentenc.New(cryptoCore, contentenc.DefaultBS)
 	nameTransform := nametransform.New(cryptoCore, args.LongNames)
