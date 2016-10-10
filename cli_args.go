@@ -61,6 +61,10 @@ func prefixOArgs(osArgs []string) []string {
 		if o == "" {
 			continue
 		}
+		if o == "o" || o == "-o" {
+			tlog.Fatal.Printf("You can't pass \"-o\" to \"-o\"")
+			os.Exit(ErrExitUsage)
+		}
 		newArgs = append(newArgs, "-"+o)
 	}
 	// Add other arguments
@@ -111,19 +115,23 @@ func parseCliOpts() (args argContainer) {
 	flagSet.IntVar(&args.scryptn, "scryptn", configfile.ScryptDefaultLogN, "scrypt cost parameter logN. "+
 		"Setting this to a lower value speeds up mounting but makes the password susceptible to brute-force attacks")
 	// Ignored otions
-	var ignoredBool bool
+	var dummyBool bool
 	ignoreText := "(ignored for compatability)"
-	flagSet.BoolVar(&ignoredBool, "rw", false, ignoreText)
-	flagSet.BoolVar(&ignoredBool, "nosuid", false, ignoreText)
-	flagSet.BoolVar(&ignoredBool, "nodev", false, ignoreText)
+	flagSet.BoolVar(&dummyBool, "rw", false, ignoreText)
+	flagSet.BoolVar(&dummyBool, "nosuid", false, ignoreText)
+	flagSet.BoolVar(&dummyBool, "nodev", false, ignoreText)
+	var dummyString string
+	flagSet.StringVar(&dummyString, "o", "", "For compatability, all options can be also passed as a comma-separated list to -o.")
 	// Actual parsing
 	err = flagSet.Parse(os.Args[1:])
+	if err == flag.ErrHelp {
+		os.Exit(0)
+	}
 	if err != nil {
 		tlog.Warn.Printf("You passed: %s", prettyArgs())
 		tlog.Fatal.Printf("%v", err)
-		os.Exit(2)
+		os.Exit(ErrExitUsage)
 	}
-
 	// "-openssl" needs some post-processing
 	if opensslAuto == "auto" {
 		args.openssl = prefer_openssl.PreferOpenSSL()

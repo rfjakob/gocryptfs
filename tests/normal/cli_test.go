@@ -178,6 +178,7 @@ func TestShadows(t *testing.T) {
 		t.Fatal(err)
 	}
 	// This should work
+	// (note that MountOrFatal creates "mnt" again)
 	test_helpers.MountOrFatal(t, cipher, mnt, "-extpass=echo test")
 	test_helpers.UnmountPanic(mnt)
 	cipher2 := mnt + "/cipher"
