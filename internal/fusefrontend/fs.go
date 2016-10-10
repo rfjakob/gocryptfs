@@ -153,10 +153,11 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 			return nil, fuse.ToStatus(err)
 		}
 	}
+	// Set owner
 	if fs.args.PreserveOwner {
 		err = fd.Chown(int(context.Owner.Uid), int(context.Owner.Gid))
 		if err != nil {
-			tlog.Warn.Printf("PreserveOwner: Chown failed: %v", err)
+			tlog.Warn.Printf("Create: Chown failed: %v", err)
 		}
 	}
 	return NewFile(fd, writeOnly, fs.contentEnc)

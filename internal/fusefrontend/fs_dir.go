@@ -20,7 +20,8 @@ import (
 
 func (fs *FS) mkdirWithIv(cPath string, mode uint32) error {
 	// Between the creation of the directory and the creation of gocryptfs.diriv
-	// the directory is inconsistent. Take the lock to prevent other readers.
+	// the directory is inconsistent. Take the lock to prevent other readers
+	// from seeing it.
 	fs.dirIVLock.Lock()
 	// The new directory may take the place of an older one that is still in the cache
 	fs.nameTransform.DirIVCache.Clear()
@@ -51,6 +52,13 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 	}
 	if fs.args.PlaintextNames {
 		err = os.Mkdir(cPath, os.FileMode(mode))
+		// Set owner
+		if fs.args.PreserveOwner {
+			err = os.Chown(cPath, int(context.Owner.Uid), int(context.Owner.Gid))
+			if err != nil {
+				tlog.Warn.Printf("Mkdir: Chown failed: %v", err)
+			}
+		}
 		return fuse.ToStatus(err)
 	}
 
@@ -94,7 +102,17 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 			tlog.Warn.Printf("Mkdir: Chmod failed: %v", err)
 		}
 	}
-
+	// Set owner
+	if fs.args.PreserveOwner {
+		err = os.Chown(cPath, int(context.Owner.Uid), int(context.Owner.Gid))
+		if err != nil {
+			tlog.Warn.Printf("Mkdir: Chown failed: %v", err)
+		}
+		err = os.Chown(filepath.Join(cPath, nametransform.DirIVFilename), int(context.Owner.Uid), int(context.Owner.Gid))
+		if err != nil {
+			tlog.Warn.Printf("Mkdir: Chown failed: %v", err)
+		}
+	}
 	return fuse.OK
 }
 
