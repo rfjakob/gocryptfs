@@ -32,22 +32,39 @@ var flagSet *flag.FlagSet
 // prefixOArgs transform options passed via "-o foo,bar" into regular options
 // like "-foo -bar" and prefixes them to the command line.
 func prefixOArgs(osArgs []string) []string {
-	l := len(osArgs)
 	// Need at least 3, example: gocryptfs -o foo,bar
-	if l < 3 {
+	if len(osArgs) < 3 {
 		return osArgs
 	}
-	if osArgs[l-2] != "-o" {
-		return osArgs
+	// Find and extract "-o foo,bar"
+	var otherArgs, oOpts []string
+	for i := 1; i < len(osArgs); i++ {
+		if osArgs[i] == "-o" {
+			// Last argument?
+			if i+1 >= len(osArgs) {
+				tlog.Fatal.Printf("The \"-o\" option requires an argument")
+				os.Exit(ErrExitUsage)
+			}
+			oOpts = strings.Split(osArgs[i+1], ",")
+			// Skip over the arguments to "-o"
+			i++
+		} else if strings.HasPrefix(osArgs[i], "-o=") {
+			oOpts = strings.Split(osArgs[i][3:], ",")
+		} else {
+			otherArgs = append(otherArgs, osArgs[i])
+		}
 	}
-	oOpts := strings.Split(osArgs[l-1], ",")
-	osArgs = osArgs[:l-2]
+	// Start with program name
 	newArgs := []string{osArgs[0]}
 	// Add options from "-o"
-	for _, a := range oOpts {
-		newArgs = append(newArgs, "-"+a)
+	for _, o := range oOpts {
+		if o == "" {
+			continue
+		}
+		newArgs = append(newArgs, "-"+o)
 	}
-	newArgs = append(newArgs, osArgs[1:]...)
+	// Add other arguments
+	newArgs = append(newArgs, otherArgs...)
 	return newArgs
 }
 

@@ -39,14 +39,23 @@ func TestPrefixOArgs(t *testing.T) {
 			o: []string{"gocryptfs", "-a", "-b", "-xxxxx", "foo", "bar"},
 		},
 		testcase{
+			i: []string{"gocryptfs", "foo", "bar", "-d", "-o=a,b,xxxxx"},
+			o: []string{"gocryptfs", "-a", "-b", "-xxxxx", "foo", "bar", "-d"},
+		},
+		testcase{
 			i: []string{"gocryptfs", "foo", "bar", "-oooo", "a,b,xxxxx"},
 			o: []string{"gocryptfs", "foo", "bar", "-oooo", "a,b,xxxxx"},
+		},
+		// https://github.com/mhogomchungu/sirikali/blob/a36d91d3e39f0c1eb9a79680ed6c28ddb6568fa8/src/siritask.cpp#L192
+		testcase{
+			i: []string{"gocryptfs", "-o", "rw", "--config", "fff", "ccc", "mmm"},
+			o: []string{"gocryptfs", "-rw", "--config", "fff", "ccc", "mmm"},
 		},
 	}
 	for _, tc := range testcases {
 		o := prefixOArgs(tc.i)
 		if !reflect.DeepEqual(o, tc.o) {
-			t.Errorf("\n   i=%q\nwant=%q\n got=%q", tc.i, tc.o, o)
+			t.Errorf("\n  in=%q\nwant=%q\n got=%q", tc.i, tc.o, o)
 		}
 	}
 }
