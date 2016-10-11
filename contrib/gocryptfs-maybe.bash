@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Conditionally try to mount a gocryptfs filesystem. If either
-# * CIPHERDIR does not exist OR
+# * CIPHERDIR/gocryptfs.conf does not exist OR
 # * something is already mounted on MOUNTPOINT
 # print a message to stdout (not stderr!) but exit with 0.
 #
