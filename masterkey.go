@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"golang.org/x/crypto/ssh/terminal"
+
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -12,9 +14,13 @@ import (
 // printMasterKey - remind the user that he should store the master key in
 // a safe place
 func printMasterKey(key []byte) {
+	if !terminal.IsTerminal(int(os.Stdout.Fd())) {
+		// We don't want the master key to end up in a log file
+		tlog.Info.Printf("Not running on a terminal, suppressing master key display\n")
+		return
+	}
 	h := hex.EncodeToString(key)
 	var hChunked string
-
 	// Try to make it less scary by splitting it up in chunks
 	for i := 0; i < len(h); i += 8 {
 		hChunked += h[i : i+8]
@@ -25,7 +31,6 @@ func printMasterKey(key []byte) {
 			hChunked += "\n    "
 		}
 	}
-
 	tlog.Info.Printf(`
 Your master key is:
 
