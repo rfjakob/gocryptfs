@@ -68,7 +68,7 @@ func testPasswd(t *testing.T, dir string, extraArgs ...string) {
 		t.Error(err)
 	}
 	// Change password using stdin
-	args = []string{"-q", "-passwd", "-extpass", "echo test"}
+	args = []string{"-q", "-passwd"}
 	args = append(args, extraArgs...)
 	args = append(args, dir)
 	cmd = exec.Command(test_helpers.GocryptfsBinary, args...)
