@@ -59,9 +59,14 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 		os.Exit(ErrExitLoadConf)
 	}
 	fd.Close()
-	pw := readpassword.Once(args.extpass)
-	tlog.Info.Println("Decrypting master key")
-	masterkey, confFile, err = configfile.LoadConfFile(args.config, pw)
+	if args.masterkey != "" {
+		masterkey = parseMasterKey(args.masterkey)
+		_, confFile, err = configfile.LoadConfFile(args.config, "")
+	} else {
+		pw := readpassword.Once(args.extpass)
+		tlog.Info.Println("Decrypting master key")
+		masterkey, confFile, err = configfile.LoadConfFile(args.config, pw)
+	}
 	if err != nil {
 		tlog.Fatal.Println(err)
 		os.Exit(ErrExitLoadConf)
@@ -75,12 +80,24 @@ func changePassword(args *argContainer) {
 	tlog.Info.Println("Please enter your new password.")
 	newPw := readpassword.Twice(args.extpass)
 	confFile.EncryptKey(masterkey, newPw, confFile.ScryptObject.LogN())
+	if args.masterkey != "" {
+		bak := args.config + ".bak"
+		err := os.Link(args.config, bak)
+		if err != nil {
+			tlog.Fatal.Printf("Could not create backup file: %v", err)
+			os.Exit(ErrExitInit)
+		}
+		tlog.Info.Printf(tlog.ColorGrey+
+			"A copy of the old config file has been created at %q.\n"+
+			"Delete it after you have verified that you can access your files with the new password."+
+			tlog.ColorReset, bak)
+	}
 	err := confFile.WriteFile()
 	if err != nil {
 		tlog.Fatal.Println(err)
 		os.Exit(ErrExitInit)
 	}
-	tlog.Info.Printf("Password changed.")
+	tlog.Info.Printf(tlog.ColorGreen + "Password changed." + tlog.ColorReset)
 	os.Exit(0)
 }
 

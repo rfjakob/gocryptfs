@@ -80,10 +80,14 @@ This flag is useful when recovering old gocryptfs filesystems using
 "-masterkey". It is ignored (stays at the default) otherwise.
 
 **-masterkey string**
-:	Mount with explicit master key specified on the command line. This
+:	Use a explicit master key specified on the command line. This
 option can be used to mount a gocryptfs filesystem without a config file.
 Note that the command line, and with it the master key, is visible to
 anybody on the machine who can execute "ps -auxwww".
+This is meant as a recovery option for emergencies, such as if you have
+forgotten your password.
+	
+	Example master key: 6f717d8b-6b5f8e8a-fd0aa206-778ec093-62c5669b-abd229cd-241e00cd-b4d6713d
 
 **-memprofile string**
 :	Write memory profile to specified file. This is useful when debugging
@@ -91,7 +95,7 @@ memory usage of gocryptfs.
 
 **-nonempty**
 :	Allow mounting over non-empty directories. FUSE by default disallows
-this because to prevent accidential shadowing of files.
+this to prevent accidential shadowing of files.
 
 **-nosyslog**
 :	Diagnostic messages are normally redirected to syslog once gocryptfs
@@ -113,7 +117,16 @@ option.
 specifying "-extpass /bin/cat FILE".
 
 **-passwd**
-:	Change password
+:	Change the password. Will ask for the old password, check if it is
+correct, and ask for a new one.
+	
+	This can be used together with `-masterkey` if
+you forgot the password but know the master key. Note that without the
+old password, gocryptfs cannot tell if the master key is correct and will
+overwrite the old one without mercy. It will, however, create a backup copy
+of the old config file as `gocryptfs.conf.bak`. Delete it after
+you have verified that you can access your files with the
+new password.
 
 **-plaintextnames**
 :	Do not encrypt file names and symlink targets

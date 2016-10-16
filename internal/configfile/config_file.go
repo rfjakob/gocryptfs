@@ -139,7 +139,11 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 
 		return nil, nil, fmt.Errorf("Deprecated filesystem")
 	}
-
+	if password == "" {
+		// We have validated the config file, but without a password we cannot
+		// decrypt the master key. Return only the parsed config.
+		return nil, &cf, nil
+	}
 	// Generate derived key from password
 	scryptHash := cf.ScryptObject.DeriveKey(password)
 
