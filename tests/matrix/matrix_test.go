@@ -660,7 +660,8 @@ type utimesTestcaseStruct struct {
 func compareUtimes(want [2]syscall.Timespec, actual [2]syscall.Timespec) error {
 	tsNames := []string{"atime", "mtime"}
 	for i := range want {
-		if i == 1 {
+		if fusefrontend.BrokenAtimeOmit && i == 0 {
+			// Don't check atime. It's broken in go-fuse.
 			// TODO remove this once the pull request is merged:
 			// https://github.com/hanwen/go-fuse/pull/131
 			continue
@@ -702,7 +703,7 @@ func doTestUtimesNano(t *testing.T, path string) {
 	if fusefrontend.BrokenAtimeOmit {
 		// TODO remove this once the pull request is merged:
 		// https://github.com/hanwen/go-fuse/pull/131
-		utimeTestcases = utimeTestcases[:1]
+		utimeTestcases = utimeTestcases[0:0]
 	}
 	for i, tc := range utimeTestcases {
 		err := syscall.UtimesNano(path, tc.in[:])

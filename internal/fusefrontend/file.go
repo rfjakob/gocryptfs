@@ -391,9 +391,10 @@ func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 const BrokenAtimeOmit = true
 
 func (f *file) Utimens(a *time.Time, m *time.Time) fuse.Status {
-	if a == nil && BrokenAtimeOmit {
+	if BrokenAtimeOmit {
 		// Band-aid for a nil pointer crash, described in
 		// https://github.com/rfjakob/gocryptfs/issues/48
+		// Also band-aid for "mtime gets set to atime".
 		//
 		// TODO drop this once https://github.com/hanwen/go-fuse/pull/131 is
 		// merged
