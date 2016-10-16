@@ -631,41 +631,6 @@ func TestLchown(t *testing.T) {
 	}
 }
 
-// Set nanoseconds by path, normal file
-func TestUtimesNano(t *testing.T) {
-	path := test_helpers.DefaultPlainDir + "/utimesnano"
-	err := ioutil.WriteFile(path, []byte("foobar"), 0600)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ts := make([]syscall.Timespec, 2)
-	// atime
-	ts[0].Sec = 1
-	ts[0].Nsec = 2
-	// mtime
-	ts[1].Sec = 3
-	ts[1].Nsec = 4
-	err = syscall.UtimesNano(path, ts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var st syscall.Stat_t
-	err = syscall.Stat(path, &st)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if st.Atim != ts[0] {
-		if st.Atim.Nsec == 0 {
-			// TODO remove this once the pull request is merged
-			t.Skip("Known limitation, https://github.com/hanwen/go-fuse/pull/131")
-		}
-		t.Errorf("Wrong atime: %v, want: %v", st.Atim, ts[0])
-	}
-	if st.Mtim != ts[1] {
-		t.Errorf("Wrong mtime: %v, want: %v", st.Mtim, ts[1])
-	}
-}
-
 // Set nanoseconds by path, symlink
 func TestUtimesNanoSymlink(t *testing.T) {
 	path := test_helpers.DefaultPlainDir + "/utimesnano_symlink"
@@ -684,28 +649,20 @@ func TestUtimesNanoSymlink(t *testing.T) {
 	}
 }
 
-// Set nanoseconds by fd
-func TestUtimesNanoFd(t *testing.T) {
-	path := test_helpers.DefaultPlainDir + "/utimesnanofd"
-	f, err := os.Create(path)
+// doTestUtimesNano verifies that setting nanosecond-precision times on "path"
+// works correctly. Pass "/proc/self/fd/N" to test a file descriptor.
+func doTestUtimesNano(t *testing.T, path string) {
+	ts := make([]syscall.Timespec, 2)
+	// atime
+	ts[0].Sec = 1
+	ts[0].Nsec = 2
+	// mtime
+	ts[1].Sec = 3
+	ts[1].Nsec = 4
+	err := syscall.UtimesNano(path, ts)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	ts := make([]syscall.Timespec, 2)
-	// atime
-	ts[0].Sec = 5
-	ts[0].Nsec = 6
-	// mtime
-	ts[1].Sec = 7
-	ts[1].Nsec = 8
-
-	procPath := fmt.Sprintf("/proc/self/fd/%d", f.Fd())
-	err = syscall.UtimesNano(procPath, ts)
-	if err != nil {
-		t.Fatalf("%s: %v", procPath, err)
-	}
-
 	var st syscall.Stat_t
 	err = syscall.Stat(path, &st)
 	if err != nil {
@@ -721,4 +678,25 @@ func TestUtimesNanoFd(t *testing.T) {
 	if st.Mtim != ts[1] {
 		t.Errorf("Wrong mtime: %v, want: %v", st.Mtim, ts[1])
 	}
+}
+
+// Set nanoseconds by path, normal file
+func TestUtimesNano(t *testing.T) {
+	path := test_helpers.DefaultPlainDir + "/utimesnano"
+	err := ioutil.WriteFile(path, []byte("foobar"), 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	doTestUtimesNano(t, path)
+}
+
+// Set nanoseconds by fd
+func TestUtimesNanoFd(t *testing.T) {
+	path := test_helpers.DefaultPlainDir + "/utimesnanofd"
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	procPath := fmt.Sprintf("/proc/self/fd/%d", f.Fd())
+	doTestUtimesNano(t, procPath)
 }
