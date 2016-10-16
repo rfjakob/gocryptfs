@@ -1,6 +1,5 @@
-package normal
-
-// Benchmarks
+// Tests and benchmarks performed with default settings only.
+package defaults
 
 import (
 	"fmt"
@@ -12,13 +11,14 @@ import (
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
+// Benchmarks
 func BenchmarkStreamWrite(t *testing.B) {
 	buf := make([]byte, 1024*1024)
 	t.SetBytes(int64(len(buf)))
 
-	file, err := os.Create(test_helpers.DefaultPlainDir + "BenchmarkWrite")
+	file, err := os.Create(test_helpers.DefaultPlainDir + "/BenchmarkWrite")
 	if err != nil {
-		t.FailNow()
+		t.Fatal(err)
 	}
 
 	t.ResetTimer()
@@ -27,7 +27,7 @@ func BenchmarkStreamWrite(t *testing.B) {
 		written, err := file.Write(buf)
 		if err != nil {
 			fmt.Printf("err=\"%s\", written=%d\n", err.Error(), written)
-			t.FailNow()
+			t.Fatal(err)
 		}
 	}
 	file.Close()
@@ -37,7 +37,7 @@ func BenchmarkStreamRead(t *testing.B) {
 	buf := make([]byte, 1024*1024)
 	t.SetBytes(int64(len(buf)))
 
-	fn := test_helpers.DefaultPlainDir + "BenchmarkWrite"
+	fn := test_helpers.DefaultPlainDir + "/BenchmarkWrite"
 	fi, err := os.Stat(fn)
 	if err != nil {
 		t.Fatal(err)

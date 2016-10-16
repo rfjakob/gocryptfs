@@ -1,3 +1,4 @@
+// Tests run for (almost all) combinations of openssl, aessiv, plaintextnames.
 package matrix
 
 // File reading, writing, modification, truncate

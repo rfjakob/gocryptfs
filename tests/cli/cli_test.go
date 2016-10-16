@@ -1,4 +1,4 @@
-package normal
+package cli
 
 // Test CLI operations like "-init", "-password" etc
 
@@ -15,9 +15,7 @@ import (
 
 func TestMain(m *testing.M) {
 	test_helpers.ResetTmpDir(false)
-	test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, "--zerokey")
 	r := m.Run()
-	test_helpers.UnmountPanic(test_helpers.DefaultPlainDir)
 	os.Exit(r)
 }
 
