@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"syscall"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
@@ -97,7 +98,88 @@ func testPasswd(t *testing.T, dir string, extraArgs ...string) {
 func TestPasswd(t *testing.T) {
 	// Create FS
 	dir := test_helpers.InitFS(t)
+	mnt := dir + ".mnt"
+	// Add content
+	test_helpers.MountOrFatal(t, dir, mnt, "-extpass", "echo test")
+	file1 := mnt + "/file1"
+	err := ioutil.WriteFile(file1, []byte("somecontent"), 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = test_helpers.UnmountErr(mnt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Change password to "newpasswd"
 	testPasswd(t, dir)
+	// Mount and verify
+	test_helpers.MountOrFatal(t, dir, mnt, "-extpass", "echo newpasswd")
+	content, err := ioutil.ReadFile(file1)
+	if err != nil {
+		t.Error(err)
+	} else if string(content) != "somecontent" {
+		t.Errorf("wrong content: %q", string(content))
+	}
+	err = test_helpers.UnmountErr(mnt)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Test -passwd with -masterkey
+func TestPasswdMasterkey(t *testing.T) {
+	// Create FS
+	dir := test_helpers.InitFS(t)
+	// Overwrite with config with known master key
+	conf, err := ioutil.ReadFile("gocryptfs.conf.b9e5ba23")
+	if err != nil {
+		t.Fatal(err)
+	}
+	syscall.Unlink(dir + "/gocryptfs.conf")
+	err = ioutil.WriteFile(dir+"/gocryptfs.conf", conf, 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Add content
+	mnt := dir + ".mnt"
+	test_helpers.MountOrFatal(t, dir, mnt, "-extpass", "echo test")
+	file1 := mnt + "/file1"
+	err = ioutil.WriteFile(file1, []byte("somecontent"), 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	test_helpers.UnmountPanic(mnt)
+	// Change password using stdin
+	args := []string{"-q", "-passwd", "-masterkey",
+		"b9e5ba23-981a22b8-c8d790d8-627add29-f680513f-b7b7035f-d203fb83-21d82205"}
+	args = append(args, dir)
+	cmd := exec.Command(test_helpers.GocryptfsBinary, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	p, err := cmd.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cmd.Start()
+	if err != nil {
+		t.Error(err)
+	}
+	// New password
+	p.Write([]byte("newpasswd\n"))
+	p.Close()
+	err = cmd.Wait()
+	if err != nil {
+		t.Error(err)
+	}
+	// Mount and verify
+	test_helpers.MountOrFatal(t, dir, mnt, "-extpass", "echo newpasswd")
+	content, err := ioutil.ReadFile(file1)
+	if err != nil {
+		t.Error(err)
+	} else if string(content) != "somecontent" {
+		t.Errorf("wrong content: %q", string(content))
+	}
+	test_helpers.UnmountPanic(mnt)
 }
 
 // Test -passwd with -reverse
