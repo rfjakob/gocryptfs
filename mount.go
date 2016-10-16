@@ -53,11 +53,7 @@ func doMount(args *argContainer) int {
 	var confFile *configfile.ConfFile
 	if args.masterkey != "" {
 		// "-masterkey"
-		tlog.Info.Printf("Using explicit master key.")
 		masterkey = parseMasterKey(args.masterkey)
-		tlog.Info.Printf(tlog.ColorYellow +
-			"THE MASTER KEY IS VISIBLE VIA \"ps ax\" AND MAY BE STORED IN YOUR SHELL HISTORY!\n" +
-			"ONLY USE THIS MODE FOR EMERGENCIES." + tlog.ColorReset)
 	} else if args.zerokey {
 		// "-zerokey"
 		tlog.Info.Printf("Using all-zero dummy master key.")

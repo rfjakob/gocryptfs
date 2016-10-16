@@ -49,12 +49,16 @@ func parseMasterKey(masterkey string) []byte {
 	masterkey = strings.Replace(masterkey, "-", "", -1)
 	key, err := hex.DecodeString(masterkey)
 	if err != nil {
-		tlog.Fatal.Printf("Could not parse master key: %v\n", err)
+		tlog.Fatal.Printf("Could not parse master key: %v", err)
 		os.Exit(1)
 	}
 	if len(key) != cryptocore.KeyLen {
-		tlog.Fatal.Printf("Master key has length %d but we require length %d\n", len(key), cryptocore.KeyLen)
+		tlog.Fatal.Printf("Master key has length %d but we require length %d", len(key), cryptocore.KeyLen)
 		os.Exit(1)
 	}
+	tlog.Info.Printf("Using explicit master key.")
+	tlog.Info.Printf(tlog.ColorYellow +
+		"THE MASTER KEY IS VISIBLE VIA \"ps ax\" AND MAY BE STORED IN YOUR SHELL HISTORY!\n" +
+		"ONLY USE THIS MODE FOR EMERGENCIES." + tlog.ColorReset)
 	return key
 }
