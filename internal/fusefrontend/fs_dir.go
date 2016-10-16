@@ -255,6 +255,11 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 		cDirAbsPath = filepath.Join(fs.args.Cipherdir, cDirName)
 		cachedIV, err = nametransform.ReadDirIV(cDirAbsPath)
 		if err != nil {
+			// This can happen during normal operation when the directory has
+			// been deleted concurrently. But it can also mean that the
+			// gocryptfs.diriv is missing due to an error, so log the event
+			// at "info" level.
+			tlog.Info.Printf("OpenDir: %v", err)
 			return nil, fuse.ToStatus(err)
 		}
 	}
