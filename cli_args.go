@@ -146,6 +146,10 @@ func parseCliOpts() (args argContainer) {
 	if args.passfile != "" {
 		args.extpass = "/bin/cat " + args.passfile
 	}
+	if args.extpass != "" && args.masterkey != "" {
+		tlog.Fatal.Printf("The options -extpass and -masterkey cannot be used at the same time")
+		os.Exit(ErrExitUsage)
+	}
 	return args
 }
 
