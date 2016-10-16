@@ -649,34 +649,69 @@ func TestUtimesNanoSymlink(t *testing.T) {
 	}
 }
 
+type utimesTestcaseStruct struct {
+	// Input atime and mtime
+	in [2]syscall.Timespec
+	// Expected output atime and mtime
+	out [2]syscall.Timespec
+}
+
+func compareUtimes(want [2]syscall.Timespec, actual [2]syscall.Timespec) error {
+	tsNames := []string{"atime", "mtime"}
+	for i := range want {
+		if i == 1 {
+			// TODO remove this once the pull request is merged:
+			// https://github.com/hanwen/go-fuse/pull/131
+			continue
+		}
+		if want[i].Sec != actual[i].Sec {
+			return fmt.Errorf("Wrong %s seconds: want=%d actual=%d", tsNames[i], want[i].Sec, actual[i].Sec)
+		}
+		if want[i].Nsec != actual[i].Nsec {
+			if actual[i].Nsec == 0 {
+				// TODO remove this once the pull request is merged:
+				// https://github.com/hanwen/go-fuse/pull/131
+				continue
+			}
+			return fmt.Errorf("Wrong %s nanoseconds: want=%d actual=%d", tsNames[i], want[i].Nsec, actual[i].Nsec)
+		}
+	}
+	return nil
+}
+
+const _UTIME_OMIT = ((1 << 30) - 2)
+
 // doTestUtimesNano verifies that setting nanosecond-precision times on "path"
 // works correctly. Pass "/proc/self/fd/N" to test a file descriptor.
 func doTestUtimesNano(t *testing.T, path string) {
-	ts := make([]syscall.Timespec, 2)
-	// atime
-	ts[0].Sec = 1
-	ts[0].Nsec = 2
-	// mtime
-	ts[1].Sec = 3
-	ts[1].Nsec = 4
-	err := syscall.UtimesNano(path, ts)
-	if err != nil {
-		t.Fatal(err)
+	utimeTestcases := []utimesTestcaseStruct{
+		{
+			in:  [2]syscall.Timespec{{Sec: 1, Nsec: 2}, {Sec: 3, Nsec: 4}},
+			out: [2]syscall.Timespec{{Sec: 1, Nsec: 2}, {Sec: 3, Nsec: 4}},
+		},
+		{
+			in:  [2]syscall.Timespec{{Sec: 7, Nsec: 8}, {Sec: 99, Nsec: _UTIME_OMIT}},
+			out: [2]syscall.Timespec{{Sec: 7, Nsec: 8}, {Sec: 5, Nsec: 6}},
+		},
+		{
+			in:  [2]syscall.Timespec{{Sec: 99, Nsec: _UTIME_OMIT}, {Sec: 5, Nsec: 6}},
+			out: [2]syscall.Timespec{{Sec: 1, Nsec: 2}, {Sec: 5, Nsec: 6}},
+		},
 	}
-	var st syscall.Stat_t
-	err = syscall.Stat(path, &st)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if st.Atim != ts[0] {
-		if st.Atim.Nsec == 0 {
-			// TODO remove this once the pull request is merged
-			t.Skip("Known limitation, https://github.com/hanwen/go-fuse/pull/131")
+	for i, tc := range utimeTestcases {
+		err := syscall.UtimesNano(path, tc.in[:])
+		if err != nil {
+			t.Fatal(err)
 		}
-		t.Errorf("Wrong atime: %v, want: %v", st.Atim, ts[0])
-	}
-	if st.Mtim != ts[1] {
-		t.Errorf("Wrong mtime: %v, want: %v", st.Mtim, ts[1])
+		var st syscall.Stat_t
+		err = syscall.Stat(path, &st)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = compareUtimes(tc.out, [2]syscall.Timespec{st.Atim, st.Mtim})
+		if err != nil {
+			t.Errorf("Testcase %d: %v", i, err)
+		}
 	}
 }
 
