@@ -98,7 +98,11 @@ func readPasswordExtpass(extpass string) string {
 	}
 	p := readLineUnbuffered(pipe)
 	pipe.Close()
-	cmd.Wait()
+	err = cmd.Wait()
+	if err != nil {
+		tlog.Fatal.Printf("extpass program returned an error: %v", err)
+		os.Exit(exitCode)
+	}
 	if len(p) == 0 {
 		tlog.Fatal.Println("extpass: password is empty")
 		os.Exit(exitCode)
