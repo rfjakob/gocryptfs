@@ -386,7 +386,19 @@ func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 	return fuse.OK
 }
 
+// TODO drop this once https://github.com/hanwen/go-fuse/pull/131 is
+// merged
+const BrokenAtimeOmit = true
+
 func (f *file) Utimens(a *time.Time, m *time.Time) fuse.Status {
+	if a == nil && BrokenAtimeOmit {
+		// Band-aid for a nil pointer crash, described in
+		// https://github.com/rfjakob/gocryptfs/issues/48
+		//
+		// TODO drop this once https://github.com/hanwen/go-fuse/pull/131 is
+		// merged
+		a = m
+	}
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 	return f.loopbackFile.Utimens(a, m)
