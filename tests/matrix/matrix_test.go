@@ -41,7 +41,7 @@ type testcaseMatrix struct {
 	Aessiv         bool
 }
 
-var matrix []testcaseMatrix = []testcaseMatrix{
+var matrix = []testcaseMatrix{
 	// Normal
 	{false, "auto", false},
 	{false, "true", false},

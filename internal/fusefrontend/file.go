@@ -386,6 +386,7 @@ func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 	return fuse.OK
 }
 
+// BrokenAtimeOmit means that atime support is broken.
 // TODO drop this once https://github.com/hanwen/go-fuse/pull/131 is
 // merged
 const BrokenAtimeOmit = true
