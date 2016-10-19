@@ -115,7 +115,7 @@ RM:    4.42
 Changelog
 ---------
 
-v1.1 (not yet released)
+v1.1, 2016-10-19
 * **Add reverse mode ([#19](https://github.com/rfjakob/gocryptfs/issues/19))**
  * AES-SIV (RFC5297) encryption to implement deterministic encryption
    securely. Uses the excellent
@@ -137,7 +137,8 @@ v1.1 (not yet released)
 * New `-passfile` command-line option. Provides an easier way to read
   the password from a file. Internally, this is equivalent to
   `-extpass "/bin/cat FILE"`.
-
+* Enable changing the password when you only know the master key
+  ([#28](https://github.com/rfjakob/gocryptfs/issues/28))
 
 v1.0, 2016-07-17
 * Deprecate very old filesystems, stage 3/3
