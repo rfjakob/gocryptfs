@@ -693,7 +693,7 @@ func doTestUtimesNano(t *testing.T, path string) {
 			out: [2]syscall.Timespec{{Sec: 1, Nsec: 2}, {Sec: 5, Nsec: 6}},
 		},
 	}
-	if fusefrontend.BrokenAtimeOmit {
+	if fusefrontend.BrokenAtime {
 		// TODO remove this once the pull request is merged:
 		// https://github.com/hanwen/go-fuse/pull/131
 		utimeTestcases = utimeTestcases[:1]
