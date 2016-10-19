@@ -386,19 +386,20 @@ func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 	return fuse.OK
 }
 
-// BrokenAtimeOmit means that atime support is broken.
+// BrokenAtime means that atime support is broken.
 // TODO drop this once https://github.com/hanwen/go-fuse/pull/131 is
 // merged
-const BrokenAtimeOmit = true
+const BrokenAtime = true
 
 func (f *file) Utimens(a *time.Time, m *time.Time) fuse.Status {
-	if BrokenAtimeOmit {
-		// Band-aid for a nil pointer crash, described in
-		// https://github.com/rfjakob/gocryptfs/issues/48
-		// Also band-aid for "mtime gets set to atime".
-		//
-		// TODO drop this once https://github.com/hanwen/go-fuse/pull/131 is
-		// merged
+	if BrokenAtime {
+		if m == nil {
+			tlog.Warn.Printf("refusing to set the atime to prevent a crash in go-fuse")
+			return fuse.EINVAL
+		}
+		// Due to a bug in loopbackFile.Utimens, the "a" value will be used
+		// to set both mtime and atime. Because mtime is more important, we
+		// override "a".
 		a = m
 	}
 	f.fdLock.RLock()

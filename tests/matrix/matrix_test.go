@@ -660,21 +660,10 @@ type utimesTestcaseStruct struct {
 func compareUtimes(want [2]syscall.Timespec, actual [2]syscall.Timespec) error {
 	tsNames := []string{"atime", "mtime"}
 	for i := range want {
-		if fusefrontend.BrokenAtimeOmit && i == 0 {
-			// Don't check atime. It's broken in go-fuse.
-			// TODO remove this once the pull request is merged:
-			// https://github.com/hanwen/go-fuse/pull/131
-			continue
-		}
 		if want[i].Sec != actual[i].Sec {
 			return fmt.Errorf("Wrong %s seconds: want=%d actual=%d", tsNames[i], want[i].Sec, actual[i].Sec)
 		}
 		if want[i].Nsec != actual[i].Nsec {
-			if actual[i].Nsec == 0 {
-				// TODO remove this once the pull request is merged:
-				// https://github.com/hanwen/go-fuse/pull/131
-				continue
-			}
 			return fmt.Errorf("Wrong %s nanoseconds: want=%d actual=%d", tsNames[i], want[i].Nsec, actual[i].Nsec)
 		}
 	}
@@ -687,6 +676,10 @@ const _UTIME_OMIT = ((1 << 30) - 2)
 // works correctly. Pass "/proc/self/fd/N" to test a file descriptor.
 func doTestUtimesNano(t *testing.T, path string) {
 	utimeTestcases := []utimesTestcaseStruct{
+		{
+			in:  [2]syscall.Timespec{{Sec: 50, Nsec: 0}, {Sec: 50, Nsec: 0}},
+			out: [2]syscall.Timespec{{Sec: 50, Nsec: 0}, {Sec: 50, Nsec: 0}},
+		},
 		{
 			in:  [2]syscall.Timespec{{Sec: 1, Nsec: 2}, {Sec: 3, Nsec: 4}},
 			out: [2]syscall.Timespec{{Sec: 1, Nsec: 2}, {Sec: 3, Nsec: 4}},
@@ -703,7 +696,7 @@ func doTestUtimesNano(t *testing.T, path string) {
 	if fusefrontend.BrokenAtimeOmit {
 		// TODO remove this once the pull request is merged:
 		// https://github.com/hanwen/go-fuse/pull/131
-		utimeTestcases = utimeTestcases[0:0]
+		utimeTestcases = utimeTestcases[:1]
 	}
 	for i, tc := range utimeTestcases {
 		err := syscall.UtimesNano(path, tc.in[:])
