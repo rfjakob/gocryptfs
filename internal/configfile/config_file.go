@@ -193,6 +193,8 @@ func (cf *ConfFile) WriteFile() error {
 	if err != nil {
 		return err
 	}
+	// For convenience for the user, add a newline at the end.
+	js = append(js, '\n')
 	_, err = fd.Write(js)
 	if err != nil {
 		return err
