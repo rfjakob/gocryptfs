@@ -175,7 +175,7 @@ func (f *file) statPlainSize() (uint64, error) {
 }
 
 // truncateGrowFile extends a file using seeking or ftruncate performing RMW on
-// the first and last block as neccessary. New blocks in the middle become
+// the first and last block as necessary. New blocks in the middle become
 // file holes unless they have been fallocate()'d beforehand.
 func (f *file) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) fuse.Status {
 	if newPlainSz <= oldPlainSz {

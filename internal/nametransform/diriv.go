@@ -49,7 +49,7 @@ func ReadDirIVAt(dirfd *os.File) (iv []byte, err error) {
 // fdReadDirIV reads and verifies the DirIV from an opened gocryptfs.diriv file.
 func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 	// We want to detect if the file is bigger than DirIVLen, so
-	// make the buffer 1 byte bigger than neccessary.
+	// make the buffer 1 byte bigger than necessary.
 	iv = make([]byte, DirIVLen+1)
 	n, err := fd.Read(iv)
 	if err != nil {

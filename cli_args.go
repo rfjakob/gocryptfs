@@ -116,12 +116,12 @@ func parseCliOpts() (args argContainer) {
 		"Setting this to a lower value speeds up mounting but makes the password susceptible to brute-force attacks")
 	// Ignored otions
 	var dummyBool bool
-	ignoreText := "(ignored for compatability)"
+	ignoreText := "(ignored for compatibility)"
 	flagSet.BoolVar(&dummyBool, "rw", false, ignoreText)
 	flagSet.BoolVar(&dummyBool, "nosuid", false, ignoreText)
 	flagSet.BoolVar(&dummyBool, "nodev", false, ignoreText)
 	var dummyString string
-	flagSet.StringVar(&dummyString, "o", "", "For compatability, all options can be also passed as a comma-separated list to -o.")
+	flagSet.StringVar(&dummyString, "o", "", "For compatibility, all options can be also passed as a comma-separated list to -o.")
 	// Actual parsing
 	err = flagSet.Parse(os.Args[1:])
 	if err == flag.ErrHelp {

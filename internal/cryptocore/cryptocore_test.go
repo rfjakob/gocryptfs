@@ -16,7 +16,7 @@ func TestCryptoCoreNew(t *testing.T) {
 	if c.IVLen != 12 {
 		t.Fail()
 	}
-	// "New(key, BackendGoGCM, 128)" is tested for Go 1.4 and 1.5+ seperately
+	// "New(key, BackendGoGCM, 128)" is tested for Go 1.4 and 1.5+ separately
 }
 
 // "New" should panic on any key not 32 bytes long

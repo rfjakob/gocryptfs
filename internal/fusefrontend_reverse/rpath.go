@@ -30,7 +30,7 @@ const (
 
 // derivePathIV derives an IV from an encrypted path by hashing it with sha256
 func derivePathIV(path string, purpose ivPurposeType) []byte {
-	// Use null byte as separator as it cannot occour in the path
+	// Use null byte as separator as it cannot occur in the path
 	extended := []byte(path + "\000" + string(purpose))
 	hash := sha256.Sum256(extended)
 	return hash[:nametransform.DirIVLen]

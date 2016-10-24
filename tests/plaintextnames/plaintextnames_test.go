@@ -32,7 +32,7 @@ func TestFlags(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !cf.IsFeatureFlagSet(configfile.FlagPlaintextNames) {
-		t.Error("PlaintextNames flag should be set but isnt")
+		t.Error("PlaintextNames flag should be set but isn't")
 	}
 	if cf.IsFeatureFlagSet(configfile.FlagEMENames) || cf.IsFeatureFlagSet(configfile.FlagDirIV) {
 		t.Error("FlagEMENames and FlagDirIV should be not set")

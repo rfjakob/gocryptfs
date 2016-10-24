@@ -212,7 +212,7 @@ func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 // doWrite - encrypt "data" and write it to plaintext offset "off"
 //
 // Arguments do not have to be block-aligned, read-modify-write is
-// performed internally as neccessary
+// performed internally as necessary
 //
 // Called by Write() for normal writing,
 // and by Truncate() to rewrite the last file block.
