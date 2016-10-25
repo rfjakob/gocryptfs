@@ -20,7 +20,7 @@ if [ "$(md5sum /tmp/linux-3.0.tar.gz | cut -f1 -d' ')" != \
 	"f7e6591d86a9dbe123dfd1a0be054e7f" ]; then
 	echo "Downloading linux-3.0.tar.gz"
 	wget -nv --show-progress -c -O $TGZ \
-		https://www.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz
+		https://cdn.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz
 fi
 
 function etime {
