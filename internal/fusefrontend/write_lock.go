@@ -2,6 +2,7 @@ package fusefrontend
 
 import (
 	"sync"
+	"sync/atomic"
 )
 
 func init() {
@@ -20,6 +21,12 @@ var wlock wlockMap
 // 2) lock ... unlock ...
 // 3) unregister
 type wlockMap struct {
+	// Counts lock() calls. As every operation that modifies a file should
+	// call it, this effectively serves as a write-operation counter.
+	// The variable is accessed without holding any locks so atomic operations
+	// must be used. It must be the first element of the struct to guarantee
+	// 64-bit alignment.
+	opCount uint64
 	// Protects map access
 	sync.Mutex
 	inodeLocks map[uint64]*refCntMutex
@@ -62,6 +69,7 @@ func (w *wlockMap) unregister(ino uint64) {
 
 // lock retrieves the entry for "ino" and locks it.
 func (w *wlockMap) lock(ino uint64) {
+	atomic.AddUint64(&w.opCount, 1)
 	w.Lock()
 	r := w.inodeLocks[ino]
 	w.Unlock()

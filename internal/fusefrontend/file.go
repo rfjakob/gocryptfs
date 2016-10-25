@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -43,6 +44,11 @@ type file struct {
 	header *contentenc.FileHeader
 	// go-fuse nodefs.loopbackFile
 	loopbackFile nodefs.File
+	// Store what the last byte was written
+	lastWrittenOffset int64
+	// The opCount is used to judge whether "lastWrittenOffset" is still
+	// guaranteed to be correct.
+	lastOpCount uint64
 }
 
 // NewFile returns a new go-fuse File instance.
@@ -282,6 +288,16 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 	return written, status
 }
 
+// isConsecutiveWrite returns true if the current write
+// directly (in time and space) follows the last write.
+// This is an optimisation for streaming writes on NFS where a
+// Stat() call is very expensive.
+// The caller must "wlock.lock(f.ino)" otherwise this check would be racy.
+func (f *file) isConsecutiveWrite(off int64) bool {
+	opCount := atomic.LoadUint64(&wlock.opCount)
+	return opCount == f.lastOpCount+1 && off == f.lastWrittenOffset+1
+}
+
 // Write - FUSE call
 //
 // If the write creates a hole, pads the file to the next block boundary.
@@ -299,11 +315,20 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 	defer wlock.unlock(f.ino)
 	tlog.Debug.Printf("ino%d: FUSE Write: offset=%d length=%d", f.ino, off, len(data))
 	// If the write creates a file hole, we have to zero-pad the last block.
-	status := f.writePadHole(off)
-	if !status.Ok() {
-		return 0, status
+	// But if the write directly follows an earlier write, it cannot create a
+	// hole, and we can save one Stat() call.
+	if !f.isConsecutiveWrite(off) {
+		status := f.writePadHole(off)
+		if !status.Ok() {
+			return 0, status
+		}
 	}
-	return f.doWrite(data, off)
+	n, status := f.doWrite(data, off)
+	if status.Ok() {
+		f.lastOpCount = atomic.LoadUint64(&wlock.opCount)
+		f.lastWrittenOffset = off + int64(len(data)) - 1
+	}
+	return n, status
 }
 
 // Release - FUSE call, close file
