@@ -297,21 +297,11 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 	}
 	wlock.lock(f.ino)
 	defer wlock.unlock(f.ino)
-
 	tlog.Debug.Printf("ino%d: FUSE Write: offset=%d length=%d", f.ino, off, len(data))
-
-	fi, err := f.fd.Stat()
-	if err != nil {
-		tlog.Warn.Printf("Write: Fstat failed: %v", err)
-		return 0, fuse.ToStatus(err)
-	}
-	plainSize := f.contentEnc.CipherSizeToPlainSize(uint64(fi.Size()))
-	if f.createsCiphertextHole(plainSize, off) {
-		status := f.zeroPad(plainSize)
-		if status != fuse.OK {
-			tlog.Warn.Printf("zeroPad returned error %v", status)
-			return 0, status
-		}
+	// If the write creates a file hole, we have to zero-pad the last block.
+	status := f.writePadHole(off)
+	if !status.Ok() {
+		return 0, status
 	}
 	return f.doWrite(data, off)
 }
