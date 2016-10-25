@@ -306,7 +306,7 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 		return 0, fuse.ToStatus(err)
 	}
 	plainSize := f.contentEnc.CipherSizeToPlainSize(uint64(fi.Size()))
-	if f.createsHole(plainSize, off) {
+	if f.createsCiphertextHole(plainSize, off) {
 		status := f.zeroPad(plainSize)
 		if status != fuse.OK {
 			tlog.Warn.Printf("zeroPad returned error %v", status)

@@ -8,10 +8,16 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-// Will a write to offset "off" create a file hole?
-func (f *file) createsHole(plainSize uint64, off int64) bool {
+// Will a write to plaintext offset "off" create a file hole in the ciphertext?
+func (f *file) createsCiphertextHole(plainSize uint64, off int64) bool {
+	// Appending a single byte to the file (equivalent to writing to
+	// offset=plainSize) would write to "nextBlock".
 	nextBlock := f.contentEnc.PlainOffToBlockNo(plainSize)
+	// targetBlock is the block the user wants to write to.
 	targetBlock := f.contentEnc.PlainOffToBlockNo(uint64(off))
+	// If the write goes past the next block, nextBlock will have
+	// to be zero-padded to the block boundary and at least nextBlock+1
+	// becomes a file hole in the ciphertext.
 	return targetBlock > nextBlock
 }
 
