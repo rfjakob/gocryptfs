@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"log/syslog"
 	"os"
 	"os/exec"
@@ -72,20 +73,31 @@ func doMount(args *argContainer) int {
 	tlog.Info.Println(tlog.ColorGreen + "Filesystem mounted and ready." + tlog.ColorReset)
 	// We have been forked into the background, as evidenced by the set
 	// "notifypid".
+	var paniclog *os.File
 	if args.notifypid > 0 {
 		// Chdir to the root directory so we don't block unmounting the CWD
 		os.Chdir("/")
 		// Switch to syslog
 		if !args.nosyslog {
+			paniclog, err = ioutil.TempFile("", "gocryptfs_paniclog.")
+			if err != nil {
+				tlog.Fatal.Printf("Failed to create gocryptfs_paniclog: %v", err)
+				os.Exit(ErrExitMount)
+			}
+			// Switch all of our logs and the generic logger to syslog
 			tlog.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
 			tlog.Debug.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_DEBUG)
 			tlog.Warn.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
 			tlog.SwitchLoggerToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
 			// Daemons should close all fds (and we don't want to get killed by
 			// SIGPIPE if any of those get closed on the other end)
-			os.Stderr.Close()
-			os.Stdout.Close()
 			os.Stdin.Close()
+			// Redirect stdout and stderr to /tmp/gocryptfs_paniclog.NNNNNN
+			// instead of closing them so users have a chance to get the
+			// backtrace on a panic.
+			// https://github.com/golang/go/issues/325#issuecomment-66049178
+			syscall.Dup2(int(paniclog.Fd()), 1)
+			syscall.Dup2(int(paniclog.Fd()), 2)
 		}
 		// Send SIGUSR1 to our parent
 		sendUsr1(args.notifypid)
@@ -96,6 +108,18 @@ func doMount(args *argContainer) int {
 	handleSigint(srv, args.mountpoint)
 	// Jump into server loop. Returns when it gets an umount request from the kernel.
 	srv.Serve()
+	// Delete empty paniclogs
+	if paniclog != nil {
+		fi, err := paniclog.Stat()
+		if err != nil {
+			tlog.Warn.Printf("paniclog fstat error: %v", err)
+		} else if fi.Size() > 0 {
+			tlog.Warn.Printf("paniclog at %q is not empty (size %d). Not deleting it.",
+				paniclog.Name(), fi.Size())
+		} else {
+			syscall.Unlink(paniclog.Name())
+		}
+	}
 	return 0
 }
 
