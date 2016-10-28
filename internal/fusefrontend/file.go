@@ -169,10 +169,7 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	plaintext, err := f.contentEnc.DecryptBlocks(ciphertext, firstBlockNo, f.header.ID)
 	if err != nil {
 		curruptBlockNo := firstBlockNo + f.contentEnc.PlainOffToBlockNo(uint64(len(plaintext)))
-		cipherOff := f.contentEnc.BlockNoToCipherOff(curruptBlockNo)
-		plainOff := f.contentEnc.BlockNoToPlainOff(curruptBlockNo)
-		tlog.Warn.Printf("ino%d: doRead: corrupt block #%d (plainOff=%d, cipherOff=%d)",
-			f.ino, curruptBlockNo, plainOff, cipherOff)
+		tlog.Warn.Printf("ino%d: doRead: corrupt block #%d: %v", f.ino, curruptBlockNo, err)
 		return nil, fuse.EIO
 	}
 
@@ -205,7 +202,7 @@ func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 	out, status := f.doRead(uint64(off), uint64(len(buf)))
 
 	if status == fuse.EIO {
-		tlog.Warn.Printf("ino%d: Read failed with EIO, offset=%d, length=%d", f.ino, len(buf), off)
+		tlog.Warn.Printf("ino%d: Read: returning EIO, offset=%d, length=%d", f.ino, len(buf), off)
 	}
 	if status != fuse.OK {
 		return nil, status
