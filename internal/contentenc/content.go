@@ -113,7 +113,10 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileID []b
 	// Extract nonce
 	nonce := ciphertext[:be.cryptoCore.IVLen]
 	if bytes.Equal(nonce, be.allZeroNonce) {
-		panic("Hit an all-zero nonce. This MUST NOT happen!")
+		// Bug in tmpfs?
+		// https://github.com/rfjakob/gocryptfs/issues/56
+		// http://www.spinics.net/lists/kernel/msg2370127.html
+		return nil, errors.New("all-zero nonce")
 	}
 	ciphertextOrig := ciphertext
 	ciphertext = ciphertext[be.cryptoCore.IVLen:]
