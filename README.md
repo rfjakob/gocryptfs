@@ -118,6 +118,13 @@ RM:    4.42
 Changelog
 ---------
 
+v1.1.1, 2016-10-30
+* Fix a panic on setting file timestamps ([go-fuse#131](https://github.com/hanwen/go-fuse/pull/131))
+* Work around an issue in tmpfs that caused a panic in xfstests generic/075
+  ([gocryptfs#56](https://github.com/rfjakob/gocryptfs/issues/56))
+* Optimize NFS streaming writes
+  ([commit](https://github.com/rfjakob/gocryptfs/commit/a08d55f42d5b11e265a8617bee16babceebfd026))
+
 v1.1, 2016-10-19
 * **Add reverse mode ([#19](https://github.com/rfjakob/gocryptfs/issues/19))**
  * AES-SIV (RFC5297) encryption to implement deterministic encryption
