@@ -5,7 +5,7 @@ set -eu
 cd "$(dirname "$0")"
 
 # GOPATH may contain multiple paths separated by ":"
-GOPATH2=$(echo $GOPATH | cut -f1 -d:)
+GOPATH1=$(echo $GOPATH | cut -f1 -d:)
 
 # gocryptfs version according to git
 GITVERSION=$(git describe --tags --dirty)
@@ -14,7 +14,7 @@ GITVERSION=$(git describe --tags --dirty)
 # Note: git in CentOS 7 does not have "git -C" yet. That's why we use
 # plain "cd" in a subshell.
 GITVERSIONFUSE=$(
-	cd $GOPATH2/src/github.com/hanwen/go-fuse
+	cd $GOPATH1/src/github.com/hanwen/go-fuse
 	SHORT=$(git rev-parse --short HEAD)
 
 	if [[ $SHORT == 5e829bc ]] ; then
@@ -51,5 +51,5 @@ fi
 
 ./gocryptfs -version
 
-mkdir -p $GOPATH2/bin
-cp -af gocryptfs $GOPATH2/bin
+mkdir -p $GOPATH1/bin
+cp -af gocryptfs $GOPATH1/bin
