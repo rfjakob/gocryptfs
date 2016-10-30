@@ -163,7 +163,7 @@ v1.0, 2016-07-17
  * Only works when running as root
  * Must be explicitely enabled by passing "-o dev" or "-o suid" or "-o suid,dev"
 * Experimental Mac OS X support. See
-  [ticket 15#](https://github.com/rfjakob/gocryptfs/issues/15) for details.
+  [ticket #15](https://github.com/rfjakob/gocryptfs/issues/15) for details.
 
 v0.12, 2016-06-19
 * Deprecate very old filesystems, stage 2/3
