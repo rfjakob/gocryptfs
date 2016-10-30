@@ -25,7 +25,6 @@ import (
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
-	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
@@ -686,17 +685,12 @@ func doTestUtimesNano(t *testing.T, path string) {
 		},
 		{
 			in:  [2]syscall.Timespec{{Sec: 7, Nsec: 8}, {Sec: 99, Nsec: _UTIME_OMIT}},
-			out: [2]syscall.Timespec{{Sec: 7, Nsec: 8}, {Sec: 5, Nsec: 6}},
+			out: [2]syscall.Timespec{{Sec: 7, Nsec: 8}, {Sec: 3, Nsec: 4}},
 		},
 		{
 			in:  [2]syscall.Timespec{{Sec: 99, Nsec: _UTIME_OMIT}, {Sec: 5, Nsec: 6}},
-			out: [2]syscall.Timespec{{Sec: 1, Nsec: 2}, {Sec: 5, Nsec: 6}},
+			out: [2]syscall.Timespec{{Sec: 7, Nsec: 8}, {Sec: 5, Nsec: 6}},
 		},
-	}
-	if fusefrontend.BrokenAtime {
-		// TODO remove this once the pull request is merged:
-		// https://github.com/hanwen/go-fuse/pull/131
-		utimeTestcases = utimeTestcases[:1]
 	}
 	for i, tc := range utimeTestcases {
 		err := syscall.UtimesNano(path, tc.in[:])

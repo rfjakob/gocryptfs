@@ -398,22 +398,7 @@ func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 	return fuse.OK
 }
 
-// BrokenAtime means that atime support is broken.
-// TODO drop this once https://github.com/hanwen/go-fuse/pull/131 is
-// merged
-const BrokenAtime = true
-
 func (f *file) Utimens(a *time.Time, m *time.Time) fuse.Status {
-	if BrokenAtime {
-		if m == nil {
-			tlog.Warn.Printf("refusing to set the atime to prevent a crash in go-fuse")
-			return fuse.EINVAL
-		}
-		// Due to a bug in loopbackFile.Utimens, the "a" value will be used
-		// to set both mtime and atime. Because mtime is more important, we
-		// override "a".
-		a = m
-	}
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 	return f.loopbackFile.Utimens(a, m)
