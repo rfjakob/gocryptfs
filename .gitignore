@@ -10,3 +10,6 @@
 
 # Binaries created for cpu profiling
 *.test
+
+# Rendered manpage
+gocryptfs.1

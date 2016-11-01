@@ -1,7 +1,11 @@
 #!/bin/bash
 
-set -eux
+set -eu
+cd $(dirname "$0")
+
+OUT=gocryptfs.1
 
 # Render MANPAGE.md to a proper man(1) manpage
-cd ${0%/*}
-pandoc MANPAGE.md -s -t man -o gocryptfs.1 && man ./gocryptfs.1
+echo ".\\\" This is a man page. View it using 'man ./$OUT'" > $OUT
+echo ".\\\"" >> $OUT
+pandoc MANPAGE.md -s -t man >> $OUT && man ./gocryptfs.1
