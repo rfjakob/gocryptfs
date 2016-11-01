@@ -124,7 +124,7 @@ func main() {
 	// Parse all command-line options (i.e. arguments starting with "-")
 	// into "args". Path arguments are parsed below.
 	args := parseCliOpts()
-	// Fork a child into the background if "-f" is not set AND we are mounting
+	// Fork a child into the background if "-fg" is not set AND we are mounting
 	// a filesystem. The child will do all the work.
 	if !args.fg && flagSet.NArg() == 2 {
 		ret := forkChild()

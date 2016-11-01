@@ -18,7 +18,7 @@ func exitOnUsr1() {
 	os.Exit(0)
 }
 
-// forkChild - execute ourselves once again, this time with the "-f" flag, and
+// forkChild - execute ourselves once again, this time with the "-fg" flag, and
 // wait for SIGUSR1 or child exit.
 // This is a workaround for the missing true fork function in Go.
 func forkChild() int {
