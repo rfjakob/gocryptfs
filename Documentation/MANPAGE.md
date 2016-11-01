@@ -107,6 +107,11 @@ Options:
 :	Send USR1 to the specified process after successful mount. This is
 	used internally for daemonization.
 
+**-o COMMA-SEPARATED-OPTIONS**
+:	For compatibility with mount(1), options are also accepted as
+	"-o COMMA-SEPARATED-OPTIONS" at the end of the command line.
+	For example, "-o q,zerokey" is equivalent to passing "-q -zerokey".
+
 **-openssl bool/"auto"**
 :	Use OpenSSL instead of built-in Go crypto (default "auto"). Using
 	built-in crypto is 4x slower unless your CPU has AES instructions and
@@ -161,23 +166,20 @@ Options:
 :	Use all-zero dummy master key. This options is only intended for
 	automated testing as it does not provide any security.
 
-
-Comma-Separated-Options:
-
-For compatibility with mount(1), options are also accepted as
-"-o COMMA-SEPARATED-OPTIONS" at the end of the command line.
-For example, "-o q,zerokey" is equivalent to "-q -zerokey".
-
 EXAMPLES
 ========
 
-Create and mount an encrypted filesystem:
+Create an encrypted filesystem in directory "g1" and mount it on "g2":
 
-mkdir /tmp/g1 /tmp/g2
+	mkdir g1 g2
+	gocryptfs -init g1
+	gocryptfs g1 g2
 
-gocryptfs -init /tmp/g1  
-gocryptfs /tmp/g1 /tmp/g2
+Mount an ecrypted view of joe's home directory using reverse mode:
 
+	mkdir /home/joe.crypt
+	gocryptfs -init -reverse /home/joe
+	gocryptfs -reverse /home/joe /home/joe.crypt
 
 SEE ALSO
 ========
