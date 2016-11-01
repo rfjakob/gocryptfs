@@ -17,6 +17,8 @@ const (
 	FlagLongNames
 	// FlagAESSIV selects an AES-SIV based crypto backend.
 	FlagAESSIV
+	// FlagRaw64 enables raw (unpadded) base64 encoding for file names
+	FlagRaw64
 )
 
 // knownFlags stores the known feature flags and their string representation
@@ -27,6 +29,7 @@ var knownFlags = map[flagIota]string{
 	FlagGCMIV128:       "GCMIV128",
 	FlagLongNames:      "LongNames",
 	FlagAESSIV:         "AESSIV",
+	FlagRaw64:          "Raw64",
 }
 
 // Filesystems that do not have these feature flags set are deprecated.

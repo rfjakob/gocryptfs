@@ -49,7 +49,7 @@ type ConfFile struct {
 // CreateConfFile - create a new config with a random key encrypted with
 // "password" and write it to "filename".
 // Uses scrypt with cost parameter logN.
-func CreateConfFile(filename string, password string, plaintextNames bool, logN int, creator string, aessiv bool) error {
+func CreateConfFile(filename string, password string, plaintextNames bool, logN int, creator string, aessiv bool, raw64 bool) error {
 	var cf ConfFile
 	cf.filename = filename
 	cf.Creator = creator
@@ -70,6 +70,9 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagDirIV])
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagEMENames])
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagLongNames])
+		if raw64 {
+			cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagRaw64])
+		}
 	}
 	if aessiv {
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagAESSIV])
