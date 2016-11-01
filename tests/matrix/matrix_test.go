@@ -13,7 +13,6 @@ package matrix
 
 import (
 	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -34,23 +33,25 @@ import (
 var testcase testcaseMatrix
 
 type testcaseMatrix struct {
-	// Exported so we can dump the struct using json.Marshal
-	Plaintextnames bool
-	Openssl        string
-	Aessiv         bool
+	plaintextnames bool
+	openssl        string
+	aessiv         bool
+	raw64          bool
 }
 
 var matrix = []testcaseMatrix{
 	// Normal
-	{false, "auto", false},
-	{false, "true", false},
-	{false, "false", false},
+	{false, "auto", false, false},
+	{false, "true", false, false},
+	{false, "false", false, false},
 	// Plaintextnames
-	{true, "true", false},
-	{true, "false", false},
+	{true, "true", false, false},
+	{true, "false", false, false},
 	// AES-SIV (does not use openssl, no need to test permutations)
-	{false, "auto", true},
-	{true, "auto", true},
+	{false, "auto", true, false},
+	{true, "auto", true, false},
+	// Raw64
+	{false, "auto", false, true},
 }
 
 // This is the entry point for the tests
@@ -58,19 +59,19 @@ func TestMain(m *testing.M) {
 	// Make "testing.Verbose()" return the correct value
 	flag.Parse()
 	for _, testcase = range matrix {
-		if !cryptocore.HaveModernGoGCM && testcase.Openssl != "true" {
+		if !cryptocore.HaveModernGoGCM && testcase.openssl != "true" {
 			fmt.Printf("Skipping Go GCM variant, Go installation is too old")
 			continue
 		}
 		if testing.Verbose() {
-			j, _ := json.Marshal(testcase)
-			fmt.Printf("matrix: testcase = %s\n", string(j))
+			fmt.Printf("matrix: testcase = %#v\n", testcase)
 		}
-		test_helpers.ResetTmpDir(!testcase.Plaintextnames)
+		test_helpers.ResetTmpDir(!testcase.plaintextnames)
 		opts := []string{"-zerokey"}
-		opts = append(opts, fmt.Sprintf("-openssl=%v", testcase.Openssl))
-		opts = append(opts, fmt.Sprintf("-plaintextnames=%v", testcase.Plaintextnames))
-		opts = append(opts, fmt.Sprintf("-aessiv=%v", testcase.Aessiv))
+		opts = append(opts, fmt.Sprintf("-openssl=%v", testcase.openssl))
+		opts = append(opts, fmt.Sprintf("-plaintextnames=%v", testcase.plaintextnames))
+		opts = append(opts, fmt.Sprintf("-aessiv=%v", testcase.aessiv))
+		opts = append(opts, fmt.Sprintf("-raw64=%v", testcase.raw64))
 		test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, opts...)
 		r := m.Run()
 		test_helpers.UnmountPanic(test_helpers.DefaultPlainDir)
@@ -474,17 +475,17 @@ func TestRmwRace(t *testing.T) {
 func TestFiltered(t *testing.T) {
 	filteredFile := test_helpers.DefaultPlainDir + "/gocryptfs.conf"
 	file, err := os.Create(filteredFile)
-	if testcase.Plaintextnames && err == nil {
+	if testcase.plaintextnames && err == nil {
 		t.Errorf("should have failed but didn't")
-	} else if !testcase.Plaintextnames && err != nil {
+	} else if !testcase.plaintextnames && err != nil {
 		t.Error(err)
 	}
 	file.Close()
 
 	err = os.Remove(filteredFile)
-	if testcase.Plaintextnames && err == nil {
+	if testcase.plaintextnames && err == nil {
 		t.Errorf("should have failed but didn't")
-	} else if !testcase.Plaintextnames && err != nil {
+	} else if !testcase.plaintextnames && err != nil {
 		t.Error(err)
 	}
 }
@@ -496,9 +497,9 @@ func TestFilenameEncryption(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = os.Stat(test_helpers.DefaultCipherDir + "/TestFilenameEncryption.txt")
-	if testcase.Plaintextnames && err != nil {
+	if testcase.plaintextnames && err != nil {
 		t.Errorf("plaintextnames not working: %v", err)
-	} else if !testcase.Plaintextnames && err == nil {
+	} else if !testcase.plaintextnames && err == nil {
 		t.Errorf("file name encryption not working")
 	}
 }
