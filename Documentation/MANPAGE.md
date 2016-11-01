@@ -154,9 +154,10 @@ Options:
 
 **-version**
 :	Print version and exit. The output contains three fields seperated by ";".
-	Example: "gocryptfs v0.12-2; go-fuse a4c968c; go1.6.2".
+	Example: "gocryptfs v1.1.1-5-g75b776c; go-fuse 6b801d3; 2016-11-01 go1.7.3".
 	Field 1 is the gocryptfs version, field 2 is the version of the go-fuse
-	library, field 3 is the Go version that was used to compile the binary.
+	library, field 3 is the compile date and the Go version that was
+	used.
 
 **-wpanic**
 :	When encountering a warning, panic and exit immediately. This is
