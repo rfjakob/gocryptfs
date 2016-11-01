@@ -14,7 +14,7 @@ import (
 
 // argContainer stores the parsed CLI options and arguments
 type argContainer struct {
-	debug, init, zerokey, fusedebug, openssl, passwd, foreground, version,
+	debug, init, zerokey, fusedebug, openssl, passwd, fg, version,
 	plaintextnames, quiet, nosyslog, wpanic,
 	longnames, allow_other, ro, reverse, aessiv, nonempty, raw64 bool
 	masterkey, mountpoint, cipherdir, cpuprofile, extpass,
@@ -89,7 +89,8 @@ func parseCliOpts() (args argContainer) {
 	// Tri-state true/false/auto
 	flagSet.StringVar(&opensslAuto, "openssl", "auto", "Use OpenSSL instead of built-in Go crypto")
 	flagSet.BoolVar(&args.passwd, "passwd", false, "Change password")
-	flagSet.BoolVar(&args.foreground, "f", false, "Stay in the foreground")
+	flagSet.BoolVar(&args.fg, "f", false, "")
+	flagSet.BoolVar(&args.fg, "fg", false, "Stay in the foreground")
 	flagSet.BoolVar(&args.version, "version", false, "Print version and exit")
 	flagSet.BoolVar(&args.plaintextnames, "plaintextnames", false, "Do not encrypt file names")
 	flagSet.BoolVar(&args.quiet, "q", false, "")

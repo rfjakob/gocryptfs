@@ -126,7 +126,7 @@ func main() {
 	args := parseCliOpts()
 	// Fork a child into the background if "-f" is not set AND we are mounting
 	// a filesystem. The child will do all the work.
-	if !args.foreground && flagSet.NArg() == 2 {
+	if !args.fg && flagSet.NArg() == 2 {
 		ret := forkChild()
 		os.Exit(ret)
 	}

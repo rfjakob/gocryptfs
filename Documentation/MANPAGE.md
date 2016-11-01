@@ -56,8 +56,9 @@ Options:
 	stripped by gocryptfs. Using something like "cat /mypassword.txt" allows
 	to mount the gocryptfs filesytem without user interaction.
 
-**-f**
+**-fg, -f**
 :	Stay in the foreground instead of forking away. Implies "-nosyslog".
+	For compatability, "-f" is also accepted, but "-fg" is preferred.
 
 **-fusedebug**
 :	Enable fuse library debug output
