@@ -140,6 +140,11 @@ Options:
 **-q, -quiet**
 :	Quiet - silence informational messages
 
+**-raw64**
+:	Use unpadded base64 encoding for file names. This gets rid of the
+	trailing "\\=\\=". A filesystem created with this option can only be
+	mounted using gocryptfs v1.2 and higher.
+
 **-reverse**
 :	Reverse mode shows a read-only encrypted view of a plaintext
 	directory. Implies "-aessiv".
