@@ -92,8 +92,8 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cip
 	}
 	// Check if the DirIV is cached
 	parentDir := filepath.Dir(plainPath)
-	found, iv, cParentDir := be.DirIVCache.lookup(parentDir)
-	if found {
+	iv, cParentDir := be.DirIVCache.lookup(parentDir)
+	if iv != nil {
 		cBaseName := be.EncryptName(baseName, iv)
 		if be.longNames && len(cBaseName) > syscall.NAME_MAX {
 			cBaseName = HashLongName(cBaseName)

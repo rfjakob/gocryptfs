@@ -2,42 +2,47 @@ package nametransform
 
 import "sync"
 
-// A simple one-entry DirIV cache
+// Single-entry DirIV cache. Stores the directory IV and the encrypted
+// path.
 type dirIVCache struct {
-	// Invalidated?
-	cleared bool
-	// The DirIV
-	iv []byte
 	// Directory the DirIV belongs to
 	dir string
+
+	// The DirIV
+	iv []byte
 	// Ecrypted version of "dir"
-	translatedDir string
-	// Synchronisation
-	lock sync.RWMutex
+	cDir string
+
+	// Invalidated?
+	cleared bool
+	sync.RWMutex
 }
 
 // lookup - fetch entry for "dir" from the cache
-func (c *dirIVCache) lookup(dir string) (bool, []byte, string) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	if !c.cleared && c.dir == dir {
-		return true, c.iv, c.translatedDir
+func (c *dirIVCache) lookup(dir string) ([]byte, string) {
+	c.RLock()
+	defer c.RUnlock()
+	if c.cleared || c.dir != dir {
+		return nil, ""
 	}
-	return false, nil, ""
+	return c.iv, c.cDir
 }
 
-// store - write entry for "dir" into the caches
-func (c *dirIVCache) store(dir string, iv []byte, translatedDir string) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+// store - write entry for "dir" into the cache
+func (c *dirIVCache) store(dir string, iv []byte, cDir string) {
+	c.Lock()
+	defer c.Unlock()
 	c.cleared = false
 	c.iv = iv
 	c.dir = dir
-	c.translatedDir = translatedDir
+	c.cDir = cDir
 }
 
+// Clear ... clear the cache.
+// Exported because it is called from fusefrontend when directories are
+// renamed or deleted.
 func (c *dirIVCache) Clear() {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.Lock()
+	defer c.Unlock()
 	c.cleared = true
 }
