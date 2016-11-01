@@ -67,8 +67,9 @@ func doMount(args *argContainer) int {
 		masterkey, confFile = loadConfig(args)
 		printMasterKey(masterkey)
 	}
+	// We cannot use JSON for pretty-printing as the fields are unexported
+	tlog.Debug.Printf("cli args: %#v", args)
 	// Initialize FUSE server
-	tlog.Debug.Printf("cli args: %v", args)
 	srv := initFuseFrontend(masterkey, args, confFile)
 	tlog.Info.Println(tlog.ColorGreen + "Filesystem mounted and ready." + tlog.ColorReset)
 	// We have been forked into the background, as evidenced by the set
