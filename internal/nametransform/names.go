@@ -25,7 +25,7 @@ type NameTransform struct {
 func New(c *cryptocore.CryptoCore, longNames bool, raw64 bool) *NameTransform {
 	b64 := base64.URLEncoding
 	if raw64 {
-		b64 = base64.RawURLEncoding
+		b64 = getRaw64Encoding()
 	}
 	return &NameTransform{
 		cryptoCore: c,
