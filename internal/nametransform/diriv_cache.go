@@ -1,12 +1,21 @@
 package nametransform
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 // Single-entry DirIV cache. Stores the directory IV and the encrypted
 // path.
 type dirIVCache struct {
 	// Directory the DirIV belongs to
 	dir string
+	// Time the entry expires.
+	// The cached entry my become out-of-date if the ciphertext directory is
+	// modifed behind the back of gocryptfs. Having an expiry time limits the
+	// inconstency to one second, like attr_timeout does for the kernel
+	// getattr cache.
+	expiry time.Time
 
 	// The DirIV
 	iv []byte
@@ -25,6 +34,10 @@ func (c *dirIVCache) lookup(dir string) ([]byte, string) {
 	if c.cleared || c.dir != dir {
 		return nil, ""
 	}
+	if time.Since(c.expiry) > 0 {
+		c.cleared = true
+		return nil, ""
+	}
 	return c.iv, c.cDir
 }
 
@@ -36,6 +49,8 @@ func (c *dirIVCache) store(dir string, iv []byte, cDir string) {
 	c.iv = iv
 	c.dir = dir
 	c.cDir = cDir
+	// Set expiry time one second into the future
+	c.expiry = time.Now().Add(1 * time.Second)
 }
 
 // Clear ... clear the cache.
