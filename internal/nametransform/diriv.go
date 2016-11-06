@@ -1,6 +1,7 @@
 package nametransform
 
 import (
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -52,13 +53,13 @@ func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 	// make the buffer 1 byte bigger than necessary.
 	iv = make([]byte, DirIVLen+1)
 	n, err := fd.Read(iv)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		tlog.Warn.Printf("ReadDirIVAt: Read failed: %v", err)
 		return nil, err
 	}
 	iv = iv[0:n]
 	if len(iv) != DirIVLen {
-		tlog.Warn.Printf("ReadDirIVAt: wanted %d bytes, got %d", DirIVLen, len(iv))
+		tlog.Warn.Printf("ReadDirIVAt: wanted %d bytes, got %d. Returning EINVAL.", DirIVLen, len(iv))
 		return nil, syscall.EINVAL
 	}
 	return iv, nil
