@@ -36,14 +36,14 @@ func derivePathIV(path string, purpose ivPurposeType) []byte {
 	return hash[:nametransform.DirIVLen]
 }
 
-func (rfs *reverseFS) abs(relPath string, err error) (string, error) {
+func (rfs *ReverseFS) abs(relPath string, err error) (string, error) {
 	if err != nil {
 		return "", err
 	}
 	return filepath.Join(rfs.args.Cipherdir, relPath), nil
 }
 
-func (rfs *reverseFS) decryptPath(relPath string) (string, error) {
+func (rfs *ReverseFS) decryptPath(relPath string) (string, error) {
 	if rfs.args.PlaintextNames || relPath == "" {
 		return relPath, nil
 	}

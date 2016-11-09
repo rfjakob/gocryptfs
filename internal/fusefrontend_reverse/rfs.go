@@ -25,7 +25,9 @@ const (
 	DirIVMode = syscall.S_IFREG | 0400
 )
 
-type reverseFS struct {
+// ReverseFS implements the pathfs.FileSystem interface and provides an
+// encrypted view of a plaintext directory.
+type ReverseFS struct {
 	// Embed pathfs.defaultFileSystem for a ENOSYS implementation of all methods
 	pathfs.FileSystem
 	// pathfs.loopbackFileSystem, see go-fuse/fuse/pathfs/loopback.go
@@ -44,12 +46,12 @@ type reverseFS struct {
 	inoMapLock sync.Mutex
 }
 
-var _ pathfs.FileSystem = &reverseFS{}
+var _ pathfs.FileSystem = &ReverseFS{}
 
 // NewFS returns an encrypted FUSE overlay filesystem.
 // In this case (reverse mode) the backing directory is plain-text and
-// reverseFS provides an encrypted view.
-func NewFS(args fusefrontend.Args) *reverseFS {
+// ReverseFS provides an encrypted view.
+func NewFS(args fusefrontend.Args) *ReverseFS {
 	if args.CryptoBackend != cryptocore.BackendAESSIV {
 		panic("reverse mode must use AES-SIV, everything else is insecure")
 	}
@@ -58,7 +60,7 @@ func NewFS(args fusefrontend.Args) *reverseFS {
 	contentEnc := contentenc.New(cryptoCore, contentenc.DefaultBS)
 	nameTransform := nametransform.New(cryptoCore, args.LongNames, args.Raw64)
 
-	return &reverseFS{
+	return &ReverseFS{
 		// pathfs.defaultFileSystem returns ENOSYS for all operations
 		FileSystem:    pathfs.NewDefaultFileSystem(),
 		loopbackfs:    pathfs.NewLoopbackFileSystem(args.Cipherdir),
@@ -82,7 +84,7 @@ func relDir(path string) string {
 }
 
 // dirIVAttr handles GetAttr requests for the virtual gocryptfs.diriv files.
-func (rfs *reverseFS) dirIVAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
+func (rfs *ReverseFS) dirIVAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	cDir := relDir(relPath)
 	dir, err := rfs.decryptPath(cDir)
 	if err != nil {
@@ -115,7 +117,7 @@ func (rfs *reverseFS) dirIVAttr(relPath string, context *fuse.Context) (*fuse.At
 }
 
 // isDirIV determines if the path points to a gocryptfs.diriv file
-func (rfs *reverseFS) isDirIV(relPath string) bool {
+func (rfs *ReverseFS) isDirIV(relPath string) bool {
 	if rfs.args.PlaintextNames {
 		return false
 	}
@@ -124,7 +126,7 @@ func (rfs *reverseFS) isDirIV(relPath string) bool {
 
 // isNameFile determines if the path points to a gocryptfs.longname.*.name
 // file
-func (rfs *reverseFS) isNameFile(relPath string) bool {
+func (rfs *ReverseFS) isNameFile(relPath string) bool {
 	if rfs.args.PlaintextNames {
 		return false
 	}
@@ -136,7 +138,7 @@ func (rfs *reverseFS) isNameFile(relPath string) bool {
 // and the ciphertext path is "gocryptfs.conf".
 // "gocryptfs.conf" then maps to ".gocryptfs.reverse.conf" in the plaintext
 // directory.
-func (rfs *reverseFS) isTranslatedConfig(relPath string) bool {
+func (rfs *ReverseFS) isTranslatedConfig(relPath string) bool {
 	if rfs.args.ConfigCustom {
 		return false
 	}
@@ -146,7 +148,7 @@ func (rfs *reverseFS) isTranslatedConfig(relPath string) bool {
 	return false
 }
 
-func (rfs *reverseFS) inoAwareStat(relPlainPath string) (*fuse.Attr, fuse.Status) {
+func (rfs *ReverseFS) inoAwareStat(relPlainPath string) (*fuse.Attr, fuse.Status) {
 	absPath, err := rfs.abs(relPlainPath, nil)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
@@ -182,7 +184,7 @@ func (rfs *reverseFS) inoAwareStat(relPlainPath string) (*fuse.Attr, fuse.Status
 }
 
 // GetAttr - FUSE call
-func (rfs *reverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
+func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	if rfs.isTranslatedConfig(relPath) {
 		return rfs.inoAwareStat(configfile.ConfReverseName)
 	}
@@ -224,7 +226,7 @@ func (rfs *reverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 }
 
 // Access - FUSE call
-func (rfs *reverseFS) Access(relPath string, mode uint32, context *fuse.Context) fuse.Status {
+func (rfs *ReverseFS) Access(relPath string, mode uint32, context *fuse.Context) fuse.Status {
 	if rfs.isTranslatedConfig(relPath) {
 		return fuse.OK
 	}
@@ -239,7 +241,7 @@ func (rfs *reverseFS) Access(relPath string, mode uint32, context *fuse.Context)
 }
 
 // Open - FUSE call
-func (rfs *reverseFS) Open(relPath string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
+func (rfs *ReverseFS) Open(relPath string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
 	if rfs.isTranslatedConfig(relPath) {
 		return rfs.loopbackfs.Open(configfile.ConfReverseName, flags, context)
 	}
@@ -249,10 +251,10 @@ func (rfs *reverseFS) Open(relPath string, flags uint32, context *fuse.Context) 
 	if rfs.isNameFile(relPath) {
 		return rfs.newNameFile(relPath)
 	}
-	return rfs.NewFile(relPath, flags)
+	return rfs.newFile(relPath, flags)
 }
 
-func (rfs *reverseFS) openDirPlaintextnames(relPath string, entries []fuse.DirEntry) ([]fuse.DirEntry, fuse.Status) {
+func (rfs *ReverseFS) openDirPlaintextnames(relPath string, entries []fuse.DirEntry) ([]fuse.DirEntry, fuse.Status) {
 	if relPath != "" || rfs.args.ConfigCustom {
 		return entries, fuse.OK
 	}
@@ -278,7 +280,7 @@ func (rfs *reverseFS) openDirPlaintextnames(relPath string, entries []fuse.DirEn
 }
 
 // OpenDir - FUSE readdir call
-func (rfs *reverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
+func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
 	relPath, err := rfs.decryptPath(cipherPath)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
@@ -329,12 +331,12 @@ func (rfs *reverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 }
 
 // StatFs - FUSE call
-func (rfs *reverseFS) StatFs(name string) *fuse.StatfsOut {
+func (rfs *ReverseFS) StatFs(name string) *fuse.StatfsOut {
 	return rfs.loopbackfs.StatFs(name)
 }
 
 // Readlink - FUSE call
-func (rfs *reverseFS) Readlink(cipherPath string, context *fuse.Context) (string, fuse.Status) {
+func (rfs *ReverseFS) Readlink(cipherPath string, context *fuse.Context) (string, fuse.Status) {
 	absPath, err := rfs.abs(rfs.decryptPath(cipherPath))
 	if err != nil {
 		return "", fuse.ToStatus(err)

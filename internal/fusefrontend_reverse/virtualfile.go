@@ -8,13 +8,13 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
-func (rfs *reverseFS) newDirIVFile(cRelPath string) (nodefs.File, fuse.Status) {
+func (rfs *ReverseFS) newDirIVFile(cRelPath string) (nodefs.File, fuse.Status) {
 	cDir := saneDir(cRelPath)
 	absDir, err := rfs.abs(rfs.decryptPath(cDir))
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	return rfs.NewVirtualFile(derivePathIV(cDir, ivPurposeDirIV), absDir)
+	return rfs.newVirtualFile(derivePathIV(cDir, ivPurposeDirIV), absDir)
 }
 
 type virtualFile struct {
@@ -28,7 +28,7 @@ type virtualFile struct {
 	ino uint64
 }
 
-func (rfs *reverseFS) NewVirtualFile(content []byte, parentFile string) (nodefs.File, fuse.Status) {
+func (rfs *ReverseFS) newVirtualFile(content []byte, parentFile string) (nodefs.File, fuse.Status) {
 	return &virtualFile{
 		File:       nodefs.NewDefaultFile(),
 		content:    content,

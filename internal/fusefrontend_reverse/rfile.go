@@ -27,7 +27,7 @@ type reverseFile struct {
 	contentEnc *contentenc.ContentEnc
 }
 
-func (rfs *reverseFS) NewFile(relPath string, flags uint32) (nodefs.File, fuse.Status) {
+func (rfs *ReverseFS) newFile(relPath string, flags uint32) (nodefs.File, fuse.Status) {
 	absPath, err := rfs.abs(rfs.decryptPath(relPath))
 	if err != nil {
 		return nil, fuse.ToStatus(err)

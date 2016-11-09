@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	// HaveRaw64 is true when Go is new enough to have base64.RawURLEncoding
 	HaveRaw64 = true
 )
 
