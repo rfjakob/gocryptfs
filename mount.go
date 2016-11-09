@@ -18,6 +18,7 @@ import (
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
+	"github.com/rfjakob/gocryptfs/internal/ctlsock"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend_reverse"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
@@ -165,10 +166,18 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 	jsonBytes, _ := json.MarshalIndent(frontendArgs, "", "\t")
 	tlog.Debug.Printf("frontendArgs: %s", string(jsonBytes))
 	var finalFs pathfs.FileSystem
+	var ctlSockBackend ctlsock.Interface
 	if args.reverse {
-		finalFs = fusefrontend_reverse.NewFS(frontendArgs)
+		fs := fusefrontend_reverse.NewFS(frontendArgs)
+		finalFs = fs
+		ctlSockBackend = fs
 	} else {
-		finalFs = fusefrontend.NewFS(frontendArgs)
+		fs := fusefrontend.NewFS(frontendArgs)
+		finalFs = fs
+		ctlSockBackend = fs
+	}
+	if args.ctlsock != "" {
+		ctlsock.CreateAndServe(args.ctlsock, ctlSockBackend)
 	}
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
 	pathFs := pathfs.NewPathNodeFs(finalFs, pathFsOpts)
@@ -200,9 +209,8 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 	if args.reverse {
 		mOpts.Name += "-reverse"
 	}
-
 	// The kernel enforces read-only operation, we just have to pass "ro".
-	// Reverse mounts are always read-only
+	// Reverse mounts are always read-only.
 	if args.ro || args.reverse {
 		mOpts.Options = append(mOpts.Options, "ro")
 	}

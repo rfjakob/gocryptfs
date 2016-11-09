@@ -21,7 +21,7 @@ var wlock wlockMap
 // 2) lock ... unlock ...
 // 3) unregister
 type wlockMap struct {
-	// Counts lock() calls. As every operation that modifies a file should
+	// opCount counts lock() calls. As every operation that modifies a file should
 	// call it, this effectively serves as a write-operation counter.
 	// The variable is accessed without holding any locks so atomic operations
 	// must be used. It must be the first element of the struct to guarantee

@@ -2,10 +2,16 @@
 package defaults
 
 import (
+	"encoding/json"
+	"fmt"
+	"net"
 	"os"
 	"os/exec"
+	"syscall"
 	"testing"
+	"time"
 
+	"github.com/rfjakob/gocryptfs/internal/ctlsock"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
@@ -33,5 +39,36 @@ func Test1980Tar(t *testing.T) {
 	m := fi.ModTime().Unix()
 	if m != 315619323 {
 		t.Errorf("Wrong mtime: %d", m)
+	}
+}
+
+func TestCtlSock(t *testing.T) {
+	cDir := test_helpers.InitFS(t)
+	pDir := cDir + ".mnt"
+	sock := cDir + ".sock"
+	test_helpers.MountOrFatal(t, cDir, pDir, "-ctlsock="+sock, "-extpass", "echo test")
+	defer test_helpers.UnmountPanic(pDir)
+	conn, err := net.DialTimeout("unix", sock, 1*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	conn.SetDeadline(time.Now().Add(time.Second))
+	msg := []byte(`{"EncryptPath": "foobar"}`)
+	_, err = conn.Write(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	buf := make([]byte, 2*syscall.PathMax)
+	n, err := conn.Read(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	buf = buf[:n]
+	var response ctlsock.ResponseStruct
+	json.Unmarshal(buf, &response)
+	if response.Result == "" || response.ErrNo != 0 {
+		fmt.Printf("%s\n", string(buf))
+		t.Errorf("got an error reply")
 	}
 }
