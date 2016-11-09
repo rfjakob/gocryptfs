@@ -99,7 +99,7 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cip
 		if be.longNames && len(cBaseName) > syscall.NAME_MAX {
 			cBaseName = HashLongName(cBaseName)
 		}
-		cipherPath = cParentDir + "/" + cBaseName
+		cipherPath = filepath.Join(cParentDir, cBaseName)
 		return cipherPath, nil
 	}
 	// Not cached - walk the directory tree
@@ -118,7 +118,7 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cip
 		encryptedNames = append(encryptedNames, encryptedName)
 		wd = filepath.Join(wd, encryptedName)
 	}
-	cipherPath = strings.Join(encryptedNames, "/")
+	cipherPath = filepath.Join(encryptedNames...)
 	// Cache the final DirIV
 	cParentDir = filepath.Dir(cipherPath)
 	be.DirIVCache.store(parentDir, iv, cParentDir)
