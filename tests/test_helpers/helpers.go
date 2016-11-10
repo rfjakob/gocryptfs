@@ -124,8 +124,8 @@ func InitFS(t *testing.T, extraArgs ...string) string {
 // Creates "p" if it does not exist.
 func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 	var args []string
-	args = append(args, extraArgs...)
 	args = append(args, "-q", "-wpanic", "-nosyslog")
+	args = append(args, extraArgs...)
 	//args = append(args, "-fusedebug")
 	//args = append(args, "-d")
 	args = append(args, c)
