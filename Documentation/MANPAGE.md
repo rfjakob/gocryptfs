@@ -47,6 +47,13 @@ Options:
 **-cpuprofile string**
 :	Write cpu profile to specified file
 
+**-ctlsock string**
+:	Create a control socket at the specified location. The socket can be
+	used to decrypt and encrypt paths inside the filesystem. When using
+	this option, make sure that the direcory you place the socket in is
+	not world-accessible. For example, `/run/user/UID/my.socket` would 
+	be suitable.
+
 **-d, -debug**
 :	Enable debug output
 
