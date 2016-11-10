@@ -2,14 +2,10 @@
 package defaults
 
 import (
-	"encoding/json"
-	"fmt"
-	"net"
 	"os"
 	"os/exec"
 	"syscall"
 	"testing"
-	"time"
 
 	"github.com/rfjakob/gocryptfs/internal/ctlsock"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
@@ -48,27 +44,16 @@ func TestCtlSock(t *testing.T) {
 	sock := cDir + ".sock"
 	test_helpers.MountOrFatal(t, cDir, pDir, "-ctlsock="+sock, "-extpass", "echo test")
 	defer test_helpers.UnmountPanic(pDir)
-	conn, err := net.DialTimeout("unix", sock, 1*time.Second)
-	if err != nil {
-		t.Fatal(err)
+	req := ctlsock.RequestStruct{
+		EncryptPath: "foobar",
 	}
-	defer conn.Close()
-	conn.SetDeadline(time.Now().Add(time.Second))
-	msg := []byte(`{"EncryptPath": "foobar"}`)
-	_, err = conn.Write(msg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	buf := make([]byte, 2*syscall.PathMax)
-	n, err := conn.Read(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
-	buf = buf[:n]
-	var response ctlsock.ResponseStruct
-	json.Unmarshal(buf, &response)
+	response := test_helpers.QueryCtlSock(t, sock, req)
 	if response.Result == "" || response.ErrNo != 0 {
-		fmt.Printf("%s\n", string(buf))
-		t.Errorf("got an error reply")
+		t.Errorf("got an error reply: %+v", response)
+	}
+	req.EncryptPath = "not-existing-dir/xyz"
+	response = test_helpers.QueryCtlSock(t, sock, req)
+	if response.ErrNo != int32(syscall.ENOENT) || response.Result != "" {
+		t.Errorf("incorrect error handling: %+v", response)
 	}
 }

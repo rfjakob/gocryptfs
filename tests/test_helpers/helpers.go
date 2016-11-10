@@ -3,15 +3,19 @@ package test_helpers
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"syscall"
 	"testing"
+	"time"
 
+	"github.com/rfjakob/gocryptfs/internal/ctlsock"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 )
 
@@ -322,4 +326,31 @@ func Du(t *testing.T, fd int) (nBytes int64) {
 	}
 	// st.Blocks = number of 512-byte blocks
 	return st.Blocks * 512
+}
+
+// QueryCtlSock sends a request to the control socket at "socketPath" and
+// returns the response.
+func QueryCtlSock(t *testing.T, socketPath string, req ctlsock.RequestStruct) (response ctlsock.ResponseStruct) {
+	conn, err := net.DialTimeout("unix", socketPath, 1*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	conn.SetDeadline(time.Now().Add(time.Second))
+	msg, err := json.Marshal(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = conn.Write(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	buf := make([]byte, 2*syscall.PathMax)
+	n, err := conn.Read(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	buf = buf[:n]
+	json.Unmarshal(buf, &response)
+	return response
 }

@@ -9,11 +9,10 @@ import (
 )
 
 var dirA, dirB, dirC string
-var x240 string
+var x240 = string(bytes.Repeat([]byte("x"), 240))
 var plaintextnames bool
 
 func TestMain(m *testing.M) {
-	x240 = string(bytes.Repeat([]byte("x"), 240))
 	var r int
 	for _, plaintextnames = range []bool{false, true} {
 		argsA := []string{"-reverse"}

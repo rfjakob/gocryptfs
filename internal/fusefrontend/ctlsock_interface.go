@@ -14,6 +14,6 @@ func (fs *FS) EncryptPath(plainPath string) (string, error) {
 }
 
 // DecryptPath implements ctlsock.Backend
-func (fs *FS) DecryptPath(plainPath string) (string, error) {
-	return "", errors.New("Not implemented")
+func (fs *FS) DecryptPath(cipherPath string) (string, error) {
+	return "", errors.New("not implemented (yet?)")
 }
