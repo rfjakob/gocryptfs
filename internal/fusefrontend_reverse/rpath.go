@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 // saneDir is like filepath.Dir but returns "" instead of "."
@@ -80,7 +81,9 @@ func (rfs *ReverseFS) decryptPath(relPath string) (string, error) {
 				return "", err
 			}
 		} else {
-			panic("longname bug, .name files should have been handled earlier")
+			// It makes no sense to decrypt a ".name" file
+			tlog.Warn.Printf("decryptPath: tried to decrypt %q!? Returning EINVAL.", part)
+			return "", syscall.EINVAL
 		}
 		transformedParts = append(transformedParts, transformedPart)
 	}

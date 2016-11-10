@@ -22,7 +22,8 @@ var ctlSockTestCases = [][]string{
 	{"gocryptfs.longname.cvRximo1ATRJVEzw_V9MZieHFlod9y2iv2Sug1kbiTE=/rBPJYAzcHWLdPj1T8kgh8A==", "longdir." + x240 + "/file"},
 }
 
-func TestCtlSockDecryptPath(t *testing.T) {
+// Test DecryptPath and EncryptPath
+func TestCtlSockPathOps(t *testing.T) {
 	mnt, err := ioutil.TempDir(test_helpers.TmpDir, "reverse_mnt_")
 	if err != nil {
 		t.Fatal(err)
@@ -49,4 +50,19 @@ func TestCtlSockDecryptPath(t *testing.T) {
 			t.Errorf("Testcase %d Encrypt: Want %q got %q", i, tc[1], response.Result)
 		}
 	}
+}
+
+// We should not panic when somebody feeds requests that make no sense
+func TestCtlSockCrash(t *testing.T) {
+	mnt, err := ioutil.TempDir(test_helpers.TmpDir, "reverse_mnt_")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sock := mnt + ".sock"
+	test_helpers.MountOrFatal(t, "ctlsock_reverse_test_fs", mnt, "-reverse", "-extpass", "echo test", "-ctlsock="+sock,
+		"-wpanic=0", "-nosyslog=0")
+	defer test_helpers.UnmountPanic(mnt)
+	// Try to crash it
+	req := ctlsock.RequestStruct{DecryptPath: "gocryptfs.longname.XXX_TestCtlSockCrash_XXX.name"}
+	test_helpers.QueryCtlSock(t, sock, req)
 }
