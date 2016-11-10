@@ -52,9 +52,9 @@ func (rfs *ReverseFS) decryptPath(relPath string) (string, error) {
 	parts := strings.Split(relPath, "/")
 	for i, part := range parts {
 		// Start at the top and recurse
-		currentDir := filepath.Join(parts[:i]...)
+		currentCipherDir := filepath.Join(parts[:i]...)
 		nameType := nametransform.NameType(part)
-		dirIV := derivePathIV(currentDir, ivPurposeDirIV)
+		dirIV := derivePathIV(currentCipherDir, ivPurposeDirIV)
 		var transformedPart string
 		if nameType == nametransform.LongNameNone {
 			transformedPart, err = rfs.nameTransform.DecryptName(part, dirIV)
@@ -74,7 +74,8 @@ func (rfs *ReverseFS) decryptPath(relPath string) (string, error) {
 				return "", err
 			}
 		} else if nameType == nametransform.LongNameContent {
-			transformedPart, err = rfs.findLongnameParent(currentDir, dirIV, part)
+			currentPlainDir := filepath.Join(transformedParts[:i]...)
+			transformedPart, err = rfs.findLongnameParent(currentPlainDir, dirIV, part)
 			if err != nil {
 				return "", err
 			}

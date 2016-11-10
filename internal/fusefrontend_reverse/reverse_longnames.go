@@ -11,6 +11,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 const (
@@ -49,6 +50,7 @@ func (rfs *ReverseFS) findLongnameParent(dir string, dirIV []byte, longname stri
 	absDir := filepath.Join(rfs.args.Cipherdir, dir)
 	dirfd, err := os.Open(absDir)
 	if err != nil {
+		tlog.Warn.Printf("findLongnameParent: opendir failed: %v\n", err)
 		return "", err
 	}
 	dirEntries, err := dirfd.Readdirnames(-1)
