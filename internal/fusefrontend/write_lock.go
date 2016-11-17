@@ -13,6 +13,7 @@ type DevInoStruct struct {
 	ino uint64
 }
 
+// DevInoFromStat fills a new DevInoStruct with the passed Stat_t info
 func DevInoFromStat(st *syscall.Stat_t) DevInoStruct {
 	// Explicit cast to uint64 to prevent build problems on 32-bit platforms
 	return DevInoStruct{
