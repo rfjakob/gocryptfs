@@ -41,7 +41,7 @@ type ReverseFS struct {
 	// Inode number generator
 	inoGen *inoGenT
 	// Maps backing files device+inode pairs to user-facing unique inode numbers
-	inoMap map[devIno]uint64
+	inoMap map[fusefrontend.DevInoStruct]uint64
 	// Protects map access
 	inoMapLock sync.Mutex
 }
@@ -68,7 +68,7 @@ func NewFS(args fusefrontend.Args) *ReverseFS {
 		nameTransform: nameTransform,
 		contentEnc:    contentEnc,
 		inoGen:        newInoGen(),
-		inoMap:        map[devIno]uint64{},
+		inoMap:        map[fusefrontend.DevInoStruct]uint64{},
 	}
 }
 
@@ -167,7 +167,7 @@ func (rfs *ReverseFS) inoAwareStat(relPlainPath string) (*fuse.Attr, fuse.Status
 	// The file has hard links. We have to give it a stable inode number so
 	// tar or rsync can find them.
 	if fi.Mode().IsRegular() && st.Nlink > 1 {
-		di := devIno{uint64(st.Dev), st.Ino}
+		di := fusefrontend.DevInoFromStat(st)
 		rfs.inoMapLock.Lock()
 		stableIno := rfs.inoMap[di]
 		if stableIno == 0 {

@@ -3,10 +3,26 @@ package fusefrontend
 import (
 	"sync"
 	"sync/atomic"
+	"syscall"
 )
 
+// DevInoStruct uniquely identifies a backing file through device number and
+// inode number.
+type DevInoStruct struct {
+	dev uint64
+	ino uint64
+}
+
+func DevInoFromStat(st *syscall.Stat_t) DevInoStruct {
+	// Explicit cast to uint64 to prevent build problems on 32-bit platforms
+	return DevInoStruct{
+		dev: uint64(st.Dev),
+		ino: uint64(st.Ino),
+	}
+}
+
 func init() {
-	wlock.inodeLocks = make(map[uint64]*refCntMutex)
+	wlock.inodeLocks = make(map[DevInoStruct]*refCntMutex)
 }
 
 // wlock - serializes write accesses to each file (identified by inode number)
@@ -29,7 +45,7 @@ type wlockMap struct {
 	opCount uint64
 	// Protects map access
 	sync.Mutex
-	inodeLocks map[uint64]*refCntMutex
+	inodeLocks map[DevInoStruct]*refCntMutex
 }
 
 // refCntMutex - mutex with reference count
@@ -42,45 +58,45 @@ type refCntMutex struct {
 
 // register creates an entry for "ino", or incrementes the reference count
 // if the entry already exists.
-func (w *wlockMap) register(ino uint64) {
+func (w *wlockMap) register(di DevInoStruct) {
 	w.Lock()
 	defer w.Unlock()
 
-	r := w.inodeLocks[ino]
+	r := w.inodeLocks[di]
 	if r == nil {
 		r = &refCntMutex{}
-		w.inodeLocks[ino] = r
+		w.inodeLocks[di] = r
 	}
 	r.refCnt++
 }
 
-// unregister decrements the reference count for "ino" and deletes the entry if
+// unregister decrements the reference count for "di" and deletes the entry if
 // the reference count has reached 0.
-func (w *wlockMap) unregister(ino uint64) {
+func (w *wlockMap) unregister(di DevInoStruct) {
 	w.Lock()
 	defer w.Unlock()
 
-	r := w.inodeLocks[ino]
+	r := w.inodeLocks[di]
 	r.refCnt--
 	if r.refCnt == 0 {
-		delete(w.inodeLocks, ino)
+		delete(w.inodeLocks, di)
 	}
 }
 
-// lock retrieves the entry for "ino" and locks it.
-func (w *wlockMap) lock(ino uint64) {
+// lock retrieves the entry for "di" and locks it.
+func (w *wlockMap) lock(di DevInoStruct) {
 	atomic.AddUint64(&w.opCount, 1)
 	w.Lock()
-	r := w.inodeLocks[ino]
+	r := w.inodeLocks[di]
 	w.Unlock()
 	// this can take a long time - execute outside the wlockMap lock
 	r.Lock()
 }
 
-// unlock retrieves the entry for "ino" and unlocks it.
-func (w *wlockMap) unlock(ino uint64) {
+// unlock retrieves the entry for "di" and unlocks it.
+func (w *wlockMap) unlock(di DevInoStruct) {
 	w.Lock()
-	r := w.inodeLocks[ino]
+	r := w.inodeLocks[di]
 	w.Unlock()
 	r.Unlock()
 }

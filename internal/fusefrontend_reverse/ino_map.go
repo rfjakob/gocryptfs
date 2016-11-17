@@ -17,8 +17,3 @@ type inoGenT struct {
 func (i *inoGenT) next() uint64 {
 	return atomic.AddUint64(i.ino, 1)
 }
-
-type devIno struct {
-	dev uint64
-	ino uint64
-}
