@@ -40,11 +40,11 @@ type file struct {
 	contentEnc *contentenc.ContentEnc
 	// Device and inode number uniquely identify the backing file
 	devIno DevInoStruct
-	// File header
-	header *contentenc.FileHeader
+	// Entry in the open file map
+	fileTableEntry *openFileEntryT
 	// go-fuse nodefs.loopbackFile
 	loopbackFile nodefs.File
-	// Store what the last byte was written
+	// Store where the last byte was written
 	lastWrittenOffset int64
 	// The opCount is used to judge whether "lastWrittenOffset" is still
 	// guaranteed to be correct.
@@ -60,14 +60,15 @@ func NewFile(fd *os.File, writeOnly bool, contentEnc *contentenc.ContentEnc) (no
 		return nil, fuse.ToStatus(err)
 	}
 	di := DevInoFromStat(&st)
-	wlock.register(di)
+	t := openFileMap.register(di)
 
 	return &file{
-		fd:           fd,
-		writeOnly:    writeOnly,
-		contentEnc:   contentEnc,
-		devIno:       di,
-		loopbackFile: nodefs.NewLoopbackFile(fd),
+		fd:             fd,
+		writeOnly:      writeOnly,
+		contentEnc:     contentEnc,
+		devIno:         di,
+		fileTableEntry: t,
+		loopbackFile:   nodefs.NewLoopbackFile(fd),
 	}, fuse.OK
 }
 
@@ -84,44 +85,39 @@ func (f *file) InnerFile() nodefs.File {
 func (f *file) SetInode(n *nodefs.Inode) {
 }
 
-// readHeader - load the file header from disk
-//
-// Returns io.EOF if the file is empty
-func (f *file) readHeader() error {
+// readFileID loads the file header from disk and extracts the file ID.
+// Returns io.EOF if the file is empty.
+func (f *file) readFileID() ([]byte, error) {
 	buf := make([]byte, contentenc.HeaderLen)
 	_, err := f.fd.ReadAt(buf, 0)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	h, err := contentenc.ParseHeader(buf)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	f.header = h
-
-	return nil
+	return h.ID, nil
 }
 
-// createHeader - create a new random header and write it to disk
-func (f *file) createHeader() error {
+// createHeader creates a new random header and writes it to disk.
+// Returns the new file ID.
+// The caller must hold fileIDLock.Lock().
+func (f *file) createHeader() (fileID []byte, err error) {
 	h := contentenc.RandomHeader()
 	buf := h.Pack()
-
 	// Prevent partially written (=corrupt) header by preallocating the space beforehand
-	err := syscallcompat.EnospcPrealloc(int(f.fd.Fd()), 0, contentenc.HeaderLen)
+	err = syscallcompat.EnospcPrealloc(int(f.fd.Fd()), 0, contentenc.HeaderLen)
 	if err != nil {
 		tlog.Warn.Printf("ino%d: createHeader: prealloc failed: %s\n", f.devIno.ino, err.Error())
-		return err
+		return nil, err
 	}
-
 	// Actually write header
 	_, err = f.fd.WriteAt(buf, 0)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	f.header = h
-
-	return nil
+	return h.ID, err
 }
 
 func (f *file) String() string {
@@ -137,18 +133,30 @@ func (f *file) String() string {
 // Called by Read() for normal reading,
 // by Write() and Truncate() for Read-Modify-Write
 func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
-
-	// Read file header
-	if f.header == nil {
-		err := f.readHeader()
+	// Make sure we have the file ID.
+	f.fileTableEntry.IDLock.RLock()
+	if f.fileTableEntry.ID == nil {
+		f.fileTableEntry.IDLock.RUnlock()
+		// Yes, somebody else may take the lock before we can. This will get
+		// the header read twice, but causes no harm otherwise.
+		f.fileTableEntry.IDLock.Lock()
+		tmpID, err := f.readFileID()
 		if err == io.EOF {
+			f.fileTableEntry.IDLock.Unlock()
 			return nil, fuse.OK
 		}
 		if err != nil {
+			f.fileTableEntry.IDLock.Unlock()
 			return nil, fuse.ToStatus(err)
 		}
+		f.fileTableEntry.ID = tmpID
+		// Downgrade the lock.
+		f.fileTableEntry.IDLock.Unlock()
+		// The file ID may change in here. This does no harm because we
+		// re-read it after the RLock().
+		f.fileTableEntry.IDLock.RLock()
 	}
-
+	fileID := f.fileTableEntry.ID
 	// Read the backing ciphertext in one go
 	blocks := f.contentEnc.ExplodePlainRange(off, length)
 	alignedOffset, alignedLength := blocks[0].JointCiphertextRange(blocks)
@@ -156,6 +164,8 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	tlog.Debug.Printf("JointCiphertextRange(%d, %d) -> %d, %d, %d", off, length, alignedOffset, alignedLength, skip)
 	ciphertext := make([]byte, int(alignedLength))
 	n, err := f.fd.ReadAt(ciphertext, int64(alignedOffset))
+	// We don't care if the file ID changes after we have read the data. Drop the lock.
+	f.fileTableEntry.IDLock.RUnlock()
 	if err != nil && err != io.EOF {
 		tlog.Warn.Printf("read: ReadAt: %s", err.Error())
 		return nil, fuse.ToStatus(err)
@@ -167,7 +177,7 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	tlog.Debug.Printf("ReadAt offset=%d bytes (%d blocks), want=%d, got=%d", alignedOffset, firstBlockNo, alignedLength, n)
 
 	// Decrypt it
-	plaintext, err := f.contentEnc.DecryptBlocks(ciphertext, firstBlockNo, f.header.ID)
+	plaintext, err := f.contentEnc.DecryptBlocks(ciphertext, firstBlockNo, fileID)
 	if err != nil {
 		curruptBlockNo := firstBlockNo + f.contentEnc.PlainOffToBlockNo(uint64(len(plaintext)))
 		tlog.Warn.Printf("ino%d: doRead: corrupt block #%d: %v", f.devIno.ino, curruptBlockNo, err)
@@ -223,18 +233,28 @@ func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 //
 // Empty writes do nothing and are allowed.
 func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
-
 	// Read header from disk, create a new one if the file is empty
-	if f.header == nil {
-		err := f.readHeader()
+	f.fileTableEntry.IDLock.RLock()
+	if f.fileTableEntry.ID == nil {
+		f.fileTableEntry.IDLock.RUnlock()
+		// Somebody else may write the header here, but this would do no harm.
+		f.fileTableEntry.IDLock.Lock()
+		tmpID, err := f.readFileID()
 		if err == io.EOF {
-			err = f.createHeader()
-
+			tmpID, err = f.createHeader()
 		}
 		if err != nil {
+			f.fileTableEntry.IDLock.Unlock()
 			return 0, fuse.ToStatus(err)
 		}
+		f.fileTableEntry.ID = tmpID
+		f.fileTableEntry.IDLock.Unlock()
+		// The file ID may change in here. This does no harm because we
+		// re-read it after the RLock().
+		f.fileTableEntry.IDLock.RLock()
 	}
+	fileID := f.fileTableEntry.ID
+	defer f.fileTableEntry.IDLock.RUnlock()
 
 	var written uint32
 	status := fuse.OK
@@ -261,7 +281,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 
 		// Encrypt
 		blockOffset := b.BlockCipherOff()
-		blockData = f.contentEnc.EncryptBlock(blockData, b.BlockNo, f.header.ID)
+		blockData = f.contentEnc.EncryptBlock(blockData, b.BlockNo, fileID)
 		tlog.Debug.Printf("ino%d: Writing %d bytes to block #%d",
 			f.devIno.ino, uint64(len(blockData))-f.contentEnc.BlockOverhead(), b.BlockNo)
 
@@ -292,7 +312,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 // Stat() call is very expensive.
 // The caller must "wlock.lock(f.devIno.ino)" otherwise this check would be racy.
 func (f *file) isConsecutiveWrite(off int64) bool {
-	opCount := atomic.LoadUint64(&wlock.opCount)
+	opCount := atomic.LoadUint64(&openFileMap.opCount)
 	return opCount == f.lastOpCount+1 && off == f.lastWrittenOffset+1
 }
 
@@ -309,8 +329,8 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 		tlog.Warn.Printf("ino%d fh%d: Write on released file", f.devIno.ino, f.intFd())
 		return 0, fuse.EBADF
 	}
-	wlock.lock(f.devIno)
-	defer wlock.unlock(f.devIno)
+	f.fileTableEntry.writeLock.Lock()
+	defer f.fileTableEntry.writeLock.Unlock()
 	tlog.Debug.Printf("ino%d: FUSE Write: offset=%d length=%d", f.devIno.ino, off, len(data))
 	// If the write creates a file hole, we have to zero-pad the last block.
 	// But if the write directly follows an earlier write, it cannot create a
@@ -323,7 +343,7 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 	}
 	n, status := f.doWrite(data, off)
 	if status.Ok() {
-		f.lastOpCount = atomic.LoadUint64(&wlock.opCount)
+		f.lastOpCount = atomic.LoadUint64(&openFileMap.opCount)
 		f.lastWrittenOffset = off + int64(len(data)) - 1
 	}
 	return n, status
@@ -339,7 +359,7 @@ func (f *file) Release() {
 	f.released = true
 	f.fdLock.Unlock()
 
-	wlock.unregister(f.devIno)
+	openFileMap.unregister(f.devIno)
 }
 
 // Flush - FUSE call

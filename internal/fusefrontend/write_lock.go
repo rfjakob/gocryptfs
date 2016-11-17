@@ -22,7 +22,7 @@ func DevInoFromStat(st *syscall.Stat_t) DevInoStruct {
 }
 
 func init() {
-	wlock.inodeLocks = make(map[DevInoStruct]*refCntMutex)
+	openFileMap.entries = make(map[DevInoStruct]*openFileEntryT)
 }
 
 // wlock - serializes write accesses to each file (identified by inode number)
@@ -30,14 +30,14 @@ func init() {
 // really don't want concurrent writes there.
 // Concurrent full-block writes could actually be allowed, but are not to
 // keep the locking simple.
-var wlock wlockMap
+var openFileMap openFileMapT
 
 // wlockMap - usage:
 // 1) register
 // 2) lock ... unlock ...
 // 3) unregister
-type wlockMap struct {
-	// opCount counts lock() calls. As every operation that modifies a file should
+type openFileMapT struct {
+	// opCount counts writeLock.Lock() calls. As every operation that modifies a file should
 	// call it, this effectively serves as a write-operation counter.
 	// The variable is accessed without holding any locks so atomic operations
 	// must be used. It must be the first element of the struct to guarantee
@@ -45,58 +45,56 @@ type wlockMap struct {
 	opCount uint64
 	// Protects map access
 	sync.Mutex
-	inodeLocks map[DevInoStruct]*refCntMutex
+	entries map[DevInoStruct]*openFileEntryT
+}
+
+type opCountMutex struct {
+	sync.Mutex
+	// Points to the opCount variable of the parent openFileMapT
+	opCount *uint64
+}
+
+func (o *opCountMutex) Lock() {
+	o.Mutex.Lock()
+	atomic.AddUint64(o.opCount, 1)
 }
 
 // refCntMutex - mutex with reference count
-type refCntMutex struct {
-	// Write lock for this inode
-	sync.Mutex
+type openFileEntryT struct {
 	// Reference count
 	refCnt int
+	// Write lock for this inode
+	writeLock *opCountMutex
+	// ID is the file ID in the file header.
+	ID     []byte
+	IDLock sync.RWMutex
 }
 
 // register creates an entry for "ino", or incrementes the reference count
 // if the entry already exists.
-func (w *wlockMap) register(di DevInoStruct) {
+func (w *openFileMapT) register(di DevInoStruct) *openFileEntryT {
 	w.Lock()
 	defer w.Unlock()
 
-	r := w.inodeLocks[di]
+	r := w.entries[di]
 	if r == nil {
-		r = &refCntMutex{}
-		w.inodeLocks[di] = r
+		o := opCountMutex{opCount: &w.opCount}
+		r = &openFileEntryT{writeLock: &o}
+		w.entries[di] = r
 	}
 	r.refCnt++
+	return r
 }
 
 // unregister decrements the reference count for "di" and deletes the entry if
 // the reference count has reached 0.
-func (w *wlockMap) unregister(di DevInoStruct) {
+func (w *openFileMapT) unregister(di DevInoStruct) {
 	w.Lock()
 	defer w.Unlock()
 
-	r := w.inodeLocks[di]
+	r := w.entries[di]
 	r.refCnt--
 	if r.refCnt == 0 {
-		delete(w.inodeLocks, di)
+		delete(w.entries, di)
 	}
-}
-
-// lock retrieves the entry for "di" and locks it.
-func (w *wlockMap) lock(di DevInoStruct) {
-	atomic.AddUint64(&w.opCount, 1)
-	w.Lock()
-	r := w.inodeLocks[di]
-	w.Unlock()
-	// this can take a long time - execute outside the wlockMap lock
-	r.Lock()
-}
-
-// unlock retrieves the entry for "di" and unlocks it.
-func (w *wlockMap) unlock(di DevInoStruct) {
-	w.Lock()
-	r := w.inodeLocks[di]
-	w.Unlock()
-	r.Unlock()
 }

@@ -50,8 +50,8 @@ func (f *file) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
 	if f.released {
 		return fuse.EBADF
 	}
-	wlock.lock(f.devIno)
-	defer wlock.unlock(f.devIno)
+	f.fileTableEntry.writeLock.Lock()
+	defer f.fileTableEntry.writeLock.Unlock()
 
 	blocks := f.contentEnc.ExplodePlainRange(off, sz)
 	firstBlock := blocks[0]
@@ -100,8 +100,8 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 		tlog.Warn.Printf("ino%d fh%d: Truncate on released file", f.devIno.ino, f.intFd())
 		return fuse.EBADF
 	}
-	wlock.lock(f.devIno)
-	defer wlock.unlock(f.devIno)
+	f.fileTableEntry.writeLock.Lock()
+	defer f.fileTableEntry.writeLock.Unlock()
 	var err error
 	// Common case first: Truncate to zero
 	if newSize == 0 {
@@ -111,7 +111,9 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 			return fuse.ToStatus(err)
 		}
 		// Truncate to zero kills the file header
-		f.header = nil
+		f.fileTableEntry.IDLock.Lock()
+		f.fileTableEntry.ID = nil
+		f.fileTableEntry.IDLock.Unlock()
 		return fuse.OK
 	}
 	// We need the old file size to determine if we are growing or shrinking
@@ -184,7 +186,9 @@ func (f *file) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) fuse.Statu
 	var err error
 	// File was empty, create new header
 	if oldPlainSz == 0 {
-		err = f.createHeader()
+		f.fileTableEntry.IDLock.Lock()
+		_, err = f.createHeader()
+		f.fileTableEntry.IDLock.Unlock()
 		if err != nil {
 			return fuse.ToStatus(err)
 		}
