@@ -118,6 +118,14 @@ RM:    4.42
 Changelog
 ---------
 
+v1.2 (not yet released)
+* Add a control socket interface. Allows to encrypt and decrypt filenames.
+  For details see [this ticket](https://github.com/bit-team/backintime/issues/644#issuecomment-259835183).
+ * New command-line option: `-ctlsock`
+* Under certain circumstances, concurrent truncate and read could return
+  an I/O error. This is fixed by introducing a global open file table
+  that stores the file IDs.
+
 v1.1.1, 2016-10-30
 * Fix a panic on setting file timestamps ([go-fuse#131](https://github.com/hanwen/go-fuse/pull/131))
 * Work around an issue in tmpfs that caused a panic in xfstests generic/075
