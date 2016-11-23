@@ -239,5 +239,10 @@ func main() {
 		tlog.Fatal.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]", tlog.ProgramName)
 		os.Exit(ErrExitUsage)
 	}
-	os.Exit(doMount(&args))
+	ret := doMount(&args)
+	if ret != 0 {
+		os.Exit(ret)
+	}
+	// Don't call os.Exit on success to give deferred functions a chance to
+	// run
 }
