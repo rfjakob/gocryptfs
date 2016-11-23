@@ -255,15 +255,14 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 	}
 	fileID := f.fileTableEntry.ID
 	defer f.fileTableEntry.IDLock.RUnlock()
-
-	var written uint32
+	// Handle payload data
 	status := fuse.OK
 	dataBuf := bytes.NewBuffer(data)
 	blocks := f.contentEnc.ExplodePlainRange(uint64(off), uint64(len(data)))
-	for _, b := range blocks {
-
+	writeChain := make([][]byte, len(blocks))
+	var numOutBytes int
+	for i, b := range blocks {
 		blockData := dataBuf.Next(int(b.Length))
-
 		// Incomplete block -> Read-Modify-Write
 		if b.IsPartial() {
 			// Read
@@ -272,38 +271,41 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 			oldData, status = f.doRead(o, f.contentEnc.PlainBS())
 			if status != fuse.OK {
 				tlog.Warn.Printf("ino%d fh%d: RMW read failed: %s", f.devIno.ino, f.intFd(), status.String())
-				return written, status
+				return 0, status
 			}
 			// Modify
 			blockData = f.contentEnc.MergeBlocks(oldData, blockData, int(b.Skip))
 			tlog.Debug.Printf("len(oldData)=%d len(blockData)=%d", len(oldData), len(blockData))
 		}
-
 		// Encrypt
-		blockOffset := b.BlockCipherOff()
 		blockData = f.contentEnc.EncryptBlock(blockData, b.BlockNo, fileID)
 		tlog.Debug.Printf("ino%d: Writing %d bytes to block #%d",
 			f.devIno.ino, uint64(len(blockData))-f.contentEnc.BlockOverhead(), b.BlockNo)
-
-		// Prevent partially written (=corrupt) blocks by preallocating the space beforehand
-		err := syscallcompat.EnospcPrealloc(int(f.fd.Fd()), int64(blockOffset), int64(len(blockData)))
-		if err != nil {
-			tlog.Warn.Printf("ino%d fh%d: doWrite: prealloc failed: %s", f.devIno.ino, f.intFd(), err.Error())
-			status = fuse.ToStatus(err)
-			break
-		}
-
-		// Write
-		_, err = f.fd.WriteAt(blockData, int64(blockOffset))
-
-		if err != nil {
-			tlog.Warn.Printf("doWrite: Write failed: %s", err.Error())
-			status = fuse.ToStatus(err)
-			break
-		}
-		written += uint32(b.Length)
+		// Store output data in the writeChain
+		writeChain[i] = blockData
+		numOutBytes += len(blockData)
 	}
-	return written, status
+	// Concatenenate all elements in the writeChain into one contigous buffer
+	tmp := make([]byte, numOutBytes)
+	writeBuf := bytes.NewBuffer(tmp[:0])
+	for _, w := range writeChain {
+		writeBuf.Write(w)
+	}
+	// Preallocate so we cannot run out of space in the middle of the write.
+	// This prevents partially written (=corrupt) blocks.
+	cOff := blocks[0].BlockCipherOff()
+	err := syscallcompat.EnospcPrealloc(int(f.fd.Fd()), int64(cOff), int64(writeBuf.Len()))
+	if err != nil {
+		tlog.Warn.Printf("ino%d fh%d: doWrite: prealloc failed: %s", f.devIno.ino, f.intFd(), err.Error())
+		return 0, fuse.ToStatus(err)
+	}
+	// Write
+	_, err = f.fd.WriteAt(writeBuf.Bytes(), int64(cOff))
+	if err != nil {
+		tlog.Warn.Printf("doWrite: Write failed: %s", err.Error())
+		return 0, fuse.ToStatus(err)
+	}
+	return uint32(len(data)), fuse.OK
 }
 
 // isConsecutiveWrite returns true if the current write
