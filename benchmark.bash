@@ -4,18 +4,48 @@
 # https://nuetzlich.net/gocryptfs/comparison/
 
 cd "$(dirname "$0")"
+MYNAME=$(basename "$0")
 
-# Setup
-CRYPT=$(mktemp -d /tmp/benchmark.bash.XXX)
+function usage {
+	echo "Usage: $MYNAME [-encfs] [DIR]"
+	exit 1
+}
+
+# Print help text on too many arguments or "-h"
+if [[ $# -gt 2 ]]; then
+	usage
+elif [[ $# -ge 1 ]] && [[ $1 == "-h" ]]; then
+	usage
+fi
+
+# Set $DIR and $MODE
+MODE=gocryptfs
+DIR=/tmp
+if [[ $# -eq 2 ]]; then
+	if [[ $1 != "-encfs" ]]; then
+		usage
+	fi
+	MODE=encfs
+	DIR=$2
+elif [[ $# -eq 1 ]]; then
+	if [[ $1 == "-encfs" ]]; then
+		MODE=encfs
+	else
+		DIR=$1
+	fi
+fi
+
+# Create directories
+CRYPT=$(mktemp -d "$DIR/$MYNAME.XXX")
 MNT=$CRYPT.mnt
 mkdir $MNT
 
 # Mount
-if [ $# -eq 1 ] && [ "$1" == "-encfs" ]; then
-	echo "Testing EncFS at $MNT"
+if [[ $MODE == encfs ]]; then
+	echo "Testing EncFS at $CRYPT"
 	encfs --extpass="echo test" --standard $CRYPT $MNT > /dev/null
 else
-	echo "Testing gocryptfs at $MNT"
+	echo "Testing gocryptfs at $CRYPT"
 	gocryptfs -q -init -extpass="echo test" -scryptn=10 $CRYPT
 	gocryptfs -q -extpass="echo test" $CRYPT $MNT
 fi
