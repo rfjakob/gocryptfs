@@ -49,10 +49,12 @@ type file struct {
 	// The opCount is used to judge whether "lastWrittenOffset" is still
 	// guaranteed to be correct.
 	lastOpCount uint64
+	// Parent filesystem
+	fs *FS
 }
 
 // NewFile returns a new go-fuse File instance.
-func NewFile(fd *os.File, writeOnly bool, contentEnc *contentenc.ContentEnc) (nodefs.File, fuse.Status) {
+func NewFile(fd *os.File, writeOnly bool, fs *FS) (nodefs.File, fuse.Status) {
 	var st syscall.Stat_t
 	err := syscall.Fstat(int(fd.Fd()), &st)
 	if err != nil {
@@ -65,10 +67,11 @@ func NewFile(fd *os.File, writeOnly bool, contentEnc *contentenc.ContentEnc) (no
 	return &file{
 		fd:             fd,
 		writeOnly:      writeOnly,
-		contentEnc:     contentEnc,
+		contentEnc:     fs.contentEnc,
 		devIno:         di,
 		fileTableEntry: t,
 		loopbackFile:   nodefs.NewLoopbackFile(fd),
+		fs:             fs,
 	}, fuse.OK
 }
 
@@ -107,10 +110,12 @@ func (f *file) createHeader() (fileID []byte, err error) {
 	h := contentenc.RandomHeader()
 	buf := h.Pack()
 	// Prevent partially written (=corrupt) header by preallocating the space beforehand
-	err = syscallcompat.EnospcPrealloc(int(f.fd.Fd()), 0, contentenc.HeaderLen)
-	if err != nil {
-		tlog.Warn.Printf("ino%d: createHeader: prealloc failed: %s\n", f.devIno.ino, err.Error())
-		return nil, err
+	if !f.fs.args.NoPrealloc {
+		err = syscallcompat.EnospcPrealloc(int(f.fd.Fd()), 0, contentenc.HeaderLen)
+		if err != nil {
+			tlog.Warn.Printf("ino%d: createHeader: prealloc failed: %s\n", f.devIno.ino, err.Error())
+			return nil, err
+		}
 	}
 	// Actually write header
 	_, err = f.fd.WriteAt(buf, 0)
@@ -285,7 +290,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 		writeChain[i] = blockData
 		numOutBytes += len(blockData)
 	}
-	// Concatenenate all elements in the writeChain into one contigous buffer
+	// Concatenenate all elements in the writeChain into one contiguous buffer
 	tmp := make([]byte, numOutBytes)
 	writeBuf := bytes.NewBuffer(tmp[:0])
 	for _, w := range writeChain {
@@ -293,11 +298,14 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 	}
 	// Preallocate so we cannot run out of space in the middle of the write.
 	// This prevents partially written (=corrupt) blocks.
+	var err error
 	cOff := blocks[0].BlockCipherOff()
-	err := syscallcompat.EnospcPrealloc(int(f.fd.Fd()), int64(cOff), int64(writeBuf.Len()))
-	if err != nil {
-		tlog.Warn.Printf("ino%d fh%d: doWrite: prealloc failed: %s", f.devIno.ino, f.intFd(), err.Error())
-		return 0, fuse.ToStatus(err)
+	if !f.fs.args.NoPrealloc {
+		err = syscallcompat.EnospcPrealloc(int(f.fd.Fd()), int64(cOff), int64(writeBuf.Len()))
+		if err != nil {
+			tlog.Warn.Printf("ino%d fh%d: doWrite: prealloc failed: %s", f.devIno.ino, f.intFd(), err.Error())
+			return 0, fuse.ToStatus(err)
+		}
 	}
 	// Write
 	_, err = f.fd.WriteAt(writeBuf.Bytes(), int64(cOff))

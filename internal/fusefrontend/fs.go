@@ -106,7 +106,7 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 		return nil, fuse.ToStatus(err)
 	}
 
-	return NewFile(f, writeOnly, fs.contentEnc)
+	return NewFile(f, writeOnly, fs)
 }
 
 // Create implements pathfs.Filesystem.
@@ -160,7 +160,7 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 			tlog.Warn.Printf("Create: Chown failed: %v", err)
 		}
 	}
-	return NewFile(fd, writeOnly, fs.contentEnc)
+	return NewFile(fd, writeOnly, fs)
 }
 
 // Chmod implements pathfs.Filesystem.

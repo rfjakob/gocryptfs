@@ -21,4 +21,6 @@ type Args struct {
 	// Raw64 is true when RawURLEncoding (without padding) should be used for
 	// file names
 	Raw64 bool
+	// NoPrealloc disables automatic preallocation before writing
+	NoPrealloc bool
 }

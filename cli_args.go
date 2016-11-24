@@ -16,7 +16,8 @@ import (
 type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, fg, version,
 	plaintextnames, quiet, nosyslog, wpanic,
-	longnames, allow_other, ro, reverse, aessiv, nonempty, raw64 bool
+	longnames, allow_other, ro, reverse, aessiv, nonempty, raw64,
+	noprealloc bool
 	masterkey, mountpoint, cipherdir, cpuprofile, extpass,
 	memprofile, ko, passfile, ctlsock string
 	// Configuration file name override
@@ -105,6 +106,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.BoolVar(&args.aessiv, "aessiv", false, "AES-SIV encryption")
 	flagSet.BoolVar(&args.nonempty, "nonempty", false, "Allow mounting over non-empty directories")
 	flagSet.BoolVar(&args.raw64, "raw64", false, "Use unpadded base64 for file names")
+	flagSet.BoolVar(&args.noprealloc, "noprealloc", false, "Disable preallocation before writing")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")
@@ -116,7 +118,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")
 	flagSet.IntVar(&args.scryptn, "scryptn", configfile.ScryptDefaultLogN, "scrypt cost parameter logN. "+
-		"Setting this to a lower value speeds up mounting but makes the password susceptible to brute-force attacks")
+		"A lower value speeds up mounting but makes the password susceptible to brute-force attacks")
 	// Ignored otions
 	var dummyBool bool
 	ignoreText := "(ignored for compatibility)"

@@ -106,6 +106,22 @@ Options:
 :	Allow mounting over non-empty directories. FUSE by default disallows
 	this to prevent accidential shadowing of files.
 
+**-noprealloc**
+:	Disable preallocation before writing. By default, gocryptfs
+	preallocates the space the next write will take using fallocate(2)
+	in mode FALLOC_FL_KEEP_SIZE. The preallocation makes sure it cannot
+	run out of space in the middle of the write, which would cause the
+	last 4kB block to be corrupt and unreadable.
+
+	On ext4, preallocation is fast and does not cause a
+	noticeable performance hit. Unfortunately, on Btrfs, preallocation
+	is very slow, especially on rotational HDDs. The "-noprealloc"
+	option gives users the choice to trade robustness against
+	out-of-space errors for a massive speedup.
+	
+	For benchmarks and more details of the issue see
+	https://github.com/rfjakob/gocryptfs/issues/63 .
+
 **-nosyslog**
 :	Diagnostic messages are normally redirected to syslog once gocryptfs
 	daemonizes. This option disables the redirection and messages will
@@ -197,4 +213,4 @@ Mount an ecrypted view of joe's home directory using reverse mode:
 
 SEE ALSO
 ========
-fuse(8)
+fuse(8) fallocate(2)

@@ -145,6 +145,7 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 		CryptoBackend:  cryptoBackend,
 		ConfigCustom:   args._configCustom,
 		Raw64:          args.raw64,
+		NoPrealloc:     args.noprealloc,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {
