@@ -125,6 +125,12 @@ v1.2 (not yet released)
 * Under certain circumstances, concurrent truncate and read could return
   an I/O error. This is fixed by introducing a global open file table
   that stores the file IDs.
+* Coalesce 4kB ciphertext block writes
+  ([commit with benchmarks](https://github.com/rfjakob/gocryptfs/commit/024511d9c71558be4b1169d6bb43bd18d65539e0))
+* Add `-noprealloc` command-line option
+ * Greatly speeds up writes on Btrfs
+   ([#63](https://github.com/rfjakob/gocryptfs/issues/63))
+   at the cost of reduced out-of-space robustness.
 
 v1.1.1, 2016-10-30
 * Fix a panic on setting file timestamps ([go-fuse#131](https://github.com/hanwen/go-fuse/pull/131))
