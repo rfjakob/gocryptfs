@@ -15,7 +15,8 @@ func checkExampleFS(t *testing.T, dir string, rw bool) {
 	statusFile := filepath.Join(dir, "status.txt")
 	contentBytes, err := ioutil.ReadFile(statusFile)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
 	content := string(contentBytes)
 	if content != statusTxtContent {
@@ -25,7 +26,8 @@ func checkExampleFS(t *testing.T, dir string, rw bool) {
 	symlink := filepath.Join(dir, "rel")
 	target, err := os.Readlink(symlink)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
 	if target != "status.txt" {
 		t.Errorf("Unexpected link target: %s\n", target)
@@ -34,12 +36,12 @@ func checkExampleFS(t *testing.T, dir string, rw bool) {
 	symlink = filepath.Join(dir, "abs")
 	target, err = os.Readlink(symlink)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
 	if target != "/a/b/c/d" {
 		t.Errorf("Unexpected link target: %s\n", target)
 	}
-
 	if rw {
 		// Test directory operations
 		test_helpers.TestRename(t, dir)

@@ -227,20 +227,23 @@ func TestMkdirRmdir(t *testing.T, plainDir string) {
 	dir := plainDir + "/dir1"
 	err := os.Mkdir(dir, 0777)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
 	err = syscall.Rmdir(dir)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
-
 	// Removing a non-empty dir should fail with ENOTEMPTY
 	if os.Mkdir(dir, 0777) != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
 	f, err := os.Create(dir + "/file")
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
 	f.Close()
 	err = syscall.Rmdir(dir)
@@ -249,23 +252,26 @@ func TestMkdirRmdir(t *testing.T, plainDir string) {
 		t.Errorf("Should have gotten ENOTEMPTY, go %v", errno)
 	}
 	if syscall.Unlink(dir+"/file") != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
 	if syscall.Rmdir(dir) != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
-
 	// We should also be able to remove a directory we do not have permissions to
 	// read or write
 	err = os.Mkdir(dir, 0000)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
 	err = syscall.Rmdir(dir)
 	if err != nil {
 		// Make sure the directory can cleaned up by the next test run
 		os.Chmod(dir, 0700)
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
 }
 
@@ -275,11 +281,13 @@ func TestRename(t *testing.T, plainDir string) {
 	file2 := plainDir + "/rename2"
 	err := ioutil.WriteFile(file1, []byte("content"), 0777)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
 	err = syscall.Rename(file1, file2)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
 	syscall.Unlink(file2)
 }
