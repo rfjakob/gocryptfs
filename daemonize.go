@@ -10,19 +10,21 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-// The child sends us USR1 if the mount was successful
+// The child sends us USR1 if the mount was successful. Exit with error code
+// 0 if we get it.
 func exitOnUsr1() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGUSR1)
-	<-c
-	os.Exit(0)
+	go func() {
+		<-c
+		os.Exit(0)
+	}()
 }
 
 // forkChild - execute ourselves once again, this time with the "-fg" flag, and
 // wait for SIGUSR1 or child exit.
 // This is a workaround for the missing true fork function in Go.
 func forkChild() int {
-	go exitOnUsr1()
 	name := os.Args[0]
 	newArgs := []string{"-fg", fmt.Sprintf("-notifypid=%d", os.Getpid())}
 	newArgs = append(newArgs, os.Args[1:]...)
@@ -30,6 +32,7 @@ func forkChild() int {
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
 	c.Stdin = os.Stdin
+	exitOnUsr1()
 	err := c.Start()
 	if err != nil {
 		tlog.Fatal.Printf("forkChild: starting %s failed: %v\n", name, err)
