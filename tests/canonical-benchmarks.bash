@@ -28,7 +28,7 @@ function etime {
 }
 
 echo -n "WRITE: "
-dd if=/dev/zero of=zero bs=128K count=1000 2>&1 | tail -n 1
+dd if=/dev/zero of=zero bs=128K count=2000 2>&1 | tail -n 1
 rm zero
 sleep 1
 echo -n "UNTAR: "

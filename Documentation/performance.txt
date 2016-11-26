@@ -1,10 +1,9 @@
 All test performed on tmpfs, /tmp/a mounted on /tmp/b.
-The used test archive is https://www.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz
-(mirror: http://ftp.linux.org.uk/pub/linux/linux-3.0/linux-3.0.tar.gz).
+The untar test uses https://cdn.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz .
 The archive is placed on tmpfs as well.
 
-WRITE: dd if=/dev/zero of=zero bs=128K count=1000
-UNTAR: time tar xfz ../linux-3.0.tar.gz
+WRITE: dd if=/dev/zero of=zero bs=128K count=2000
+UNTAR: time tar xzf ../linux-3.0.tar.gz
 LS:    time ls -lR linux-3.0 > /dev/null
 RM:    time rm -Rf linux-3.0
 
