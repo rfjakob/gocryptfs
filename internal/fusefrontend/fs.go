@@ -351,7 +351,6 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	// Symlinks are encrypted like file contents (GCM) and base64-encoded
 	cBinTarget := fs.contentEnc.EncryptBlock([]byte(target), 0, nil)
 	cTarget := base64.URLEncoding.EncodeToString(cBinTarget)
-
 	// Handle long file name
 	cName := filepath.Base(cPath)
 	if nametransform.IsLongContent(cName) {
@@ -361,25 +360,32 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 			return fuse.ToStatus(err)
 		}
 		defer dirfd.Close()
-
-		// Create ".name"
+		// Create ".name" file
 		err = fs.nameTransform.WriteLongName(dirfd, cName, linkName)
 		if err != nil {
 			return fuse.ToStatus(err)
 		}
-
-		// Create symlink
+		// Create "gocryptfs.longfile." symlink
 		// TODO use syscall.Symlinkat once it is available in Go
 		err = syscall.Symlink(cTarget, cPath)
 		if err != nil {
 			nametransform.DeleteLongName(dirfd, cName)
 		}
-
+	} else {
+		// Create symlink
+		err = os.Symlink(cTarget, cPath)
+	}
+	if err != nil {
 		return fuse.ToStatus(err)
 	}
-
-	err = os.Symlink(cTarget, cPath)
-	return fuse.ToStatus(err)
+	// Set owner
+	if fs.args.PreserveOwner {
+		err = os.Lchown(cPath, int(context.Owner.Uid), int(context.Owner.Gid))
+		if err != nil {
+			tlog.Warn.Printf("Mknod: Lchown failed: %v", err)
+		}
+	}
+	return fuse.OK
 }
 
 // Rename implements pathfs.Filesystem.
