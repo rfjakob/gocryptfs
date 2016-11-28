@@ -57,7 +57,8 @@ func NameType(cName string) int {
 	return LongNameContent
 }
 
-// IsLongContent returns true if "cName" is the content store of a long name file.
+// IsLongContent returns true if "cName" is the content store of a long name
+// file (looks like "gocryptfs.longname.[sha256]").
 func IsLongContent(cName string) bool {
 	return NameType(cName) == LongNameContent
 }

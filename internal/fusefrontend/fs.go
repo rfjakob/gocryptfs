@@ -195,36 +195,43 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
-	cPath, err := fs.encryptPath(path)
+	cPath, err := fs.getBackingPath(path)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-
-	// Handle long file name
+	// Create ".name" file to store long file name
 	cName := filepath.Base(cPath)
 	if nametransform.IsLongContent(cName) {
-		dirfd, err := os.Open(filepath.Dir(cPath))
+		var dirfd *os.File
+		dirfd, err = os.Open(filepath.Dir(cPath))
 		if err != nil {
 			return fuse.ToStatus(err)
 		}
 		defer dirfd.Close()
-
-		// Create ".name"
 		err = fs.nameTransform.WriteLongName(dirfd, cName, path)
 		if err != nil {
 			return fuse.ToStatus(err)
 		}
-
-		// Create device node
-		err = syscallcompat.Mknodat(int(dirfd.Fd()), cName, uint32(mode), int(dev))
+		// Create "gocryptfs.longfile." device node
+		err = syscallcompat.Mknodat(int(dirfd.Fd()), cName, mode, int(dev))
 		if err != nil {
 			nametransform.DeleteLongName(dirfd, cName)
 		}
-
+	} else {
+		// Create regular device node
+		err = syscall.Mknod(cPath, mode, int(dev))
+	}
+	if err != nil {
 		return fuse.ToStatus(err)
 	}
-
-	return fs.FileSystem.Mknod(cPath, mode, dev, context)
+	// Set owner
+	if fs.args.PreserveOwner {
+		err = os.Lchown(cPath, int(context.Owner.Uid), int(context.Owner.Gid))
+		if err != nil {
+			tlog.Warn.Printf("Mknod: Lchown failed: %v", err)
+		}
+	}
+	return fuse.OK
 }
 
 // Truncate implements pathfs.Filesystem.
