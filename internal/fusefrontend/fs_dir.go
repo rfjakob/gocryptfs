@@ -54,9 +54,9 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 		err = os.Mkdir(cPath, os.FileMode(mode))
 		// Set owner
 		if fs.args.PreserveOwner {
-			err = os.Chown(cPath, int(context.Owner.Uid), int(context.Owner.Gid))
+			err = os.Lchown(cPath, int(context.Owner.Uid), int(context.Owner.Gid))
 			if err != nil {
-				tlog.Warn.Printf("Mkdir: Chown failed: %v", err)
+				tlog.Warn.Printf("Mkdir: Lchown failed: %v", err)
 			}
 		}
 		return fuse.ToStatus(err)
@@ -94,7 +94,6 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 			return fuse.ToStatus(err)
 		}
 	}
-
 	// Set permissions back to what the user wanted
 	if origMode != mode {
 		err = os.Chmod(cPath, os.FileMode(origMode))
@@ -104,13 +103,13 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 	}
 	// Set owner
 	if fs.args.PreserveOwner {
-		err = os.Chown(cPath, int(context.Owner.Uid), int(context.Owner.Gid))
+		err = os.Lchown(cPath, int(context.Owner.Uid), int(context.Owner.Gid))
 		if err != nil {
-			tlog.Warn.Printf("Mkdir: Chown failed: %v", err)
+			tlog.Warn.Printf("Mkdir: Lchown 1 failed: %v", err)
 		}
-		err = os.Chown(filepath.Join(cPath, nametransform.DirIVFilename), int(context.Owner.Uid), int(context.Owner.Gid))
+		err = os.Lchown(filepath.Join(cPath, nametransform.DirIVFilename), int(context.Owner.Uid), int(context.Owner.Gid))
 		if err != nil {
-			tlog.Warn.Printf("Mkdir: Chown failed: %v", err)
+			tlog.Warn.Printf("Mkdir: Lchown 2 failed: %v", err)
 		}
 	}
 	return fuse.OK
