@@ -118,19 +118,23 @@ RM:    4.42
 Changelog
 ---------
 
-v1.2 (not yet released)
+v1.2, 2016-12-04
 * Add a control socket interface. Allows to encrypt and decrypt filenames.
-  For details see [this ticket](https://github.com/bit-team/backintime/issues/644#issuecomment-259835183).
+  For details see [backintime#644](https://github.com/bit-team/backintime/issues/644#issuecomment-259835183).
  * New command-line option: `-ctlsock`
 * Under certain circumstances, concurrent truncate and read could return
   an I/O error. This is fixed by introducing a global open file table
-  that stores the file IDs.
-* Coalesce 4kB ciphertext block writes
+  that stores the file IDs
+  ([commit](https://github.com/rfjakob/gocryptfs/commit/0489d08ae21107990d0efd0685443293aa26b35f)).
+* Coalesce 4kB ciphertext block writes up to the size requested through
+  the write FUSE call
   ([commit with benchmarks](https://github.com/rfjakob/gocryptfs/commit/024511d9c71558be4b1169d6bb43bd18d65539e0))
 * Add `-noprealloc` command-line option
  * Greatly speeds up writes on Btrfs
    ([#63](https://github.com/rfjakob/gocryptfs/issues/63))
    at the cost of reduced out-of-space robustness.
+ * This is a workaround for Btrfs' slow fallocate(2)
+* Preserve owner for symlinks an device files (fixes bug [#64](https://github.com/rfjakob/gocryptfs/issues/64))
 
 v1.1.1, 2016-10-30
 * Fix a panic on setting file timestamps ([go-fuse#131](https://github.com/hanwen/go-fuse/pull/131))
