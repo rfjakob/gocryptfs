@@ -135,6 +135,7 @@ v1.2, 2016-12-04
    at the cost of reduced out-of-space robustness.
  * This is a workaround for Btrfs' slow fallocate(2)
 * Preserve owner for symlinks an device files (fixes bug [#64](https://github.com/rfjakob/gocryptfs/issues/64))
+* Include rendered man page `gocryptfs.1` in the release tarball
 
 v1.1.1, 2016-10-30
 * Fix a panic on setting file timestamps ([go-fuse#131](https://github.com/hanwen/go-fuse/pull/131))
