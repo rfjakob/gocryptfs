@@ -26,17 +26,17 @@ done
 source build-without-openssl.bash
 source build.bash
 
-go test ./... $*
-
-# The tests cannot to this themselves as they are run in parallel.
-# Don't descend into possibly still mounted example filesystems.
-rm -Rf --one-file-system $TESTDIR
-
 if go tool | grep vet > /dev/null ; then
 	go tool vet -all -shadow .
 else
 	echo "\"go tool vet\" not available - skipping"
 fi
+
+go test ./... $*
+
+# The tests cannot to this themselves as they are run in parallel.
+# Don't descend into possibly still mounted example filesystems.
+rm -Rf --one-file-system $TESTDIR
 
 if grep -R "panic(" internal ; then
 	echo "Please use log.Panic instead of naked panic!"
