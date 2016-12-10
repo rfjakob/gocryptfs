@@ -23,6 +23,7 @@ for i in $(cat /proc/mounts | grep $TESTDIR | cut -f2 -d" "); do
 	fusermount -u $i
 done
 
+source build-without-openssl.bash
 source build.bash
 
 go test ./... $*
