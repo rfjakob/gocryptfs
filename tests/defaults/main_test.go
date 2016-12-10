@@ -57,6 +57,13 @@ func TestCtlSock(t *testing.T) {
 	if response.ErrNo != int32(syscall.ENOENT) || response.Result != "" {
 		t.Errorf("incorrect error handling: %+v", response)
 	}
+	// Strange paths should not cause a crash
+	crashers := []string{"/foo", "foo/", "/foo/", ".", "/////", "/../../."}
+	for _, c := range crashers {
+		req.EncryptPath = c
+		// QueryCtlSock calls t.Fatal if it gets EOF when gocryptfs panics
+		test_helpers.QueryCtlSock(t, sock, req)
+	}
 }
 
 // In gocryptfs before v1.2, the file header was only read once for each

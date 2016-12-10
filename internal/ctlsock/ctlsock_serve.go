@@ -5,6 +5,7 @@ package ctlsock
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"os"
@@ -35,6 +36,9 @@ type ResponseStruct struct {
 	ErrNo int32
 	// ErrText is a detailed error message.
 	ErrText string
+	// WarnText contains warnings that may have been encountered while
+	// processing the message.
+	WarnText string
 }
 
 type ctlSockHandler struct {
@@ -102,14 +106,19 @@ func (ch *ctlSockHandler) handleConnection(conn *net.UnixConn) {
 func (ch *ctlSockHandler) handleRequest(in *RequestStruct, conn *net.UnixConn) {
 	var err error
 	var out ResponseStruct
+	var inPath, clean string
 	if in.DecryptPath != "" && in.EncryptPath != "" {
 		err = errors.New("Ambigous")
 	} else if in.DecryptPath == "" && in.EncryptPath == "" {
 		err = errors.New("No operation")
 	} else if in.DecryptPath != "" {
-		out.Result, err = ch.fs.DecryptPath(in.DecryptPath)
+		inPath = in.DecryptPath
+		clean = SanitizePath(inPath)
+		out.Result, err = ch.fs.DecryptPath(clean)
 	} else if in.EncryptPath != "" {
-		out.Result, err = ch.fs.EncryptPath(in.EncryptPath)
+		inPath = in.EncryptPath
+		clean = SanitizePath(inPath)
+		out.Result, err = ch.fs.EncryptPath(clean)
 	}
 	if err != nil {
 		out.ErrText = err.Error()
@@ -121,6 +130,9 @@ func (ch *ctlSockHandler) handleRequest(in *RequestStruct, conn *net.UnixConn) {
 			}
 		}
 	}
+	if inPath != clean {
+		out.WarnText = fmt.Sprintf("Non-canonical input path %q has been interpreted as %q", inPath, clean)
+	}
 	sendResponse(&out, conn)
 }
 
@@ -130,6 +142,8 @@ func sendResponse(msg *ResponseStruct, conn *net.UnixConn) {
 		tlog.Warn.Printf("ctlsock: Marshal failed: %v", err)
 		return
 	}
+	// For convenience for the user, add a newline at the end.
+	jsonMsg = append(jsonMsg, '\n')
 	_, err = conn.Write(jsonMsg)
 	if err != nil {
 		tlog.Warn.Printf("ctlsock: Write failed: %v", err)
