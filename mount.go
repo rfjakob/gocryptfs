@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log/syslog"
+	"net"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -50,7 +51,28 @@ func doMount(args *argContainer) int {
 		tlog.Fatal.Printf("Invalid mountpoint: %v", err)
 		os.Exit(ErrExitMountPoint)
 	}
-	// Get master key
+	// Open control socket early so we can error out before asking the user
+	// for the password
+	if args.ctlsock != "" {
+		// We must use an absolute path because we cd to / when daemonizing.
+		// This messes up the delete-on-close logic in the unix socket object.
+		args.ctlsock, _ = filepath.Abs(args.ctlsock)
+		var sock net.Listener
+		sock, err = net.Listen("unix", args.ctlsock)
+		if err != nil {
+			tlog.Fatal.Printf("ctlsock: %v", err)
+			os.Exit(ErrExitMount)
+		}
+		args._ctlsockFd = sock
+		// Close also deletes the socket file
+		defer func() {
+			err = sock.Close()
+			if err != nil {
+				tlog.Warn.Print(err)
+			}
+		}()
+	}
+	// Get master key (may prompt for the password)
 	var masterkey []byte
 	var confFile *configfile.ConfFile
 	if args.masterkey != "" {
@@ -65,6 +87,7 @@ func doMount(args *argContainer) int {
 		masterkey = make([]byte, cryptocore.KeyLen)
 	} else {
 		// Load master key from config file
+		// Prompts the user for the password
 		masterkey, confFile = loadConfig(args)
 		printMasterKey(masterkey)
 	}
@@ -177,14 +200,10 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 		finalFs = fs
 		ctlSockBackend = fs
 	}
-	if args.ctlsock != "" {
-		err := ctlsock.CreateAndServe(args.ctlsock, ctlSockBackend)
-		if err != nil {
-			// TODO if the socket cannot be created, we should exit BEFORE
-			// asking the user for the password
-			tlog.Fatal.Printf("ctlsock: %v", err)
-			os.Exit(ErrExitMount)
-		}
+	// We have opened the socket early so that we cannot fail here after
+	// asking the user for the password
+	if args._ctlsockFd != nil {
+		go ctlsock.Serve(args._ctlsockFd, ctlSockBackend)
 	}
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
 	pathFs := pathfs.NewPathNodeFs(finalFs, pathFsOpts)

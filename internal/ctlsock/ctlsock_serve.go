@@ -46,19 +46,14 @@ type ctlSockHandler struct {
 	socket *net.UnixListener
 }
 
-// CreateAndServe creates an unix socket at "path" and serves incoming
-// connections in a new goroutine.
-func CreateAndServe(path string, fs Interface) error {
-	sock, err := net.Listen("unix", path)
-	if err != nil {
-		return err
-	}
+// Serve serves incoming connections on "sock". This call blocks so you
+// probably want to run it in a new goroutine.
+func Serve(sock net.Listener, fs Interface) {
 	handler := ctlSockHandler{
 		fs:     fs,
 		socket: sock.(*net.UnixListener),
 	}
-	go handler.acceptLoop()
-	return nil
+	handler.acceptLoop()
 }
 
 func (ch *ctlSockHandler) acceptLoop() {

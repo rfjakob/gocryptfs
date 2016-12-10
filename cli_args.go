@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -23,9 +24,11 @@ type argContainer struct {
 	// Configuration file name override
 	config             string
 	notifypid, scryptn int
+	// Helper variables that are NOT cli options all start with an underscore
 	// _configCustom is true when the user sets a custom config file name.
-	// This is not a CLI option.
 	_configCustom bool
+	// _ctlsockFd stores the control socket file descriptor (ctlsock stores the path)
+	_ctlsockFd net.Listener
 }
 
 var flagSet *flag.FlagSet
