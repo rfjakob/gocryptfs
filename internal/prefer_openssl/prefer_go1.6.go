@@ -4,6 +4,8 @@
 package prefer_openssl
 
 import (
+	"runtime"
+
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 )
 
@@ -15,6 +17,12 @@ import (
 // for benchmarks.
 func PreferOpenSSL() bool {
 	if stupidgcm.BuiltWithoutOpenssl {
+		return false
+	}
+	if runtime.GOOS == "darwin" {
+		// OSX does not have /proc/cpuinfo, let's just assume the CPU has AES
+		// acceleration. Virtually all Macs that are running today have it I
+		// guess?
 		return false
 	}
 	return filePreferOpenSSL("/proc/cpuinfo")

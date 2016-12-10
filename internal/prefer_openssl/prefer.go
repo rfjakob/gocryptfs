@@ -5,7 +5,6 @@ package prefer_openssl
 import (
 	"io/ioutil"
 	"regexp"
-	"runtime"
 
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -19,10 +18,6 @@ import (
 // filePreferOpenSSL takes an explicit filename so it can be tested with saved
 // cpuinfo files instead of /proc/cpuinfo.
 func filePreferOpenSSL(file string) bool {
-	if runtime.GOOS == "darwin" && file == "/proc/cpuinfo" {
-		// OSX does not have /proc, let's not warn about it.
-		return true
-	}
 	ci, err := ioutil.ReadFile(file)
 	if err != nil {
 		return true
