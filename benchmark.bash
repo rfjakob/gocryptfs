@@ -47,7 +47,12 @@ if [[ $MODE == encfs ]]; then
 else
 	echo "Testing gocryptfs at $CRYPT"
 	gocryptfs -q -init -extpass="echo test" -scryptn=10 $CRYPT
+	# By default, gocryptfs decides between OpenSSL and Go GCM:
 	gocryptfs -q -extpass="echo test" $CRYPT $MNT
+	# Force use of OpenSSL:
+	#gocryptfs -q -extpass="echo test" -openssl=true $CRYPT $MNT
+	# Force use of Go GCM:
+	#gocryptfs -q -extpass="echo test" -openssl=false $CRYPT $MNT
 fi
 
 # Cleanup trap
