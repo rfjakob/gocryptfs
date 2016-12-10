@@ -60,6 +60,9 @@ func (ch *ctlSockHandler) acceptLoop() {
 	for {
 		conn, err := ch.socket.Accept()
 		if err != nil {
+			// TODO Can this warning trigger when the socket it closed on
+			// program exit? I have never observed it, but the documentation
+			// says that Close() unblocks Accept().
 			tlog.Warn.Printf("ctlsock: Accept error: %v", err)
 			break
 		}
