@@ -37,4 +37,9 @@ else
 	echo "\"go tool vet\" not available - skipping"
 fi
 
+if grep -R "panic(" internal ; then
+	echo "Please use log.Panic instead of naked panic!"
+	exit 1
+fi
+
 ) 200> $LOCKFILE
