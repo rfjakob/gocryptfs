@@ -70,10 +70,15 @@ func (ch *ctlSockHandler) acceptLoop() {
 	}
 }
 
+// The longest possible path is 4096 bytes on Linux and 1024 on Mac OS X so
+// 5000 bytes should be enough to hold the whole JSON request. This
+// assumes that the path does not contain too many characters that had to be
+// be escaped in JSON (for example, a null byte blows up to "\u0000").
+// We abort the connection if the request is bigger than this.
+const ReadBufSize = 5000
+
 func (ch *ctlSockHandler) handleConnection(conn *net.UnixConn) {
-	// 2*PATH_MAX is definitely big enough for requests to decrypt or
-	// encrypt paths.
-	buf := make([]byte, 2*syscall.PathMax)
+	buf := make([]byte, ReadBufSize)
 	for {
 		n, err := conn.Read(buf)
 		if err == io.EOF {
@@ -81,6 +86,11 @@ func (ch *ctlSockHandler) handleConnection(conn *net.UnixConn) {
 			return
 		} else if err != nil {
 			tlog.Warn.Printf("ctlsock: Read error: %#v", err)
+			conn.Close()
+			return
+		}
+		if n == ReadBufSize {
+			tlog.Warn.Printf("ctlsock: request too big (max = %d bytes)", ReadBufSize-1)
 			conn.Close()
 			return
 		}
