@@ -178,7 +178,13 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 		ctlSockBackend = fs
 	}
 	if args.ctlsock != "" {
-		ctlsock.CreateAndServe(args.ctlsock, ctlSockBackend)
+		err := ctlsock.CreateAndServe(args.ctlsock, ctlSockBackend)
+		if err != nil {
+			// TODO if the socket cannot be created, we should exit BEFORE
+			// asking the user for the password
+			tlog.Fatal.Printf("ctlsock: %v", err)
+			os.Exit(ErrExitMount)
+		}
 	}
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
 	pathFs := pathfs.NewPathNodeFs(finalFs, pathFsOpts)
