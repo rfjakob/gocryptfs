@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"log"
 
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
@@ -152,7 +153,7 @@ func (be *ContentEnc) EncryptBlock(plaintext []byte, blockNo uint64, fileID []by
 // This function can only be used in SIV mode.
 func (be *ContentEnc) EncryptBlockNonce(plaintext []byte, blockNo uint64, fileID []byte, nonce []byte) []byte {
 	if be.cryptoCore.AEADBackend != cryptocore.BackendAESSIV {
-		panic("deterministic nonces are only secure in SIV mode")
+		log.Panic("deterministic nonces are only secure in SIV mode")
 	}
 	return be.doEncryptBlock(plaintext, blockNo, fileID, nonce)
 }
@@ -166,7 +167,7 @@ func (be *ContentEnc) doEncryptBlock(plaintext []byte, blockNo uint64, fileID []
 		return plaintext
 	}
 	if len(nonce) != be.cryptoCore.IVLen {
-		panic("wrong nonce length")
+		log.Panic("wrong nonce length")
 	}
 
 	// Authenticate block with block number and file ID

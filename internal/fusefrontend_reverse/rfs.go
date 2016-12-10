@@ -3,6 +3,7 @@ package fusefrontend_reverse
 import (
 	"encoding/base64"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -53,7 +54,7 @@ var _ pathfs.FileSystem = &ReverseFS{}
 // ReverseFS provides an encrypted view.
 func NewFS(args fusefrontend.Args) *ReverseFS {
 	if args.CryptoBackend != cryptocore.BackendAESSIV {
-		panic("reverse mode must use AES-SIV, everything else is insecure")
+		log.Panic("reverse mode must use AES-SIV, everything else is insecure")
 	}
 	initLongnameCache()
 	cryptoCore := cryptocore.New(args.Masterkey, args.CryptoBackend, contentenc.DefaultIVBits)

@@ -7,6 +7,7 @@ package contentenc
 import (
 	"encoding/binary"
 	"fmt"
+	"log"
 
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 )
@@ -30,7 +31,7 @@ type FileHeader struct {
 // Pack - serialize fileHeader object
 func (h *FileHeader) Pack() []byte {
 	if len(h.ID) != headerIDLen || h.Version != CurrentVersion {
-		panic("FileHeader object not properly initialized")
+		log.Panic("FileHeader object not properly initialized")
 	}
 	buf := make([]byte, HeaderLen)
 	binary.BigEndian.PutUint16(buf[0:headerVersionLen], h.Version)

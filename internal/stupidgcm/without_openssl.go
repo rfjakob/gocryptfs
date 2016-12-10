@@ -3,6 +3,7 @@
 package stupidgcm
 
 import (
+	"log"
 	"os"
 
 	"github.com/rfjakob/gocryptfs/internal/tlog"
@@ -24,25 +25,25 @@ func New(_ []byte) stupidGCM {
 	errExit()
 	// This panic is never reached, but having it here stops the Go compiler
 	// from complaining about the missing return code.
-	panic("")
+	log.Panic("")
 }
 
 func (g stupidGCM) NonceSize() int {
 	errExit()
-	panic("")
+	log.Panic("")
 }
 
 func (g stupidGCM) Overhead() int {
 	errExit()
-	panic("")
+	log.Panic("")
 }
 
 func (g stupidGCM) Seal(_, _, _, _ []byte) []byte {
 	errExit()
-	panic("")
+	log.Panic("")
 }
 
 func (g stupidGCM) Open(_, _, _, _ []byte) ([]byte, error) {
 	errExit()
-	panic("")
+	log.Panic("")
 }

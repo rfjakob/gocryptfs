@@ -4,6 +4,7 @@ package siv_aead
 
 import (
 	"crypto/cipher"
+	"log"
 
 	"github.com/jacobsa/crypto/siv"
 )
@@ -34,7 +35,7 @@ func (s *sivAead) Overhead() int {
 func (s *sivAead) Seal(dst, nonce, plaintext, authData []byte) []byte {
 	if len(nonce) != 16 {
 		// SIV supports any nonce size, but in gocryptfs we exclusively use 16.
-		panic("nonce must be 16 bytes long")
+		log.Panic("nonce must be 16 bytes long")
 	}
 	// https://github.com/jacobsa/crypto/blob/master/siv/encrypt.go#L48:
 	// As per RFC 5297 section 3, you may use this function for nonce-based
@@ -43,7 +44,7 @@ func (s *sivAead) Seal(dst, nonce, plaintext, authData []byte) []byte {
 	associated := [][]byte{authData, nonce}
 	out, err := siv.Encrypt(dst, s.key, plaintext, associated)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 	return out
 }
@@ -52,7 +53,7 @@ func (s *sivAead) Seal(dst, nonce, plaintext, authData []byte) []byte {
 func (s *sivAead) Open(dst, nonce, ciphertext, authData []byte) ([]byte, error) {
 	if len(nonce) != 16 {
 		// SIV supports any nonce size, but in gocryptfs we exclusively use 16.
-		panic("nonce must be 16 bytes long")
+		log.Panic("nonce must be 16 bytes long")
 	}
 	associated := [][]byte{authData, nonce}
 	dec, err := siv.Decrypt(s.key, ciphertext, associated)

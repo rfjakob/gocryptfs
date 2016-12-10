@@ -7,6 +7,7 @@ import (
 	"crypto/cipher"
 	"crypto/sha512"
 	"fmt"
+	"log"
 
 	"github.com/rfjakob/gocryptfs/internal/siv_aead"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
@@ -50,7 +51,7 @@ type CryptoCore struct {
 // key in gocryptfs.conf.
 func New(key []byte, backend BackendTypeEnum, IVBitLen int) *CryptoCore {
 	if len(key) != KeyLen {
-		panic(fmt.Sprintf("Unsupported key length %d", len(key)))
+		log.Panic(fmt.Sprintf("Unsupported key length %d", len(key)))
 	}
 	// We want the IV size in bytes
 	IVLen := IVBitLen / 8
@@ -59,14 +60,14 @@ func New(key []byte, backend BackendTypeEnum, IVBitLen int) *CryptoCore {
 	// Content encryption uses BlockCipher only if useOpenssl=false.
 	blockCipher, err := aes.NewCipher(key)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 
 	var aeadCipher cipher.AEAD
 	switch backend {
 	case BackendOpenSSL:
 		if IVLen != 16 {
-			panic("stupidgcm only supports 128-bit IVs")
+			log.Panic("stupidgcm only supports 128-bit IVs")
 		}
 		aeadCipher = stupidgcm.New(key)
 	case BackendGoGCM:
@@ -74,7 +75,7 @@ func New(key []byte, backend BackendTypeEnum, IVBitLen int) *CryptoCore {
 	case BackendAESSIV:
 		if IVLen != 16 {
 			// SIV supports any nonce size, but we only use 16.
-			panic("AES-SIV must use 16-byte nonces")
+			log.Panic("AES-SIV must use 16-byte nonces")
 		}
 		// AES-SIV uses 1/2 of the key for authentication, 1/2 for
 		// encryption, so we need a 64-bytes key for AES-256. Derive it from
@@ -82,10 +83,10 @@ func New(key []byte, backend BackendTypeEnum, IVBitLen int) *CryptoCore {
 		key64 := sha512.Sum512(key)
 		aeadCipher = siv_aead.New(key64[:])
 	default:
-		panic("unknown backend cipher")
+		log.Panic("unknown backend cipher")
 	}
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 
 	return &CryptoCore{

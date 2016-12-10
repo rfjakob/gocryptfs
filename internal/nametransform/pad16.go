@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"errors"
 	"fmt"
+	"log"
 )
 
 // pad16 - pad data to AES block size (=16 byte) using standard PKCS#7 padding
@@ -11,7 +12,7 @@ import (
 func pad16(orig []byte) (padded []byte) {
 	oldLen := len(orig)
 	if oldLen == 0 {
-		panic("Padding zero-length string makes no sense")
+		log.Panic("Padding zero-length string makes no sense")
 	}
 	padLen := aes.BlockSize - oldLen%aes.BlockSize
 	if padLen == 0 {

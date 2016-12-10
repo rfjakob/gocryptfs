@@ -1,6 +1,7 @@
 package fusefrontend_reverse
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -65,7 +66,7 @@ func (rfs *ReverseFS) findLongnameParent(dir string, dirIV []byte, longname stri
 		}
 		cName := rfs.nameTransform.EncryptName(plaintextName, dirIV)
 		if len(cName) <= syscall.NAME_MAX {
-			panic("logic error or wrong shortNameMax constant?")
+			log.Panic("logic error or wrong shortNameMax constant?")
 		}
 		hName := nametransform.HashLongName(cName)
 		longnameParentCache[hName] = plaintextName

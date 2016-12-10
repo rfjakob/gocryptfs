@@ -13,6 +13,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/hex"
+	"log"
 	"testing"
 
 	// For benchmark comparison
@@ -24,7 +25,7 @@ func randBytes(n int) []byte {
 	b := make([]byte, n)
 	_, err := rand.Read(b)
 	if err != nil {
-		panic("Failed to read random bytes: " + err.Error())
+		log.Panic("Failed to read random bytes: " + err.Error())
 	}
 	return b
 }

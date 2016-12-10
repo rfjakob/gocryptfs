@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"log"
 
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -15,7 +16,7 @@ func RandBytes(n int) []byte {
 	b := make([]byte, n)
 	_, err := rand.Read(b)
 	if err != nil {
-		panic("Failed to read random bytes: " + err.Error())
+		log.Panic("Failed to read random bytes: " + err.Error())
 	}
 	return b
 }
@@ -37,7 +38,7 @@ func (n *nonceGenerator) Get() []byte {
 	tlog.Debug.Printf("nonceGenerator.Get(): %s\n", hex.EncodeToString(nonce))
 	if bytes.Equal(nonce, n.lastNonce) {
 		m := fmt.Sprintf("Got the same nonce twice: %s. This should never happen!", hex.EncodeToString(nonce))
-		panic(m)
+		log.Panic(m)
 	}
 	n.lastNonce = nonce
 	return nonce
