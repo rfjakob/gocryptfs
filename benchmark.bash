@@ -57,6 +57,10 @@ mkdir $MNT
 
 # Mount
 if [[ $OPT_ENCFS -eq 1 ]]; then
+	if [[ ! -z $OPT_OPENSSL ]] ; then
+		echo "The option $OPT_OPENSSL only works with gocryptfs"
+		exit 1
+	fi
 	echo "Testing EncFS at $CRYPT"
 	encfs --extpass="echo test" --standard $CRYPT $MNT > /dev/null
 else
