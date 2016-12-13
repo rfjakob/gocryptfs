@@ -7,52 +7,62 @@ cd "$(dirname "$0")"
 MYNAME=$(basename "$0")
 
 function usage {
-	echo "Usage: $MYNAME [-encfs] [DIR]"
-	exit 1
+	echo "Usage: $MYNAME [-encfs] [-openssl=true] [-openssl=false] [DIR]"
 }
 
-# Print help text on too many arguments or "-h"
-if [[ $# -gt 2 ]]; then
-	usage
-elif [[ $# -ge 1 ]] && [[ $1 == "-h" ]]; then
-	usage
-fi
+OPT_ENCFS=0
+OPT_OPENSSL=""
+OPT_DIR=""
 
-# Set $DIR and $MODE
-MODE=gocryptfs
-DIR=/tmp
-if [[ $# -eq 2 ]]; then
-	if [[ $1 != "-encfs" ]]; then
-		usage
-	fi
-	MODE=encfs
-	DIR=$2
-elif [[ $# -eq 1 ]]; then
-	if [[ $1 == "-encfs" ]]; then
-		MODE=encfs
-	else
-		DIR=$1
-	fi
+while [[ $# -gt 0 ]] ; do
+	case $1 in
+		-h)
+			usage
+			exit 1
+			;;
+		-encfs)
+			OPT_ENCFS=1
+			;;
+		-openssl=true)
+			OPT_OPENSSL="-openssl=true"
+			;;
+		-openssl=false)
+			OPT_OPENSSL="-openssl=false"
+			;;
+		-*)
+			echo "Invalid option: $1"
+			usage
+			exit 2
+			;;
+		*)
+			if [[ ! -z $OPT_DIR ]] ; then
+				echo "Duplicate DIR argument: $1"
+				usage
+				exit 3
+			fi
+			OPT_DIR=$1
+			;;
+	esac
+	shift
+done
+
+if [[ -z $OPT_DIR ]] ; then
+	OPT_DIR=/tmp
 fi
 
 # Create directories
-CRYPT=$(mktemp -d "$DIR/$MYNAME.XXX")
+CRYPT=$(mktemp -d "$OPT_DIR/$MYNAME.XXX")
 MNT=$CRYPT.mnt
 mkdir $MNT
 
 # Mount
-if [[ $MODE == encfs ]]; then
+if [[ $OPT_ENCFS -eq 1 ]]; then
 	echo "Testing EncFS at $CRYPT"
 	encfs --extpass="echo test" --standard $CRYPT $MNT > /dev/null
 else
 	echo "Testing gocryptfs at $CRYPT"
 	gocryptfs -q -init -extpass="echo test" -scryptn=10 $CRYPT
-	# By default, gocryptfs decides between OpenSSL and Go GCM:
-	gocryptfs -q -extpass="echo test" $CRYPT $MNT
-	# Force use of OpenSSL:
-	#gocryptfs -q -extpass="echo test" -openssl=true $CRYPT $MNT
-	# Force use of Go GCM:
-	#gocryptfs -q -extpass="echo test" -openssl=false $CRYPT $MNT
+	gocryptfs -q -extpass="echo test" $OPT_OPENSSL $CRYPT $MNT
 fi
 
 # Cleanup trap
