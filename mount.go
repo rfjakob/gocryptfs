@@ -98,8 +98,8 @@ func doMount(args *argContainer) int {
 			// instead of closing them so users have a chance to get the
 			// backtrace on a panic.
 			// https://github.com/golang/go/issues/325#issuecomment-66049178
-			syscall.Dup2(int(paniclog.Fd()), 1)
-			syscall.Dup2(int(paniclog.Fd()), 2)
+			syscall.Dup3(int(paniclog.Fd()), 1, 0)
+			syscall.Dup3(int(paniclog.Fd()), 2, 0)
 		}
 		// Send SIGUSR1 to our parent
 		sendUsr1(args.notifypid)
