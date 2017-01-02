@@ -96,9 +96,9 @@ func doMount(args *argContainer) int {
 	// Initialize FUSE server
 	srv := initFuseFrontend(masterkey, args, confFile)
 	tlog.Info.Println(tlog.ColorGreen + "Filesystem mounted and ready." + tlog.ColorReset)
+	var paniclog *os.File
 	// We have been forked into the background, as evidenced by the set
 	// "notifypid".
-	var paniclog *os.File
 	if args.notifypid > 0 {
 		// Chdir to the root directory so we don't block unmounting the CWD
 		os.Chdir("/")
@@ -123,6 +123,13 @@ func doMount(args *argContainer) int {
 			// https://github.com/golang/go/issues/325#issuecomment-66049178
 			syscall.Dup2(int(paniclog.Fd()), 1)
 			syscall.Dup2(int(paniclog.Fd()), 2)
+		}
+		// Disconnect from the controlling terminal by creating a new session.
+		// This prevents us from getting SIGINT when the user presses Ctrl-C
+		// to exit a running script that has called gocryptfs.
+		_, err = syscall.Setsid()
+		if err != nil {
+			tlog.Warn.Printf("Setsid: %v", err)
 		}
 		// Send SIGUSR1 to our parent
 		sendUsr1(args.notifypid)
