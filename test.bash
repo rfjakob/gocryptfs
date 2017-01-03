@@ -32,7 +32,8 @@ else
 	echo "\"go tool vet\" not available - skipping"
 fi
 
-go test ./... $*
+# We don't want all the subprocesses holding the lock file open
+go test ./... $* 200>&-
 
 # The tests cannot to this themselves as they are run in parallel.
 # Don't descend into possibly still mounted example filesystems.
