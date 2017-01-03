@@ -82,18 +82,31 @@ func (rfs *ReverseFS) decryptPath(relPath string) (string, error) {
 	if rfs.args.PlaintextNames || relPath == "" {
 		return relPath, nil
 	}
+	// Check if the parent dir is in the cache
+	cDir := saneDir(relPath)
+	dirIV, pDir := rPathCache.lookup(cDir)
+	if dirIV != nil {
+		cName := filepath.Base(relPath)
+		pName, err := rfs.rDecryptName(cName, dirIV, pDir)
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(pDir, pName), nil
+	}
 	parts := strings.Split(relPath, "/")
 	var transformedParts []string
 	for i := range parts {
 		// Start at the top and recurse
 		currentCipherDir := filepath.Join(parts[:i]...)
 		currentPlainDir := filepath.Join(transformedParts[:i]...)
-		dirIV := derivePathIV(currentCipherDir, ivPurposeDirIV)
+		dirIV = derivePathIV(currentCipherDir, ivPurposeDirIV)
 		transformedPart, err := rfs.rDecryptName(parts[i], dirIV, currentPlainDir)
 		if err != nil {
 			return "", err
 		}
 		transformedParts = append(transformedParts, transformedPart)
 	}
-	return filepath.Join(transformedParts...), nil
+	pRelPath := filepath.Join(transformedParts...)
+	rPathCache.store(cDir, dirIV, saneDir(pRelPath))
+	return pRelPath, nil
 }
