@@ -6,23 +6,19 @@
 #
 # This is called by the top-level script "benchmark.bash".
 
+cd "$(dirname "$0")"
+MYNAME=$(basename "$0")
+
 if [ $# -ne 1 ]; then
-	MYNAME=$(basename $0)
 	echo "usage: $MYNAME TESTDIR"
 	exit 1
 fi
 
+# Download /tmp/linux-3.0.tar.gz
+./dl-linux-tarball.bash
+
 # cd to TESTDIR
 cd "$1"
-
-TGZ=/tmp/linux-3.0.tar.gz
-
-if [ "$(md5sum /tmp/linux-3.0.tar.gz | cut -f1 -d' ')" != \
-	"f7e6591d86a9dbe123dfd1a0be054e7f" ]; then
-	echo "Downloading linux-3.0.tar.gz"
-	wget -nv --show-progress -c -O $TGZ \
-		https://cdn.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz
-fi
 
 function etime {
 	LC_ALL=C /usr/bin/time -f %e 2>&1 $@ > /dev/null
@@ -33,7 +29,7 @@ dd if=/dev/zero of=zero bs=131072 count=2000 2>&1 | tail -n 1
 rm zero
 sleep 1
 echo -n "UNTAR: "
-etime tar xzf $TGZ
+etime tar xzf /tmp/linux-3.0.tar.gz
 sleep 1
 echo -n "LS:    "
 etime ls -lR linux-3.0
