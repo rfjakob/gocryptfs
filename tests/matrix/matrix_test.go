@@ -621,6 +621,23 @@ func TestLongNames(t *testing.T) {
 	}
 }
 
+// Create hard link with long name.
+// This was broken up to v1.2.
+func TestLongLink(t *testing.T) {
+	wd := test_helpers.DefaultPlainDir + "/"
+	target := wd + "TestLongLink.target"
+	f, err := os.Create(target)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	f.Close()
+	l255 := string(bytes.Repeat([]byte("l"), 255))
+	err = os.Link(target, wd+l255)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func TestLchown(t *testing.T) {
 	name := test_helpers.DefaultPlainDir + "/symlink"
 	err := os.Symlink("/target/does/not/exist", name)
