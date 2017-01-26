@@ -67,6 +67,11 @@ Options:
 :	Stay in the foreground instead of forking away. Implies "-nosyslog".
 	For compatability, "-f" is also accepted, but "-fg" is preferred.
 
+**-fsname string**
+:	Override the filesystem name (first column in df -T). Can also be
+	passed as "-o fsname=" and is equivalent to libfuse's option of the
+	same name. By default, CIPHERDIR is used.
+
 **-fusedebug**
 :	Enable fuse library debug output
 

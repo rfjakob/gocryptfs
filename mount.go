@@ -243,7 +243,11 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 	}
 	// Set values shown in "df -T" and friends
 	// First column, "Filesystem"
-	mOpts.Options = append(mOpts.Options, "fsname="+args.cipherdir)
+	fsname := args.cipherdir
+	if args.fsname != "" {
+		fsname = args.fsname
+	}
+	mOpts.Options = append(mOpts.Options, "fsname="+fsname)
 	// Second column, "Type", will be shown as "fuse." + Name
 	mOpts.Name = "gocryptfs"
 	if args.reverse {

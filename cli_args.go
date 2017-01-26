@@ -20,7 +20,7 @@ type argContainer struct {
 	longnames, allow_other, ro, reverse, aessiv, nonempty, raw64,
 	noprealloc bool
 	masterkey, mountpoint, cipherdir, cpuprofile, extpass,
-	memprofile, ko, passfile, ctlsock string
+	memprofile, ko, passfile, ctlsock, fsname string
 	// Configuration file name override
 	config             string
 	notifypid, scryptn int
@@ -118,6 +118,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.StringVar(&args.passfile, "passfile", "", "Read password from file")
 	flagSet.StringVar(&args.ko, "ko", "", "Pass additional options directly to the kernel, comma-separated list")
 	flagSet.StringVar(&args.ctlsock, "ctlsock", "", "Create control socket at specified path")
+	flagSet.StringVar(&args.fsname, "fsname", "", "Override the filesystem name")
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")
 	flagSet.IntVar(&args.scryptn, "scryptn", configfile.ScryptDefaultLogN, "scrypt cost parameter logN. "+
