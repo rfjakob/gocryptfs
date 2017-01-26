@@ -17,8 +17,8 @@ const (
 	wpanicMsg   = "-wpanic turns this warning into a panic: "
 )
 
-// Escape sequences for terminal colors. These will be empty strings if stdout
-// is not a terminal.
+// Escape sequences for terminal colors. These are set in init() if and only
+// if stdout is a terminal. Otherwise they are empty strings.
 var (
 	// ColorReset is used to reset terminal colors.
 	ColorReset string
