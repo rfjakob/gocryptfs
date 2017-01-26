@@ -83,9 +83,11 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 }
 
 // LoadConfFile - read config file from disk and decrypt the
-// contained key using password.
-//
+// contained key using "password".
 // Returns the decrypted key and the ConfFile object
+//
+// If "password" is empty, the config file is read
+// but the key is not decrypted (returns nil in its place).
 func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	var cf ConfFile
 	cf.filename = filename

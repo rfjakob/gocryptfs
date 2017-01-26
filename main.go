@@ -51,14 +51,16 @@ Options:
 }
 
 // loadConfig loads the config file "args.config", prompting the user for the password
-func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.ConfFile) {
+func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.ConfFile, err error) {
 	// Check if the file can be opened at all before prompting for a password
 	fd, err := os.Open(args.config)
 	if err != nil {
 		tlog.Fatal.Printf("Cannot open config file: %v", err)
-		os.Exit(ErrExitLoadConf)
+		return nil, nil, err
 	}
 	fd.Close()
+	// The user has passed the master key (probably because he forgot the
+	// password).
 	if args.masterkey != "" {
 		masterkey = parseMasterKey(args.masterkey)
 		_, confFile, err = configfile.LoadConfFile(args.config, "")
@@ -69,20 +71,23 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 	}
 	if err != nil {
 		tlog.Fatal.Println(err)
-		os.Exit(ErrExitLoadConf)
+		return nil, nil, err
 	}
-	return masterkey, confFile
+	return masterkey, confFile, nil
 }
 
 // changePassword - change the password of config file "filename"
 func changePassword(args *argContainer) {
-	masterkey, confFile := loadConfig(args)
+	masterkey, confFile, err := loadConfig(args)
+	if err != nil {
+		os.Exit(ErrExitLoadConf)
+	}
 	tlog.Info.Println("Please enter your new password.")
 	newPw := readpassword.Twice(args.extpass)
 	confFile.EncryptKey(masterkey, newPw, confFile.ScryptObject.LogN())
 	if args.masterkey != "" {
 		bak := args.config + ".bak"
-		err := os.Link(args.config, bak)
+		err = os.Link(args.config, bak)
 		if err != nil {
 			tlog.Fatal.Printf("Could not create backup file: %v", err)
 			os.Exit(ErrExitInit)
@@ -92,7 +97,7 @@ func changePassword(args *argContainer) {
 			"Delete it after you have verified that you can access your files with the new password."+
 			tlog.ColorReset, bak)
 	}
-	err := confFile.WriteFile()
+	err = confFile.WriteFile()
 	if err != nil {
 		tlog.Fatal.Println(err)
 		os.Exit(ErrExitInit)

@@ -88,7 +88,14 @@ func doMount(args *argContainer) int {
 	} else {
 		// Load master key from config file
 		// Prompts the user for the password
-		masterkey, confFile = loadConfig(args)
+		masterkey, confFile, err = loadConfig(args)
+		if err != nil {
+			if args._ctlsockFd != nil {
+				// Close the socket file (which also deletes it)
+				args._ctlsockFd.Close()
+			}
+			os.Exit(ErrExitLoadConf)
+		}
 		printMasterKey(masterkey)
 	}
 	// We cannot use JSON for pretty-printing as the fields are unexported
