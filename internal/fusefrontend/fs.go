@@ -480,7 +480,6 @@ func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code 
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-
 	// Handle long file name
 	cNewName := filepath.Base(cNewPath)
 	if nametransform.IsLongContent(cNewName) {
@@ -498,10 +497,9 @@ func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code 
 		err = syscall.Link(cOldPath, cNewPath)
 		if err != nil {
 			nametransform.DeleteLongName(dirfd, cNewName)
-			return fuse.ToStatus(err)
 		}
+		return fuse.ToStatus(err)
 	}
-
 	return fuse.ToStatus(os.Link(cOldPath, cNewPath))
 }
 
