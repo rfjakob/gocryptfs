@@ -83,7 +83,16 @@ func readPasswordStdin() string {
 // Exits on read error or empty result.
 func readPasswordExtpass(extpass string) string {
 	tlog.Info.Println("Reading password from extpass program")
-	parts := strings.Split(extpass, " ")
+	var parts []string
+	// The option "-passfile=FILE" gets transformed to
+	// "-extpass="/bin/cat -- FILE". We don't want to split FILE on spaces,
+	// so let's handle it manually.
+	passfileCat := "/bin/cat -- "
+	if strings.HasPrefix(extpass, passfileCat) {
+		parts = []string{"/bin/cat", "--", extpass[len(passfileCat):]}
+	} else {
+		parts = strings.Split(extpass, " ")
+	}
 	cmd := exec.Command(parts[0], parts[1:]...)
 	cmd.Stderr = os.Stderr
 	pipe, err := cmd.StdoutPipe()

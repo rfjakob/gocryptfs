@@ -149,7 +149,7 @@ Options:
 
 **-passfile string**
 :	Read password from the specified file. This is a shortcut for
-	specifying "-extpass /bin/cat FILE".
+	specifying '-extpass="/bin/cat -- FILE"'.
 
 **-passwd**
 :	Change the password. Will ask for the old password, check if it is
