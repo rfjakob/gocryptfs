@@ -15,5 +15,5 @@ func (fs *FS) EncryptPath(plainPath string) (string, error) {
 
 // DecryptPath implements ctlsock.Backend
 func (fs *FS) DecryptPath(cipherPath string) (string, error) {
-	return "", errors.New("not implemented (yet?)")
+	return "", errors.New("Forward mode does not have path decryption implemented")
 }
