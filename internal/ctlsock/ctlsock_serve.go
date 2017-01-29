@@ -70,6 +70,7 @@ func (ch *ctlSockHandler) acceptLoop() {
 	}
 }
 
+// ReadBufSize is the size of the request read buffer.
 // The longest possible path is 4096 bytes on Linux and 1024 on Mac OS X so
 // 5000 bytes should be enough to hold the whole JSON request. This
 // assumes that the path does not contain too many characters that had to be
