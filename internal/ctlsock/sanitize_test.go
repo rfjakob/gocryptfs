@@ -15,6 +15,10 @@ func TestSanitizePath(t *testing.T) {
 		{"/foo/", "foo"},
 		{"/foo/./foo", "foo/foo"},
 		{"./", ""},
+		{"..", ""},
+		{"foo/../..", ""},
+		{"foo/../../aaaaaa", ""},
+		{"/foo/../../aaaaaa", ""},
 	}
 	for _, tc := range testCases {
 		res := SanitizePath(tc[0])
