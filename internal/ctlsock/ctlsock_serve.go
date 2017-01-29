@@ -98,12 +98,13 @@ func (ch *ctlSockHandler) handleConnection(conn *net.UnixConn) {
 		var in RequestStruct
 		err = json.Unmarshal(buf, &in)
 		if err != nil {
-			tlog.Warn.Printf("ctlsock: Unmarshal error: %#v", err)
+			tlog.Warn.Printf("ctlsock: JSON Unmarshal error: %#v", err)
 			errorMsg := ResponseStruct{
 				ErrNo:   int32(syscall.EINVAL),
-				ErrText: err.Error(),
+				ErrText: "JSON Unmarshal error: " + err.Error(),
 			}
 			sendResponse(&errorMsg, conn)
+			continue
 		}
 		ch.handleRequest(&in, conn)
 		// Restore original size.
@@ -139,7 +140,7 @@ func (ch *ctlSockHandler) handleRequest(in *RequestStruct, conn *net.UnixConn) {
 		}
 	}
 	if inPath != clean {
-		out.WarnText = fmt.Sprintf("Non-canonical input path %q has been interpreted as %q", inPath, clean)
+		out.WarnText = fmt.Sprintf("Non-canonical input path '%s' has been interpreted as '%s'.", inPath, clean)
 	}
 	sendResponse(&out, conn)
 }
