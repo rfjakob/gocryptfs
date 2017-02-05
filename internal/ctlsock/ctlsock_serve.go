@@ -78,6 +78,7 @@ func (ch *ctlSockHandler) acceptLoop() {
 // We abort the connection if the request is bigger than this.
 const ReadBufSize = 5000
 
+// handleConnection reads and parses JSON requests from "conn"
 func (ch *ctlSockHandler) handleConnection(conn *net.UnixConn) {
 	buf := make([]byte, ReadBufSize)
 	for {
@@ -100,11 +101,8 @@ func (ch *ctlSockHandler) handleConnection(conn *net.UnixConn) {
 		err = json.Unmarshal(buf, &in)
 		if err != nil {
 			tlog.Warn.Printf("ctlsock: JSON Unmarshal error: %#v", err)
-			errorMsg := ResponseStruct{
-				ErrNo:   int32(syscall.EINVAL),
-				ErrText: "JSON Unmarshal error: " + err.Error(),
-			}
-			sendResponse(&errorMsg, conn)
+			err = errors.New("JSON Unmarshal error: " + err.Error())
+			sendResponse(conn, err, "", "")
 			continue
 		}
 		ch.handleRequest(&in, conn)
@@ -113,40 +111,64 @@ func (ch *ctlSockHandler) handleConnection(conn *net.UnixConn) {
 	}
 }
 
+// handleRequest handles an already-unmarshaled JSON request
 func (ch *ctlSockHandler) handleRequest(in *RequestStruct, conn *net.UnixConn) {
 	var err error
-	var out ResponseStruct
-	var inPath, clean string
+	var inPath, outPath, clean, warnText string
+	// You cannot perform both decryption and encryption in one request
 	if in.DecryptPath != "" && in.EncryptPath != "" {
 		err = errors.New("Ambigous")
-	} else if in.DecryptPath == "" && in.EncryptPath == "" {
-		err = errors.New("No operation")
-	} else if in.DecryptPath != "" {
-		inPath = in.DecryptPath
-		clean = SanitizePath(inPath)
-		out.Result, err = ch.fs.DecryptPath(clean)
-	} else if in.EncryptPath != "" {
+		sendResponse(conn, err, "", "")
+		return
+	}
+	// Neither encryption nor encryption has been requested, makes no sense
+	if in.DecryptPath == "" && in.EncryptPath == "" {
+		err = errors.New("Empty input")
+		sendResponse(conn, err, "", "")
+		return
+	}
+	// Canonicalize input path
+	if in.EncryptPath != "" {
 		inPath = in.EncryptPath
-		clean = SanitizePath(inPath)
-		out.Result, err = ch.fs.EncryptPath(clean)
+	} else {
+		inPath = in.DecryptPath
+	}
+	clean = SanitizePath(inPath)
+	// Warn if a non-canonical path was passed
+	if inPath != clean {
+		warnText = fmt.Sprintf("Non-canonical input path '%s' has been interpreted as '%s'.", inPath, clean)
+	}
+	// Error out if the canonical path is now empty
+	if clean == "" {
+		err = errors.New("Empty input after canonicalization")
+		sendResponse(conn, err, "", warnText)
+		return
+	}
+	// Actual encrypt or decrypt operation
+	if in.EncryptPath != "" {
+		outPath, err = ch.fs.EncryptPath(clean)
+	} else {
+		outPath, err = ch.fs.DecryptPath(clean)
+	}
+	sendResponse(conn, err, outPath, warnText)
+}
+
+// sendResponse sends a JSON response message
+func sendResponse(conn *net.UnixConn, err error, result string, warnText string) {
+	msg := ResponseStruct{
+		Result:   result,
+		WarnText: warnText,
 	}
 	if err != nil {
-		out.ErrText = err.Error()
-		out.ErrNo = -1
+		msg.ErrText = err.Error()
+		msg.ErrNo = -1
 		// Try to extract the actual error number
 		if pe, ok := err.(*os.PathError); ok {
 			if se, ok := pe.Err.(syscall.Errno); ok {
-				out.ErrNo = int32(se)
+				msg.ErrNo = int32(se)
 			}
 		}
 	}
-	if inPath != clean {
-		out.WarnText = fmt.Sprintf("Non-canonical input path '%s' has been interpreted as '%s'.", inPath, clean)
-	}
-	sendResponse(&out, conn)
-}
-
-func sendResponse(msg *ResponseStruct, conn *net.UnixConn) {
 	jsonMsg, err := json.Marshal(msg)
 	if err != nil {
 		tlog.Warn.Printf("ctlsock: Marshal failed: %v", err)
