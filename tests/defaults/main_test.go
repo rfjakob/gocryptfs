@@ -62,7 +62,10 @@ func TestCtlSock(t *testing.T) {
 	for _, c := range crashers {
 		req.EncryptPath = c
 		// QueryCtlSock calls t.Fatal if it gets EOF when gocryptfs panics
-		test_helpers.QueryCtlSock(t, sock, req)
+		response = test_helpers.QueryCtlSock(t, sock, req)
+		if response.WarnText == "" {
+			t.Errorf("We should get a warning about non-canonical paths here")
+		}
 	}
 }
 
