@@ -22,6 +22,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/ctlsock"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend_reverse"
+	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -96,6 +97,7 @@ func doMount(args *argContainer) int {
 			}
 			os.Exit(ErrExitLoadConf)
 		}
+		readpassword.CheckTrailingGarbage()
 		printMasterKey(masterkey)
 	}
 	// We cannot use JSON for pretty-printing as the fields are unexported

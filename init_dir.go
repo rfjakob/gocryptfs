@@ -36,6 +36,7 @@ func initDir(args *argContainer) {
 		tlog.Info.Printf("Choose a password for protecting your files.")
 	}
 	password := readpassword.Twice(args.extpass)
+	readpassword.CheckTrailingGarbage()
 	creator := tlog.ProgramName + " " + GitVersion
 	err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator, args.aessiv, args.raw64)
 	if err != nil {

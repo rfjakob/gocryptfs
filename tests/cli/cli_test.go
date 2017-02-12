@@ -272,3 +272,47 @@ func TestShadows(t *testing.T) {
 		t.Errorf("Should have failed")
 	}
 }
+
+// TestInitTrailingGarbage verfies that gocryptfs exits with an error if we
+// pass additional data after the password.
+func TestInitTrailingGarbage(t *testing.T) {
+	table := []struct {
+		pw            string
+		closeStdin    bool
+		expectSuccess bool
+	}{
+		{"foo\n", false, true},
+		{"foo", true, true},
+		{"foo\n", true, true},
+		{"foo\n\n", false, false},
+		{"foo\nbar", false, false},
+		{"foo\n\n", true, false},
+		{"foo\nbar", true, false},
+	}
+	for _, row := range table {
+		dir, err := ioutil.TempDir(test_helpers.TmpDir, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		cmd := exec.Command(test_helpers.GocryptfsBinary, "-q", "-init", "-scryptn=10", dir)
+		childStdin, err := cmd.StdinPipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = cmd.Start()
+		if err != nil {
+			t.Fatal(err)
+		}
+		childStdin.Write([]byte(row.pw))
+		if row.closeStdin {
+			childStdin.Close()
+		}
+		err = cmd.Wait()
+		success := (err == nil)
+		if success == true && row.expectSuccess == false {
+			t.Errorf("pw=%q should have failed, but succeeded", row.pw)
+		} else if success == false && row.expectSuccess == true {
+			t.Errorf("pw=%q should have succeeded, but failed", row.pw)
+		}
+	}
+}
