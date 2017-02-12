@@ -201,6 +201,10 @@ Options:
 :	Use all-zero dummy master key. This options is only intended for
 	automated testing as it does not provide any security.
 
+**--**
+:	Stop option parsing. Helpful when CIPHERDIR may start with a
+	dash "-".
+
 EXAMPLES
 ========
 

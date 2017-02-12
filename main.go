@@ -48,6 +48,9 @@ Options:
 `, tlog.ProgramName, tlog.ProgramName)
 
 	flagSet.PrintDefaults()
+	fmt.Print(`  --
+    	Stop option parsing
+`)
 }
 
 // loadConfig loads the config file "args.config", prompting the user for the password
