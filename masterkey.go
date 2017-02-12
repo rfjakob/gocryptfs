@@ -38,7 +38,7 @@ Your master key is:
 
 If the gocryptfs.conf file becomes corrupted or you ever forget your password,
 there is only one hope for recovery: The master key. Print it to a piece of
-paper and store it in a drawer.
+paper and store it in a drawer. Use "-q" to suppress this message.
 
 `, tlog.ColorGrey+hChunked+tlog.ColorReset)
 }
