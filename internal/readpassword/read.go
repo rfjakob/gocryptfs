@@ -66,8 +66,8 @@ func readPasswordTerminal(prompt string) string {
 	return string(p)
 }
 
-// readPasswordStdin reads a line from stdin
-// Exits on read error or empty result.
+// readPasswordStdin reads a line from stdin.
+// It exits with a fatal error on read error or empty result.
 func readPasswordStdin() string {
 	tlog.Info.Println("Reading password from stdin")
 	p := readLineUnbuffered(os.Stdin)
