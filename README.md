@@ -79,6 +79,13 @@ The [MANPAGE.md](Documentation/MANPAGE.md) containes a description of available 
 If you already have gocryptfs installed, run `./MANPAGE-render.bash` to bring up the rendered manpage in
 your man pager (requires pandoc).
 
+Stable CLI ABI
+--------------
+
+If you want to call gocryptfs from your app or script, see
+[CLI_ABI.md](Documentation/CLI_ABI.md) for the official stable
+ABI. This ABI is regression-tested by the test suite.
+
 Storage Overhead
 ----------------
 
