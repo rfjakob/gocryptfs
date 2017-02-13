@@ -16,7 +16,8 @@ import (
 )
 
 const (
-	exitCode = 9
+	exitCode       = 9
+	maxPasswordLen = 1000
 )
 
 // Once tries to get a password from the user, either from the terminal, extpass
@@ -126,6 +127,10 @@ func readPasswordExtpass(extpass string) string {
 func readLineUnbuffered(r io.Reader) (l string) {
 	b := make([]byte, 1)
 	for {
+		if len(l) > maxPasswordLen {
+			tlog.Fatal.Printf("fatal: maximum password length of %d bytes exceeded", maxPasswordLen)
+			os.Exit(exitCode)
+		}
 		n, err := r.Read(b)
 		if err == io.EOF {
 			return l
