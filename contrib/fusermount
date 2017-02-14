@@ -1,0 +1,14 @@
+#!/bin/bash -eu
+#
+# Mac OS X does not have fusermount. Put this script into
+# your $PATH to emulate it using umount.
+#
+cd "$(dirname "$0")"
+MYNAME=$(basename "$0")
+if [[ $# -lt 1 ]] ; then
+	echo "$PWD/$MYNAME: missing argument"
+	exit 1
+fi
+# Get the mount point from the last argument, ignore everything else
+M=${@: -1}
+exec umount "$M"
