@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"syscall"
 	"testing"
 	"time"
@@ -24,6 +23,9 @@ const testParentDir = "/tmp/gocryptfs-test-parent"
 
 // GocryptfsBinary is the assumed path to the gocryptfs build.
 const GocryptfsBinary = "../../gocryptfs"
+
+// UnmountScript is the fusermount/umount compatability wrapper script
+const UnmountScript = "../fuse-unmount.bash"
 
 // TmpDir is a unique temporary directory. "go test" runs package tests in parallel. We create a
 // unique TmpDir in init() so the tests do not interfere.
@@ -175,12 +177,7 @@ func UnmountPanic(dir string) {
 
 // UnmountErr tries to unmount "dir" and returns the resulting error.
 func UnmountErr(dir string) error {
-	var cmd *exec.Cmd
-	if runtime.GOOS == "darwin" {
-		cmd = exec.Command("umount", dir)
-	} else {
-		cmd = exec.Command("fusermount", "-u", "-z", dir)
-	}
+	cmd := exec.Command(UnmountScript, "-u", "-z", dir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
