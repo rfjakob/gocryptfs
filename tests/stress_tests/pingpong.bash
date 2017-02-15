@@ -11,6 +11,7 @@ set -eu
 cd "$(dirname "$0")"
 MD5="$PWD/linux-3.0.md5sums"
 MYNAME=$(basename $0)
+source ../fuse-unmount.bash
 
 # Setup
 cd /tmp
@@ -22,8 +23,8 @@ mkdir $PING.mnt $PONG.mnt
 
 # Cleanup trap
 # Note: gocryptfs may have already umounted itself because bash relays SIGINT
-# Just ignore fusermount errors.
-trap "set +e ; cd /tmp; fusermount -u -z $PING.mnt ; fusermount -u -z $PONG.mnt ; rm -rf $PING $PONG $PING.mnt $PONG.mnt" EXIT
+# Just ignore unmount errors.
+trap "set +e ; cd /tmp; fuse-unmount -z $PING.mnt ; fuse-unmount -z $PONG.mnt ; rm -rf $PING $PONG $PING.mnt $PONG.mnt" EXIT
 
 gocryptfs -q -init -extpass="echo test" -scryptn=10 $PING
 gocryptfs -q -init -extpass="echo test" -scryptn=10 $PONG

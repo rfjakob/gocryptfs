@@ -5,6 +5,7 @@
 
 cd "$(dirname "$0")"
 MYNAME=$(basename "$0")
+source tests/fuse-unmount.bash
 
 function usage {
 	echo "Usage: $MYNAME [-encfs] [-openssl=true] [-openssl=false] [DIR]"
@@ -70,7 +71,7 @@ else
 fi
 
 # Cleanup trap
-trap "cd /; fusermount -u -z $MNT; rm -rf $CRYPT $MNT" EXIT
+trap "cd /; fuse-unmount -z $MNT; rm -rf $CRYPT $MNT" EXIT
 
 # Benchmarks
 ./tests/canonical-benchmarks.bash $MNT

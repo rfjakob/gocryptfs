@@ -18,9 +18,10 @@ if ! flock --nonblock 200 ; then
 fi
 
 # Clean up dangling filesystems
+source tests/fuse-unmount.bash
 for i in $(cat /proc/mounts | grep $TESTDIR | cut -f2 -d" "); do
 	echo "Warning: unmounting leftover filesystem: $i"
-	fusermount -u $i
+	fuse-unmount $i
 done
 
 source build-without-openssl.bash

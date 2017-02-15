@@ -4,6 +4,7 @@
 
 cd "$(dirname "$0")"
 MYNAME=$(basename "$0")
+source tests/fuse-unmount.bash
 
 # Download /tmp/linux-3.0.tar.gz
 ./tests/dl-linux-tarball.bash
@@ -29,7 +30,7 @@ gocryptfs -q -init -reverse -extpass="echo test" -scryptn=10 $PLAIN
 MNT=$(mktemp -d /tmp/linux-3.0.reverse.mnt.XXX)
 
 # Cleanup trap
-trap "rm -f $PLAIN/.gocryptfs.reverse.conf ; fusermount -u -z $MNT ; rmdir $MNT" EXIT
+trap "rm -f $PLAIN/.gocryptfs.reverse.conf ; fuse-unmount -z $MNT ; rmdir $MNT" EXIT
 
 # Mount
 gocryptfs -q -reverse -extpass="echo test" $PLAIN $MNT

@@ -14,6 +14,7 @@ set -eu
 cd "$(dirname "$0")"
 MD5="$PWD/linux-3.0.md5sums"
 MYNAME=$(basename "$0")
+source ../fuse-unmount.bash
 
 # Setup dirs
 cd /tmp
@@ -49,8 +50,8 @@ ln -sTf $CSV /tmp/extractloop.csv
 
 # Cleanup trap
 # Note: gocryptfs may have already umounted itself because bash relays SIGINT
-# Just ignore fusermount errors.
-trap "cd /; fusermount -u -z $MNT; rm -rf $CRYPT $MNT" EXIT
+# Just ignore unmount errors.
+trap "cd /; fuse-unmount -z $MNT; rm -rf $CRYPT $MNT" EXIT
 
 function loop {
 	# Note: In a subshell, $$ returns the PID of the parent shell.

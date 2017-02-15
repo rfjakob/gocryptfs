@@ -5,6 +5,7 @@ set -eu
 cd "$(dirname "$0")"
 MD5="$PWD/../stress_tests/linux-3.0.md5sums"
 MYNAME=$(basename "$0")
+source ../fuse-unmount.bash
 
 # Setup dirs
 cd /tmp
@@ -12,7 +13,7 @@ wget -nv --show-progress -c https://www.kernel.org/pub/linux/kernel/v3.0/linux-3
 WD=$(mktemp -d /tmp/$MYNAME.XXX)
 
 # Cleanup trap
-trap "set +u; cd /; fusermount -u -z $WD/c; fusermount -u -z $WD/b; rm -rf $WD" EXIT
+trap "set +u; cd /; fuse-unmount -z $WD/c; fuse-unmount -z $WD/b; rm -rf $WD" EXIT
 
 cd $WD
 mkdir a b c
