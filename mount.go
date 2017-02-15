@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -291,11 +292,14 @@ func handleSigint(srv *fuse.Server, mountpoint string) {
 		err := srv.Unmount()
 		if err != nil {
 			tlog.Warn.Print(err)
-			tlog.Info.Printf("Trying lazy unmount")
-			cmd := exec.Command("fusermount", "-u", "-z", mountpoint)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Run()
+			if runtime.GOOS == "linux" {
+				// MacOSX does not support lazy unmount
+				tlog.Info.Printf("Trying lazy unmount")
+				cmd := exec.Command("fusermount", "-u", "-z", mountpoint)
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				cmd.Run()
+			}
 		}
 		os.Exit(1)
 	}()
