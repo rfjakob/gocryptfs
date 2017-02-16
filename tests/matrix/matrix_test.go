@@ -725,7 +725,7 @@ func doTestUtimesNano(t *testing.T, path string) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = compareUtimes(tc.out, [2]syscall.Timespec{st.Atim, st.Mtim})
+		err = compareUtimes(tc.out, extractAtimeMtime(st))
 		if err != nil {
 			t.Errorf("Testcase %d: %v", i, err)
 		}
