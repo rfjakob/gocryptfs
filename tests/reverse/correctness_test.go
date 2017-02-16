@@ -3,6 +3,7 @@ package reverse_test
 import (
 	"io/ioutil"
 	"os"
+	"syscall"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
@@ -63,5 +64,28 @@ func TestConfigMapping(t *testing.T) {
 	}
 	if len(data) == 0 {
 		t.Errorf("empty file")
+	}
+}
+
+// Check that the access() syscall works on virtual files
+func TestAccessVirtual(t *testing.T) {
+	if plaintextnames {
+		t.Skip()
+	}
+	var R_OK uint32 = 4
+	var W_OK uint32 = 2
+	var X_OK uint32 = 1
+	fn := dirB + "/gocryptfs.diriv"
+	err := syscall.Access(fn, R_OK)
+	if err != nil {
+		t.Errorf("%q should be readable, but got error: %v", fn, err)
+	}
+	err = syscall.Access(fn, W_OK)
+	if err == nil {
+		t.Errorf("should NOT be writeable")
+	}
+	err = syscall.Access(fn, X_OK)
+	if err == nil {
+		t.Errorf("should NOT be executable")
 	}
 }

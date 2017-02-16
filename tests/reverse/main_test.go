@@ -8,10 +8,20 @@ import (
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
-var dirA, dirB, dirC string
 var x240 = string(bytes.Repeat([]byte("x"), 240))
 var plaintextnames bool
 
+// dirA is a normal directory
+var dirA string
+
+// dirB is the reverse mount backed by dirA
+var dirB string
+
+// dirC is a forward mount backed by dirB
+var dirC string
+
+// Create directory "dirA", mount it reverse to "dirB", mount it forward
+// to "dirC".
 func TestMain(m *testing.M) {
 	var r int
 	for _, plaintextnames = range []bool{false, true} {

@@ -70,9 +70,9 @@ func (rfs *ReverseFS) rDecryptName(cName string, dirIV []byte, pDir string) (pNa
 		}
 	} else {
 		// It makes no sense to decrypt a ".name" file. This is a virtual file
-		// that has no represantation in the plaintext filesystem. ".name"
+		// that has no representation in the plaintext filesystem. ".name"
 		// files should have already been handled in virtualfile.go.
-		tlog.Warn.Printf("decryptPath: tried to decrypt %q!? Returning EINVAL.", cName)
+		tlog.Warn.Printf("rDecryptName: cannot decrypt virtual file %q", cName)
 		return "", syscall.EINVAL
 	}
 	return pName, nil
