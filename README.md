@@ -79,6 +79,14 @@ The [MANPAGE.md](Documentation/MANPAGE.md) containes a description of available 
 If you already have gocryptfs installed, run `./MANPAGE-render.bash` to bring up the rendered manpage in
 your man pager (requires pandoc).
 
+Graphical Interface
+-------------------
+
+The [SiriKali](https://mhogomchungu.github.io/sirikali/) project supports
+gocryptfs and runs on Linux and OSX.
+
+cppcryptfs on Windows provides its own GUI.
+
 Stable CLI ABI
 --------------
 
