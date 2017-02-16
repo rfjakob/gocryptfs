@@ -19,7 +19,7 @@ fi
 
 # Clean up dangling filesystems
 source tests/fuse-unmount.bash
-for i in $(cat /proc/mounts | grep $TESTDIR | cut -f2 -d" "); do
+for i in $(mount | grep $TESTDIR | cut -f3 -d" "); do
 	echo "Warning: unmounting leftover filesystem: $i"
 	fuse-unmount $i
 done
