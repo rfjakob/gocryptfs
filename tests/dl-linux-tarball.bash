@@ -8,7 +8,12 @@ TGZ=/tmp/linux-3.0.tar.gz
 SIZE_WANT=96675825
 SIZE_ACTUAL=0
 if [[ -e $TGZ ]]; then
-	SIZE_ACTUAL=$(stat -c %s $TGZ)
+	if [[ $OSTYPE == linux* ]] ; then
+		SIZE_ACTUAL=$(stat -c %s $TGZ)
+	else
+		# Mac OS X
+		SIZE_ACTUAL=$(stat -f %z $TGZ)
+	fi
 fi
 
 if [[ $SIZE_ACTUAL -ne $SIZE_WANT ]]; then
