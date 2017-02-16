@@ -20,8 +20,13 @@ fi
 # cd to TESTDIR
 cd "$1"
 
+# Execute command, discard all stdout output, print elapsed time
+# (to stderr, unfortunately).
 function etime {
-	LC_ALL=C /usr/bin/time -f %e 2>&1 $@ > /dev/null
+	# Make the bash builtin "time" print out only the elapse wall clock
+	# seconds
+	TIMEFORMAT=%R
+	time "$@" > /dev/null
 }
 
 echo -n "WRITE: "

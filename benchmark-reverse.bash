@@ -35,9 +35,13 @@ trap "rm -f $PLAIN/.gocryptfs.reverse.conf ; fuse-unmount -z $MNT ; rmdir $MNT" 
 # Mount
 gocryptfs -q -reverse -extpass="echo test" $PLAIN $MNT
 
-# Print elapsed wall time only
+# Execute command, discard all stdout output, print elapsed time
+# (to stderr, unfortunately).
 function etime {
-	LC_ALL=C /usr/bin/time -f %e 2>&1 $@ > /dev/null
+	# Make the bash builtin "time" print out only the elapse wall clock
+	# seconds
+	TIMEFORMAT=%R
+	time "$@" > /dev/null
 }
 
 echo -n "LS: "
