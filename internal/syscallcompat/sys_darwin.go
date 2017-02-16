@@ -10,19 +10,19 @@ import (
 // Sorry, fallocate is not available on OSX at all and
 // fcntl F_PREALLOCATE is not accessible from Go.
 // See https://github.com/rfjakob/gocryptfs/issues/18 if you want to help.
-func EnospcPrealloc(fd int, off int64, len int64) (err error) {
+func EnospcPrealloc(fd int, off int64, len int64) error {
 	return nil
 }
 
 // See above.
-func Fallocate(fd int, mode uint32, off int64, len int64) (err error) {
+func Fallocate(fd int, mode uint32, off int64, len int64) error {
 	return syscall.EOPNOTSUPP
 }
 
 var chdirMutex sync.Mutex
 
 // Poor man's Openat
-func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) {
+func Openat(dirfd int, path string, flags int, mode uint32) (int, error) {
 	chdirMutex.Lock()
 	defer chdirMutex.Unlock()
 	if !filepath.IsAbs(path) {
@@ -43,7 +43,7 @@ func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) 
 }
 
 // Poor man's Renameat
-func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
+func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) error {
 	chdirMutex.Lock()
 	defer chdirMutex.Unlock()
 	// Unless both paths are absolute we have to save the old working dir and
@@ -57,7 +57,7 @@ func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err e
 		defer os.Chdir(oldWd)
 	}
 	// Make oldpath absolute
-	oldpath, err = dirfdAbs(olddirfd, oldpath)
+	oldpath, err := dirfdAbs(olddirfd, oldpath)
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err e
 }
 
 // Poor man's Unlinkat
-func Unlinkat(dirfd int, path string) (err error) {
+func Unlinkat(dirfd int, path string) error {
 	chdirMutex.Lock()
 	defer chdirMutex.Unlock()
 	if !filepath.IsAbs(path) {
@@ -80,7 +80,7 @@ func Unlinkat(dirfd int, path string) (err error) {
 		}
 		defer os.Chdir(oldWd)
 	}
-	path, err = dirfdAbs(dirfd, path)
+	path, err := dirfdAbs(dirfd, path)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func Unlinkat(dirfd int, path string) (err error) {
 }
 
 // Poor man's Mknodat
-func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
+func Mknodat(dirfd int, path string, mode uint32, dev int) error {
 	chdirMutex.Lock()
 	defer chdirMutex.Unlock()
 	if !filepath.IsAbs(path) {
@@ -98,7 +98,7 @@ func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 		}
 		defer os.Chdir(oldWd)
 	}
-	path, err = dirfdAbs(dirfd, path)
+	path, err := dirfdAbs(dirfd, path)
 	if err != nil {
 		return err
 	}
@@ -108,11 +108,11 @@ func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 // dirfdAbs transforms the dirfd-relative "path" to an absolute one. If the
 // path is not already absolute, this function will change the working
 // directory. The caller has to chdir back.
-func dirfdAbs(dirfd int, path string) (absPath string, err error) {
+func dirfdAbs(dirfd int, path string) (string, error) {
 	if filepath.IsAbs(path) {
 		return path, nil
 	}
-	err = syscall.Fchdir(dirfd)
+	err := syscall.Fchdir(dirfd)
 	if err != nil {
 		return "", err
 	}
