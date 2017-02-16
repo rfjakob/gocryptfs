@@ -350,7 +350,7 @@ func QueryCtlSock(t *testing.T, socketPath string, req ctlsock.RequestStruct) (r
 	if err != nil {
 		t.Fatal(err)
 	}
-	buf := make([]byte, 2*syscall.PathMax)
+	buf := make([]byte, ctlsock.ReadBufSize)
 	n, err := conn.Read(buf)
 	if err != nil {
 		t.Fatal(err)
