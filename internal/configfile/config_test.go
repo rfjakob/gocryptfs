@@ -13,7 +13,7 @@ func TestLoadV1(t *testing.T) {
 	if err == nil {
 		t.Errorf("Outdated v1 config file must fail to load but it didn't")
 	} else if testing.Verbose() {
-		fmt.Print(err)
+		fmt.Println(err)
 	}
 }
 
@@ -55,7 +55,7 @@ func TestLoadV2StrangeFeature(t *testing.T) {
 	if err == nil {
 		t.Errorf("Loading unknown feature must fail but it didn't")
 	} else if testing.Verbose() {
-		fmt.Print(err)
+		fmt.Println(err)
 	}
 }
 
