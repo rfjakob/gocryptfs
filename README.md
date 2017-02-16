@@ -85,7 +85,8 @@ Graphical Interface
 The [SiriKali](https://mhogomchungu.github.io/sirikali/) project supports
 gocryptfs and runs on Linux and OSX.
 
-cppcryptfs on Windows provides its own GUI.
+[cppcryptfs](https://github.com/bailey27/cppcryptfs) on Windows provides
+its own GUI.
 
 Stable CLI ABI
 --------------
