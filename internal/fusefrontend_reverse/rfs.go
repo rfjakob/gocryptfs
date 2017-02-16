@@ -228,11 +228,14 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 
 // Access - FUSE call
 func (rfs *ReverseFS) Access(relPath string, mode uint32, context *fuse.Context) fuse.Status {
-	if rfs.isTranslatedConfig(relPath) {
-		return fuse.OK
-	}
-	if rfs.isDirIV(relPath) {
-		return fuse.OK
+	if rfs.isTranslatedConfig(relPath) || rfs.isDirIV(relPath) || rfs.isNameFile(relPath) {
+		// Virtual files can always be read and never written
+		var R_OK uint32 = 4
+		if mode == R_OK || mode == 0 {
+			return fuse.OK
+		} else {
+			return fuse.EPERM
+		}
 	}
 	absPath, err := rfs.abs(rfs.decryptPath(relPath))
 	if err != nil {
