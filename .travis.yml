@@ -1,5 +1,8 @@
 language: go
 
+git:
+  depth: 100
+
 # Build with the lastest versions of Go 1.4, 1.5, 1.6, 1.7
 # See https://golang.org/dl/
 go:
