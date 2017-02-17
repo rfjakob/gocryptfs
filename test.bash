@@ -12,7 +12,7 @@ mkdir -p $TESTDIR
 (
 # Prevent multiple parallel test.bash instances as this causes
 # all kinds of mayham
-if ! flock --nonblock 200 ; then
+if ! flock -n 200 ; then
 	echo "Could not acquire lock on $LOCKFILE - already running?"
 	exit 1
 fi
@@ -25,7 +25,10 @@ for i in $(mount | grep $TESTDIR | cut -f3 -d" "); do
 done
 
 source build-without-openssl.bash
-source build.bash
+# Building with openssl is difficult on OSX, so only do it on Linux.
+if [[ $OSTYPE == linux* ]] ; then
+	source build.bash
+fi
 
 if go tool | grep vet > /dev/null ; then
 	go tool vet -all -shadow .
