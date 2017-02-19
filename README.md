@@ -76,8 +76,8 @@ Use
 ---
 
 	$ mkdir cipher plain
-	$ $GOPATH/bin/gocryptfs -init cipher
-	$ $GOPATH/bin/gocryptfs cipher plain
+	$ ./gocryptfs -init cipher
+	$ ./gocryptfs cipher plain
 
 See the [Quickstart](https://nuetzlich.net/gocryptfs/quickstart/) page for more info.
 

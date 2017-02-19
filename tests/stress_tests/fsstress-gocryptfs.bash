@@ -22,8 +22,12 @@ source ../fuse-unmount.bash
 DIR=$(mktemp -d /tmp/fsstress.XXX)
 # Mountpoint
 MNT="$DIR.mnt"
+
+# Set the GOPATH variable to the default if it is empty
+GOPATH=$(go env GOPATH)
+
 # fsstress binary
-FSSTRESS=~/src/xfstests/ltp/fsstress
+FSSTRESS=$GOPATH/src/xfstests/ltp/fsstress
 
 if [ ! -x $FSSTRESS ]
 then
@@ -36,6 +40,8 @@ fuse-unmount -z $MNT &> /dev/null || true
 mkdir -p $DIR $MNT
 rm -Rf $DIR/*
 rm -Rf $MNT/*
+
+
 
 # FS-specific compile and mount
 if [ $MYNAME = fsstress-loopback.bash ]; then
