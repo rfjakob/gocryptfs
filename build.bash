@@ -43,15 +43,18 @@ BUILDTIME=$(date +%s)
 # Make sure we have the go binary
 go version > /dev/null
 
+# Go 1.5 changed the CLI syntax. Let's also support 1.3 and 1.4.
 # "go version go1.6.2 linux/amd64" -> "1.6"
 V=$(go version | cut -d" " -f3 | cut -c3-5)
-
 if [[ $V == "1.3" || $V == "1.4" ]] ; then
-	go build -ldflags="-X main.GitVersion $GITVERSION -X main.GitVersionFuse $GITVERSIONFUSE -X main.BuildTime $BUILDTIME" $@
+	LDFLAGS="-X main.GitVersion $GITVERSION -X main.GitVersionFuse $GITVERSIONFUSE -X main.BuildTime $BUILDTIME"
 else
-	# Go 1.5 wants an "=" here
-	go build -ldflags="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildTime=$BUILDTIME" $@
+	# Go 1.5+ wants an "=" here
+	LDFLAGS="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildTime=$BUILDTIME"
 fi
+
+go build "-ldflags=$LDFLAGS" $@
+
 (cd gocryptfs-xray; go build $@)
 
 ./gocryptfs -version
