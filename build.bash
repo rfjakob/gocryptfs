@@ -4,13 +4,8 @@ set -eu
 
 cd "$(dirname "$0")"
 
-# Starting with Go v1.8, GOPATH may be unset. $HOME/go is used instead.
-if [[ -z ${GOPATH:-} ]] ; then
-	GOPATH1=$HOME/go
-else
-	# GOPATH may contain multiple paths separated by ":"
-	GOPATH1=$(echo $GOPATH | cut -f1 -d:)
-fi
+# GOPATH may contain multiple paths separated by ":"
+GOPATH1=$(go env GOPATH | cut -f1 -d:)
 
 # gocryptfs version according to git
 GITVERSION=$(git describe --tags --dirty)

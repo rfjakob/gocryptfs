@@ -64,7 +64,13 @@ as well as in the go-fuse library.
 Compile
 -------
 
-	$ go get github.com/rfjakob/gocryptfs
+	$ go get -d github.com/rfjakob/gocryptfs
+	$ cd $(go env GOPATH)/src/github.com/rfjakob/gocryptfs
+	$ ./build.bash
+
+Or, if you don't have OpenSSL installed:
+
+	$ ./build-without-openssl.bash
 
 Use
 ---
