@@ -531,7 +531,7 @@ func TestDirOverwrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = os.Rename(dir1, dir2)
+	err = syscall.Rename(dir1, dir2)
 	if err != nil {
 		t.Fatal(err)
 	}
