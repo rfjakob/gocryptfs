@@ -81,9 +81,7 @@ Use
 
 See the [Quickstart](https://nuetzlich.net/gocryptfs/quickstart/) page for more info.
 
-The [MANPAGE.md](Documentation/MANPAGE.md) containes a description of available command-line options.
-If you already have gocryptfs installed, run `./MANPAGE-render.bash` to bring up the rendered manpage in
-your man pager (requires pandoc).
+The [MANPAGE.md](Documentation/MANPAGE.md) describes all available command-line options.
 
 Graphical Interface
 -------------------
