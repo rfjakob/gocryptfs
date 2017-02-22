@@ -13,6 +13,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
+	"github.com/rfjakob/gocryptfs/internal/speed"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -147,6 +148,11 @@ func main() {
 		tlog.Debug.Printf("openssl=%v\n", args.openssl)
 		tlog.Debug.Printf("on-disk format %d\n", contentenc.CurrentVersion)
 		printVersion()
+		os.Exit(0)
+	}
+	// "-speed"
+	if args.speed {
+		speed.Run()
 		os.Exit(0)
 	}
 	if args.wpanic {

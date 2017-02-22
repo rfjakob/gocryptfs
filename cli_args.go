@@ -18,7 +18,7 @@ type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, fg, version,
 	plaintextnames, quiet, nosyslog, wpanic,
 	longnames, allow_other, ro, reverse, aessiv, nonempty, raw64,
-	noprealloc bool
+	noprealloc, speed bool
 	masterkey, mountpoint, cipherdir, cpuprofile, extpass,
 	memprofile, ko, passfile, ctlsock, fsname string
 	// Configuration file name override
@@ -110,6 +110,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.BoolVar(&args.nonempty, "nonempty", false, "Allow mounting over non-empty directories")
 	flagSet.BoolVar(&args.raw64, "raw64", false, "Use unpadded base64 for file names")
 	flagSet.BoolVar(&args.noprealloc, "noprealloc", false, "Disable preallocation before writing")
+	flagSet.BoolVar(&args.speed, "speed", false, "Run crypto speed test")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")

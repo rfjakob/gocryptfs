@@ -20,6 +20,7 @@ script:
   - go build
   - ./build-without-openssl.bash
   - ./build.bash
+  - ./gocryptfs -speed
   - ./test.bash
 
 # fuse on travis
