@@ -220,6 +220,13 @@ Mount an ecrypted view of joe's home directory using reverse mode:
 	gocryptfs -init -reverse /home/joe
 	gocryptfs -reverse /home/joe /home/joe.crypt
 
+EXIT CODES
+==========
+
+0: success  
+12: password incorrect  
+other: please check the error message
+
 SEE ALSO
 ========
 fuse(8) fallocate(2)
