@@ -9,6 +9,7 @@ import (
 
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
+	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 import "os"
@@ -163,7 +164,7 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	tlog.Warn.Enabled = true
 	if err != nil {
 		tlog.Warn.Printf("failed to unlock master key: %s", err.Error())
-		return nil, nil, fmt.Errorf("Password incorrect.")
+		return nil, nil, exitcodes.NewErr("Password incorrect.", exitcodes.PasswordIncorrect)
 	}
 
 	return key, &cf, err

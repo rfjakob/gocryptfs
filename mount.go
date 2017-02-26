@@ -21,6 +21,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/ctlsock"
+	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend_reverse"
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
@@ -96,7 +97,7 @@ func doMount(args *argContainer) int {
 				// Close the socket file (which also deletes it)
 				args._ctlsockFd.Close()
 			}
-			os.Exit(ErrExitLoadConf)
+			exitcodes.Exit(err)
 		}
 		readpassword.CheckTrailingGarbage()
 		printMasterKey(masterkey)
