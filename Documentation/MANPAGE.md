@@ -186,6 +186,11 @@ Options:
 	mounting but makes the password susceptible to brute-force attacks
 	(default 16)
 
+**-speed**
+:	Run crypto speed test. Benchmark Go's built-in GCM against OpenSSL
+	(if available). The library that will be selected on "-openssl=auto"
+	(the default) is marked as such.
+
 **-version**
 :	Print version and exit. The output contains three fields seperated by ";".
 	Example: "gocryptfs v1.1.1-5-g75b776c; go-fuse 6b801d3; 2016-11-01 go1.7.3".
