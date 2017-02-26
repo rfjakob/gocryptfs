@@ -19,6 +19,12 @@ const (
 	FlagAESSIV
 	// FlagRaw64 enables raw (unpadded) base64 encoding for file names
 	FlagRaw64
+	// FlagHKDF enables HKDF-derived keys for use with GCM, EME and SIV
+	// instead of directly using the master key (GCM and EME) or the SHA-512
+	// hashed master key (SIV).
+	// Note that this flag does not change the password hashing algorithm
+	// which always is scrypt.
+	FlagHKDF
 )
 
 // knownFlags stores the known feature flags and their string representation
@@ -30,6 +36,7 @@ var knownFlags = map[flagIota]string{
 	FlagLongNames:      "LongNames",
 	FlagAESSIV:         "AESSIV",
 	FlagRaw64:          "Raw64",
+	FlagHKDF:           "HKDF",
 }
 
 // Filesystems that do not have these feature flags set are deprecated.
