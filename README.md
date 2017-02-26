@@ -138,6 +138,13 @@ RM:    4.42
 Changelog
 ---------
 
+v1.2.1, 2016-02-26
+* Add an integrated speed test, `gocryptfs -speed`
+* Limit password size to 1000 bytes and reject trailing garbage after the newline
+* Make the test suite work on [Mac OS X](https://github.com/rfjakob/gocryptfs/issues/15)
+* Handle additional corner cases in `-ctlsock` path sanitization
+* Use dedicated exit code 12 on "password incorrect"
+
 v1.2, 2016-12-04
 * Add a control socket interface. Allows to encrypt and decrypt filenames.
   For details see [backintime#644](https://github.com/bit-team/backintime/issues/644#issuecomment-259835183).
