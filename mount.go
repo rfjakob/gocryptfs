@@ -134,6 +134,8 @@ func doMount(args *argContainer) int {
 			// https://github.com/golang/go/issues/325#issuecomment-66049178
 			syscall.Dup2(int(paniclog.Fd()), 1)
 			syscall.Dup2(int(paniclog.Fd()), 2)
+			// No need for the extra FD anymore, we have it saved in Stderr
+			paniclog.Close()
 		}
 		// Disconnect from the controlling terminal by creating a new session.
 		// This prevents us from getting SIGINT when the user presses Ctrl-C
@@ -153,7 +155,8 @@ func doMount(args *argContainer) int {
 	srv.Serve()
 	// Delete empty paniclogs
 	if paniclog != nil {
-		fi, err := paniclog.Stat()
+		// The paniclog FD is saved in Stderr
+		fi, err := os.Stderr.Stat()
 		if err != nil {
 			tlog.Warn.Printf("paniclog fstat error: %v", err)
 		} else if fi.Size() > 0 {
