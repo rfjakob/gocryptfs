@@ -138,7 +138,7 @@ RM:    4.42
 Changelog
 ---------
 
-v1.2.1, 2016-02-26
+v1.2.1, 2017-02-26
 * Add an integrated speed test, `gocryptfs -speed`
 * Limit password size to 1000 bytes and reject trailing garbage after the newline
 * Make the test suite work on [Mac OS X](https://github.com/rfjakob/gocryptfs/issues/15)
