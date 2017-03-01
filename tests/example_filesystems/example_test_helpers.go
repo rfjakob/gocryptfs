@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
+	"github.com/rfjakob/gocryptfs/tests/example_filesystems"
 )
 
 // checkExampleFS - verify that "dir" contains the expected test files
