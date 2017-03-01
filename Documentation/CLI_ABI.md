@@ -20,7 +20,7 @@ General
 Initialize Filesystem
 ---------------------
 
-### Bash example
+#### Bash example
 
     $ cat mypassword.txt | gocryptfs -init -q -- CIPHERDIR
 
@@ -28,34 +28,34 @@ Content of "mypassword.txt":
 
     mypassword1234
 
-### What you have to pipe to gocryptfs
+#### What you have to pipe to gocryptfs
 
 1. Password
 2. Optional newline
 
-### Notes
+#### Notes
 
 1. The CIPHERDIR directory must exist and be empty
 
 Mount
 -----
 
-### Bash example
+#### Bash example
 
     $ cat mypassword.txt | gocryptfs -q -- CIPHERDIR MOUNTPOINT
 
-### What you have to pipe to gocryptfs
+#### What you have to pipe to gocryptfs
 
 Same as for "Initialize Filesystem".
 
-### Notes
+#### Notes
 
 1. The MOUNTPOINT directory must exist and be empty.
 
 Change Password
 ---------------
 
-### Bash example
+#### Bash example
 
     $ cat change.txt | gocryptfs -passwd -q -- CIPHERDIR
 
@@ -64,7 +64,7 @@ Content of "change.txt":
     mypassword1234
     newpassword9876
 
-### What you have to pipe to gocryptfs
+#### What you have to pipe to gocryptfs
 
 1. Old password
 2. Newline
