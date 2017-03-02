@@ -187,7 +187,19 @@ func (fs *FS) Chown(path string, uid uint32, gid uint32, context *fuse.Context) 
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	return fuse.ToStatus(os.Lchown(cPath, int(uid), int(gid)))
+	code = fuse.ToStatus(os.Lchown(cPath, int(uid), int(gid)))
+	if !code.Ok() {
+		return code
+	}
+	if !fs.args.PlaintextNames {
+		// When filename encryption is active, every directory contains
+		// a "gocryptfs.diriv" file. This file should also change the owner.
+		// Instead of checking if "cPath" is a directory, we just blindly
+		// execute the Lchown on "cPath/gocryptfs.diriv" and ignore errors.
+		dirIVPath := filepath.Join(cPath, nametransform.DirIVFilename)
+		os.Lchown(dirIVPath, int(uid), int(gid))
+	}
+	return fuse.OK
 }
 
 // Mknod implements pathfs.Filesystem.
