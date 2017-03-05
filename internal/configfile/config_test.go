@@ -60,18 +60,22 @@ func TestLoadV2StrangeFeature(t *testing.T) {
 }
 
 func TestCreateConfFile(t *testing.T) {
-	err := CreateConfFile("config_test/tmp.conf", "test", false, 10, "test", false, false)
+	err := CreateConfFile("config_test/tmp.conf", "test", false, 10, "test", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _, err = LoadConfFile("config_test/tmp.conf", "test")
+	_, c, err := LoadConfFile("config_test/tmp.conf", "test")
 	if err != nil {
 		t.Fatal(err)
+	}
+	// Raw64 is set by default since gocryptfs v1.3
+	if !c.IsFeatureFlagSet(FlagRaw64) {
+		t.Error("FlagRaw64 flag should be set but is not")
 	}
 }
 
 func TestCreateConfFileAESSIV(t *testing.T) {
-	err := CreateConfFile("config_test/tmp.conf", "test", false, 10, "test", true, false)
+	err := CreateConfFile("config_test/tmp.conf", "test", false, 10, "test", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,20 +85,6 @@ func TestCreateConfFileAESSIV(t *testing.T) {
 	}
 	if !c.IsFeatureFlagSet(FlagAESSIV) {
 		t.Error("AESSIV flag should be set but is not")
-	}
-}
-
-func TestCreateConfFileRaw64(t *testing.T) {
-	err := CreateConfFile("config_test/tmp.conf", "test", false, 10, "test", false, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, c, err := LoadConfFile("config_test/tmp.conf", "test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !c.IsFeatureFlagSet(FlagRaw64) {
-		t.Error("FlagRaw64 flag should be set but is not")
 	}
 }
 
