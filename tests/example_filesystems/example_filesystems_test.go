@@ -226,3 +226,24 @@ func TestExampleFSv11reversePlaintextnames(t *testing.T) {
 	test_helpers.UnmountPanic(dirC)
 	test_helpers.UnmountPanic(dirB)
 }
+
+// gocryptfs v1.3 introduced HKDF
+func TestExampleFSv13(t *testing.T) {
+	cDir := "v1.3"
+	pDir := test_helpers.TmpDir + "/" + cDir
+	err := os.Mkdir(pDir, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test", opensslOpt)
+	checkExampleFSLongnames(t, pDir)
+	test_helpers.UnmountPanic(pDir)
+	/*
+		pDir = pDir + ".2"
+		test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey",
+			"eaf371c3-f9a55336-8819f22b-7bccd7c2-a738cf61-7261c658-14c28a03-9428992b",
+			"-aessiv", opensslOpt)
+		checkExampleFSLongnames(t, pDir)
+		test_helpers.UnmountPanic(pDir)
+	*/
+}
