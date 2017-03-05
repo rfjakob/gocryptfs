@@ -36,7 +36,7 @@ var knownFlags = map[flagIota]string{
 	FlagLongNames:      "LongNames",
 	FlagAESSIV:         "AESSIV",
 	FlagRaw64:          "Raw64",
-	FlagHKDF:           "HKDF",
+	//FlagHKDF:           "HKDF",
 }
 
 // Filesystems that do not have these feature flags set are deprecated.
