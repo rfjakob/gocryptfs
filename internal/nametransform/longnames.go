@@ -25,7 +25,7 @@ const (
 // "gocryptfs.longname.[sha256]"
 func (n *NameTransform) HashLongName(name string) string {
 	hashBin := sha256.Sum256([]byte(name))
-	hashBase64 := n.b64.EncodeToString(hashBin[:])
+	hashBase64 := n.B64.EncodeToString(hashBin[:])
 	return longNamePrefix + hashBase64
 }
 

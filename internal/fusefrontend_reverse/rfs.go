@@ -1,7 +1,6 @@
 package fusefrontend_reverse
 
 import (
-	"encoding/base64"
 	"fmt"
 	"log"
 	"os"
@@ -355,6 +354,6 @@ func (rfs *ReverseFS) Readlink(cipherPath string, context *fuse.Context) (string
 	nonce := derivePathIV(cipherPath, ivPurposeSymlinkIV)
 	// Symlinks are encrypted like file contents and base64-encoded
 	cBinTarget := rfs.contentEnc.EncryptBlockNonce([]byte(plainTarget), 0, nil, nonce)
-	cTarget := base64.URLEncoding.EncodeToString(cBinTarget)
+	cTarget := rfs.nameTransform.B64.EncodeToString(cBinTarget)
 	return cTarget, fuse.OK
 }

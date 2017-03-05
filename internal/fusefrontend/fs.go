@@ -4,7 +4,6 @@ package fusefrontend
 // FUSE operations on paths
 
 import (
-	"encoding/base64"
 	"os"
 	"path/filepath"
 	"sync"
@@ -298,7 +297,7 @@ func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status f
 		return cTarget, fuse.OK
 	}
 	// Symlinks are encrypted like file contents (GCM) and base64-encoded
-	cBinTarget, err := base64.URLEncoding.DecodeString(cTarget)
+	cBinTarget, err := fs.nameTransform.B64.DecodeString(cTarget)
 	if err != nil {
 		tlog.Warn.Printf("Readlink: %v", err)
 		return "", fuse.EIO
@@ -362,7 +361,7 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	}
 	// Symlinks are encrypted like file contents (GCM) and base64-encoded
 	cBinTarget := fs.contentEnc.EncryptBlock([]byte(target), 0, nil)
-	cTarget := base64.URLEncoding.EncodeToString(cBinTarget)
+	cTarget := fs.nameTransform.B64.EncodeToString(cBinTarget)
 	// Handle long file name
 	cName := filepath.Base(cPath)
 	if nametransform.IsLongContent(cName) {

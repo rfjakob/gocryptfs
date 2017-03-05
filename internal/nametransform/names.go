@@ -16,8 +16,9 @@ type NameTransform struct {
 	emeCipher  *eme.EMECipher
 	longNames  bool
 	DirIVCache dirIVCache
-	// b64 = either base64.URLEncoding or base64.RawURLEncoding
-	b64 *base64.Encoding
+	// B64 = either base64.URLEncoding or base64.RawURLEncoding, depeding
+	// on the Raw64 feature flag
+	B64 *base64.Encoding
 }
 
 // New returns a new NameTransform instance.
@@ -29,7 +30,7 @@ func New(e *eme.EMECipher, longNames bool, raw64 bool) *NameTransform {
 	return &NameTransform{
 		emeCipher: e,
 		longNames: longNames,
-		b64:       b64,
+		B64:       b64,
 	}
 }
 
@@ -38,7 +39,7 @@ func New(e *eme.EMECipher, longNames bool, raw64 bool) *NameTransform {
 // This function is exported because it allows for a very efficient readdir
 // implementation (read IV once, decrypt all names using this function).
 func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error) {
-	bin, err := n.b64.DecodeString(cipherName)
+	bin, err := n.B64.DecodeString(cipherName)
 	if err != nil {
 		return "", err
 	}
@@ -69,6 +70,6 @@ func (n *NameTransform) EncryptName(plainName string, iv []byte) (cipherName64 s
 	bin := []byte(plainName)
 	bin = pad16(bin)
 	bin = n.emeCipher.Encrypt(iv, bin)
-	cipherName64 = n.b64.EncodeToString(bin)
+	cipherName64 = n.B64.EncodeToString(bin)
 	return cipherName64
 }
