@@ -68,7 +68,8 @@ func checkExampleFSrw(t *testing.T, dir string, rw bool) {
 		"xxxxxxxxxxxxxxxxxxxxxxxx"
 	contentBytes, err := ioutil.ReadFile(filepath.Join(dir, longname))
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
 	content := string(contentBytes)
 	if content != statusTxtContent {
