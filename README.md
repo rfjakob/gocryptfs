@@ -139,7 +139,7 @@ Changelog
 ---------
 
 v1.3 (not released yet)
-* Drop Go 1.4 compatability. You now need Go 1.5 (released 2015-08-19)
+* Drop Go 1.4 compatibility. You now need Go 1.5 (released 2015-08-19)
   or higher to build gocryptfs.
 
 v1.2.1, 2017-02-26
