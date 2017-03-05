@@ -51,45 +51,71 @@ type CryptoCore struct {
 // Even though the "GCMIV128" feature flag is now mandatory, we must still
 // support 96-bit IVs here because they were used for encrypting the master
 // key in gocryptfs.conf up to gocryptfs v1.2. v1.3 switched to 128 bits.
-func New(key []byte, aeadType AEADTypeEnum, IVBitLen int) *CryptoCore {
+func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool) *CryptoCore {
 	if len(key) != KeyLen {
 		log.Panic(fmt.Sprintf("Unsupported key length %d", len(key)))
 	}
 	// We want the IV size in bytes
 	IVLen := IVBitLen / 8
 
-	// Name encryption always uses built-in Go AES through blockCipher.
-	// Content encryption uses BlockCipher only if useOpenssl=false.
-	blockCipher, err := aes.NewCipher(key)
-	if err != nil {
-		log.Panic(err)
-	}
-	emeCipher := eme.New(blockCipher)
-
-	var aeadCipher cipher.AEAD
-	switch aeadType {
-	case BackendOpenSSL:
-		if IVLen != 16 {
-			log.Panic("stupidgcm only supports 128-bit IVs")
+	// Initialize EME for filename encryption.
+	var emeCipher *eme.EMECipher
+	{
+		emeKey := key
+		if useHKDF {
+			info := "EME filename encryption"
+			emeKey = hkdfDerive(key, info, KeyLen)
 		}
-		aeadCipher = stupidgcm.New(key)
-	case BackendGoGCM:
-		aeadCipher, err = cipher.NewGCMWithNonceSize(blockCipher, IVLen)
-	case BackendAESSIV:
+		emeBlockCipher, err := aes.NewCipher(emeKey)
+		if err != nil {
+			log.Panic(err)
+		}
+		emeCipher = eme.New(emeBlockCipher)
+	}
+
+	// Initilize an AEAD cipher for file content encryption.
+	var aeadCipher cipher.AEAD
+	if aeadType == BackendOpenSSL || aeadType == BackendGoGCM {
+		gcmKey := key
+		if useHKDF {
+			info := "AES-GCM file content encryption"
+			gcmKey = hkdfDerive(key, info, KeyLen)
+		}
+		switch aeadType {
+		case BackendOpenSSL:
+			if IVLen != 16 {
+				log.Panic("stupidgcm only supports 128-bit IVs")
+			}
+			aeadCipher = stupidgcm.New(gcmKey)
+		case BackendGoGCM:
+			goGcmBlockCipher, err := aes.NewCipher(gcmKey)
+			if err != nil {
+				log.Panic(err)
+			}
+			aeadCipher, err = cipher.NewGCMWithNonceSize(goGcmBlockCipher, IVLen)
+			if err != nil {
+				log.Panic(err)
+			}
+		}
+	} else if aeadType == BackendAESSIV {
 		if IVLen != 16 {
 			// SIV supports any nonce size, but we only use 16.
 			log.Panic("AES-SIV must use 16-byte nonces")
 		}
-		// AES-SIV uses 1/2 of the key for authentication, 1/2 for
-		// encryption, so we need a 64-bytes key for AES-256. Derive it from
-		// the master key by hashing it with SHA-512.
-		key64 := sha512.Sum512(key)
-		aeadCipher = siv_aead.New(key64[:])
-	default:
+		var key64 []byte
+		if useHKDF {
+			info := "AES-SIV file content encryption"
+			key64 = hkdfDerive(key, info, siv_aead.KeyLen)
+		} else {
+			// AES-SIV uses 1/2 of the key for authentication, 1/2 for
+			// encryption, so we need a 64-bytes key for AES-256. Derive it from
+			// the master key by hashing it with SHA-512.
+			s := sha512.Sum512(key)
+			key64 = s[:]
+		}
+		aeadCipher = siv_aead.New(key64)
+	} else {
 		log.Panic("unknown backend cipher")
-	}
-	if err != nil {
-		log.Panic(err)
 	}
 
 	return &CryptoCore{

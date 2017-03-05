@@ -19,8 +19,12 @@ type Args struct {
 	// to "gocryptfs.conf" in the plaintext dir.
 	ConfigCustom bool
 	// Raw64 is true when RawURLEncoding (without padding) should be used for
-	// file names
+	// file names.
+	// Corresponds to the Raw64 feature flag introduced in gocryptfs v1.2.
 	Raw64 bool
 	// NoPrealloc disables automatic preallocation before writing
 	NoPrealloc bool
+	// Use HKDF key derivation.
+	// Corresponds to the HKDF feature flag introduced in gocryptfs v1.3.
+	HKDF bool
 }

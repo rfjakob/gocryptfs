@@ -57,7 +57,7 @@ func NewFS(args fusefrontend.Args) *ReverseFS {
 		log.Panic("reverse mode must use AES-SIV, everything else is insecure")
 	}
 	initLongnameCache()
-	cryptoCore := cryptocore.New(args.Masterkey, args.CryptoBackend, contentenc.DefaultIVBits)
+	cryptoCore := cryptocore.New(args.Masterkey, args.CryptoBackend, contentenc.DefaultIVBits, args.HKDF)
 	contentEnc := contentenc.New(cryptoCore, contentenc.DefaultBS)
 	nameTransform := nametransform.New(cryptoCore.EMECipher, args.LongNames, args.Raw64)
 

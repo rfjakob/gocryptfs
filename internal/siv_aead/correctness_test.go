@@ -15,7 +15,7 @@ func TestKeyLens(t *testing.T) {
 	plaintext := []byte("foobar")
 	for _, keyLen := range keyLens {
 		key := make([]byte, keyLen)
-		a := New(key)
+		a := new2(key)
 		ciphertext2 := a.Seal(nil, nonce, plaintext, nil)
 
 		ciphertext, err := siv.Encrypt(nil, key, plaintext, [][]byte{nil, nonce})
@@ -42,7 +42,7 @@ func TestK32(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a := New(key)
+	a := new2(key)
 	aResult := a.Seal(nonce, nonce, plaintext, aData)
 	if !bytes.Equal(sResult, aResult) {
 		t.Errorf("siv and siv_aead produce different results")

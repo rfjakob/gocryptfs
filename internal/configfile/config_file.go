@@ -56,13 +56,6 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 	cf.Creator = creator
 	cf.Version = contentenc.CurrentVersion
 
-	// Generate new random master key
-	key := cryptocore.RandBytes(cryptocore.KeyLen)
-
-	// Encrypt it using the password
-	// This sets ScryptObject and EncryptedKey
-	cf.EncryptKey(key, password, logN)
-
 	// Set feature flags
 	cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagGCMIV128])
 	if plaintextNames {
@@ -72,10 +65,21 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagEMENames])
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagLongNames])
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagRaw64])
+		// TODO enable this and release as v1.3-beta1 once we have enough test
+		// coverage
+		//cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagHKDF])
 	}
 	if aessiv {
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagAESSIV])
 	}
+
+	// Generate new random master key
+	key := cryptocore.RandBytes(cryptocore.KeyLen)
+
+	// Encrypt it using the password
+	// This sets ScryptObject and EncryptedKey
+	// Note: this looks at the FeatureFlags, so call it AFTER setting them.
+	cf.EncryptKey(key, password, logN)
 
 	// Write file to disk
 	return cf.WriteFile()
@@ -148,20 +152,13 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 		// decrypt the master key. Return only the parsed config.
 		return nil, &cf, nil
 	}
+
 	// Generate derived key from password
 	scryptHash := cf.ScryptObject.DeriveKey(password)
 
 	// Unlock master key using password-based key
-	// gocryptfs v1.2 and older used 96-bit IVs for master key encryption.
-	// v1.3 and up use 128 bits, which makes EncryptedKey longer (64 bytes).
-	IVLen := contentenc.DefaultIVBits
-	if len(cf.EncryptedKey) == 60 {
-		IVLen = 96
-	}
-	// We use stock Go GCM instead of OpenSSL as speed is not
-	// important and we get better error messages
-	cc := cryptocore.New(scryptHash, cryptocore.BackendGoGCM, IVLen)
-	ce := contentenc.New(cc, 4096)
+	useHKDF := cf.IsFeatureFlagSet(FlagHKDF)
+	ce := getKeyEncrypter(scryptHash, useHKDF)
 
 	tlog.Warn.Enabled = false // Silence DecryptBlock() error messages on incorrect password
 	key, err := ce.DecryptBlock(cf.EncryptedKey, 0, nil)
@@ -184,8 +181,8 @@ func (cf *ConfFile) EncryptKey(key []byte, password string, logN int) {
 	scryptHash := cf.ScryptObject.DeriveKey(password)
 
 	// Lock master key using password-based key
-	cc := cryptocore.New(scryptHash, cryptocore.BackendGoGCM, contentenc.DefaultIVBits)
-	ce := contentenc.New(cc, 4096)
+	useHKDF := cf.IsFeatureFlagSet(FlagHKDF)
+	ce := getKeyEncrypter(scryptHash, useHKDF)
 	cf.EncryptedKey = ce.EncryptBlock(key, 0, nil)
 }
 
@@ -219,4 +216,18 @@ func (cf *ConfFile) WriteFile() error {
 	}
 	err = os.Rename(tmp, cf.filename)
 	return err
+}
+
+// getKeyEncrypter is a helper function that returns the right ContentEnc
+// instance for the "useHKDF" setting.
+func getKeyEncrypter(scryptHash []byte, useHKDF bool) *contentenc.ContentEnc {
+	IVLen := 96
+	// gocryptfs v1.2 and older used 96-bit IVs for master key encryption.
+	// v1.3 adds the "HKDF" feature flag, which also enables 128-bit nonces.
+	if useHKDF {
+		IVLen = contentenc.DefaultIVBits
+	}
+	cc := cryptocore.New(scryptHash, cryptocore.BackendGoGCM, IVLen, useHKDF)
+	ce := contentenc.New(cc, 4096)
+	return ce
 }
