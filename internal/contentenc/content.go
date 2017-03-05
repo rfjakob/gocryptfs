@@ -20,7 +20,8 @@ const (
 	DefaultBS = 4096
 	// DefaultIVBits is the default length of IV, in bits.
 	// We always use 128-bit IVs for file content, but the
-	// key in the config file is encrypted with a 96-bit IV.
+	// master key in the config file is encrypted with a 96-bit IV for
+	// gocryptfs v1.2 and earlier. v1.3 switched to 128 bit.
 	DefaultIVBits = 128
 
 	_ = iota // skip zero

@@ -154,9 +154,15 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	scryptHash := cf.ScryptObject.DeriveKey(password)
 
 	// Unlock master key using password-based key
-	// We use stock go GCM instead of OpenSSL here as we only use 96-bit IVs,
-	// speed is not important and we get better error messages
-	cc := cryptocore.New(scryptHash, cryptocore.BackendGoGCM, 96)
+	// gocryptfs v1.2 and older used 96-bit IVs for master key encryption.
+	// v1.3 and up use 128 bits, which makes EncryptedKey longer (64 bytes).
+	IVLen := contentenc.DefaultIVBits
+	if len(cf.EncryptedKey) == 60 {
+		IVLen = 96
+	}
+	// We use stock Go GCM instead of OpenSSL as speed is not
+	// important and we get better error messages
+	cc := cryptocore.New(scryptHash, cryptocore.BackendGoGCM, IVLen)
 	ce := contentenc.New(cc, 4096)
 
 	tlog.Warn.Enabled = false // Silence DecryptBlock() error messages on incorrect password
@@ -180,7 +186,7 @@ func (cf *ConfFile) EncryptKey(key []byte, password string, logN int) {
 	scryptHash := cf.ScryptObject.DeriveKey(password)
 
 	// Lock master key using password-based key
-	cc := cryptocore.New(scryptHash, cryptocore.BackendGoGCM, 96)
+	cc := cryptocore.New(scryptHash, cryptocore.BackendGoGCM, contentenc.DefaultIVBits)
 	ce := contentenc.New(cc, 4096)
 	cf.EncryptedKey = ce.EncryptBlock(key, 0, nil)
 }

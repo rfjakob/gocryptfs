@@ -49,8 +49,8 @@ type CryptoCore struct {
 // New returns a new CryptoCore object or panics.
 //
 // Even though the "GCMIV128" feature flag is now mandatory, we must still
-// support 96-bit IVs here because they are used for encrypting the master
-// key in gocryptfs.conf.
+// support 96-bit IVs here because they were used for encrypting the master
+// key in gocryptfs.conf up to gocryptfs v1.2. v1.3 switched to 128 bits.
 func New(key []byte, aeadType AEADTypeEnum, IVBitLen int) *CryptoCore {
 	if len(key) != KeyLen {
 		log.Panic(fmt.Sprintf("Unsupported key length %d", len(key)))
