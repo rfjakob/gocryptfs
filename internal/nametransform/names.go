@@ -24,7 +24,7 @@ type NameTransform struct {
 func New(e *eme.EMECipher, longNames bool, raw64 bool) *NameTransform {
 	b64 := base64.URLEncoding
 	if raw64 {
-		b64 = getRaw64Encoding()
+		b64 = base64.RawURLEncoding
 	}
 	return &NameTransform{
 		emeCipher: e,

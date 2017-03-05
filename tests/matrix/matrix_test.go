@@ -23,8 +23,6 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/rfjakob/gocryptfs/internal/cryptocore"
-	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
@@ -60,14 +58,6 @@ func TestMain(m *testing.M) {
 	// Make "testing.Verbose()" return the correct value
 	flag.Parse()
 	for _, testcase = range matrix {
-		if !cryptocore.HaveModernGoGCM && testcase.openssl != "true" {
-			fmt.Printf("Skipping Go GCM variant, Go installation is too old")
-			continue
-		}
-		if testcase.raw64 && !nametransform.HaveRaw64 {
-			fmt.Printf("Skipping raw64 test, Go installation is too old")
-			continue
-		}
 		if testing.Verbose() {
 			fmt.Printf("matrix: testcase = %#v\n", testcase)
 		}

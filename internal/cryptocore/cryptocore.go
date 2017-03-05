@@ -74,7 +74,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int) *CryptoCore {
 		}
 		aeadCipher = stupidgcm.New(key)
 	case BackendGoGCM:
-		aeadCipher, err = goGCMWrapper(blockCipher, IVLen)
+		aeadCipher, err = cipher.NewGCMWithNonceSize(blockCipher, IVLen)
 	case BackendAESSIV:
 		if IVLen != 16 {
 			// SIV supports any nonce size, but we only use 16.

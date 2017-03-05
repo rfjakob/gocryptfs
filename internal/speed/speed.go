@@ -1,5 +1,3 @@
-// +build go1.5
-
 // Package speed implements the "-speed" command-line option,
 // similar to "openssl speed".
 // It benchmarks the crypto algorithms and libraries used by

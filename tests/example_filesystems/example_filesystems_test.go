@@ -12,7 +12,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
@@ -24,12 +23,7 @@ var opensslOpt string
 func TestMain(m *testing.M) {
 	// Make "testing.Verbose()" return the correct value
 	flag.Parse()
-	var variants []string
-	if cryptocore.HaveModernGoGCM {
-		variants = append(variants, "-openssl=false")
-	} else {
-		fmt.Println("Skipping Go GCM tests, Go installation is too old")
-	}
+	variants := []string{"-openssl=false"}
 	if !stupidgcm.BuiltWithoutOpenssl {
 		variants = append(variants, "-openssl=true")
 	} else {
