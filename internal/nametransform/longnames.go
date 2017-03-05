@@ -2,7 +2,6 @@ package nametransform
 
 import (
 	"crypto/sha256"
-	"encoding/base64"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -24,9 +23,9 @@ const (
 
 // HashLongName - take the hash of a long string "name" and return
 // "gocryptfs.longname.[sha256]"
-func HashLongName(name string) string {
+func (n *NameTransform) HashLongName(name string) string {
 	hashBin := sha256.Sum256([]byte(name))
-	hashBase64 := base64.URLEncoding.EncodeToString(hashBin[:])
+	hashBase64 := n.b64.EncodeToString(hashBin[:])
 	return longNamePrefix + hashBase64
 }
 

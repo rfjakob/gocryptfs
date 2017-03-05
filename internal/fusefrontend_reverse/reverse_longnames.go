@@ -68,7 +68,7 @@ func (rfs *ReverseFS) findLongnameParent(dir string, dirIV []byte, longname stri
 		if len(cName) <= syscall.NAME_MAX {
 			log.Panic("logic error or wrong shortNameMax constant?")
 		}
-		hName := nametransform.HashLongName(cName)
+		hName := rfs.nameTransform.HashLongName(cName)
 		longnameParentCache[hName] = plaintextName
 		if longname == hName {
 			hit = plaintextName

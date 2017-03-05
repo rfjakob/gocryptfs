@@ -97,7 +97,7 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cip
 	if iv != nil {
 		cBaseName := be.EncryptName(baseName, iv)
 		if be.longNames && len(cBaseName) > syscall.NAME_MAX {
-			cBaseName = HashLongName(cBaseName)
+			cBaseName = be.HashLongName(cBaseName)
 		}
 		cipherPath = filepath.Join(cParentDir, cBaseName)
 		return cipherPath, nil
@@ -113,7 +113,7 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cip
 		}
 		encryptedName := be.EncryptName(plainName, iv)
 		if be.longNames && len(encryptedName) > syscall.NAME_MAX {
-			encryptedName = HashLongName(encryptedName)
+			encryptedName = be.HashLongName(encryptedName)
 		}
 		encryptedNames = append(encryptedNames, encryptedName)
 		wd = filepath.Join(wd, encryptedName)

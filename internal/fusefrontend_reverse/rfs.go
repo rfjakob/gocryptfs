@@ -319,7 +319,7 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 		} else {
 			cName = rfs.nameTransform.EncryptName(entries[i].Name, dirIV)
 			if len(cName) > syscall.NAME_MAX {
-				cName = nametransform.HashLongName(cName)
+				cName = rfs.nameTransform.HashLongName(cName)
 				dotNameFile := fuse.DirEntry{
 					Mode: syscall.S_IFREG | 0600,
 					Name: cName + nametransform.LongNameSuffix,

@@ -6,7 +6,6 @@ import (
 	"syscall"
 
 	"github.com/rfjakob/gocryptfs/internal/ctlsock"
-	"github.com/rfjakob/gocryptfs/internal/nametransform"
 )
 
 var _ ctlsock.Interface = &ReverseFS{} // Verify that interface is implemented.
@@ -24,7 +23,7 @@ func (rfs *ReverseFS) EncryptPath(plainPath string) (string, error) {
 		dirIV := derivePathIV(cipherPath, ivPurposeDirIV)
 		encryptedPart := rfs.nameTransform.EncryptName(part, dirIV)
 		if rfs.args.LongNames && len(encryptedPart) > syscall.NAME_MAX {
-			encryptedPart = nametransform.HashLongName(encryptedPart)
+			encryptedPart = rfs.nameTransform.HashLongName(encryptedPart)
 		}
 		cipherPath = filepath.Join(cipherPath, encryptedPart)
 	}
