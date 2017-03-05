@@ -8,13 +8,12 @@ import (
 
 	"github.com/rfjakob/eme"
 
-	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 // NameTransform is used to transform filenames.
 type NameTransform struct {
-	cryptoCore *cryptocore.CryptoCore
+	emeCipher  *eme.EMECipher
 	longNames  bool
 	DirIVCache dirIVCache
 	// b64 = either base64.URLEncoding or base64.RawURLEncoding
@@ -22,15 +21,15 @@ type NameTransform struct {
 }
 
 // New returns a new NameTransform instance.
-func New(c *cryptocore.CryptoCore, longNames bool, raw64 bool) *NameTransform {
+func New(e *eme.EMECipher, longNames bool, raw64 bool) *NameTransform {
 	b64 := base64.URLEncoding
 	if raw64 {
 		b64 = getRaw64Encoding()
 	}
 	return &NameTransform{
-		cryptoCore: c,
-		longNames:  longNames,
-		b64:        b64,
+		emeCipher: e,
+		longNames: longNames,
+		b64:       b64,
 	}
 }
 
@@ -47,7 +46,7 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 		tlog.Debug.Printf("DecryptName %q: decoded length %d is not a multiple of 16", cipherName, len(bin))
 		return "", syscall.EINVAL
 	}
-	bin = eme.Transform(n.cryptoCore.BlockCipher, iv, bin, eme.DirectionDecrypt)
+	bin = n.emeCipher.Decrypt(iv, bin)
 	bin, err = unPad16(bin)
 	if err != nil {
 		tlog.Debug.Printf("pad16 error detail: %v", err)
@@ -69,7 +68,7 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 func (n *NameTransform) EncryptName(plainName string, iv []byte) (cipherName64 string) {
 	bin := []byte(plainName)
 	bin = pad16(bin)
-	bin = eme.Transform(n.cryptoCore.BlockCipher, iv, bin, eme.DirectionEncrypt)
+	bin = n.emeCipher.Encrypt(iv, bin)
 	cipherName64 = n.b64.EncodeToString(bin)
 	return cipherName64
 }

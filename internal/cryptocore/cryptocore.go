@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/rfjakob/eme"
+
 	"github.com/rfjakob/gocryptfs/internal/siv_aead"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 )
@@ -33,8 +35,8 @@ const (
 
 // CryptoCore is the low level crypto implementation.
 type CryptoCore struct {
-	// AES-256 block cipher. This is used for EME filename encryption.
-	BlockCipher cipher.Block
+	// EME is used for filename encryption.
+	EMECipher *eme.EMECipher
 	// GCM or AES-SIV. This is used for content encryption.
 	AEADCipher cipher.AEAD
 	// Which backend is behind AEADCipher?
@@ -56,12 +58,13 @@ func New(key []byte, backend BackendTypeEnum, IVBitLen int) *CryptoCore {
 	// We want the IV size in bytes
 	IVLen := IVBitLen / 8
 
-	// Name encryption always uses built-in Go AES through BlockCipher.
+	// Name encryption always uses built-in Go AES through blockCipher.
 	// Content encryption uses BlockCipher only if useOpenssl=false.
 	blockCipher, err := aes.NewCipher(key)
 	if err != nil {
 		log.Panic(err)
 	}
+	emeCipher := eme.New(blockCipher)
 
 	var aeadCipher cipher.AEAD
 	switch backend {
@@ -90,7 +93,7 @@ func New(key []byte, backend BackendTypeEnum, IVBitLen int) *CryptoCore {
 	}
 
 	return &CryptoCore{
-		BlockCipher: blockCipher,
+		EMECipher:   emeCipher,
 		AEADCipher:  aeadCipher,
 		AEADBackend: backend,
 		IVGenerator: &nonceGenerator{nonceLen: IVLen},
