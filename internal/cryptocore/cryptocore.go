@@ -15,8 +15,8 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 )
 
-// BackendTypeEnum indicates the type of backend in use.
-type BackendTypeEnum int
+// BackendTypeEnum indicates the type of AEAD backend in use.
+type AEADTypeEnum int
 
 const (
 	// KeyLen is the cipher key length in bytes.  32 for AES-256.
@@ -26,11 +26,11 @@ const (
 
 	_ = iota // Skip zero
 	// BackendOpenSSL specifies the OpenSSL backend.
-	BackendOpenSSL BackendTypeEnum = iota
+	BackendOpenSSL AEADTypeEnum = iota
 	// BackendGoGCM specifies the Go based GCM backend.
-	BackendGoGCM BackendTypeEnum = iota
+	BackendGoGCM AEADTypeEnum = iota
 	// BackendAESSIV specifies an AESSIV backend.
-	BackendAESSIV BackendTypeEnum = iota
+	BackendAESSIV AEADTypeEnum = iota
 )
 
 // CryptoCore is the low level crypto implementation.
@@ -40,7 +40,7 @@ type CryptoCore struct {
 	// GCM or AES-SIV. This is used for content encryption.
 	AEADCipher cipher.AEAD
 	// Which backend is behind AEADCipher?
-	AEADBackend BackendTypeEnum
+	AEADBackend AEADTypeEnum
 	// GCM needs unique IVs (nonces)
 	IVGenerator *nonceGenerator
 	IVLen       int
@@ -51,7 +51,7 @@ type CryptoCore struct {
 // Even though the "GCMIV128" feature flag is now mandatory, we must still
 // support 96-bit IVs here because they are used for encrypting the master
 // key in gocryptfs.conf.
-func New(key []byte, backend BackendTypeEnum, IVBitLen int) *CryptoCore {
+func New(key []byte, aeadType AEADTypeEnum, IVBitLen int) *CryptoCore {
 	if len(key) != KeyLen {
 		log.Panic(fmt.Sprintf("Unsupported key length %d", len(key)))
 	}
@@ -67,7 +67,7 @@ func New(key []byte, backend BackendTypeEnum, IVBitLen int) *CryptoCore {
 	emeCipher := eme.New(blockCipher)
 
 	var aeadCipher cipher.AEAD
-	switch backend {
+	switch aeadType {
 	case BackendOpenSSL:
 		if IVLen != 16 {
 			log.Panic("stupidgcm only supports 128-bit IVs")
@@ -95,7 +95,7 @@ func New(key []byte, backend BackendTypeEnum, IVBitLen int) *CryptoCore {
 	return &CryptoCore{
 		EMECipher:   emeCipher,
 		AEADCipher:  aeadCipher,
-		AEADBackend: backend,
+		AEADBackend: aeadType,
 		IVGenerator: &nonceGenerator{nonceLen: IVLen},
 		IVLen:       IVLen,
 	}

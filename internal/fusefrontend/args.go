@@ -8,7 +8,7 @@ import (
 type Args struct {
 	Masterkey      []byte
 	Cipherdir      string
-	CryptoBackend  cryptocore.BackendTypeEnum
+	CryptoBackend  cryptocore.AEADTypeEnum
 	PlaintextNames bool
 	LongNames      bool
 	// Should we chown a file after it has been created?
