@@ -24,10 +24,10 @@ for i in $(mount | grep $TESTDIR | cut -f3 -d" "); do
 	fuse-unmount $i
 done
 
-source build-without-openssl.bash
+./build-without-openssl.bash
 # Building with openssl is difficult on OSX, so only do it on Linux.
 if [[ $OSTYPE == linux* ]] ; then
-	source build.bash
+	./build.bash
 fi
 
 if go tool | grep vet > /dev/null ; then
