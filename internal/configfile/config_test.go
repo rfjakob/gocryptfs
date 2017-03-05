@@ -64,7 +64,7 @@ func TestCreateConfFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, c, err := LoadConfFile("config_test/tmp.conf", "test")
+	_, _, err = LoadConfFile("config_test/tmp.conf", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
