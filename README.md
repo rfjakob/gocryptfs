@@ -138,6 +138,10 @@ RM:    4.42
 Changelog
 ---------
 
+v1.3 (not released yet)
+* Drop Go 1.4 compatability. You now need Go 1.5 (released 2015-08-19)
+  or higher to build gocryptfs.
+
 v1.2.1, 2017-02-26
 * Add an integrated speed test, `gocryptfs -speed`
 * Limit password size to 1000 bytes and reject trailing garbage after the newline
