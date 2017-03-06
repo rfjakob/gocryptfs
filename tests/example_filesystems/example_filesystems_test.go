@@ -245,7 +245,7 @@ func TestExampleFSv13(t *testing.T) {
 
 	pDir = pDir + "_m"
 	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey",
-		"40de3f45-7210f8aa-2d7fe885-604d2802-32a7d832-aa756e95-ff2e06bf-1802e456",
+		"fd890dab-86bf61cf-ec5ad460-ad3ed01f-9c52d546-2a31783d-a56b088d-3d05232e",
 		opensslOpt)
 	checkExampleFSLongnames(t, pDir)
 	test_helpers.UnmountPanic(pDir)
