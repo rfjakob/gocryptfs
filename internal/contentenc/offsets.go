@@ -54,6 +54,11 @@ func (be *ContentEnc) CipherSizeToPlainSize(cipherSize uint64) uint64 {
 
 	overhead := be.BlockOverhead()*blockCount + HeaderLen
 
+	if overhead > cipherSize {
+		tlog.Warn.Printf("cipherSize %d < overhead %d: corrupt file\n", cipherSize, overhead)
+		return 0
+	}
+
 	return cipherSize - overhead
 }
 
