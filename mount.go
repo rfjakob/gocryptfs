@@ -190,12 +190,14 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 		ConfigCustom:   args._configCustom,
 		Raw64:          args.raw64,
 		NoPrealloc:     args.noprealloc,
+		HKDF:           args.hkdf,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {
 		// Settings from the config file override command line args
 		frontendArgs.PlaintextNames = confFile.IsFeatureFlagSet(configfile.FlagPlaintextNames)
 		frontendArgs.Raw64 = confFile.IsFeatureFlagSet(configfile.FlagRaw64)
+		frontendArgs.HKDF = confFile.IsFeatureFlagSet(configfile.FlagHKDF)
 		if confFile.IsFeatureFlagSet(configfile.FlagAESSIV) {
 			frontendArgs.CryptoBackend = cryptocore.BackendAESSIV
 		} else if args.reverse {

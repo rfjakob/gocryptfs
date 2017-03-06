@@ -97,7 +97,7 @@ func TestExampleFSv07(t *testing.T) {
 	test_helpers.UnmountPanic(pDir)
 	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey",
 		"ed7f6d83-40cce86c-0e7d79c2-a9438710-575221bf-30a0eb60-2821fa8f-7f3123bf",
-		opensslOpt)
+		"-hkdf=false", opensslOpt)
 	checkExampleFS(t, pDir, true)
 	test_helpers.UnmountPanic(pDir)
 }
@@ -115,7 +115,7 @@ func TestExampleFSv07PlaintextNames(t *testing.T) {
 	pDir = pDir + ".2"
 	test_helpers.MountOrFatal(t, cDir, pDir, "-plaintextnames", "-masterkey",
 		"6d96397b-585631e1-c7cba69d-61e738b6-4d5ad2c2-e21f0fb3-52f60d3a-b08526f7",
-		opensslOpt)
+		"-hkdf=false", opensslOpt)
 	checkExampleFS(t, pDir, true)
 	test_helpers.UnmountPanic(pDir)
 }
@@ -135,7 +135,7 @@ func TestExampleFSv09(t *testing.T) {
 	pDir = pDir + ".2"
 	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey",
 		"1cafe3f4-bc316466-2214c47c-ecd89bf3-4e078fe4-f5faeea7-8b7cab02-884f5e1c",
-		opensslOpt)
+		"-hkdf=false", opensslOpt)
 	checkExampleFSLongnames(t, pDir)
 	test_helpers.UnmountPanic(pDir)
 }
@@ -154,7 +154,7 @@ func TestExampleFSv11(t *testing.T) {
 	pDir = pDir + ".2"
 	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey",
 		"eaf371c3-f9a55336-8819f22b-7bccd7c2-a738cf61-7261c658-14c28a03-9428992b",
-		"-aessiv", opensslOpt)
+		"-aessiv", "-hkdf=false", opensslOpt)
 	checkExampleFSLongnames(t, pDir)
 	test_helpers.UnmountPanic(pDir)
 }
@@ -183,11 +183,13 @@ func TestExampleFSv11reverse(t *testing.T) {
 	test_helpers.UnmountPanic(dirB)
 
 	m := "68b51855-042abd80-635ae1ba-90152a78-2ec2d243-832ac72a-eab0561a-f2d37913"
-	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-masterkey", m, opensslOpt)
+	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-masterkey", m,
+		"-hkdf=false", opensslOpt)
 	if !test_helpers.VerifyExistence(c) {
 		t.Errorf("%s missing", c)
 	}
-	test_helpers.MountOrFatal(t, dirB, dirC, "-aessiv", "-masterkey", m, opensslOpt)
+	test_helpers.MountOrFatal(t, dirB, dirC, "-aessiv", "-masterkey", m,
+		"-hkdf=false", opensslOpt)
 	checkExampleFSrw(t, dirC, false)
 	test_helpers.UnmountPanic(dirC)
 	test_helpers.UnmountPanic(dirB)
@@ -217,11 +219,13 @@ func TestExampleFSv11reversePlaintextnames(t *testing.T) {
 	test_helpers.UnmountPanic(dirB)
 
 	m := "e7fb8f0d-2a81df9e-26611e4b-5540b218-e48aa458-c2a623af-d0c82637-1466b5f2"
-	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-masterkey", m, opensslOpt)
+	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-masterkey", m,
+		"-hkdf=false", opensslOpt)
 	if !test_helpers.VerifyExistence(c) {
 		t.Errorf("%s missing", c)
 	}
-	test_helpers.MountOrFatal(t, dirB, dirC, "-aessiv", "-masterkey", m, opensslOpt)
+	test_helpers.MountOrFatal(t, dirB, dirC, "-aessiv", "-masterkey", m,
+		"-hkdf=false", opensslOpt)
 	checkExampleFSrw(t, dirC, false)
 	test_helpers.UnmountPanic(dirC)
 	test_helpers.UnmountPanic(dirB)
@@ -238,12 +242,11 @@ func TestExampleFSv13(t *testing.T) {
 	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test", opensslOpt)
 	checkExampleFSLongnames(t, pDir)
 	test_helpers.UnmountPanic(pDir)
-	/*
-		pDir = pDir + ".2"
-		test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey",
-			"eaf371c3-f9a55336-8819f22b-7bccd7c2-a738cf61-7261c658-14c28a03-9428992b",
-			"-aessiv", opensslOpt)
-		checkExampleFSLongnames(t, pDir)
-		test_helpers.UnmountPanic(pDir)
-	*/
+
+	pDir = pDir + "_m"
+	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey",
+		"40de3f45-7210f8aa-2d7fe885-604d2802-32a7d832-aa756e95-ff2e06bf-1802e456",
+		opensslOpt)
+	checkExampleFSLongnames(t, pDir)
+	test_helpers.UnmountPanic(pDir)
 }
