@@ -64,10 +64,8 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagDirIV])
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagEMENames])
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagLongNames])
-		// TODO enable these and release as v1.3-beta1 once we have enough test
-		// coverage. Also enable the Raw64 check in TestCreateConfFile()!
-		//cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagRaw64])
-		//cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagHKDF])
+		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagRaw64])
+		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagHKDF])
 	}
 	if aessiv {
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagAESSIV])

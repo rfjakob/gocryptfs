@@ -64,16 +64,20 @@ func TestCreateConfFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _, err = LoadConfFile("config_test/tmp.conf", "test")
+	_, c, err := LoadConfFile("config_test/tmp.conf", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Raw64 is set by default since gocryptfs v1.3
-	/*
-		if !c.IsFeatureFlagSet(FlagRaw64) {
-			t.Error("FlagRaw64 flag should be set but is not")
+	// Check that all expected feature flags are set
+	want := []flagIota{
+		FlagGCMIV128, FlagDirIV, FlagEMENames, FlagLongNames,
+		FlagRaw64, FlagHKDF,
+	}
+	for _, f := range want {
+		if !c.IsFeatureFlagSet(f) {
+			t.Errorf("Feature flag %q should be set but is not", knownFlags[f])
 		}
-	*/
+	}
 }
 
 func TestCreateConfFileAESSIV(t *testing.T) {
