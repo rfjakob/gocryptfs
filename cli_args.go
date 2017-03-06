@@ -108,7 +108,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.BoolVar(&args.reverse, "reverse", false, "Reverse mode")
 	flagSet.BoolVar(&args.aessiv, "aessiv", false, "AES-SIV encryption")
 	flagSet.BoolVar(&args.nonempty, "nonempty", false, "Allow mounting over non-empty directories")
-	flagSet.BoolVar(&args.raw64, "raw64", false, "Use unpadded base64 for file names")
+	flagSet.BoolVar(&args.raw64, "raw64", true, "Use unpadded base64 for file names")
 	flagSet.BoolVar(&args.noprealloc, "noprealloc", false, "Disable preallocation before writing")
 	flagSet.BoolVar(&args.speed, "speed", false, "Run crypto speed test")
 	flagSet.BoolVar(&args.hkdf, "hkdf", true, "Use HKDF as an additional key derivation step")
