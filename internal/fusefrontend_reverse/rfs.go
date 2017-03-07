@@ -221,6 +221,16 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 	// Calculate encrypted file size
 	if a.IsRegular() {
 		a.Size = rfs.contentEnc.PlainSizeToCipherSize(a.Size)
+	} else if a.IsSymlink() {
+		var linkTarget string
+		var readlinkStatus fuse.Status
+
+		linkTarget, readlinkStatus = rfs.Readlink(relPath, context)
+		if !readlinkStatus.Ok() {
+			return nil, readlinkStatus
+		}
+
+		a.Size = uint64(len(linkTarget))
 	}
 	return a, fuse.OK
 }
