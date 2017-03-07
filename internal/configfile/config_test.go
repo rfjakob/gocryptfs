@@ -59,7 +59,7 @@ func TestLoadV2StrangeFeature(t *testing.T) {
 	}
 }
 
-func TestCreateConfFile(t *testing.T) {
+func TestCreateConfDefault(t *testing.T) {
 	err := CreateConfFile("config_test/tmp.conf", "test", false, 10, "test", false)
 	if err != nil {
 		t.Fatal(err)
@@ -80,6 +80,27 @@ func TestCreateConfFile(t *testing.T) {
 	}
 }
 
+func TestCreateConfPlaintextnames(t *testing.T) {
+	err := CreateConfFile("config_test/tmp.conf", "test", true, 10, "test", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, c, err := LoadConfFile("config_test/tmp.conf", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Check that all expected feature flags are set
+	want := []flagIota{
+		FlagGCMIV128, FlagHKDF,
+	}
+	for _, f := range want {
+		if !c.IsFeatureFlagSet(f) {
+			t.Errorf("Feature flag %q should be set but is not", knownFlags[f])
+		}
+	}
+}
+
+// Reverse mode uses AESSIV
 func TestCreateConfFileAESSIV(t *testing.T) {
 	err := CreateConfFile("config_test/tmp.conf", "test", false, 10, "test", true)
 	if err != nil {

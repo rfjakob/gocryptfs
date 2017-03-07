@@ -58,6 +58,7 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 
 	// Set feature flags
 	cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagGCMIV128])
+	cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagHKDF])
 	if plaintextNames {
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagPlaintextNames])
 	} else {
@@ -65,7 +66,6 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagEMENames])
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagLongNames])
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagRaw64])
-		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagHKDF])
 	}
 	if aessiv {
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagAESSIV])
