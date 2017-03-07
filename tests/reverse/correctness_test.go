@@ -6,6 +6,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/rfjakob/gocryptfs/internal/ctlsock"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
@@ -48,6 +49,43 @@ func TestSymlinks(t *testing.T) {
 	}
 	if target != actualTarget {
 		t.Errorf("wrong symlink target: want=%q have=%q", target, actualTarget)
+	}
+}
+
+// Symbolic link dentry sizes should be set to the length of the string
+// that contains the target path.
+func TestSymlinkDentrySize(t *testing.T) {
+	symlink := "a_symlink"
+
+	mnt, err := ioutil.TempDir(test_helpers.TmpDir, "reverse_mnt_")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sock := mnt + ".sock"
+	test_helpers.MountOrFatal(t, "ctlsock_reverse_test_fs", mnt, "-reverse", "-extpass", "echo test", "-ctlsock="+sock)
+	defer test_helpers.UnmountPanic(mnt)
+
+	req := ctlsock.RequestStruct{EncryptPath: symlink}
+	symlinkResponse := test_helpers.QueryCtlSock(t, sock, req)
+	if symlinkResponse.ErrNo != 0 {
+		t.Errorf("Encrypt: %q ErrNo=%d ErrText=%s", symlink, symlinkResponse.ErrNo, symlinkResponse.ErrText)
+	}
+
+	fi, err := os.Lstat(mnt + "/" + symlinkResponse.Result)
+	if err != nil {
+		t.Errorf("Lstat: %v", err)
+	}
+
+	target, err := os.Readlink(mnt + "/" + symlinkResponse.Result)
+	if err != nil {
+		t.Errorf("Readlink: %v", err)
+	}
+
+	if fi.Size() != int64(len(target)) {
+		t.Errorf("Lstat reports that symbolic link %q's dentry size is %d, but this does not "+
+			"match the length of the string returned by readlink, which is %d.",
+			symlink, fi.Size(), len(target))
 	}
 }
 
