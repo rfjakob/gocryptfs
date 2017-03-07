@@ -55,6 +55,9 @@ func TestSymlinks(t *testing.T) {
 // Symbolic link dentry sizes should be set to the length of the string
 // that contains the target path.
 func TestSymlinkDentrySize(t *testing.T) {
+	if plaintextnames {
+		t.Skip("this only tests encrypted names")
+	}
 	symlink := "a_symlink"
 
 	mnt, err := ioutil.TempDir(test_helpers.TmpDir, "reverse_mnt_")
@@ -108,7 +111,7 @@ func TestConfigMapping(t *testing.T) {
 // Check that the access() syscall works on virtual files
 func TestAccessVirtual(t *testing.T) {
 	if plaintextnames {
-		t.Skip()
+		t.Skip("test makes no sense for plaintextnames")
 	}
 	var R_OK uint32 = 4
 	var W_OK uint32 = 2

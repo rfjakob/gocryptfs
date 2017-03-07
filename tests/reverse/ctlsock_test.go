@@ -24,6 +24,9 @@ var ctlSockTestCases = [][]string{
 
 // Test DecryptPath and EncryptPath
 func TestCtlSockPathOps(t *testing.T) {
+	if plaintextnames {
+		t.Skip("this only tests encrypted names")
+	}
 	mnt, err := ioutil.TempDir(test_helpers.TmpDir, "reverse_mnt_")
 	if err != nil {
 		t.Fatal(err)
@@ -54,6 +57,9 @@ func TestCtlSockPathOps(t *testing.T) {
 
 // We should not panic when somebody feeds requests that make no sense
 func TestCtlSockCrash(t *testing.T) {
+	if plaintextnames {
+		t.Skip("this only tests encrypted names")
+	}
 	mnt, err := ioutil.TempDir(test_helpers.TmpDir, "reverse_mnt_")
 	if err != nil {
 		t.Fatal(err)
