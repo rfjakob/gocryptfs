@@ -91,11 +91,20 @@ func (f *file) SetInode(n *nodefs.Inode) {
 // readFileID loads the file header from disk and extracts the file ID.
 // Returns io.EOF if the file is empty.
 func (f *file) readFileID() ([]byte, error) {
-	buf := make([]byte, contentenc.HeaderLen)
-	_, err := f.fd.ReadAt(buf, 0)
+	// We read +1 byte to determine if the file has actual content
+	// and not only the header. A header-only file will be considered empty.
+	// This makes File ID poisoning more difficult.
+	readLen := contentenc.HeaderLen + 1
+	buf := make([]byte, readLen)
+	n, err := f.fd.ReadAt(buf, 0)
 	if err != nil {
+		if err == io.EOF && n != 0 {
+			tlog.Warn.Printf("ino%d: readFileID: incomplete file, got %d instead of %d bytes",
+				f.devIno.ino, n, readLen)
+		}
 		return nil, err
 	}
+	buf = buf[:contentenc.HeaderLen]
 	h, err := contentenc.ParseHeader(buf)
 	if err != nil {
 		return nil, err
