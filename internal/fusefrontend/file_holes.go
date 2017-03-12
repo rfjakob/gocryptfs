@@ -30,7 +30,7 @@ func (f *file) writePadHole(targetOff int64) fuse.Status {
 	}
 	// The write goes past the next block. nextBlock has
 	// to be zero-padded to the block boundary and (at least) nextBlock+1
-	// will become a file hole in the ciphertext.
+	// will contain a file hole in the ciphertext.
 	status := f.zeroPad(plainSize)
 	if status != fuse.OK {
 		tlog.Warn.Printf("zeroPad returned error %v", status)
@@ -39,14 +39,15 @@ func (f *file) writePadHole(targetOff int64) fuse.Status {
 	return fuse.OK
 }
 
-// Zero-pad the file of size plainSize to the next block boundary
+// Zero-pad the file of size plainSize to the next block boundary. This is a no-op
+// if the file is already block-aligned.
 func (f *file) zeroPad(plainSize uint64) fuse.Status {
 	lastBlockLen := plainSize % f.contentEnc.PlainBS()
-	missing := f.contentEnc.PlainBS() - lastBlockLen
-	if missing == 0 {
+	if lastBlockLen == 0 {
 		// Already block-aligned
 		return fuse.OK
 	}
+	missing := f.contentEnc.PlainBS() - lastBlockLen
 	pad := make([]byte, missing)
 	tlog.Debug.Printf("zeroPad: Writing %d bytes\n", missing)
 	_, status := f.doWrite(pad, int64(plainSize))

@@ -183,35 +183,47 @@ func (f *file) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) fuse.Statu
 	if newPlainSz <= oldPlainSz {
 		log.Panicf("BUG: newSize=%d <= oldSize=%d", newPlainSz, oldPlainSz)
 	}
-	var err error
-	// File was empty, create new header
-	if oldPlainSz == 0 {
-		f.fileTableEntry.IDLock.Lock()
-		_, err = f.createHeader()
-		f.fileTableEntry.IDLock.Unlock()
-		if err != nil {
-			return fuse.ToStatus(err)
-		}
+	var n1 uint64
+	if oldPlainSz > 0 {
+		n1 = f.contentEnc.PlainOffToBlockNo(oldPlainSz - 1)
 	}
-	// New blocks to add
-	addBlocks := f.contentEnc.ExplodePlainRange(oldPlainSz, newPlainSz-oldPlainSz)
-	if oldPlainSz > 0 && len(addBlocks) >= 2 {
-		// Zero-pad the first block (unless the first block is also the last block)
-		f.zeroPad(oldPlainSz)
-	}
-	lastBlock := addBlocks[len(addBlocks)-1]
-	if lastBlock.IsPartial() {
-		// Write at the new end of the file. The seek implicitly grows the file
-		// (creates a file hole) and doWrite() takes care of RMW.
-		off := lastBlock.BlockPlainOff()
-		_, status := f.doWrite(make([]byte, lastBlock.Length), int64(off+lastBlock.Skip))
+	newEofOffset := newPlainSz - 1
+	n2 := f.contentEnc.PlainOffToBlockNo(newEofOffset)
+	// The file is grown within one block, no need to pad anything.
+	// Write a single zero to the last byte and let doWrite figure out the RMW.
+	if n1 == n2 {
+		buf := make([]byte, 1)
+		_, status := f.doWrite(buf, int64(newEofOffset))
 		return status
 	}
-
-	off := lastBlock.BlockCipherOff()
-	err = syscall.Ftruncate(f.intFd(), int64(off+f.contentEnc.CipherBS()))
-	if err != nil {
-		tlog.Warn.Printf("Truncate: grow Ftruncate returned error: %v", err)
+	// The truncate creates at least one new block.
+	//
+	// Make sure the old last block is padded to the block boundary. This call
+	// is a no-op if it is already block-aligned.
+	f.zeroPad(oldPlainSz)
+	// The new size is block-aligned. In this case we can do everything ourselves
+	// and avoid the call to doWrite.
+	if newPlainSz%f.contentEnc.PlainBS() == 0 {
+		// The file was empty, so it did not have a header. Create one.
+		if oldPlainSz == 0 {
+			f.fileTableEntry.IDLock.Lock()
+			defer f.fileTableEntry.IDLock.Unlock()
+			id, err := f.createHeader()
+			if err != nil {
+				return fuse.ToStatus(err)
+			}
+			f.fileTableEntry.ID = id
+		}
+		cSz := int64(f.contentEnc.PlainSizeToCipherSize(newPlainSz))
+		err := syscall.Ftruncate(f.intFd(), cSz)
+		if err != nil {
+			tlog.Warn.Printf("Truncate: grow Ftruncate returned error: %v", err)
+		}
+		return fuse.ToStatus(err)
 	}
-	return fuse.ToStatus(err)
+	// The new size is NOT aligned, so we need to write a partial block.
+	// Write a single zero to the last byte and let doWrite figure it out.
+	buf := make([]byte, 1)
+	_, status := f.doWrite(buf, int64(newEofOffset))
+	return status
 }
