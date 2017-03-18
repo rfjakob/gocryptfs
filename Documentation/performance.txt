@@ -4,28 +4,31 @@ The archive is placed on tmpfs as well.
 
 WRITE: dd if=/dev/zero of=zero bs=128K count=2000
 UNTAR: time tar xzf ../linux-3.0.tar.gz
+MD5:   time md5sum --quiet -c linux-3.0.md5sums
 LS:    time ls -lR linux-3.0 > /dev/null
 RM:    time rm -Rf linux-3.0
 
 (or just run benchmark.bash)
 
-VERSION       WRITE    UNTAR    LS     RM
-v0.4                      48     1.5    5
-v0.5-rc1                  56     7     19
-v0.5-rc1-1                54     4.1    9
-v0.5-rc1-2                45     1.7    3.4
-v0.6                      47     1.8    4.3
-v0.7                      43     1.7    4.3
-v0.7.2                    26     1.8    4.3
-v0.8                      23     1.8    4.3
-v0.9-rc2      94          24     1.8    4.5
-v0.9          94          24     1.8    4.5
-v0.11        104          22     1.7    4.5
-v1.1         104          20     1.5    3.4 (go1.7.1 compiler)
-v1.1.1-34    112          22     1.5    3.6 (go1.7.3 compiler)
+VERSION            WRITE    UNTAR   MD5    LS     RM
+v0.4                           48          1.5    5
+v0.5-rc1                       56          7     19
+v0.5-rc1-1                     54          4.1    9
+v0.5-rc1-2                     45          1.7    3.4
+v0.6                           47          1.8    4.3
+v0.7                           43          1.7    4.3
+v0.7.2                         26          1.8    4.3
+v0.8                           23          1.8    4.3
+v0.9-rc2           94          24          1.8    4.5
+v0.9               94          24          1.8    4.5
+v0.11             104          22          1.7    4.5
+v1.1              104          20          1.5    3.4 (go1.7.1)
+v1.1.1-34         112          22          1.5    3.6 (go1.7.3)
+v1.2.1-33         112          21    12    1.6    4.4 (go1.8)
+v1.2.1-33
+-serialize_reads  116          21    39    1.5    4.4
 
+Results for EncFS for comparison (benchmark.bash -encfs):     
 
-Results for EncFS for comparison (benchmark.bash -encfs):
-
-VERSION       WRITE    UNTAR    LS     RM
-encfs v1.9.1  95          20     2.8    3.8
+VERSION            WRITE    UNTAR   MD5    LS     RM
+encfs v1.9.1       95          20     8    2.8    3.8

@@ -8,6 +8,7 @@
 
 cd "$(dirname "$0")"
 MYNAME=$(basename "$0")
+MD5="$PWD/stress_tests/linux-3.0.md5sums"
 
 if [ $# -ne 1 ]; then
 	echo "usage: $MYNAME TESTDIR"
@@ -35,6 +36,9 @@ rm zero
 sleep 1
 echo -n "UNTAR: "
 etime tar xzf /tmp/linux-3.0.tar.gz
+sleep 1
+echo -n "MD5:   "
+etime md5sum --quiet -c $MD5
 sleep 1
 echo -n "LS:    "
 etime ls -lR linux-3.0
