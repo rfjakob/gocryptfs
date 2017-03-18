@@ -17,6 +17,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/internal/serialize_reads"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -176,6 +177,7 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	alignedOffset, alignedLength := blocks[0].JointCiphertextRange(blocks)
 	skip := blocks[0].Skip
 	tlog.Debug.Printf("JointCiphertextRange(%d, %d) -> %d, %d, %d", off, length, alignedOffset, alignedLength, skip)
+
 	ciphertext := make([]byte, int(alignedLength))
 	n, err := f.fd.ReadAt(ciphertext, int64(alignedOffset))
 	// We don't care if the file ID changes after we have read the data. Drop the lock.
@@ -224,7 +226,16 @@ func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 		return nil, fuse.EBADF
 	}
 
+	if f.fs.args.SerializeReads {
+		serialize_reads.Wait(off, len(buf))
+	}
+
+	fmt.Printf("%02d\n", off/131072)
 	out, status := f.doRead(uint64(off), uint64(len(buf)))
+
+	if f.fs.args.SerializeReads {
+		serialize_reads.Done()
+	}
 
 	if status == fuse.EIO {
 		tlog.Warn.Printf("ino%d: Read: returning EIO, offset=%d, length=%d", f.devIno.ino, len(buf), off)

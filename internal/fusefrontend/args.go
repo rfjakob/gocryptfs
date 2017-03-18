@@ -27,4 +27,6 @@ type Args struct {
 	// Use HKDF key derivation.
 	// Corresponds to the HKDF feature flag introduced in gocryptfs v1.3.
 	HKDF bool
+	// Try to serialize read operations, "-serialize_reads"
+	SerializeReads bool
 }
