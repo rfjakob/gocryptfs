@@ -230,7 +230,6 @@ func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 		serialize_reads.Wait(off, len(buf))
 	}
 
-	fmt.Printf("%02d\n", off/131072)
 	out, status := f.doRead(uint64(off), uint64(len(buf)))
 
 	if f.fs.args.SerializeReads {
