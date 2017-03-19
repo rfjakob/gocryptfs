@@ -181,6 +181,24 @@ Options:
 **-ro**
 :	Mount the filesystem read-only
 
+**-serialize_reads**
+:	The kernel usually submits multiple concurrent reads to service
+	userspace requests and kernel readahead. gocryptfs serves them
+	concurrently and in arbitrary order. On backing storage that performs
+	poorly for concurrent or out-of-order reads (like Amazon Cloud Drive),
+	this behavoir can cause very slow read speeds.
+	
+	The `-serialize_reads`
+	option does two things: (1) reads will be submitted one-by-one (no
+	concurrency) and (2) gocryptfs tries to order the reads by file
+	offset order.
+	
+	The ordering requires gocryptfs to wait a certain time before
+	submitting a read. The serialization introduces extra locking.
+	These factors will limit throughput to below 70MB/s.
+	
+	For more details visit https://github.com/rfjakob/gocryptfs/issues/92 .
+
 **-scryptn int**
 :	scrypt cost parameter logN. Setting this to a lower value speeds up
 	mounting but makes the password susceptible to brute-force attacks
