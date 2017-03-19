@@ -149,7 +149,7 @@ v1.3-beta1
 * Add `-serialize_reads` command-line option
   * This can greatly improve performance on storage
     that is very slow for concurrent out-of-order reads. Example:
-    Amazon Cloud Drive ([#92](https://github.com/rfjakob/gocryptfs/issues/92)
+    Amazon Cloud Drive ([#92](https://github.com/rfjakob/gocryptfs/issues/92))
 
 v1.2.1, 2017-02-26
 * Add an integrated speed test, `gocryptfs -speed`
