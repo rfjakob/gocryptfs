@@ -138,7 +138,7 @@ RM:    4.42
 Changelog
 ---------
 
-v1.3 (not released yet)
+v1.3-beta1
 * **Use HKDF to derive separate keys for GCM and EME**
  * New feature flag: `HKDF` (enabled by default)
  * This is a forwards-compatible change. gocryptfs v1.3 can mount
@@ -146,6 +146,10 @@ v1.3 (not released yet)
 * Enable Raw64 filename encoding by default (gets rid of trailing `==` characters)
 * Drop Go 1.4 compatibility. You now need Go 1.5 (released 2015-08-19)
   or higher to build gocryptfs.
+* Add `-serialize_reads` command-line option
+ * This can greatly improve performance on storage
+   that is very slow for concurrent out-of-order reads. Example:
+   Amazon Cloud Drive ([#92](https://github.com/rfjakob/gocryptfs/issues/92)
 
 v1.2.1, 2017-02-26
 * Add an integrated speed test, `gocryptfs -speed`
