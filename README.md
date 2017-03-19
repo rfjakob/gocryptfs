@@ -140,16 +140,16 @@ Changelog
 
 v1.3-beta1
 * **Use HKDF to derive separate keys for GCM and EME**
- * New feature flag: `HKDF` (enabled by default)
- * This is a forwards-compatible change. gocryptfs v1.3 can mount
+  * New feature flag: `HKDF` (enabled by default)
+  * This is a forwards-compatible change. gocryptfs v1.3 can mount
    filesystems created by earlier versions but not the other way round.
 * Enable Raw64 filename encoding by default (gets rid of trailing `==` characters)
 * Drop Go 1.4 compatibility. You now need Go 1.5 (released 2015-08-19)
   or higher to build gocryptfs.
 * Add `-serialize_reads` command-line option
- * This can greatly improve performance on storage
-   that is very slow for concurrent out-of-order reads. Example:
-   Amazon Cloud Drive ([#92](https://github.com/rfjakob/gocryptfs/issues/92)
+  * This can greatly improve performance on storage
+    that is very slow for concurrent out-of-order reads. Example:
+    Amazon Cloud Drive ([#92](https://github.com/rfjakob/gocryptfs/issues/92)
 
 v1.2.1, 2017-02-26
 * Add an integrated speed test, `gocryptfs -speed`
@@ -161,7 +161,7 @@ v1.2.1, 2017-02-26
 v1.2, 2016-12-04
 * Add a control socket interface. Allows to encrypt and decrypt filenames.
   For details see [backintime#644](https://github.com/bit-team/backintime/issues/644#issuecomment-259835183).
- * New command-line option: `-ctlsock`
+  * New command-line option: `-ctlsock`
 * Under certain circumstances, concurrent truncate and read could return
   an I/O error. This is fixed by introducing a global open file table
   that stores the file IDs
@@ -170,10 +170,10 @@ v1.2, 2016-12-04
   the write FUSE call
   ([commit with benchmarks](https://github.com/rfjakob/gocryptfs/commit/024511d9c71558be4b1169d6bb43bd18d65539e0))
 * Add `-noprealloc` command-line option
- * Greatly speeds up writes on Btrfs
-   ([#63](https://github.com/rfjakob/gocryptfs/issues/63))
-   at the cost of reduced out-of-space robustness.
- * This is a workaround for Btrfs' slow fallocate(2)
+  * Greatly speeds up writes on Btrfs
+    ([#63](https://github.com/rfjakob/gocryptfs/issues/63))
+    at the cost of reduced out-of-space robustness.
+  * This is a workaround for Btrfs' slow fallocate(2)
 * Preserve owner for symlinks an device files (fixes bug [#64](https://github.com/rfjakob/gocryptfs/issues/64))
 * Include rendered man page `gocryptfs.1` in the release tarball
 
@@ -186,22 +186,22 @@ v1.1.1, 2016-10-30
 
 v1.1, 2016-10-19
 * **Add reverse mode ([#19](https://github.com/rfjakob/gocryptfs/issues/19))**
- * AES-SIV (RFC5297) encryption to implement deterministic encryption
-   securely. Uses the excellent
-   [jacobsa/crypto](https://github.com/jacobsa/crypto) library.
-   The corresponding feature flag is called `AESSIV`.
- * New command-line options: `-reverse`, `-aessiv`
- * Filesystems using reverse mode can only be mounted with gocryptfs v1.1
-   and later.
- * The default, forward mode, stays fully compatible with older versions.
-   Forward mode will keep using GCM because it is much faster.
+  * AES-SIV (RFC5297) encryption to implement deterministic encryption
+    securely. Uses the excellent
+    [jacobsa/crypto](https://github.com/jacobsa/crypto) library.
+    The corresponding feature flag is called `AESSIV`.
+  * New command-line options: `-reverse`, `-aessiv`
+  * Filesystems using reverse mode can only be mounted with gocryptfs v1.1
+    and later.
+  * The default, forward mode, stays fully compatible with older versions.
+    Forward mode will keep using GCM because it is much faster.
 * Accept `-o foo,bar,baz`-style options that are passed at the end of
   the command-line, like mount(1) does. All other options must still
   precede the passed paths.
- * This allows **mounting from /etc/fstab**. See
-   [#45](https://github.com/rfjakob/gocryptfs/issues/45) for details.
- * **Mounting on login using pam_mount** works as well. It is
-   [described in the wiki](https://github.com/rfjakob/gocryptfs/wiki/Mounting-on-login-using-pam_mount).
+  * This allows **mounting from /etc/fstab**. See
+    [#45](https://github.com/rfjakob/gocryptfs/issues/45) for details.
+  * **Mounting on login using pam_mount** works as well. It is
+    [described in the wiki](https://github.com/rfjakob/gocryptfs/wiki/Mounting-on-login-using-pam_mount).
 * To prevent confusion, the old `-o` option had to be renamed. It is now
   called `-ko`. Arguments to `-ko` are passed directly to the kernel.
 * New `-passfile` command-line option. Provides an easier way to read
@@ -212,84 +212,84 @@ v1.1, 2016-10-19
 
 v1.0, 2016-07-17
 * Deprecate very old filesystems, stage 3/3
- * Filesystems created by v0.6 can no longer be mounted
- * Drop command-line options `-gcmiv128`, `-emenames`, `-diriv`. These
-   are now always enabled.
+  * Filesystems created by v0.6 can no longer be mounted
+  * Drop command-line options `-gcmiv128`, `-emenames`, `-diriv`. These
+    are now always enabled.
 * Add fallocate(2) support
 * New command-line option `-o`
- * Allows to pass mount options directly to the kernel
+  * Allows to pass mount options directly to the kernel
 * Add support for device files and suid binaries
- * Only works when running as root
- * Must be explicitely enabled by passing "-o dev" or "-o suid" or "-o suid,dev"
+  * Only works when running as root
+  * Must be explicitely enabled by passing "-o dev" or "-o suid" or "-o suid,dev"
 * Experimental Mac OS X support. See
   [ticket #15](https://github.com/rfjakob/gocryptfs/issues/15) for details.
 
 v0.12, 2016-06-19
 * Deprecate very old filesystems, stage 2/3
- * Filesystems created by v0.6 and older can only be mounted read-only
- * A [message](https://github.com/rfjakob/gocryptfs/blob/v0.12/internal/configfile/config_file.go#L120)
-   explaining the situation is printed as well
+  * Filesystems created by v0.6 and older can only be mounted read-only
+  * A [message](https://github.com/rfjakob/gocryptfs/blob/v0.12/internal/configfile/config_file.go#L120)
+    explaining the situation is printed as well
 * New command line option: `-ro`
- * Mounts the filesystem read-only
+  * Mounts the filesystem read-only
 * Accept password from stdin as well ([ticket #30](https://github.com/rfjakob/gocryptfs/issues/30))
 
 v0.11, 2016-06-10
 * Deprecate very old filesystems, stage 1/3
- * Filesystems created by v0.6 and older can still be mounted but a
-   [warning](https://github.com/rfjakob/gocryptfs/blob/v0.11/internal/configfile/config_file.go#L120)
-   is printed
- * See [ticket #29](https://github.com/rfjakob/gocryptfs/issues/29) for details and
-   join the discussion
+  * Filesystems created by v0.6 and older can still be mounted but a
+    [warning](https://github.com/rfjakob/gocryptfs/blob/v0.11/internal/configfile/config_file.go#L120)
+    is printed
+  * See [ticket #29](https://github.com/rfjakob/gocryptfs/issues/29) for details and
+    join the discussion
 * Add rsync stress test "pingpong-rsync.bash"
- * Fix chown and utimens failures that caused rsync to complain
+  * Fix chown and utimens failures that caused rsync to complain
 * Build release binaries with Go 1.6.2
- * Big speedup for CPUs with AES-NI, see [ticket #23](https://github.com/rfjakob/gocryptfs/issues/23)
+  * Big speedup for CPUs with AES-NI, see [ticket #23](https://github.com/rfjakob/gocryptfs/issues/23)
 
 v0.10, 2016-05-30
 * **Replace `spacemonkeygo/openssl` with `stupidgcm`**
- * gocryptfs now has its own thin wrapper to OpenSSL's GCM implementation
-   called `stupidgcm`.
- * This should fix the [compile issues](https://github.com/rfjakob/gocryptfs/issues/21)
-   people are seeing with `spacemonkeygo/openssl`. It also gets us
-   a 20% performance boost for streaming writes.
+  * gocryptfs now has its own thin wrapper to OpenSSL's GCM implementation
+    called `stupidgcm`.
+  * This should fix the [compile issues](https://github.com/rfjakob/gocryptfs/issues/21)
+    people are seeing with `spacemonkeygo/openssl`. It also gets us
+    a 20% performance boost for streaming writes.
 * **Automatically choose between OpenSSL and Go crypto** [issue #23](https://github.com/rfjakob/gocryptfs/issues/23)
- * Go 1.6 added an optimized GCM implementation in amd64 assembly that uses AES-NI.
-   This is faster than OpenSSL and is used if available. In all other
-   cases OpenSSL is much faster and is used instead.
- * `-openssl=auto` is the new default
- * Passing `-openssl=true/false` overrides the autodetection.
+  * Go 1.6 added an optimized GCM implementation in amd64 assembly that uses AES-NI.
+    This is faster than OpenSSL and is used if available. In all other
+    cases OpenSSL is much faster and is used instead.
+  * `-openssl=auto` is the new default
+  * Passing `-openssl=true/false` overrides the autodetection.
 * Warn but continue anyway if fallocate(2) is not supported by the
   underlying filesystem, see [issue #22](https://github.com/rfjakob/gocryptfs/issues/22)
- * Enables to use gocryptfs on ZFS and ext3, albeit with reduced out-of-space safety.
+  * Enables to use gocryptfs on ZFS and ext3, albeit with reduced out-of-space safety.
 * [Fix statfs](https://github.com/rfjakob/gocryptfs/pull/27), by @lxp
 * Fix a fsstress [failure](https://github.com/hanwen/go-fuse/issues/106)
   in the go-fuse library.
 
 v0.9, 2016-04-10
 * **Long file name support**
- * gocryptfs now supports file names up to 255 characters.
- * This is a forwards-compatible change. gocryptfs v0.9 can mount filesystems
+  * gocryptfs now supports file names up to 255 characters.
+  * This is a forwards-compatible change. gocryptfs v0.9 can mount filesystems
    created by earlier versions but not the other way round.
 * Refactor gocryptfs into multiple "internal" packages
 * New command-line options:
- * `-longnames`: Enable long file name support (default true)
- * `-nosyslog`: Print messages to stdout and stderr instead of syslog (default false)
- * `-wpanic`: Make warning messages fatal (used for testing)
- * `-d`: Alias for `-debug`
- * `-q`: Alias for `-quiet`
+  * `-longnames`: Enable long file name support (default true)
+  * `-nosyslog`: Print messages to stdout and stderr instead of syslog (default false)
+  * `-wpanic`: Make warning messages fatal (used for testing)
+  * `-d`: Alias for `-debug`
+  * `-q`: Alias for `-quiet`
 
 v0.8, 2016-01-23
 * Redirect output to syslog when running in the background
 * New command-line option:
- * `-memprofile`: Write a memory allocation debugging profile the specified
-   file
+  * `-memprofile`: Write a memory allocation debugging profile the specified
+    file
 
 v0.7.2, 2016-01-19
 * **Fix performance issue in small file creation**
- * This brings performance on-par with EncFS paranoia mode, with streaming writes
-   significantly faster
- * The actual [fix](https://github.com/hanwen/go-fuse/commit/c4b6b7949716d13eec856baffc7b7941ae21778c)
-   is in the go-fuse library. There are no code changes in gocryptfs.
+  * This brings performance on-par with EncFS paranoia mode, with streaming writes
+    significantly faster
+  * The actual [fix](https://github.com/hanwen/go-fuse/commit/c4b6b7949716d13eec856baffc7b7941ae21778c)
+    is in the go-fuse library. There are no code changes in gocryptfs.
 
 v0.7.1, 2016-01-09
 * Make the `build.bash` script compatible with Go 1.3
@@ -298,23 +298,23 @@ v0.7.1, 2016-01-09
 
 v0.7, 2015-12-20
 * **Extend GCM IV size to 128 bit from Go's default of 96 bit**
- * This pushes back the birthday bound to make IV collisions virtually
-   impossible
- * This is a forwards-compatible change. gocryptfs v0.7 can mount filesystems
-   created by earlier versions but not the other way round.
+  * This pushes back the birthday bound to make IV collisions virtually
+    impossible
+  * This is a forwards-compatible change. gocryptfs v0.7 can mount filesystems
+    created by earlier versions but not the other way round.
 * New command-line option:
- * `-gcmiv128`: Use 128-bit GCM IVs (default true)
+  * `-gcmiv128`: Use 128-bit GCM IVs (default true)
 
 v0.6, 2015-12-08
 * **Wide-block filename encryption using EME + DirIV**
- * EME (ECB-Mix-ECB) provides even better security than CBC as it fixes
-   the prefix leak. The used Go EME implementation is
-   https://github.com/rfjakob/eme which is, as far as I know, the first
-   implementation of EME in Go.
- * This is a forwards-compatible change. gocryptfs v0.6 can mount filesystems
-   created by earlier versions but not the other way round.
+  * EME (ECB-Mix-ECB) provides even better security than CBC as it fixes
+    the prefix leak. The used Go EME implementation is
+    https://github.com/rfjakob/eme which is, as far as I know, the first
+    implementation of EME in Go.
+  * This is a forwards-compatible change. gocryptfs v0.6 can mount filesystems
+    created by earlier versions but not the other way round.
 * New command-line option:
- * `-emenames`: Enable EME filename encryption (default true)
+  * `-emenames`: Enable EME filename encryption (default true)
 
 v0.5.1, 2015-12-06
 * Fix a rename regression caused by DirIV and add test case
@@ -322,34 +322,34 @@ v0.5.1, 2015-12-06
 
 v0.5, 2015-12-04
 * **Stronger filename encryption: DirIV**
- * Each directory gets a random 128 bit file name IV on creation,
-   stored in `gocryptfs.diriv`
- * This makes it impossible to identify identically-named files across
-   directories
- * A single-entry IV cache brings the performance cost of DirIV close to
-   zero for common operations (see performance.txt)
- * This is a forwards-compatible change. gocryptfs v0.5 can mount filesystems
-   created by earlier versions but not the other way round.
+  * Each directory gets a random 128 bit file name IV on creation,
+    stored in `gocryptfs.diriv`
+  * This makes it impossible to identify identically-named files across
+    directories
+  * A single-entry IV cache brings the performance cost of DirIV close to
+    zero for common operations (see performance.txt)
+  * This is a forwards-compatible change. gocryptfs v0.5 can mount filesystems
+    created by earlier versions but not the other way round.
 * New command-line option:
- * `-diriv`: Use the new per-directory IV file name encryption (default true)
- * `-scryptn`: allows to set the scrypt cost parameter N. This option
-   can be used for faster mounting at the cost of lower brute-force
-   resistance. It was mainly added to speed up the automated tests.
+  * `-diriv`: Use the new per-directory IV file name encryption (default true)
+  * `-scryptn`: allows to set the scrypt cost parameter N. This option
+    can be used for faster mounting at the cost of lower brute-force
+    resistance. It was mainly added to speed up the automated tests.
 
 v0.4, 2015-11-15
 * New command-line options:
- * `-plaintextnames`: disables filename encryption, added on user request
- * `-extpass`: calls an external program for prompting for the password
- * `-config`: allows to specify a custom gocryptfs.conf path
+  * `-plaintextnames`: disables filename encryption, added on user request
+  * `-extpass`: calls an external program for prompting for the password
+  * `-config`: allows to specify a custom gocryptfs.conf path
 * Add `FeatureFlags` gocryptfs.conf paramter
- * This is a config format change, hence the on-disk format is incremented
- * Used for ext4-style filesystem feature flags. This should help avoid future
-   format changes. The first user is `-plaintextnames`.
+  * This is a config format change, hence the on-disk format is incremented
+  * Used for ext4-style filesystem feature flags. This should help avoid future
+    format changes. The first user is `-plaintextnames`.
 * On-disk format 2
 
 v0.3, 2015-11-01
 * **Add a random 128 bit file header to authenticate file->block ownership**
- * This is an on-disk-format change
+  * This is an on-disk-format change
 * On-disk format 1
 
 v0.2, 2015-10-11
