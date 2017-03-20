@@ -138,7 +138,7 @@ RM:    4.42
 Changelog
 ---------
 
-v1.3-beta1
+v1.3 (in progress)
 * **Use HKDF to derive separate keys for GCM and EME**
   * New feature flag: `HKDF` (enabled by default)
   * This is a forwards-compatible change. gocryptfs v1.3 can mount
@@ -150,6 +150,10 @@ v1.3-beta1
   * This can greatly improve performance on storage
     that is very slow for concurrent out-of-order reads. Example:
     Amazon Cloud Drive ([#92](https://github.com/rfjakob/gocryptfs/issues/92))
+* Reject file-header-only files
+  ([#90 2.2](https://github.com/rfjakob/gocryptfs/issues/90),
+  [commit](https://github.com/rfjakob/gocryptfs/commit/14038a1644f17f50b113a05d09a2a0a3b3e973b2))
+* Increase max password size to 2000 bytes ([#93](https://github.com/rfjakob/gocryptfs/issues/93))
 
 v1.2.1, 2017-02-26
 * Add an integrated speed test, `gocryptfs -speed`

@@ -17,7 +17,7 @@ import (
 
 const (
 	exitCode       = 9
-	maxPasswordLen = 1000
+	maxPasswordLen = 2000
 )
 
 // Once tries to get a password from the user, either from the terminal, extpass
