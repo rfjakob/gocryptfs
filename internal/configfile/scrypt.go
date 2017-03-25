@@ -13,17 +13,34 @@ import (
 
 const (
 	// ScryptDefaultLogN is the default scrypt logN configuration parameter.
-	// 1 << 16 uses 64MB of memory,
-	// takes 4 seconds on my Atom Z3735F netbook
+	// logN=16 (N=2^16) uses 64MB of memory and takes 4 seconds on my Atom Z3735F
+	// netbook.
 	ScryptDefaultLogN = 16
+	// From RFC7914, section 2:
+	// At the current time, r=8 and p=1 appears to yield good
+	// results, but as memory latency and CPU parallelism increase, it is
+	// likely that the optimum values for both r and p will increase.
+	// We reject all lower values that we might get through modified config files.
+	scryptMinR = 8
+	scryptMinP = 1
+	// logN=10 takes 6ms on a Pentium G630. This should be fast enough for all
+	// purposes. We reject lower values.
+	scryptMinLogN = 10
+	// We always generate 32-byte salts. Anything smaller than that is rejected.
+	scryptMinSaltLen = 32
 )
 
 // ScryptKDF is an instance of the scrypt key deriviation function.
 type ScryptKDF struct {
-	Salt   []byte
-	N      int
-	R      int
-	P      int
+	// Salt is the random salt that is passed to scrypt
+	Salt []byte
+	// N: scrypt CPU/Memory cost parameter
+	N int
+	// R: scrypt block size parameter
+	R int
+	// P: scrypt parallization paramter
+	P int
+	// KeyLen is the output data length
 	KeyLen int
 }
 
@@ -34,10 +51,6 @@ func NewScryptKDF(logN int) ScryptKDF {
 	if logN <= 0 {
 		s.N = 1 << ScryptDefaultLogN
 	} else {
-		if logN < 10 {
-			tlog.Fatal.Println("Error: scryptn below 10 is too low to make sense. Aborting.")
-			os.Exit(1)
-		}
 		s.N = 1 << uint32(logN)
 	}
 	s.R = 8 // Always 8
@@ -48,6 +61,8 @@ func NewScryptKDF(logN int) ScryptKDF {
 
 // DeriveKey returns a new key from a supplied password.
 func (s *ScryptKDF) DeriveKey(pw string) []byte {
+	s.validateParams()
+
 	k, err := scrypt.Key([]byte(pw), s.Salt, s.N, s.R, s.P, s.KeyLen)
 	if err != nil {
 		log.Panicf("DeriveKey failed: %v", err)
@@ -59,4 +74,32 @@ func (s *ScryptKDF) DeriveKey(pw string) []byte {
 // This function gives you LogN = Log2(N).
 func (s *ScryptKDF) LogN() int {
 	return int(math.Log2(float64(s.N)) + 0.5)
+}
+
+// validateParams checks that all parameters are at or above hardcoded limits.
+// If not, it exists with an error message.
+// This makes sure we do not get weak parameters passed through a
+// rougue gocryptfs.conf.
+func (s *ScryptKDF) validateParams() {
+	minN := 1 << scryptMinLogN
+	if s.N < minN {
+		tlog.Fatal.Println("Fatal: scryptn below 10 is too low to make sense")
+		os.Exit(1)
+	}
+	if s.R < scryptMinR {
+		tlog.Fatal.Printf("Fatal: scrypt parameter R below minimum: value=%d, min=%d", s.R, scryptMinR)
+		os.Exit(1)
+	}
+	if s.P < scryptMinP {
+		tlog.Fatal.Printf("Fatal: scrypt parameter P below minimum: value=%d, min=%d", s.P, scryptMinP)
+		os.Exit(1)
+	}
+	if len(s.Salt) < scryptMinSaltLen {
+		tlog.Fatal.Printf("Fatal: scrypt salt length below minimum: value=%d, min=%d", len(s.Salt), scryptMinSaltLen)
+		os.Exit(1)
+	}
+	if s.KeyLen < cryptocore.KeyLen {
+		tlog.Fatal.Printf("Fatal: scrypt parameter KeyLen below minimum: value=%d, min=%d", len(s.Salt), cryptocore.KeyLen)
+		os.Exit(1)
+	}
 }
