@@ -181,6 +181,14 @@ Options:
 **-ro**
 :	Mount the filesystem read-only
 
+**-scryptn int**
+:	scrypt cost parameter expressed as scryptn=log2(N). Possible values are
+	10 to 28, representing N=2^10 to N=2^28.
+	
+	Setting this to a lower
+	value speeds up mounting and reduces its memory needs, but makes
+	the password susceptible to brute-force attacks. The default is 16.
+
 **-serialize_reads**
 :	The kernel usually submits multiple concurrent reads to service
 	userspace requests and kernel readahead. gocryptfs serves them
@@ -198,11 +206,6 @@ Options:
 	These factors will limit throughput to below 70MB/s.
 	
 	For more details visit https://github.com/rfjakob/gocryptfs/issues/92 .
-
-**-scryptn int**
-:	scrypt cost parameter logN. Possible values: 10-28. Setting this to a lower
-        value speeds up	mounting and reduces its memory needs, but makes
-	the password susceptible to brute-force attacks	(default 16).
 
 **-speed**
 :	Run crypto speed test. Benchmark Go's built-in GCM against OpenSSL
