@@ -200,7 +200,7 @@ Options:
 	For more details visit https://github.com/rfjakob/gocryptfs/issues/92 .
 
 **-scryptn int**
-:	scrypt cost parameter logN. Possible values: 10-62. Setting this to a lower
+:	scrypt cost parameter logN. Possible values: 10-28. Setting this to a lower
         value speeds up	mounting and reduces its memory needs, but makes
 	the password susceptible to brute-force attacks	(default 16).
 

@@ -124,7 +124,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.StringVar(&args.fsname, "fsname", "", "Override the filesystem name")
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")
-	flagSet.IntVar(&args.scryptn, "scryptn", configfile.ScryptDefaultLogN, "scrypt cost parameter logN. Possible values: 10-62. "+
+	flagSet.IntVar(&args.scryptn, "scryptn", configfile.ScryptDefaultLogN, "scrypt cost parameter logN. Possible values: 10-28. "+
 		"A lower value speeds up mounting and reduces its memory needs, but makes the password susceptible to brute-force attacks")
 	// Ignored otions
 	var dummyBool bool
