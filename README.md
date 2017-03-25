@@ -4,7 +4,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/rfjakob/gocryptfs)](https://goreportcard.com/report/github.com/rfjakob/gocryptfs)
 
 An encrypted overlay filesystem written in Go.
-Official website: https://nuetzlich.net/gocryptfs ([github mirror](https://github.com/rfjakob/gocryptfs-website/tree/master/docs))
+Official website: https://nuetzlich.net/gocryptfs  (Markdown [source](https://github.com/rfjakob/gocryptfs-website/tree/master/docs))
 
 gocryptfs is built on top the excellent
 [go-fuse](https://github.com/hanwen/go-fuse) FUSE library and its
