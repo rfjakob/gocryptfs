@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -314,6 +315,13 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 	if args.reverse {
 		mOpts.Name += "-reverse"
 	}
+
+	// Add a volume name if running osxfuse. Otherwise the Finder will show it as
+	// something like "osxfuse Volume 0 (gocryptfs)".
+	if runtime.GOOS == "darwin" {
+		mOpts.Options = append(mOpts.Options, "volname="+path.Base(args.mountpoint))
+	}
+
 	// The kernel enforces read-only operation, we just have to pass "ro".
 	// Reverse mounts are always read-only.
 	if args.ro || args.reverse {
