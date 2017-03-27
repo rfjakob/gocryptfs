@@ -97,5 +97,25 @@ func (rfs *ReverseFS) newNameFile(relPath string) (nodefs.File, fuse.Status) {
 	}
 	content := []byte(rfs.nameTransform.EncryptName(e, dirIV))
 	parentFile := filepath.Join(rfs.args.Cipherdir, pDir)
-	return rfs.newVirtualFile(content, parentFile)
+
+
+	//search the owner of the underlying plain file
+        absPath, err := rfs.abs(filepath.Join(pDir, e), nil)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	var fi os.FileInfo
+	if relPath == "" {
+		// Look through symlinks for the root dir
+		fi, err = os.Stat(absPath)
+	} else {
+		fi, err = os.Lstat(absPath)
+	}
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	st := fi.Sys().(*syscall.Stat_t)
+
+
+	return rfs.newVirtualFile(content, parentFile, st.Uid, st.Gid)
 }

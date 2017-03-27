@@ -312,7 +312,7 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 	virtualFiles := make([]fuse.DirEntry, len(entries)+1)
 	// Virtual gocryptfs.diriv file
 	virtualFiles[0] = fuse.DirEntry{
-		Mode: syscall.S_IFREG | 0400,
+		Mode: syscall.S_IFREG | 0444,
 		Name: nametransform.DirIVFilename,
 	}
 	// Actually used entries
@@ -330,7 +330,7 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 			if len(cName) > syscall.NAME_MAX {
 				cName = rfs.nameTransform.HashLongName(cName)
 				dotNameFile := fuse.DirEntry{
-					Mode: syscall.S_IFREG | 0600,
+					Mode: syscall.S_IFREG | 0666,
 					Name: cName + nametransform.LongNameSuffix,
 				}
 				virtualFiles[nVirtual] = dotNameFile

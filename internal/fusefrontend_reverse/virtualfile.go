@@ -14,7 +14,8 @@ func (rfs *ReverseFS) newDirIVFile(cRelPath string) (nodefs.File, fuse.Status) {
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	return rfs.newVirtualFile(derivePathIV(cDir, ivPurposeDirIV), absDir)
+	//the gocryptfs.diriv files are assigned the owner of the gocrypytfs process
+	return rfs.newVirtualFile(derivePathIV(cDir, ivPurposeDirIV), absDir, uint32 (syscall.Getuid()), uint32 (syscall.Getgid()))
 }
 
 type virtualFile struct {
@@ -26,14 +27,20 @@ type virtualFile struct {
 	parentFile string
 	// inode number
 	ino uint64
+	// Owner UID
+	Uid uint32
+	// Owner GID
+	Gid uint32
 }
 
-func (rfs *ReverseFS) newVirtualFile(content []byte, parentFile string) (nodefs.File, fuse.Status) {
+func (rfs *ReverseFS) newVirtualFile(content []byte, parentFile string, ownerUid uint32, ownerGid uint32) (nodefs.File, fuse.Status) {
 	return &virtualFile{
 		File:       nodefs.NewDefaultFile(),
 		content:    content,
 		parentFile: parentFile,
 		ino:        rfs.inoGen.next(),
+		Uid:	    ownerUid,
+		Gid:	    ownerGid,
 	}, fuse.OK
 }
 
@@ -59,8 +66,10 @@ func (f *virtualFile) GetAttr(a *fuse.Attr) fuse.Status {
 	}
 	st.Ino = f.ino
 	st.Size = int64(len(f.content))
-	st.Mode = syscall.S_IFREG | 0400
+	st.Mode = syscall.S_IFREG | 0444 //virtualFiles are always readable, check func Access in rfs.go
 	st.Nlink = 1
 	a.FromStat(&st)
+	a.Owner.Uid = f.Uid
+	a.Owner.Gid = f.Gid
 	return fuse.OK
 }
