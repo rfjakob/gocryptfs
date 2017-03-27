@@ -59,7 +59,7 @@ func (f *virtualFile) GetAttr(a *fuse.Attr) fuse.Status {
 	}
 	st.Ino = f.ino
 	st.Size = int64(len(f.content))
-	st.Mode = syscall.S_IFREG | 0400
+	st.Mode = virtualFileMode
 	st.Nlink = 1
 	a.FromStat(&st)
 	return fuse.OK

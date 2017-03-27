@@ -96,6 +96,6 @@ func (rfs *ReverseFS) newNameFile(relPath string) (nodefs.File, fuse.Status) {
 		return nil, fuse.ToStatus(err)
 	}
 	content := []byte(rfs.nameTransform.EncryptName(e, dirIV))
-	parentFile := filepath.Join(rfs.args.Cipherdir, pDir)
+	parentFile := filepath.Join(rfs.args.Cipherdir, pDir, e)
 	return rfs.newVirtualFile(content, parentFile)
 }
