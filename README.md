@@ -68,7 +68,9 @@ Compile
 	$ cd $(go env GOPATH)/src/github.com/rfjakob/gocryptfs
 	$ ./build.bash
 
-Or, if you don't have OpenSSL installed:
+build.bash needs the OpenSSL headers installed (Debian: `apt install libssl-dev`,
+Fedora: `dnf install openssl-devel`). Alternatively, you can compile
+without OpenSSL using
 
 	$ ./build-without-openssl.bash
 
