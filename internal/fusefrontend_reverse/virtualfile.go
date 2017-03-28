@@ -3,7 +3,6 @@ package fusefrontend_reverse
 import (
 	"fmt"
 	"syscall"
-	"os"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
@@ -15,14 +14,7 @@ func (rfs *ReverseFS) newDirIVFile(cRelPath string) (nodefs.File, fuse.Status) {
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-
-	fi, err := os.Stat(absDir)
-	if err != nil {
-		return nil, fuse.ToStatus(err)
-	}
-	st := fi.Sys().(*syscall.Stat_t)
-
-	return rfs.newVirtualFile(derivePathIV(cDir, ivPurposeDirIV), absDir, st.Uid, st.Gid)
+	return rfs.newVirtualFile(derivePathIV(cDir, ivPurposeDirIV), absDir)
 }
 
 type virtualFile struct {
@@ -34,20 +26,14 @@ type virtualFile struct {
 	parentFile string
 	// inode number
 	ino uint64
-	// Owner UID
-	Uid uint32
-	// Owner GID
-	Gid uint32
 }
 
-func (rfs *ReverseFS) newVirtualFile(content []byte, parentFile string, ownerUid uint32, ownerGid uint32) (nodefs.File, fuse.Status) {
+func (rfs *ReverseFS) newVirtualFile(content []byte, parentFile string) (nodefs.File, fuse.Status) {
 	return &virtualFile{
 		File:       nodefs.NewDefaultFile(),
 		content:    content,
 		parentFile: parentFile,
 		ino:        rfs.inoGen.next(),
-		Uid:	    ownerUid,
-		Gid:	    ownerGid,
 	}, fuse.OK
 }
 
@@ -76,7 +62,5 @@ func (f *virtualFile) GetAttr(a *fuse.Attr) fuse.Status {
 	st.Mode = virtualFileMode
 	st.Nlink = 1
 	a.FromStat(&st)
-	a.Owner.Uid = f.Uid
-	a.Owner.Gid = f.Gid
 	return fuse.OK
 }
