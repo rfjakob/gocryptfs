@@ -21,8 +21,9 @@ import (
 )
 
 const (
-	// DirIVMode is the mode to use for Dir IV files.
-	DirIVMode = syscall.S_IFREG | 0400
+	// virtualFileMode is the mode to use for virtual files (gocryptfs.diriv and gocryptfs.longname.*.name)
+	// they are always readable, as stated in func Access
+	virtualFileMode = syscall.S_IFREG | 0444
 )
 
 // ReverseFS implements the pathfs.FileSystem interface and provides an
@@ -108,7 +109,7 @@ func (rfs *ReverseFS) dirIVAttr(relPath string, context *fuse.Context) (*fuse.At
 		return nil, fuse.EPERM
 	}
 	// All good. Let's fake the file. We use the timestamps from the parent dir.
-	a.Mode = DirIVMode
+	a.Mode = virtualFileMode
 	a.Size = nametransform.DirIVLen
 	a.Nlink = 1
 	a.Ino = rfs.inoGen.next()
@@ -312,7 +313,7 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 	virtualFiles := make([]fuse.DirEntry, len(entries)+1)
 	// Virtual gocryptfs.diriv file
 	virtualFiles[0] = fuse.DirEntry{
-		Mode: syscall.S_IFREG | 0444,
+		Mode: virtualFileMode,
 		Name: nametransform.DirIVFilename,
 	}
 	// Actually used entries
@@ -330,7 +331,7 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 			if len(cName) > syscall.NAME_MAX {
 				cName = rfs.nameTransform.HashLongName(cName)
 				dotNameFile := fuse.DirEntry{
-					Mode: syscall.S_IFREG | 0666,
+					Mode: virtualFileMode,
 					Name: cName + nametransform.LongNameSuffix,
 				}
 				virtualFiles[nVirtual] = dotNameFile

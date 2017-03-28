@@ -3,6 +3,7 @@ package fusefrontend_reverse
 import (
 	"fmt"
 	"syscall"
+	"os"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
@@ -14,8 +15,14 @@ func (rfs *ReverseFS) newDirIVFile(cRelPath string) (nodefs.File, fuse.Status) {
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	//the gocryptfs.diriv files are assigned the owner of the gocrypytfs process
-	return rfs.newVirtualFile(derivePathIV(cDir, ivPurposeDirIV), absDir, uint32 (syscall.Getuid()), uint32 (syscall.Getgid()))
+
+	fi, err := os.Stat(absDir)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	st := fi.Sys().(*syscall.Stat_t)
+
+	return rfs.newVirtualFile(derivePathIV(cDir, ivPurposeDirIV), absDir, st.Uid, st.Gid)
 }
 
 type virtualFile struct {
@@ -66,7 +73,7 @@ func (f *virtualFile) GetAttr(a *fuse.Attr) fuse.Status {
 	}
 	st.Ino = f.ino
 	st.Size = int64(len(f.content))
-	st.Mode = syscall.S_IFREG | 0444 //virtualFiles are always readable, check func Access in rfs.go
+	st.Mode = virtualFileMode
 	st.Nlink = 1
 	a.FromStat(&st)
 	a.Owner.Uid = f.Uid
