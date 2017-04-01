@@ -6,7 +6,9 @@ import (
 
 // Args is a container for arguments that are passed from main() to fusefrontend
 type Args struct {
-	Masterkey      []byte
+	Masterkey []byte
+	// Cipherdir is the backing storage directory (absolute path).
+	// For reverse mode, Cipherdir actually contains *plaintext* files.
 	Cipherdir      string
 	CryptoBackend  cryptocore.AEADTypeEnum
 	PlaintextNames bool

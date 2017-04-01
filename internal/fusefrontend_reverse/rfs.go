@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sync"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -18,12 +17,6 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
-)
-
-const (
-	// virtualFileMode is the mode to use for virtual files (gocryptfs.diriv and gocryptfs.longname.*.name)
-	// they are always readable, as stated in func Access
-	virtualFileMode = syscall.S_IFREG | 0444
 )
 
 // ReverseFS implements the pathfs.FileSystem interface and provides an
@@ -39,12 +32,6 @@ type ReverseFS struct {
 	nameTransform *nametransform.NameTransform
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
-	// Inode number generator
-	inoGen *inoGenT
-	// Maps backing files device+inode pairs to user-facing unique inode numbers
-	inoMap map[fusefrontend.DevInoStruct]uint64
-	// Protects map access
-	inoMapLock sync.Mutex
 }
 
 var _ pathfs.FileSystem = &ReverseFS{}
@@ -68,8 +55,6 @@ func NewFS(args fusefrontend.Args) *ReverseFS {
 		args:          args,
 		nameTransform: nameTransform,
 		contentEnc:    contentEnc,
-		inoGen:        newInoGen(),
-		inoMap:        map[fusefrontend.DevInoStruct]uint64{},
 	}
 }
 
@@ -102,7 +87,7 @@ func (rfs *ReverseFS) isNameFile(relPath string) bool {
 	return fileType == nametransform.LongNameFilename
 }
 
-// isTranslatedConfig returns true if the default config file name is in
+// isTranslatedConfig returns true if the default config file name is in use
 // and the ciphertext path is "gocryptfs.conf".
 // "gocryptfs.conf" then maps to ".gocryptfs.reverse.conf" in the plaintext
 // directory.
@@ -116,47 +101,22 @@ func (rfs *ReverseFS) isTranslatedConfig(relPath string) bool {
 	return false
 }
 
-func (rfs *ReverseFS) inoAwareStat(relPlainPath string) (*fuse.Attr, fuse.Status) {
-	absPath, err := rfs.abs(relPlainPath, nil)
-	if err != nil {
-		return nil, fuse.ToStatus(err)
-	}
-	var fi os.FileInfo
-	if relPlainPath == "" {
-		// Look through symlinks for the root dir
-		fi, err = os.Stat(absPath)
-	} else {
-		fi, err = os.Lstat(absPath)
-	}
-	if err != nil {
-		return nil, fuse.ToStatus(err)
-	}
-	st := fi.Sys().(*syscall.Stat_t)
-	// The file has hard links. We have to give it a stable inode number so
-	// tar or rsync can find them.
-	if fi.Mode().IsRegular() && st.Nlink > 1 {
-		di := fusefrontend.DevInoFromStat(st)
-		rfs.inoMapLock.Lock()
-		stableIno := rfs.inoMap[di]
-		if stableIno == 0 {
-			rfs.inoMap[di] = rfs.inoGen.next()
-		}
-		rfs.inoMapLock.Unlock()
-		st.Ino = stableIno
-	} else {
-		st.Ino = rfs.inoGen.next()
-	}
-	a := &fuse.Attr{}
-	a.FromStat(st)
-	return a, fuse.OK
-}
-
 // GetAttr - FUSE call
+// "relPath" is the relative ciphertext path
 func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
+	// Handle "gocryptfs.conf"
 	if rfs.isTranslatedConfig(relPath) {
-		return rfs.inoAwareStat(configfile.ConfReverseName)
+		absConfPath, _ := rfs.abs(configfile.ConfReverseName, nil)
+		var st syscall.Stat_t
+		err := syscall.Lstat(absConfPath, &st)
+		if err != nil {
+			return nil, fuse.ToStatus(err)
+		}
+		var a fuse.Attr
+		a.FromStat(&st)
+		return &a, fuse.OK
 	}
-	// Handle virtual files
+	// Handle virtual files (gocryptfs.diriv, *.name)
 	var f nodefs.File
 	var status fuse.Status
 	virtual := false
@@ -177,15 +137,31 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 		status = f.GetAttr(&a)
 		return &a, status
 	}
-
-	cPath, err := rfs.decryptPath(relPath)
+	// Decrypt path to "plaintext relative path"
+	pRelPath, err := rfs.decryptPath(relPath)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	a, status := rfs.inoAwareStat(cPath)
-	if !status.Ok() {
-		return nil, status
+	absPath, _ := rfs.abs(pRelPath, nil)
+	// Stat the backing file
+	var st syscall.Stat_t
+	if relPath == "" {
+		// Look through symlinks for the root dir
+		err = syscall.Stat(absPath, &st)
+	} else {
+		err = syscall.Lstat(absPath, &st)
 	}
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	// Instead of risking an inode number collision, we return an error.
+	if st.Ino > virtualInoBase {
+		tlog.Warn.Printf("GetAttr %q: backing file inode number %d crosses reserved space, max=%d. Returning EOVERFLOW.",
+			relPath, st.Ino, virtualInoBase)
+		return nil, fuse.ToStatus(syscall.EOVERFLOW)
+	}
+	var a fuse.Attr
+	a.FromStat(&st)
 	// Calculate encrypted file size
 	if a.IsRegular() {
 		a.Size = rfs.contentEnc.PlainSizeToCipherSize(a.Size)
@@ -200,7 +176,7 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 
 		a.Size = uint64(len(linkTarget))
 	}
-	return a, fuse.OK
+	return &a, fuse.OK
 }
 
 // Access - FUSE call

@@ -37,6 +37,11 @@ func derivePathIV(path string, purpose ivPurposeType) []byte {
 	return hash[:nametransform.DirIVLen]
 }
 
+// abs basically returns storage dir + "/" + relPath.
+// It takes an error parameter so it can directly wrap decryptPath like this:
+// a, err := rfs.abs(rfs.decryptPath(relPath))
+// abs never generates an error on its own. In other words, abs(p, nil) never
+// fails.
 func (rfs *ReverseFS) abs(relPath string, err error) (string, error) {
 	if err != nil {
 		return "", err
