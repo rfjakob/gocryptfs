@@ -21,16 +21,15 @@ func (c *rPathCacheContainer) lookup(cPath string) ([]byte, string) {
 	c.Lock()
 	defer c.Unlock()
 	if cPath == c.cPath {
-		//fmt.Printf("HIT   %q\n", cPath)
+		// hit
 		return c.dirIV, c.pPath
 	}
-	//fmt.Printf("MISS  %q\n", cPath)
+	// miss
 	return nil, ""
 }
 
 // store - write entry for "cPath" into the cache
 func (c *rPathCacheContainer) store(cPath string, dirIV []byte, pPath string) {
-	//fmt.Printf("STORE %q\n", cPath)
 	c.Lock()
 	defer c.Unlock()
 	c.cPath = cPath

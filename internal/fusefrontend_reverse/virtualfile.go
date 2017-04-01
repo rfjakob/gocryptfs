@@ -1,11 +1,12 @@
 package fusefrontend_reverse
 
 import (
-	"fmt"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
+
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 func (rfs *ReverseFS) newDirIVFile(cRelPath string) (nodefs.File, fuse.Status) {
@@ -58,7 +59,7 @@ func (f *virtualFile) GetAttr(a *fuse.Attr) fuse.Status {
 	var st syscall.Stat_t
 	err := syscall.Lstat(f.parentFile, &st)
 	if err != nil {
-		fmt.Printf("Lstat %q: %v\n", f.parentFile, err)
+		tlog.Debug.Printf("GetAttr: Lstat %q: %v\n", f.parentFile, err)
 		return fuse.ToStatus(err)
 	}
 	st.Ino = f.ino

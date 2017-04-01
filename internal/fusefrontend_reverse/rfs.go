@@ -89,23 +89,23 @@ func (rfs *ReverseFS) dirIVAttr(relPath string, context *fuse.Context) (*fuse.At
 	cDir := relDir(relPath)
 	dir, err := rfs.decryptPath(cDir)
 	if err != nil {
-		fmt.Printf("decrypt err %q\n", cDir)
+		tlog.Warn.Printf("dirIVAttr: decrypt err %q\n", cDir)
 		return nil, fuse.ToStatus(err)
 	}
 	// Does the parent dir exist?
 	a, status := rfs.loopbackfs.GetAttr(dir, context)
 	if !status.Ok() {
-		fmt.Printf("missing parent\n")
+		tlog.Warn.Printf("dirIVAttr: missing parent\n")
 		return nil, status
 	}
 	// Is it a dir at all?
 	if !a.IsDir() {
-		fmt.Printf("not isdir\n")
+		tlog.Warn.Printf("dirIVAttr: not isdir\n")
 		return nil, fuse.ENOTDIR
 	}
 	// Does the user have execute permissions?
 	if a.Mode&syscall.S_IXUSR == 0 {
-		fmt.Printf("not exec")
+		tlog.Warn.Printf("dirIVAttr: not exec")
 		return nil, fuse.EPERM
 	}
 	// All good. Let's fake the file. We use the timestamps from the parent dir.
@@ -203,7 +203,7 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 	}
 	if virtual {
 		if !status.Ok() {
-			fmt.Printf("GetAttr %q: newXFile failed: %v\n", relPath, status)
+			tlog.Warn.Printf("GetAttr %q: newXFile failed: %v\n", relPath, status)
 			return nil, status
 		}
 		var a fuse.Attr

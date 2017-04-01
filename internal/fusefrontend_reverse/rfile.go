@@ -3,7 +3,6 @@ package fusefrontend_reverse
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"os"
 
@@ -51,8 +50,10 @@ func (rfs *ReverseFS) newFile(relPath string, flags uint32) (nodefs.File, fuse.S
 }
 
 // GetAttr - FUSE call
+// Triggered by fstat() from userspace
 func (rf *reverseFile) GetAttr(*fuse.Attr) fuse.Status {
-	fmt.Printf("reverseFile.GetAttr fd=%d\n", rf.fd.Fd())
+	tlog.Debug.Printf("reverseFile.GetAttr fd=%d\n", rf.fd.Fd())
+	// The kernel should fall back to stat()
 	return fuse.ENOSYS
 }
 

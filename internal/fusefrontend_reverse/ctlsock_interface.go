@@ -33,6 +33,5 @@ func (rfs *ReverseFS) EncryptPath(plainPath string) (string, error) {
 // DecryptPath implements ctlsock.Backend
 func (rfs *ReverseFS) DecryptPath(cipherPath string) (string, error) {
 	p, err := rfs.decryptPath(cipherPath)
-	//fmt.Printf("rfs DecryptPath: %q -> %q %v\n", cipherPath, p, err)
 	return p, err
 }
