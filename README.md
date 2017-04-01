@@ -24,7 +24,7 @@ for details.
 Current Status
 --------------
 
-gocryptfs has reached version 1.0 on Jul 17, 2016. It has gone through
+gocryptfs has reached version 1.0 on July 17, 2016. It has gone through
 hours and hours of stress (fsstress, extractloop.bash) and correctness
 testing (xfstests). It is now considered ready for general consumption.
 
@@ -32,6 +32,9 @@ The old principle still applies: Important data should have a backup.
 Also, keep a copy of your master key (printed on mount) in a safe place.
 This allows you to access the data even if the gocryptfs.conf config
 file is damaged or you lose the password.
+
+The security of gocryptfs has been audited in March 3, 2017. The audit
+is available [here (defuse.ca)](https://defuse.ca/audits/gocryptfs.htm).
 
 Platforms
 ---------
