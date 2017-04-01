@@ -84,39 +84,6 @@ func relDir(path string) string {
 	return dir
 }
 
-// dirIVAttr handles GetAttr requests for the virtual gocryptfs.diriv files.
-func (rfs *ReverseFS) dirIVAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
-	cDir := relDir(relPath)
-	dir, err := rfs.decryptPath(cDir)
-	if err != nil {
-		tlog.Warn.Printf("dirIVAttr: decrypt err %q\n", cDir)
-		return nil, fuse.ToStatus(err)
-	}
-	// Does the parent dir exist?
-	a, status := rfs.loopbackfs.GetAttr(dir, context)
-	if !status.Ok() {
-		tlog.Warn.Printf("dirIVAttr: missing parent\n")
-		return nil, status
-	}
-	// Is it a dir at all?
-	if !a.IsDir() {
-		tlog.Warn.Printf("dirIVAttr: not isdir\n")
-		return nil, fuse.ENOTDIR
-	}
-	// Does the user have execute permissions?
-	if a.Mode&syscall.S_IXUSR == 0 {
-		tlog.Warn.Printf("dirIVAttr: not exec")
-		return nil, fuse.EPERM
-	}
-	// All good. Let's fake the file. We use the timestamps from the parent dir.
-	a.Mode = virtualFileMode
-	a.Size = nametransform.DirIVLen
-	a.Nlink = 1
-	a.Ino = rfs.inoGen.next()
-
-	return a, fuse.OK
-}
-
 // isDirIV determines if the path points to a gocryptfs.diriv file
 func (rfs *ReverseFS) isDirIV(relPath string) bool {
 	if rfs.args.PlaintextNames {
