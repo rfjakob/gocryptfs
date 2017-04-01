@@ -44,6 +44,7 @@ function etime {
 	time "$@" > /dev/null
 }
 
-echo -n "LS: "
+echo -n "LS:  "
 etime ls -lR $MNT
-
+echo -n "CAT: "
+etime find $MNT -type f -exec cat {} +
