@@ -28,6 +28,10 @@ type virtualFile struct {
 	ino uint64
 }
 
+// newVirtualFile creates a new in-memory file that does not have a representation
+// on disk. "content" is the file content. Timestamps and file owner are copied
+// from "parentFile" (absolute plaintext path). For a "gocryptfs.diriv" file, you
+// would use the parent directory as "parentFile".
 func (rfs *ReverseFS) newVirtualFile(content []byte, parentFile string) (nodefs.File, fuse.Status) {
 	return &virtualFile{
 		File:       nodefs.NewDefaultFile(),

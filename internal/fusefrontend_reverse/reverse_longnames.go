@@ -84,18 +84,20 @@ func (rfs *ReverseFS) findLongnameParent(dir string, dirIV []byte, longname stri
 func (rfs *ReverseFS) newNameFile(relPath string) (nodefs.File, fuse.Status) {
 	dotName := filepath.Base(relPath)                                    // gocryptfs.longname.XYZ.name
 	longname := dotName[:len(dotName)-len(nametransform.LongNameSuffix)] // gocryptfs.longname.XYZ
-
+	// cipher directory
 	cDir := saneDir(relPath)
+	// plain directory
 	pDir, err := rfs.decryptPath(cDir)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
 	dirIV := derivePathIV(cDir, ivPurposeDirIV)
-	e, err := rfs.findLongnameParent(pDir, dirIV, longname)
+	// plain name
+	pName, err := rfs.findLongnameParent(pDir, dirIV, longname)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	content := []byte(rfs.nameTransform.EncryptName(e, dirIV))
-	parentFile := filepath.Join(rfs.args.Cipherdir, pDir, e)
+	content := []byte(rfs.nameTransform.EncryptName(pName, dirIV))
+	parentFile := filepath.Join(rfs.args.Cipherdir, pDir, pName)
 	return rfs.newVirtualFile(content, parentFile)
 }
