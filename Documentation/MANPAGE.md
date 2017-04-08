@@ -68,8 +68,9 @@ files are encountered.
 It can be useful to recover files from disks with bad sectors or other corrupted
 media. It shall not be used if the origin of corruption is unknown, specially
 if you want to run executable files.
-It requires gocryptfs to be compiled with openssl support and implies -openssl true.
-It is not compatible with -aessiv.
+It has no effect in reverse mode. It requires gocryptfs to be compiled with openssl
+support and implies -openssl true. Because of this, it is not compatible with -aessiv,
+that uses built-in Go crpyto.
 
 #### -fsname string
 Override the filesystem name (first column in df -T). Can also be

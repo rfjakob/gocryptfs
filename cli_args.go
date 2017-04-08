@@ -167,11 +167,16 @@ func parseCliOpts() (args argContainer) {
 			tlog.Fatal.Printf("The -force_decode and -aessiv flags are incompatible because they use different crypto libs (openssl vs native Go)")
 			os.Exit(ErrExitUsage)
 		}
-		v, e := strconv.ParseBool(opensslAuto)
-		if e == nil && v == false {
-			tlog.Warn.Printf("-openssl set to true, as it is required by -force_decode flag")
+		if args.reverse == true {
+			tlog.Warn.Printf("Reverse mode chosen, the -force_decode option is ignored")
+			args.force_decode = false
+		} else {
+			v, e := strconv.ParseBool(opensslAuto)
+			if e == nil && v == false {
+				tlog.Warn.Printf("-openssl set to true, as it is required by -force_decode flag")
+			}
+			args.openssl = true
 		}
-		args.openssl = true
 	}
 	// '-passfile FILE' is a shortcut for -extpass='/bin/cat -- FILE'
 	if args.passfile != "" {
