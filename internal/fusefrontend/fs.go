@@ -40,8 +40,8 @@ var _ pathfs.FileSystem = &FS{} // Verify that interface is implemented.
 
 // NewFS returns a new encrypted FUSE overlay filesystem.
 func NewFS(args Args) *FS {
-	cryptoCore := cryptocore.New(args.Masterkey, args.CryptoBackend, contentenc.DefaultIVBits, args.HKDF)
-	contentEnc := contentenc.New(cryptoCore, contentenc.DefaultBS)
+	cryptoCore := cryptocore.New(args.Masterkey, args.CryptoBackend, contentenc.DefaultIVBits, args.HKDF, args.ForceDecode)
+	contentEnc := contentenc.New(cryptoCore, contentenc.DefaultBS, args.ForceDecode)
 	nameTransform := nametransform.New(cryptoCore.EMECipher, args.LongNames, args.Raw64)
 
 	if args.SerializeReads {

@@ -14,12 +14,15 @@ const (
 	BuiltWithoutOpenssl = true
 )
 
+//authentication error - needed to compile as same varaible is exported when openssl is enable via stupidgcm.go
+var AuthError error = fmt.Errorf("stupidgcm: message authentication failed with openssl disabled!")
+
 func errExit() {
 	fmt.Fprintln(os.Stderr, "gocryptfs has been compiled without openssl support but you are still trying to use openssl")
 	os.Exit(2)
 }
 
-func New(_ []byte) stupidGCM {
+func New(_ []byte, _ bool) stupidGCM {
 	errExit()
 	// Never reached
 	return stupidGCM{}
