@@ -45,7 +45,7 @@ func NewFS(args fusefrontend.Args) *ReverseFS {
 	}
 	initLongnameCache()
 	cryptoCore := cryptocore.New(args.Masterkey, args.CryptoBackend, contentenc.DefaultIVBits, args.HKDF)
-	contentEnc := contentenc.New(cryptoCore, contentenc.DefaultBS)
+	contentEnc := contentenc.New(cryptoCore, contentenc.DefaultBS, false) //no force_decode in reverse mode
 	nameTransform := nametransform.New(cryptoCore.EMECipher, args.LongNames, args.Raw64)
 
 	return &ReverseFS{

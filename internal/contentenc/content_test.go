@@ -24,7 +24,7 @@ func TestSplitRange(t *testing.T) {
 
 	key := make([]byte, cryptocore.KeyLen)
 	cc := cryptocore.New(key, cryptocore.BackendOpenSSL, DefaultIVBits, true)
-	f := New(cc, DefaultBS)
+	f := New(cc, DefaultBS, false)
 
 	for _, r := range ranges {
 		parts := f.ExplodePlainRange(r.offset, r.length)
@@ -52,7 +52,7 @@ func TestCiphertextRange(t *testing.T) {
 
 	key := make([]byte, cryptocore.KeyLen)
 	cc := cryptocore.New(key, cryptocore.BackendOpenSSL, DefaultIVBits, true)
-	f := New(cc, DefaultBS)
+	f := New(cc, DefaultBS, false)
 
 	for _, r := range ranges {
 
@@ -75,7 +75,7 @@ func TestCiphertextRange(t *testing.T) {
 func TestBlockNo(t *testing.T) {
 	key := make([]byte, cryptocore.KeyLen)
 	cc := cryptocore.New(key, cryptocore.BackendOpenSSL, DefaultIVBits, true)
-	f := New(cc, DefaultBS)
+	f := New(cc, DefaultBS, false)
 
 	b := f.CipherOffToBlockNo(788)
 	if b != 0 {

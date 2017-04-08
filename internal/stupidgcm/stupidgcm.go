@@ -186,7 +186,9 @@ func (g stupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
 	C.EVP_CIPHER_CTX_free(ctx)
 
 	if res != 1 {
-		return nil, fmt.Errorf("stupidgcm: message authentication failed")
+		// The error code must always be checked by the calling function, because the decrypted buffer
+		// may contain corrupted data that we are returning in case the user forced reads
+		return append(dst, buf...), fmt.Errorf("stupidgcm: message authentication failed")
 	}
 
 	return append(dst, buf...), nil

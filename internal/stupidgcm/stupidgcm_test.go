@@ -94,7 +94,7 @@ func TestCorruption(t *testing.T) {
 	// Corrupt first byte
 	sOut[0]++
 	sOut2, sErr = sGCM.Open(nil, iv, sOut, authData)
-	if sErr == nil || sOut2 != nil {
+	if sErr == nil {
 		t.Fatalf("Should have gotten error")
 	}
 	sOut[0]--
@@ -102,7 +102,7 @@ func TestCorruption(t *testing.T) {
 	// Corrupt last byte
 	sOut[len(sOut)-1]++
 	sOut2, sErr = sGCM.Open(nil, iv, sOut, authData)
-	if sErr == nil || sOut2 != nil {
+	if sErr == nil {
 		t.Fatalf("Should have gotten error")
 	}
 	sOut[len(sOut)-1]--
@@ -110,7 +110,7 @@ func TestCorruption(t *testing.T) {
 	// Append one byte
 	sOut = append(sOut, 0)
 	sOut2, sErr = sGCM.Open(nil, iv, sOut, authData)
-	if sErr == nil || sOut2 != nil {
+	if sErr == nil {
 		t.Fatalf("Should have gotten error")
 	}
 }

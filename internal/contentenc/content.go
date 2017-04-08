@@ -46,10 +46,12 @@ type ContentEnc struct {
 	allZeroBlock []byte
 	// All-zero block of size IVBitLen/8, for fast compares
 	allZeroNonce []byte
+	// Force decode even if integrity check fails (openSSL only)
+	forceDecode bool
 }
 
 // New returns an initialized ContentEnc instance.
-func New(cc *cryptocore.CryptoCore, plainBS uint64) *ContentEnc {
+func New(cc *cryptocore.CryptoCore, plainBS uint64, forceDecode bool) *ContentEnc {
 	cipherBS := plainBS + uint64(cc.IVLen) + cryptocore.AuthTagLen
 
 	return &ContentEnc{
@@ -58,6 +60,7 @@ func New(cc *cryptocore.CryptoCore, plainBS uint64) *ContentEnc {
 		cipherBS:     cipherBS,
 		allZeroBlock: make([]byte, cipherBS),
 		allZeroNonce: make([]byte, cc.IVLen),
+		forceDecode:  forceDecode,
 	}
 }
 
@@ -133,7 +136,9 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileID []b
 	if err != nil {
 		tlog.Warn.Printf("DecryptBlock: %s, len=%d", err.Error(), len(ciphertextOrig))
 		tlog.Debug.Println(hex.Dump(ciphertextOrig))
-		return nil, err
+		if be.forceDecode == false {
+			return nil, err
+		}
 	}
 
 	return plaintext, nil
