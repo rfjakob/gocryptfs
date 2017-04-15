@@ -51,7 +51,7 @@ type CryptoCore struct {
 // Even though the "GCMIV128" feature flag is now mandatory, we must still
 // support 96-bit IVs here because they were used for encrypting the master
 // key in gocryptfs.conf up to gocryptfs v1.2. v1.3 switched to 128 bits.
-func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool) *CryptoCore {
+func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDecode bool) *CryptoCore {
 	if len(key) != KeyLen {
 		log.Panic(fmt.Sprintf("Unsupported key length %d", len(key)))
 	}
@@ -86,7 +86,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool) *CryptoC
 			if IVLen != 16 {
 				log.Panic("stupidgcm only supports 128-bit IVs")
 			}
-			aeadCipher = stupidgcm.New(gcmKey)
+			aeadCipher = stupidgcm.New(gcmKey, forceDecode)
 		case BackendGoGCM:
 			goGcmBlockCipher, err := aes.NewCipher(gcmKey)
 			if err != nil {

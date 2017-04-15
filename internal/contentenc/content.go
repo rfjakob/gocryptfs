@@ -9,6 +9,7 @@ import (
 	"log"
 
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
+	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -85,7 +86,9 @@ func (be *ContentEnc) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, file
 		var pBlock []byte
 		pBlock, err = be.DecryptBlock(cBlock, firstBlockNo, fileID)
 		if err != nil {
-			break
+			if be.forceDecode == false || (be.forceDecode == true && stupidgcm.AuthError != err) {
+				break
+			}
 		}
 		pBuf.Write(pBlock)
 		firstBlockNo++
@@ -136,7 +139,9 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileID []b
 	if err != nil {
 		tlog.Warn.Printf("DecryptBlock: %s, len=%d", err.Error(), len(ciphertextOrig))
 		tlog.Debug.Println(hex.Dump(ciphertextOrig))
-		if be.forceDecode == false {
+		if be.forceDecode == true {
+			return plaintext, err
+		} else {
 			return nil, err
 		}
 	}

@@ -27,7 +27,7 @@ func randBytes(n int) []byte {
 // GCM implemenatation and verifies that the results are identical.
 func TestEncryptDecrypt(t *testing.T) {
 	key := randBytes(32)
-	sGCM := New(key)
+	sGCM := New(key, false)
 	authData := randBytes(24)
 	iv := randBytes(16)
 	dst := make([]byte, 71) // 71 = random length
@@ -77,7 +77,7 @@ func TestEncryptDecrypt(t *testing.T) {
 // error
 func TestCorruption(t *testing.T) {
 	key := randBytes(32)
-	sGCM := New(key)
+	sGCM := New(key, false)
 	authData := randBytes(24)
 	iv := randBytes(16)
 
@@ -94,7 +94,7 @@ func TestCorruption(t *testing.T) {
 	// Corrupt first byte
 	sOut[0]++
 	sOut2, sErr = sGCM.Open(nil, iv, sOut, authData)
-	if sErr == nil {
+	if sErr == nil || sOut2 != nil {
 		t.Fatalf("Should have gotten error")
 	}
 	sOut[0]--
@@ -102,7 +102,7 @@ func TestCorruption(t *testing.T) {
 	// Corrupt last byte
 	sOut[len(sOut)-1]++
 	sOut2, sErr = sGCM.Open(nil, iv, sOut, authData)
-	if sErr == nil {
+	if sErr == nil || sOut2 != nil {
 		t.Fatalf("Should have gotten error")
 	}
 	sOut[len(sOut)-1]--
@@ -110,7 +110,7 @@ func TestCorruption(t *testing.T) {
 	// Append one byte
 	sOut = append(sOut, 0)
 	sOut2, sErr = sGCM.Open(nil, iv, sOut, authData)
-	if sErr == nil {
+	if sErr == nil || sOut2 != nil {
 		t.Fatalf("Should have gotten error")
 	}
 }

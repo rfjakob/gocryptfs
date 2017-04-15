@@ -19,7 +19,7 @@ type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, fg, version,
 	plaintextnames, quiet, nosyslog, wpanic,
 	longnames, allow_other, ro, reverse, aessiv, nonempty, raw64,
-	noprealloc, speed, hkdf, serialize_reads, force_decode bool
+	noprealloc, speed, hkdf, serialize_reads, forcedecode bool
 	masterkey, mountpoint, cipherdir, cpuprofile, extpass,
 	memprofile, ko, passfile, ctlsock, fsname string
 	// Configuration file name override
@@ -114,7 +114,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.BoolVar(&args.speed, "speed", false, "Run crypto speed test")
 	flagSet.BoolVar(&args.hkdf, "hkdf", true, "Use HKDF as an additional key derivation step")
 	flagSet.BoolVar(&args.serialize_reads, "serialize_reads", false, "Try to serialize read operations")
-	flagSet.BoolVar(&args.force_decode, "force_decode", false, "Force decode of files even if integrity check fails."+
+	flagSet.BoolVar(&args.forcedecode, "forcedecode", false, "Force decode of files even if integrity check fails."+
 		" Requires gocryptfs to be compiled with openssl support and implies -openssl true")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
@@ -157,26 +157,25 @@ func parseCliOpts() (args argContainer) {
 			os.Exit(ErrExitUsage)
 		}
 	}
-	// "-force_decode" only works with openssl. Check compilation and command line parameters
-	if args.force_decode == true {
+	// "-forcedecode" only works with openssl. Check compilation and command line parameters
+	if args.forcedecode == true {
 		if stupidgcm.BuiltWithoutOpenssl == true {
-			tlog.Fatal.Printf("The -force_decode flag requires openssl support, but gocryptfs was compiled without it!")
+			tlog.Fatal.Printf("The -forcedecode flag requires openssl support, but gocryptfs was compiled without it!")
 			os.Exit(ErrExitUsage)
 		}
 		if args.aessiv == true {
-			tlog.Fatal.Printf("The -force_decode and -aessiv flags are incompatible because they use different crypto libs (openssl vs native Go)")
+			tlog.Fatal.Printf("The -forcedecode and -aessiv flags are incompatible because they use different crypto libs (openssl vs native Go)")
 			os.Exit(ErrExitUsage)
 		}
 		if args.reverse == true {
-			tlog.Warn.Printf("Reverse mode chosen, the -force_decode option is ignored")
-			args.force_decode = false
-		} else {
-			v, e := strconv.ParseBool(opensslAuto)
-			if e == nil && v == false {
-				tlog.Warn.Printf("-openssl set to true, as it is required by -force_decode flag")
-			}
-			args.openssl = true
+			tlog.Fatal.Printf("The reverse mode and the -forcedecode option are not compatible")
+			os.Exit(ErrExitUsage)
 		}
+		v, e := strconv.ParseBool(opensslAuto)
+		if e == nil && v == false {
+			tlog.Warn.Printf("-openssl set to true, as it is required by -forcedecode flag")
+		}
+		args.openssl = true
 	}
 	// '-passfile FILE' is a shortcut for -extpass='/bin/cat -- FILE'
 	if args.passfile != "" {

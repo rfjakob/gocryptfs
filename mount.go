@@ -192,7 +192,7 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 		NoPrealloc:     args.noprealloc,
 		HKDF:           args.hkdf,
 		SerializeReads: args.serialize_reads,
-		ForceDecode:    args.force_decode,
+		ForceDecode:    args.forcedecode,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {

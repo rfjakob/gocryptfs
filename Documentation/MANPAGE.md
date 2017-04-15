@@ -61,14 +61,15 @@ to mount the gocryptfs filesytem without user interaction.
 Stay in the foreground instead of forking away. Implies "-nosyslog".
 For compatability, "-f" is also accepted, but "-fg" is preferred.
 
-#### -force_decode
+#### -forcedecode
 Force decode of encrypted files even if the integrity check fails, instead of
 failing with an IO error. Warning messages are still printed to syslog if corrupted 
 files are encountered.
 It can be useful to recover files from disks with bad sectors or other corrupted
 media. It shall not be used if the origin of corruption is unknown, specially
-if you want to run executable files.
-It has no effect in reverse mode. It requires gocryptfs to be compiled with openssl
+if you want to run executable files. For corrupted media, note that you probably want
+to use dd_rescue(1) instead.
+This option has no effect in reverse mode. It requires gocryptfs to be compiled with openssl
 support and implies -openssl true. Because of this, it is not compatible with -aessiv,
 that uses built-in Go crpyto.
 

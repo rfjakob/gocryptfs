@@ -197,7 +197,9 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	if err != nil {
 		curruptBlockNo := firstBlockNo + f.contentEnc.PlainOffToBlockNo(uint64(len(plaintext)))
 		tlog.Warn.Printf("ino%d: doRead: corrupt block #%d: %v", f.devIno.ino, curruptBlockNo, err)
-		return nil, fuse.EIO
+		if (f.fs.args.ForceDecode == false) {
+			return nil, fuse.EIO
+		}
 	}
 
 	// Crop down to the relevant part
