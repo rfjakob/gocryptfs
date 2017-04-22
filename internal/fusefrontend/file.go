@@ -52,6 +52,10 @@ type file struct {
 	lastOpCount uint64
 	// Parent filesystem
 	fs *FS
+	// We embed a nodefs.NewDefaultFile() that returns ENOSYS for every operation we
+	// have not implemented. This prevents build breakage when the go-fuse library
+	// adds new methods to the nodefs.File interface.
+	nodefs.File
 }
 
 // NewFile returns a new go-fuse File instance.
@@ -73,6 +77,7 @@ func NewFile(fd *os.File, writeOnly bool, fs *FS) (nodefs.File, fuse.Status) {
 		fileTableEntry: t,
 		loopbackFile:   nodefs.NewLoopbackFile(fd),
 		fs:             fs,
+		File:           nodefs.NewDefaultFile(),
 	}, fuse.OK
 }
 
