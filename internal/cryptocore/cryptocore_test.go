@@ -8,15 +8,15 @@ import (
 func TestCryptoCoreNew(t *testing.T) {
 	key := make([]byte, 32)
 	for _, useHKDF := range []bool{true, false} {
-		c := New(key, BackendOpenSSL, 128, useHKDF)
+		c := New(key, BackendOpenSSL, 128, useHKDF, false)
 		if c.IVLen != 16 {
 			t.Fail()
 		}
-		c = New(key, BackendGoGCM, 96, useHKDF)
+		c = New(key, BackendGoGCM, 96, useHKDF, false)
 		if c.IVLen != 12 {
 			t.Fail()
 		}
-		c = New(key, BackendGoGCM, 128, useHKDF)
+		c = New(key, BackendGoGCM, 128, useHKDF, false)
 		if c.IVLen != 16 {
 			t.Fail()
 		}
@@ -32,5 +32,5 @@ func TestNewPanic(t *testing.T) {
 	}()
 
 	key := make([]byte, 16)
-	New(key, BackendOpenSSL, 128, true)
+	New(key, BackendOpenSSL, 128, true, false)
 }

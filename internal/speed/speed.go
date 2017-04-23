@@ -72,7 +72,7 @@ func bStupidGCM(b *testing.B) {
 	in := make([]byte, blockSize)
 	b.SetBytes(int64(len(in)))
 
-	sGCM := stupidgcm.New(key)
+	sGCM := stupidgcm.New(key, false)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

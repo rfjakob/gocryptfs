@@ -31,4 +31,6 @@ type Args struct {
 	HKDF bool
 	// Try to serialize read operations, "-serialize_reads"
 	SerializeReads bool
+	// Force decode even if integrity check fails (openSSL only)
+	ForceDecode bool
 }
