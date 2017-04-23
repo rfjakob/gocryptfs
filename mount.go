@@ -249,6 +249,10 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 		// Make the kernel check the file permissions for us
 		mOpts.Options = append(mOpts.Options, "default_permissions")
 	}
+	if args.forcedecode {
+		tlog.Info.Printf(tlog.ColorYellow + "THE OPTION \"-forcedecode\" IS ACTIVE. GOCRYPTFS WILL RETURN CORRUPT DATA!" +
+			tlog.ColorReset)
+	}
 	if args.nonempty {
 		mOpts.Options = append(mOpts.Options, "nonempty")
 	}

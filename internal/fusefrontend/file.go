@@ -18,6 +18,7 @@ import (
 
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/serialize_reads"
+	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -200,9 +201,14 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	// Decrypt it
 	plaintext, err := f.contentEnc.DecryptBlocks(ciphertext, firstBlockNo, fileID)
 	if err != nil {
-		curruptBlockNo := firstBlockNo + f.contentEnc.PlainOffToBlockNo(uint64(len(plaintext)))
-		tlog.Warn.Printf("ino%d: doRead: corrupt block #%d: %v", f.devIno.ino, curruptBlockNo, err)
-		if (f.fs.args.ForceDecode == false) {
+		if f.fs.args.ForceDecode && err == stupidgcm.ErrAuth {
+			// We do not have the information which block was corrupt here anymore,
+			// but DecryptBlocks() has already logged it anyway.
+			tlog.Warn.Printf("ino%d: doRead off=%d len=%d: returning corrupt data due to forcedecode",
+				f.devIno.ino, off, length)
+		} else {
+			curruptBlockNo := firstBlockNo + f.contentEnc.PlainOffToBlockNo(uint64(len(plaintext)))
+			tlog.Warn.Printf("ino%d: doRead: corrupt block #%d: %v", f.devIno.ino, curruptBlockNo, err)
 			return nil, fuse.EIO
 		}
 	}

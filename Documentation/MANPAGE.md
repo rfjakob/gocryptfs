@@ -67,11 +67,16 @@ failing with an IO error. Warning messages are still printed to syslog if corrup
 files are encountered.
 It can be useful to recover files from disks with bad sectors or other corrupted
 media. It shall not be used if the origin of corruption is unknown, specially
-if you want to run executable files. For corrupted media, note that you probably want
-to use dd_rescue(1) instead.
-This option has no effect in reverse mode. It requires gocryptfs to be compiled with openssl
+if you want to run executable files.
+
+For corrupted media, note that you probably want to use dd_rescue(1)
+instead, which will recover all but the corrupted 4kB block.
+
+This option makes no sense in reverse mode. It requires gocryptfs to be compiled with openssl
 support and implies -openssl true. Because of this, it is not compatible with -aessiv,
-that uses built-in Go crpyto.
+that uses built-in Go crypto.
+
+Setting this option forces the filesystem to read-only and noexec.
 
 #### -fsname string
 Override the filesystem name (first column in df -T). Can also be

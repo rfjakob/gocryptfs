@@ -171,11 +171,17 @@ func parseCliOpts() (args argContainer) {
 			tlog.Fatal.Printf("The reverse mode and the -forcedecode option are not compatible")
 			os.Exit(ErrExitUsage)
 		}
-		v, e := strconv.ParseBool(opensslAuto)
-		if e == nil && v == false {
-			tlog.Warn.Printf("-openssl set to true, as it is required by -forcedecode flag")
+		// Has the user explicitely disabled openssl using "-openssl=false/0"?
+		if !args.openssl && opensslAuto != "auto" {
+			tlog.Fatal.Printf("-forcedecode requires openssl, but is disabled via command-line option")
+			os.Exit(ErrExitUsage)
 		}
 		args.openssl = true
+
+		// Try to make it harder for the user to shoot himself in the foot.
+		args.ro = true
+		args.allow_other = false
+		args.ko = "noexec"
 	}
 	// '-passfile FILE' is a shortcut for -extpass='/bin/cat -- FILE'
 	if args.passfile != "" {

@@ -86,7 +86,9 @@ func (be *ContentEnc) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, file
 		var pBlock []byte
 		pBlock, err = be.DecryptBlock(cBlock, firstBlockNo, fileID)
 		if err != nil {
-			if be.forceDecode == false || (be.forceDecode == true && stupidgcm.AuthError != err) {
+			if be.forceDecode && err == stupidgcm.ErrAuth {
+				tlog.Warn.Printf("DecryptBlocks: authentication failure in block #%d, overriden by forcedecode", firstBlockNo)
+			} else {
 				break
 			}
 		}
@@ -139,11 +141,10 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileID []b
 	if err != nil {
 		tlog.Warn.Printf("DecryptBlock: %s, len=%d", err.Error(), len(ciphertextOrig))
 		tlog.Debug.Println(hex.Dump(ciphertextOrig))
-		if be.forceDecode == true {
+		if be.forceDecode && err == stupidgcm.ErrAuth {
 			return plaintext, err
-		} else {
-			return nil, err
 		}
+		return nil, err
 	}
 
 	return plaintext, nil

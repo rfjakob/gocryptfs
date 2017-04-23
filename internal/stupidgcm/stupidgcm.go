@@ -10,7 +10,6 @@ import "C"
 
 import (
 	"crypto/cipher"
-	"fmt"
 	"log"
 	"unsafe"
 )
@@ -29,9 +28,6 @@ type stupidGCM struct {
 	key         []byte
 	forceDecode bool
 }
-
-//authentication error
-var AuthError error = fmt.Errorf("stupidgcm: message authentication failed")
 
 var _ cipher.AEAD = &stupidGCM{}
 
@@ -193,10 +189,9 @@ func (g stupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
 		// The error code must always be checked by the calling function, because the decrypted buffer
 		// may contain corrupted data that we are returning in case the user forced reads
 		if g.forceDecode == true {
-			return append(dst, buf...), AuthError
-		} else {
-			return nil, AuthError
+			return append(dst, buf...), ErrAuth
 		}
+		return nil, ErrAuth
 	}
 
 	return append(dst, buf...), nil
