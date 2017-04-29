@@ -158,7 +158,7 @@ v1.3 (in progress)
 * Reject file-header-only files
   ([#90 2.2](https://github.com/rfjakob/gocryptfs/issues/90),
   [commit](https://github.com/rfjakob/gocryptfs/commit/14038a1644f17f50b113a05d09a2a0a3b3e973b2))
-* Increase max password size to 2000 bytes ([#93](https://github.com/rfjakob/gocryptfs/issues/93))
+* Increase max password size to 2048 bytes ([#93](https://github.com/rfjakob/gocryptfs/issues/93))
 * Use stable 64-bit inode numbers in reverse mode
   * This may cause problems for very old 32-bit applications
     that were compiled without Large File Support.

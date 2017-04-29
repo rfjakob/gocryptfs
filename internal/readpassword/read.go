@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	exitCode       = 9
-	maxPasswordLen = 2000
+	exitCode = 9
+	// 2kB limit like EncFS
+	maxPasswordLen = 2048
 )
 
 // Once tries to get a password from the user, either from the terminal, extpass
