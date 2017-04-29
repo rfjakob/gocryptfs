@@ -4,7 +4,6 @@ package fusefrontend
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -139,10 +138,6 @@ func (f *file) createHeader() (fileID []byte, err error) {
 		return nil, err
 	}
 	return h.ID, err
-}
-
-func (f *file) String() string {
-	return fmt.Sprintf("cryptFile(%s)", f.fd.Name())
 }
 
 // doRead - returns "length" plaintext bytes from plaintext offset "off".
