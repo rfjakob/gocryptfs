@@ -2,7 +2,6 @@ package nametransform
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -71,11 +70,24 @@ func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 func WriteDirIV(dir string) error {
 	iv := cryptocore.RandBytes(DirIVLen)
 	file := filepath.Join(dir, DirIVFilename)
-	err := ioutil.WriteFile(file, iv, 0400)
+	// 0400 permissions: gocryptfs.diriv should never be modified after creation.
+	// Don't use "ioutil.WriteFile", it causes trouble on NFS: https://github.com/rfjakob/gocryptfs/issues/105
+	fd, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0400)
 	if err != nil {
-		tlog.Warn.Printf("WriteDirIV: %v", err)
+		tlog.Warn.Printf("WriteDirIV: OpenFile: %v", err)
+		return err
 	}
-	return err
+	_, err = fd.Write(iv)
+	if err != nil {
+		tlog.Warn.Printf("WriteDirIV: Write: %v", err)
+		return err
+	}
+	err = fd.Close()
+	if err != nil {
+		tlog.Warn.Printf("WriteDirIV: Close: %v", err)
+		return err
+	}
+	return nil
 }
 
 // EncryptPathDirIV - encrypt relative plaintext path using EME with DirIV.
