@@ -143,7 +143,7 @@ RM:    4.42
 Changelog
 ---------
 
-v1.3 (in progress)
+v1.3, 2017-04-29
 * **Use HKDF to derive separate keys for GCM and EME**
   * New feature flag: `HKDF` (enabled by default)
   * This is a forwards-compatible change. gocryptfs v1.3 can mount
