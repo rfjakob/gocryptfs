@@ -36,10 +36,18 @@ var flagSet *flag.FlagSet
 
 // prefixOArgs transform options passed via "-o foo,bar" into regular options
 // like "-foo -bar" and prefixes them to the command line.
+// Testcases in TestPrefixOArgs().
 func prefixOArgs(osArgs []string) []string {
-	// Need at least 3, example: gocryptfs -o foo,bar
+	// Need at least 3, example: gocryptfs -o    foo,bar
+	//                               ^ 0    ^ 1    ^ 2
 	if len(osArgs) < 3 {
 		return osArgs
+	}
+	// Passing "--" disables "-o" parsing. Ignore element 0 (program name).
+	for _, v := range osArgs[1:] {
+		if v == "--" {
+			return osArgs
+		}
 	}
 	// Find and extract "-o foo,bar"
 	var otherArgs, oOpts []string

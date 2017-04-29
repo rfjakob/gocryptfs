@@ -162,6 +162,7 @@ v1.3 (in progress)
 * Use stable 64-bit inode numbers in reverse mode
   * This may cause problems for very old 32-bit applications
     that were compiled without Large File Support.
+* Passing "--" now also block "-o" parsing
 
 v1.2.1, 2017-02-26
 * Add an integrated speed test, `gocryptfs -speed`

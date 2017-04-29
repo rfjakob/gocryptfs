@@ -12,6 +12,7 @@ type testcase struct {
 	o []string
 }
 
+// TestPrefixOArgs checks that the "-o x,y,z" parsing works correctly.
 func TestPrefixOArgs(t *testing.T) {
 	testcases := []testcase{
 		{
@@ -50,6 +51,15 @@ func TestPrefixOArgs(t *testing.T) {
 		{
 			i: []string{"gocryptfs", "-o", "rw", "--config", "fff", "ccc", "mmm"},
 			o: []string{"gocryptfs", "-rw", "--config", "fff", "ccc", "mmm"},
+		},
+		// "--" should also block "-o" parsing.
+		{
+			i: []string{"gocryptfs", "foo", "bar", "--", "-o", "a"},
+			o: []string{"gocryptfs", "foo", "bar", "--", "-o", "a"},
+		},
+		{
+			i: []string{"gocryptfs", "--", "-o", "a"},
+			o: []string{"gocryptfs", "--", "-o", "a"},
 		},
 	}
 	for _, tc := range testcases {
