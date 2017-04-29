@@ -8,7 +8,8 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-type SerializerStruct struct {
+// serializerState is used by the Wait and Done functions
+type serializerState struct {
 	// we get submissions through the "input" channel
 	input chan *submission
 	// q = Queue
@@ -37,7 +38,7 @@ type submission struct {
 	size int
 }
 
-func (sr *SerializerStruct) wait(offset int64, size int) {
+func (sr *serializerState) wait(offset int64, size int) {
 	ch := make(chan struct{})
 	sb := &submission{
 		ch:     ch,
@@ -52,7 +53,7 @@ func (sr *SerializerStruct) wait(offset int64, size int) {
 
 // push returns true if the queue is full after the element has been stored.
 // It panics if it did not have space to store the element.
-func (sr *SerializerStruct) push(sb *submission) (full bool) {
+func (sr *serializerState) push(sb *submission) (full bool) {
 	free := 0
 	stored := false
 	for i, v := range sr.q {
@@ -77,7 +78,7 @@ func (sr *SerializerStruct) push(sb *submission) (full bool) {
 }
 
 // pop the submission with the lowest offset off the queue
-func (sr *SerializerStruct) pop() *submission {
+func (sr *serializerState) pop() *submission {
 	var winner *submission
 	var winnerIndex int
 	for i, v := range sr.q {
@@ -101,7 +102,7 @@ func (sr *SerializerStruct) pop() *submission {
 	return winner
 }
 
-func (sr *SerializerStruct) eventLoop() {
+func (sr *serializerState) eventLoop() {
 	sr.input = make(chan *submission)
 	empty := true
 	for {
@@ -128,7 +129,7 @@ func (sr *SerializerStruct) eventLoop() {
 }
 
 // Unblock a submission and wait for completion
-func (sr *SerializerStruct) unblockOne() (empty bool) {
+func (sr *serializerState) unblockOne() (empty bool) {
 	winner := sr.pop()
 	if winner == nil {
 		return true
@@ -139,10 +140,11 @@ func (sr *SerializerStruct) unblockOne() (empty bool) {
 	return false
 }
 
-var serializer SerializerStruct
+var serializer serializerState
 
-// Called by fusefrontend.NewFS
-func Init() {
+// InitSerializer sets up the internal serializer state and starts the event loop.
+// Called by fusefrontend.NewFS.
+func InitSerializer() {
 	serializer.input = make(chan *submission)
 	serializer.q = make([]*submission, 10)
 	go serializer.eventLoop()

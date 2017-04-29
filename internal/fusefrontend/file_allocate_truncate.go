@@ -187,13 +187,13 @@ func (f *file) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) fuse.Statu
 	if oldPlainSz > 0 {
 		n1 = f.contentEnc.PlainOffToBlockNo(oldPlainSz - 1)
 	}
-	newEofOffset := newPlainSz - 1
-	n2 := f.contentEnc.PlainOffToBlockNo(newEofOffset)
+	newEOFOffset := newPlainSz - 1
+	n2 := f.contentEnc.PlainOffToBlockNo(newEOFOffset)
 	// The file is grown within one block, no need to pad anything.
 	// Write a single zero to the last byte and let doWrite figure out the RMW.
 	if n1 == n2 {
 		buf := make([]byte, 1)
-		_, status := f.doWrite(buf, int64(newEofOffset))
+		_, status := f.doWrite(buf, int64(newEOFOffset))
 		return status
 	}
 	// The truncate creates at least one new block.
@@ -224,6 +224,6 @@ func (f *file) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) fuse.Statu
 	// The new size is NOT aligned, so we need to write a partial block.
 	// Write a single zero to the last byte and let doWrite figure it out.
 	buf := make([]byte, 1)
-	_, status := f.doWrite(buf, int64(newEofOffset))
+	_, status := f.doWrite(buf, int64(newEOFOffset))
 	return status
 }

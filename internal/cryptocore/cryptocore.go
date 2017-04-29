@@ -15,7 +15,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 )
 
-// BackendTypeEnum indicates the type of AEAD backend in use.
+// AEADTypeEnum indicates the type of AEAD backend in use.
 type AEADTypeEnum int
 
 const (

@@ -45,7 +45,7 @@ func NewFS(args Args) *FS {
 	nameTransform := nametransform.New(cryptoCore.EMECipher, args.LongNames, args.Raw64)
 
 	if args.SerializeReads {
-		serialize_reads.Init()
+		serialize_reads.InitSerializer()
 	}
 
 	return &FS{

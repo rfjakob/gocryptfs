@@ -182,13 +182,13 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 // Access - FUSE call
 func (rfs *ReverseFS) Access(relPath string, mode uint32, context *fuse.Context) fuse.Status {
 	if rfs.isTranslatedConfig(relPath) || rfs.isDirIV(relPath) || rfs.isNameFile(relPath) {
+		// access(2) R_OK flag for checking if the file is readable, always 4 as defined in POSIX.
+		ROK := uint32(0x4)
 		// Virtual files can always be read and never written
-		var R_OK uint32 = 4
-		if mode == R_OK || mode == 0 {
+		if mode == ROK || mode == 0 {
 			return fuse.OK
-		} else {
-			return fuse.EPERM
 		}
+		return fuse.EPERM
 	}
 	absPath, err := rfs.abs(rfs.decryptPath(relPath))
 	if err != nil {

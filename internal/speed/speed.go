@@ -17,6 +17,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 )
 
+// Run - run the speed the test and print the results.
 func Run() {
 	bTable := []struct {
 		name      string
