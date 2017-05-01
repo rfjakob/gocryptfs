@@ -80,17 +80,18 @@ func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Stat
 	return a, status
 }
 
-// We always need read access to do read-modify-write cycles
-func (fs *FS) mangleOpenFlags(flags uint32) (newFlags int, writeOnly bool) {
+// mangleOpenFlags is used by Create() and Open() to convert the open flags the user
+// wants to the flags we internally use to open the backing file.
+func (fs *FS) mangleOpenFlags(flags uint32) (newFlags int) {
 	newFlags = int(flags)
+	// Convert WRONLY to RDWR. We always need read access to do read-modify-write cycles.
 	if newFlags&os.O_WRONLY > 0 {
-		writeOnly = true
 		newFlags = newFlags ^ os.O_WRONLY | os.O_RDWR
 	}
 	// We also cannot open the file in append mode, we need to seek back for RMW
 	newFlags = newFlags &^ os.O_APPEND
 
-	return newFlags, writeOnly
+	return newFlags
 }
 
 // Open implements pathfs.Filesystem.
@@ -98,19 +99,19 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 	if fs.isFiltered(path) {
 		return nil, fuse.EPERM
 	}
-	iflags, writeOnly := fs.mangleOpenFlags(flags)
+	newFlags := fs.mangleOpenFlags(flags)
 	cPath, err := fs.getBackingPath(path)
 	if err != nil {
 		tlog.Debug.Printf("Open: getBackingPath: %v", err)
 		return nil, fuse.ToStatus(err)
 	}
 	tlog.Debug.Printf("Open: %s", cPath)
-	f, err := os.OpenFile(cPath, iflags, 0666)
+	f, err := os.OpenFile(cPath, newFlags, 0666)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
 
-	return NewFile(f, writeOnly, fs)
+	return NewFile(f, fs)
 }
 
 // Create implements pathfs.Filesystem.
@@ -118,7 +119,7 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 	if fs.isFiltered(path) {
 		return nil, fuse.EPERM
 	}
-	iflags, writeOnly := fs.mangleOpenFlags(flags)
+	newFlags := fs.mangleOpenFlags(flags)
 	cPath, err := fs.getBackingPath(path)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
@@ -144,7 +145,7 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 
 		// Create content
 		var fdRaw int
-		fdRaw, err = syscallcompat.Openat(int(dirfd.Fd()), cName, iflags|os.O_CREATE, mode)
+		fdRaw, err = syscallcompat.Openat(int(dirfd.Fd()), cName, newFlags|os.O_CREATE, mode)
 		if err != nil {
 			nametransform.DeleteLongName(dirfd, cName)
 			return nil, fuse.ToStatus(err)
@@ -152,7 +153,7 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 		fd = os.NewFile(uintptr(fdRaw), cName)
 	} else {
 		// Normal (short) file name
-		fd, err = os.OpenFile(cPath, iflags|os.O_CREATE, os.FileMode(mode))
+		fd, err = os.OpenFile(cPath, newFlags|os.O_CREATE, os.FileMode(mode))
 		if err != nil {
 			return nil, fuse.ToStatus(err)
 		}
@@ -164,7 +165,7 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 			tlog.Warn.Printf("Create: fd.Chown failed: %v", err)
 		}
 	}
-	return NewFile(fd, writeOnly, fs)
+	return NewFile(fd, fs)
 }
 
 // Chmod implements pathfs.Filesystem.

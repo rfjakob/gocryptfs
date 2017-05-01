@@ -116,3 +116,18 @@ func TestOpenTruncateRead(t *testing.T) {
 		t.Fatalf("wrong content: %s", string(content))
 	}
 }
+
+// TestWORead tries to read from a write-only file.
+func TestWORead(t *testing.T) {
+	fn := test_helpers.DefaultPlainDir + "/TestWORead"
+	fd, err := os.OpenFile(fn, os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fd.Close()
+	buf := make([]byte, 10)
+	_, err = fd.Read(buf)
+	if err == nil {
+		t.Error("Reading from write-only file should fail, but did not")
+	}
+}

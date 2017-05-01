@@ -35,8 +35,6 @@ type file struct {
 	// Every FUSE entrypoint should RLock(). The only user of Lock() is
 	// Release(), which closes the fd and sets "released" to true.
 	fdLock sync.RWMutex
-	// Was the file opened O_WRONLY?
-	writeOnly bool
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
 	// Device and inode number uniquely identify the backing file
@@ -59,7 +57,7 @@ type file struct {
 }
 
 // NewFile returns a new go-fuse File instance.
-func NewFile(fd *os.File, writeOnly bool, fs *FS) (nodefs.File, fuse.Status) {
+func NewFile(fd *os.File, fs *FS) (nodefs.File, fuse.Status) {
 	var st syscall.Stat_t
 	err := syscall.Fstat(int(fd.Fd()), &st)
 	if err != nil {
@@ -71,7 +69,6 @@ func NewFile(fd *os.File, writeOnly bool, fs *FS) (nodefs.File, fuse.Status) {
 
 	return &file{
 		fd:             fd,
-		writeOnly:      writeOnly,
 		contentEnc:     fs.contentEnc,
 		qIno:           qi,
 		fileTableEntry: e,
@@ -228,11 +225,6 @@ func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 	defer f.fdLock.RUnlock()
 
 	tlog.Debug.Printf("ino%d: FUSE Read: offset=%d length=%d", f.qIno.Ino, len(buf), off)
-
-	if f.writeOnly {
-		tlog.Warn.Printf("ino%d: Tried to read from write-only file", f.qIno.Ino)
-		return nil, fuse.EBADF
-	}
 
 	if f.fs.args.SerializeReads {
 		serialize_reads.Wait(off, len(buf))
