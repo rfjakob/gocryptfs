@@ -56,6 +56,9 @@ elif [ $MYNAME = fsstress-gocryptfs.bash ]; then
 	./build.bash
 	$GOPATH/bin/gocryptfs -q -init -extpass "echo test" -scryptn=10 $DIR
 	$GOPATH/bin/gocryptfs -q -extpass "echo test" -nosyslog $DIR $MNT
+elif [ $MYNAME = fsstress-encfs.bash ]; then
+	# You probably want do adjust this path to your system
+	/home/jakob.donotbackup/encfs/build/encfs --extpass "echo test" --standard $DIR $MNT
 else
 	echo Unknown mode: $MYNAME
 	exit 1
