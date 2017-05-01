@@ -22,6 +22,8 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
+var _ nodefs.File = &file{} // Verify that interface is implemented.
+
 // File - based on loopbackFile in go-fuse/fuse/nodefs/files.go
 type file struct {
 	fd *os.File
@@ -82,13 +84,6 @@ func NewFile(fd *os.File, fs *FS) (nodefs.File, fuse.Status) {
 // messages.
 func (f *file) intFd() int {
 	return int(f.fd.Fd())
-}
-
-func (f *file) InnerFile() nodefs.File {
-	return nil
-}
-
-func (f *file) SetInode(n *nodefs.Inode) {
 }
 
 // readFileID loads the file header from disk and extracts the file ID.
