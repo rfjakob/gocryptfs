@@ -3,8 +3,11 @@ package defaults
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"os/exec"
+	"runtime"
+	"sync"
 	"syscall"
 	"testing"
 
@@ -117,7 +120,7 @@ func TestOpenTruncateRead(t *testing.T) {
 	}
 }
 
-// TestWORead tries to read from a write-only file.
+// TestWORead tries to read from a write-only FD.
 func TestWORead(t *testing.T) {
 	fn := test_helpers.DefaultPlainDir + "/TestWORead"
 	fd, err := os.OpenFile(fn, os.O_CREATE|os.O_WRONLY, 0600)
@@ -130,4 +133,63 @@ func TestWORead(t *testing.T) {
 	if err == nil {
 		t.Error("Reading from write-only file should fail, but did not")
 	}
+}
+
+// xfstests generic/124 triggers this warning:
+// cipherSize 18 == header size: interrupted write?
+// This test reproduces the problem.
+func TestXfs124(t *testing.T) {
+	// GOMAXPROCS=8 and N=5000 seem to reliably trigger the problem. With N=1000,
+	// the test passes sometimes.
+	runtime.GOMAXPROCS(8)
+	N := 5000
+
+	fn := test_helpers.DefaultPlainDir + "/TestXfs124"
+	fd, err := os.Create(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fd.Close()
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		buf := make([]byte, 10)
+		var err2 error
+		for i := 0; i < N; i++ {
+			err2 = fd.Truncate(0)
+			if err2 != nil {
+				panic(err2)
+			}
+			_, err2 = fd.WriteAt(buf, 0)
+			if err2 != nil {
+				panic(err2)
+			}
+		}
+		wg.Done()
+	}()
+
+	fd2, err := os.Open(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fd2.Close()
+
+	go func() {
+		buf := make([]byte, 10)
+		var err3 error
+		for i := 0; i < N; i++ {
+			_, err3 = fd2.ReadAt(buf, 0)
+			if err3 == io.EOF {
+				continue
+			}
+			if err3 != nil {
+				panic(err3)
+			}
+		}
+		wg.Done()
+	}()
+
+	wg.Wait()
 }
