@@ -142,27 +142,27 @@ func (f *file) createHeader() (fileID []byte, err error) {
 // by Write() and Truncate() for Read-Modify-Write
 func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	// Make sure we have the file ID.
-	f.fileTableEntry.IDLock.RLock()
+	f.fileTableEntry.HeaderLock.RLock()
 	if f.fileTableEntry.ID == nil {
-		f.fileTableEntry.IDLock.RUnlock()
+		f.fileTableEntry.HeaderLock.RUnlock()
 		// Yes, somebody else may take the lock before we can. This will get
 		// the header read twice, but causes no harm otherwise.
-		f.fileTableEntry.IDLock.Lock()
+		f.fileTableEntry.HeaderLock.Lock()
 		tmpID, err := f.readFileID()
 		if err == io.EOF {
-			f.fileTableEntry.IDLock.Unlock()
+			f.fileTableEntry.HeaderLock.Unlock()
 			return nil, fuse.OK
 		}
 		if err != nil {
-			f.fileTableEntry.IDLock.Unlock()
+			f.fileTableEntry.HeaderLock.Unlock()
 			return nil, fuse.ToStatus(err)
 		}
 		f.fileTableEntry.ID = tmpID
 		// Downgrade the lock.
-		f.fileTableEntry.IDLock.Unlock()
+		f.fileTableEntry.HeaderLock.Unlock()
 		// The file ID may change in here. This does no harm because we
 		// re-read it after the RLock().
-		f.fileTableEntry.IDLock.RLock()
+		f.fileTableEntry.HeaderLock.RLock()
 	}
 	fileID := f.fileTableEntry.ID
 	// Read the backing ciphertext in one go
@@ -174,7 +174,7 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 	ciphertext := make([]byte, int(alignedLength))
 	n, err := f.fd.ReadAt(ciphertext, int64(alignedOffset))
 	// We don't care if the file ID changes after we have read the data. Drop the lock.
-	f.fileTableEntry.IDLock.RUnlock()
+	f.fileTableEntry.HeaderLock.RUnlock()
 	if err != nil && err != io.EOF {
 		tlog.Warn.Printf("read: ReadAt: %s", err.Error())
 		return nil, fuse.ToStatus(err)
@@ -253,27 +253,27 @@ func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 // Empty writes do nothing and are allowed.
 func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 	// Read header from disk, create a new one if the file is empty
-	f.fileTableEntry.IDLock.RLock()
+	f.fileTableEntry.HeaderLock.RLock()
 	if f.fileTableEntry.ID == nil {
-		f.fileTableEntry.IDLock.RUnlock()
+		f.fileTableEntry.HeaderLock.RUnlock()
 		// Somebody else may write the header here, but this would do no harm.
-		f.fileTableEntry.IDLock.Lock()
+		f.fileTableEntry.HeaderLock.Lock()
 		tmpID, err := f.readFileID()
 		if err == io.EOF {
 			tmpID, err = f.createHeader()
 		}
 		if err != nil {
-			f.fileTableEntry.IDLock.Unlock()
+			f.fileTableEntry.HeaderLock.Unlock()
 			return 0, fuse.ToStatus(err)
 		}
 		f.fileTableEntry.ID = tmpID
-		f.fileTableEntry.IDLock.Unlock()
+		f.fileTableEntry.HeaderLock.Unlock()
 		// The file ID may change in here. This does no harm because we
 		// re-read it after the RLock().
-		f.fileTableEntry.IDLock.RLock()
+		f.fileTableEntry.HeaderLock.RLock()
 	}
 	fileID := f.fileTableEntry.ID
-	defer f.fileTableEntry.IDLock.RUnlock()
+	defer f.fileTableEntry.HeaderLock.RUnlock()
 	// Handle payload data
 	status := fuse.OK
 	dataBuf := bytes.NewBuffer(data)
@@ -336,7 +336,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 // Stat() call is very expensive.
 // The caller must "wlock.lock(f.devIno.ino)" otherwise this check would be racy.
 func (f *file) isConsecutiveWrite(off int64) bool {
-	opCount := openfiletable.WriteLockCount()
+	opCount := openfiletable.WriteOpCount()
 	return opCount == f.lastOpCount+1 && off == f.lastWrittenOffset+1
 }
 
@@ -353,8 +353,8 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 		tlog.Warn.Printf("ino%d fh%d: Write on released file", f.qIno.Ino, f.intFd())
 		return 0, fuse.EBADF
 	}
-	f.fileTableEntry.WriteLock.Lock()
-	defer f.fileTableEntry.WriteLock.Unlock()
+	f.fileTableEntry.ContentLock.Lock()
+	defer f.fileTableEntry.ContentLock.Unlock()
 	tlog.Debug.Printf("ino%d: FUSE Write: offset=%d length=%d", f.qIno.Ino, off, len(data))
 	// If the write creates a file hole, we have to zero-pad the last block.
 	// But if the write directly follows an earlier write, it cannot create a
@@ -367,7 +367,7 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 	}
 	n, status := f.doWrite(data, off)
 	if status.Ok() {
-		f.lastOpCount = openfiletable.WriteLockCount()
+		f.lastOpCount = openfiletable.WriteOpCount()
 		f.lastWrittenOffset = off + int64(len(data)) - 1
 	}
 	return n, status

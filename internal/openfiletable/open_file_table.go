@@ -42,13 +42,13 @@ func init() {
 }
 
 type table struct {
-	// writeLockCount counts entry.writeLock.Lock() calls. As every operation that
+	// writeOpCount counts entry.ContentLock.Lock() calls. As every operation that
 	// modifies a file should
 	// call it, this effectively serves as a write-operation counter.
 	// The variable is accessed without holding any locks so atomic operations
 	// must be used. It must be the first element of the struct to guarantee
 	// 64-bit alignment.
-	writeLockCount uint64
+	writeOpCount uint64
 	// Protects map access
 	sync.Mutex
 	// Table entries
@@ -59,11 +59,16 @@ type table struct {
 type Entry struct {
 	// Reference count
 	refCount int
-	// Write lock for this inode
-	WriteLock countingMutex
+	// ContentLock guards the file content from concurrent writes. Every writer
+	// must take this lock before modifying the file content.
+	ContentLock countingMutex
+	// HeaderLock guards the file ID (in this struct) and the file header (on
+	// disk). Take HeaderLock.RLock() to make sure the file ID does not change
+	// behind your back. If you modify the file ID, you must take
+	// HeaderLock.Lock().
+	HeaderLock sync.RWMutex
 	// ID is the file ID in the file header.
-	ID     []byte
-	IDLock sync.RWMutex
+	ID []byte
 }
 
 // Register creates an open file table entry for "qi" (or incrementes the
@@ -101,11 +106,11 @@ type countingMutex struct {
 
 func (c *countingMutex) Lock() {
 	c.Mutex.Lock()
-	atomic.AddUint64(&t.writeLockCount, 1)
+	atomic.AddUint64(&t.writeOpCount, 1)
 }
 
-// WriteLockCount returns the write lock counter value. This value is encremented
+// WriteOpCount returns the write lock counter value. This value is encremented
 // each time writeLock.Lock() on a file table entry is called.
-func WriteLockCount() uint64 {
-	return atomic.LoadUint64(&t.writeLockCount)
+func WriteOpCount() uint64 {
+	return atomic.LoadUint64(&t.writeOpCount)
 }
