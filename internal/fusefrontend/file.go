@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/internal/openfiletable"
 	"github.com/rfjakob/gocryptfs/internal/serialize_reads"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
@@ -40,9 +40,9 @@ type file struct {
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
 	// Device and inode number uniquely identify the backing file
-	devIno DevInoStruct
-	// Entry in the open file map
-	fileTableEntry *openFileEntryT
+	qIno openfiletable.QIno
+	// Entry in the open file table
+	fileTableEntry *openfiletable.Entry
 	// go-fuse nodefs.loopbackFile
 	loopbackFile nodefs.File
 	// Store where the last byte was written
@@ -66,15 +66,15 @@ func NewFile(fd *os.File, writeOnly bool, fs *FS) (nodefs.File, fuse.Status) {
 		tlog.Warn.Printf("NewFile: Fstat on fd %d failed: %v\n", fd.Fd(), err)
 		return nil, fuse.ToStatus(err)
 	}
-	di := DevInoFromStat(&st)
-	t := openFileMap.register(di)
+	qi := openfiletable.QInoFromStat(&st)
+	e := openfiletable.Register(qi)
 
 	return &file{
 		fd:             fd,
 		writeOnly:      writeOnly,
 		contentEnc:     fs.contentEnc,
-		devIno:         di,
-		fileTableEntry: t,
+		qIno:           qi,
+		fileTableEntry: e,
 		loopbackFile:   nodefs.NewLoopbackFile(fd),
 		fs:             fs,
 		File:           nodefs.NewDefaultFile(),
@@ -106,7 +106,7 @@ func (f *file) readFileID() ([]byte, error) {
 	if err != nil {
 		if err == io.EOF && n != 0 {
 			tlog.Warn.Printf("ino%d: readFileID: incomplete file, got %d instead of %d bytes",
-				f.devIno.ino, n, readLen)
+				f.qIno.Ino, n, readLen)
 		}
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func (f *file) createHeader() (fileID []byte, err error) {
 	if !f.fs.args.NoPrealloc {
 		err = syscallcompat.EnospcPrealloc(int(f.fd.Fd()), 0, contentenc.HeaderLen)
 		if err != nil {
-			tlog.Warn.Printf("ino%d: createHeader: prealloc failed: %s\n", f.devIno.ino, err.Error())
+			tlog.Warn.Printf("ino%d: createHeader: prealloc failed: %s\n", f.qIno.Ino, err.Error())
 			return nil, err
 		}
 	}
@@ -200,10 +200,10 @@ func (f *file) doRead(off uint64, length uint64) ([]byte, fuse.Status) {
 			// We do not have the information which block was corrupt here anymore,
 			// but DecryptBlocks() has already logged it anyway.
 			tlog.Warn.Printf("ino%d: doRead off=%d len=%d: returning corrupt data due to forcedecode",
-				f.devIno.ino, off, length)
+				f.qIno.Ino, off, length)
 		} else {
 			curruptBlockNo := firstBlockNo + f.contentEnc.PlainOffToBlockNo(uint64(len(plaintext)))
-			tlog.Warn.Printf("ino%d: doRead: corrupt block #%d: %v", f.devIno.ino, curruptBlockNo, err)
+			tlog.Warn.Printf("ino%d: doRead: corrupt block #%d: %v", f.qIno.Ino, curruptBlockNo, err)
 			return nil, fuse.EIO
 		}
 	}
@@ -227,10 +227,10 @@ func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 
-	tlog.Debug.Printf("ino%d: FUSE Read: offset=%d length=%d", f.devIno.ino, len(buf), off)
+	tlog.Debug.Printf("ino%d: FUSE Read: offset=%d length=%d", f.qIno.Ino, len(buf), off)
 
 	if f.writeOnly {
-		tlog.Warn.Printf("ino%d: Tried to read from write-only file", f.devIno.ino)
+		tlog.Warn.Printf("ino%d: Tried to read from write-only file", f.qIno.Ino)
 		return nil, fuse.EBADF
 	}
 
@@ -245,13 +245,13 @@ func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 	}
 
 	if status == fuse.EIO {
-		tlog.Warn.Printf("ino%d: Read: returning EIO, offset=%d, length=%d", f.devIno.ino, len(buf), off)
+		tlog.Warn.Printf("ino%d: Read: returning EIO, offset=%d, length=%d", f.qIno.Ino, len(buf), off)
 	}
 	if status != fuse.OK {
 		return nil, status
 	}
 
-	tlog.Debug.Printf("ino%d: Read: status %v, returning %d bytes", f.devIno.ino, status, len(out))
+	tlog.Debug.Printf("ino%d: Read: status %v, returning %d bytes", f.qIno.Ino, status, len(out))
 	return fuse.ReadResultData(out), status
 }
 
@@ -302,7 +302,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 			var oldData []byte
 			oldData, status = f.doRead(o, f.contentEnc.PlainBS())
 			if status != fuse.OK {
-				tlog.Warn.Printf("ino%d fh%d: RMW read failed: %s", f.devIno.ino, f.intFd(), status.String())
+				tlog.Warn.Printf("ino%d fh%d: RMW read failed: %s", f.qIno.Ino, f.intFd(), status.String())
 				return 0, status
 			}
 			// Modify
@@ -312,7 +312,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 		// Encrypt
 		blockData = f.contentEnc.EncryptBlock(blockData, b.BlockNo, fileID)
 		tlog.Debug.Printf("ino%d: Writing %d bytes to block #%d",
-			f.devIno.ino, uint64(len(blockData))-f.contentEnc.BlockOverhead(), b.BlockNo)
+			f.qIno.Ino, uint64(len(blockData))-f.contentEnc.BlockOverhead(), b.BlockNo)
 		// Store output data in the writeChain
 		writeChain[i] = blockData
 		numOutBytes += len(blockData)
@@ -330,7 +330,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 	if !f.fs.args.NoPrealloc {
 		err = syscallcompat.EnospcPrealloc(int(f.fd.Fd()), int64(cOff), int64(writeBuf.Len()))
 		if err != nil {
-			tlog.Warn.Printf("ino%d fh%d: doWrite: prealloc failed: %s", f.devIno.ino, f.intFd(), err.Error())
+			tlog.Warn.Printf("ino%d fh%d: doWrite: prealloc failed: %s", f.qIno.Ino, f.intFd(), err.Error())
 			return 0, fuse.ToStatus(err)
 		}
 	}
@@ -349,7 +349,7 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 // Stat() call is very expensive.
 // The caller must "wlock.lock(f.devIno.ino)" otherwise this check would be racy.
 func (f *file) isConsecutiveWrite(off int64) bool {
-	opCount := atomic.LoadUint64(&openFileMap.opCount)
+	opCount := openfiletable.WriteLockCount()
 	return opCount == f.lastOpCount+1 && off == f.lastWrittenOffset+1
 }
 
@@ -363,12 +363,12 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 		// The file descriptor has been closed concurrently, which also means
 		// the wlock has been freed. Exit here so we don't crash trying to access
 		// it.
-		tlog.Warn.Printf("ino%d fh%d: Write on released file", f.devIno.ino, f.intFd())
+		tlog.Warn.Printf("ino%d fh%d: Write on released file", f.qIno.Ino, f.intFd())
 		return 0, fuse.EBADF
 	}
-	f.fileTableEntry.writeLock.Lock()
-	defer f.fileTableEntry.writeLock.Unlock()
-	tlog.Debug.Printf("ino%d: FUSE Write: offset=%d length=%d", f.devIno.ino, off, len(data))
+	f.fileTableEntry.WriteLock.Lock()
+	defer f.fileTableEntry.WriteLock.Unlock()
+	tlog.Debug.Printf("ino%d: FUSE Write: offset=%d length=%d", f.qIno.Ino, off, len(data))
 	// If the write creates a file hole, we have to zero-pad the last block.
 	// But if the write directly follows an earlier write, it cannot create a
 	// hole, and we can save one Stat() call.
@@ -380,7 +380,7 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 	}
 	n, status := f.doWrite(data, off)
 	if status.Ok() {
-		f.lastOpCount = atomic.LoadUint64(&openFileMap.opCount)
+		f.lastOpCount = openfiletable.WriteLockCount()
 		f.lastWrittenOffset = off + int64(len(data)) - 1
 	}
 	return n, status
@@ -390,13 +390,13 @@ func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
 func (f *file) Release() {
 	f.fdLock.Lock()
 	if f.released {
-		log.Panicf("ino%d fh%d: double release", f.devIno.ino, f.intFd())
+		log.Panicf("ino%d fh%d: double release", f.qIno.Ino, f.intFd())
 	}
 	f.fd.Close()
 	f.released = true
 	f.fdLock.Unlock()
 
-	openFileMap.unregister(f.devIno)
+	openfiletable.Unregister(f.qIno)
 }
 
 // Flush - FUSE call
