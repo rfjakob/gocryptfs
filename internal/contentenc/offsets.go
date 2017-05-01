@@ -39,7 +39,8 @@ func (be *ContentEnc) CipherSizeToPlainSize(cipherSize uint64) uint64 {
 	}
 
 	if cipherSize == HeaderLen {
-		tlog.Warn.Printf("cipherSize %d == header size: interrupted write?\n", cipherSize)
+		// This can happen between createHeader() and Write() and is harmless.
+		tlog.Debug.Printf("cipherSize %d == header size: interrupted write?\n", cipherSize)
 		return 0
 	}
 
