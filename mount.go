@@ -147,6 +147,18 @@ func doMount(args *argContainer) int {
 		// Send SIGUSR1 to our parent
 		sendUsr1(args.notifypid)
 	}
+	// Increase the number of open files limit up to the hard limit. It's not
+	// dramatic if that fails, so do it after we have switched to syslog and not
+	// bother the user with warning.
+	var lim syscall.Rlimit
+	syscall.Getrlimit(syscall.RLIMIT_NOFILE, &lim)
+	lim.Cur = lim.Max
+	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &lim)
+	if err != nil {
+		tlog.Warn.Printf("Setting RLIMIT_NOFILE failed: %v", err)
+	} else if lim.Cur < 4096 {
+		tlog.Warn.Printf("Low hard limit for RLIMIT_NOFILE: %d", lim.Cur)
+	}
 	// Wait for SIGINT in the background and unmount ourselves if we get it.
 	// This prevents a dangling "Transport endpoint is not connected"
 	// mountpoint if the user hits CTRL-C.
