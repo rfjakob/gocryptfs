@@ -108,6 +108,12 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 	tlog.Debug.Printf("Open: %s", cPath)
 	f, err := os.OpenFile(cPath, newFlags, 0666)
 	if err != nil {
+		err2 := err.(*os.PathError)
+		if err2.Err == syscall.EMFILE {
+			var lim syscall.Rlimit
+			syscall.Getrlimit(syscall.RLIMIT_NOFILE, &lim)
+			tlog.Warn.Printf("Open %q: too many open files. Current \"ulimit -n\": %d", cPath, lim.Cur)
+		}
 		return nil, fuse.ToStatus(err)
 	}
 
