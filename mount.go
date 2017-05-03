@@ -147,18 +147,9 @@ func doMount(args *argContainer) int {
 		// Send SIGUSR1 to our parent
 		sendUsr1(args.notifypid)
 	}
-	// Increase the number of open files limit up to the hard limit. It's not
-	// dramatic if that fails, so do it after we have switched to syslog and not
-	// bother the user with warning.
-	var lim syscall.Rlimit
-	syscall.Getrlimit(syscall.RLIMIT_NOFILE, &lim)
-	lim.Cur = lim.Max
-	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &lim)
-	if err != nil {
-		tlog.Warn.Printf("Setting RLIMIT_NOFILE failed: %v", err)
-	} else if lim.Cur < 4096 {
-		tlog.Warn.Printf("Low hard limit for RLIMIT_NOFILE: %d", lim.Cur)
-	}
+	// Increase the open file limit to 4096. This is not essential, so do it after
+	// we have switched to syslog and don't bother the user with warnings.
+	setOpenFileLimit()
 	// Wait for SIGINT in the background and unmount ourselves if we get it.
 	// This prevents a dangling "Transport endpoint is not connected"
 	// mountpoint if the user hits CTRL-C.
@@ -179,6 +170,26 @@ func doMount(args *argContainer) int {
 		}
 	}
 	return 0
+}
+
+// setOpenFileLimit tries to increase the open file limit to 4096 (the default hard
+// limit on Linux).
+func setOpenFileLimit() {
+	var lim syscall.Rlimit
+	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &lim)
+	if err != nil {
+		tlog.Warn.Printf("Getting RLIMIT_NOFILE failed: %v", err)
+		return
+	}
+	if lim.Cur >= 4096 {
+		return
+	}
+	lim.Cur = 4096
+	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &lim)
+	if err != nil {
+		tlog.Warn.Printf("Setting RLIMIT_NOFILE to %+v failed: %v", lim, err)
+		//         %+v output: "{Cur:4097 Max:4096}" ^
+	}
 }
 
 // initFuseFrontend - initialize gocryptfs/fusefrontend
