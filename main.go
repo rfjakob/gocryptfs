@@ -28,13 +28,11 @@ const (
 	ErrExitMountPoint = 10
 )
 
-const pleaseBuildBash = "[not set - please compile using ./build.bash]"
-
 // GitVersion is the gocryptfs version according to git, set by build.bash
-var GitVersion = pleaseBuildBash
+var GitVersion = "[GitVersion not set - please compile using ./build.bash]"
 
 // GitVersionFuse is the go-fuse library version, set by build.bash
-var GitVersionFuse = pleaseBuildBash
+var GitVersionFuse = "[GitVersionFuse not set - please compile using ./build.bash]"
 
 // BuildTime is the Unix timestamp, set by build.bash
 var BuildTime = "0"
