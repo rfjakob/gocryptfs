@@ -39,6 +39,9 @@ var GitVersionFuse = pleaseBuildBash
 // BuildTime is the Unix timestamp, set by build.bash
 var BuildTime = "0"
 
+// raceDetector is set to true by race.go if we are compiled with "go build -race"
+var raceDetector bool
+
 func usageText() {
 	printVersion()
 	fmt.Printf(`
@@ -124,6 +127,9 @@ func printVersion() {
 		buildFlags = " without_openssl"
 	}
 	built := fmt.Sprintf("%s %s", humanTime, runtime.Version())
+	if raceDetector {
+		built += " -race"
+	}
 	fmt.Printf("%s %s%s; go-fuse %s; %s\n",
 		tlog.ProgramName, GitVersion, buildFlags, GitVersionFuse, built)
 }
