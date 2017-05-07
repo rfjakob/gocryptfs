@@ -5,6 +5,8 @@ package stupidgcm
 import (
 	"fmt"
 	"os"
+
+	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 )
 
 type stupidGCM struct{}
@@ -16,7 +18,7 @@ const (
 
 func errExit() {
 	fmt.Fprintln(os.Stderr, "gocryptfs has been compiled without openssl support but you are still trying to use openssl")
-	os.Exit(2)
+	os.Exit(exitcodes.OpenSSL)
 }
 
 func New(_ []byte, _ bool) stupidGCM {

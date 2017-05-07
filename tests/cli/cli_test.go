@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
+	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
@@ -314,5 +315,18 @@ func TestInitTrailingGarbage(t *testing.T) {
 		} else if success == false && row.expectSuccess == true {
 			t.Errorf("pw=%q should have succeeded, but failed", row.pw)
 		}
+	}
+}
+
+// TestPasswordIncorrect makes sure the correct exit code is used when the password
+// was incorrect
+func TestPasswordIncorrect(t *testing.T) {
+	cDir := test_helpers.InitFS(t)
+	pDir := cDir + ".mnt"
+	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "echo WRONG", "-wpanic=false")
+	//          vvvvvvvvvvvvvv OMG vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+	exitCode := err.(*exec.ExitError).Sys().(syscall.WaitStatus).ExitStatus()
+	if exitCode != exitcodes.PasswordIncorrect {
+		t.Errorf("want=%d, got=%d", exitcodes.PasswordIncorrect, exitCode)
 	}
 }

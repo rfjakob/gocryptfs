@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -36,7 +37,7 @@ func forkChild() int {
 	err := c.Start()
 	if err != nil {
 		tlog.Fatal.Printf("forkChild: starting %s failed: %v\n", name, err)
-		return 1
+		return exitcodes.ForkChild
 	}
 	err = c.Wait()
 	if err != nil {
@@ -46,7 +47,7 @@ func forkChild() int {
 			}
 		}
 		tlog.Fatal.Printf("forkChild: wait returned an unknown error: %v\n", err)
-		return 1
+		return exitcodes.ForkChild
 	}
 	// The child exited with 0 - let's do the same.
 	return 0

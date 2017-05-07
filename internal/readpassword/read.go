@@ -12,11 +12,11 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
+	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 const (
-	exitCode = 9
 	// 2kB limit like EncFS
 	maxPasswordLen = 2048
 )
@@ -46,7 +46,7 @@ func Twice(extpass string) string {
 	p2 := readPasswordTerminal("Repeat: ")
 	if p1 != p2 {
 		tlog.Fatal.Println("Passwords do not match")
-		os.Exit(exitCode)
+		os.Exit(exitcodes.ReadPassword)
 	}
 	return p1
 }
@@ -60,12 +60,12 @@ func readPasswordTerminal(prompt string) string {
 	p, err := terminal.ReadPassword(fd)
 	if err != nil {
 		tlog.Fatal.Printf("Could not read password from terminal: %v\n", err)
-		os.Exit(exitCode)
+		os.Exit(exitcodes.ReadPassword)
 	}
 	fmt.Fprintf(os.Stderr, "\n")
 	if len(p) == 0 {
 		tlog.Fatal.Println("Password is empty")
-		os.Exit(exitCode)
+		os.Exit(exitcodes.ReadPassword)
 	}
 	return string(p)
 }
@@ -77,7 +77,7 @@ func readPasswordStdin() string {
 	p := readLineUnbuffered(os.Stdin)
 	if len(p) == 0 {
 		tlog.Fatal.Println("Got empty password from stdin")
-		os.Exit(exitCode)
+		os.Exit(exitcodes.ReadPassword)
 	}
 	return p
 }
@@ -102,23 +102,23 @@ func readPasswordExtpass(extpass string) string {
 	pipe, err := cmd.StdoutPipe()
 	if err != nil {
 		tlog.Fatal.Printf("extpass pipe setup failed: %v", err)
-		os.Exit(exitCode)
+		os.Exit(exitcodes.ReadPassword)
 	}
 	err = cmd.Start()
 	if err != nil {
 		tlog.Fatal.Printf("extpass cmd start failed: %v", err)
-		os.Exit(exitCode)
+		os.Exit(exitcodes.ReadPassword)
 	}
 	p := readLineUnbuffered(pipe)
 	pipe.Close()
 	err = cmd.Wait()
 	if err != nil {
 		tlog.Fatal.Printf("extpass program returned an error: %v", err)
-		os.Exit(exitCode)
+		os.Exit(exitcodes.ReadPassword)
 	}
 	if len(p) == 0 {
 		tlog.Fatal.Println("extpass: password is empty")
-		os.Exit(exitCode)
+		os.Exit(exitcodes.ReadPassword)
 	}
 	return p
 }
@@ -130,7 +130,7 @@ func readLineUnbuffered(r io.Reader) (l string) {
 	for {
 		if len(l) > maxPasswordLen {
 			tlog.Fatal.Printf("fatal: maximum password length of %d bytes exceeded", maxPasswordLen)
-			os.Exit(exitCode)
+			os.Exit(exitcodes.ReadPassword)
 		}
 		n, err := r.Read(b)
 		if err == io.EOF {
@@ -138,7 +138,7 @@ func readLineUnbuffered(r io.Reader) (l string) {
 		}
 		if err != nil {
 			tlog.Fatal.Printf("readLineUnbuffered: %v", err)
-			os.Exit(exitCode)
+			os.Exit(exitcodes.ReadPassword)
 		}
 		if n == 0 {
 			continue
@@ -170,7 +170,7 @@ func CheckTrailingGarbage() {
 		n, _ := os.Stdin.Read(b)
 		if n > 0 {
 			tlog.Fatal.Printf("Received trailing garbage after the password")
-			os.Exit(exitCode)
+			os.Exit(exitcodes.ReadPassword)
 		}
 	}()
 	// Wait for the goroutine to start up plus one millisecond for the read to

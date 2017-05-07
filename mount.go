@@ -36,14 +36,14 @@ func doMount(args *argContainer) int {
 	args.mountpoint, err = filepath.Abs(flagSet.Arg(1))
 	if err != nil {
 		tlog.Fatal.Printf("Invalid mountpoint: %v", err)
-		os.Exit(ErrExitMountPoint)
+		os.Exit(exitcodes.MountPoint)
 	}
 	// We cannot mount "/home/user/.cipher" at "/home/user" because the mount
 	// will hide ".cipher" also for us.
 	if args.cipherdir == args.mountpoint || strings.HasPrefix(args.cipherdir, args.mountpoint+"/") {
 		tlog.Fatal.Printf("Mountpoint %q would shadow cipherdir %q, this is not supported",
 			args.mountpoint, args.cipherdir)
-		os.Exit(ErrExitMountPoint)
+		os.Exit(exitcodes.MountPoint)
 	}
 	if args.nonempty {
 		err = checkDir(args.mountpoint)
@@ -52,7 +52,7 @@ func doMount(args *argContainer) int {
 	}
 	if err != nil {
 		tlog.Fatal.Printf("Invalid mountpoint: %v", err)
-		os.Exit(ErrExitMountPoint)
+		os.Exit(exitcodes.MountPoint)
 	}
 	// Open control socket early so we can error out before asking the user
 	// for the password
@@ -64,7 +64,7 @@ func doMount(args *argContainer) int {
 		sock, err = net.Listen("unix", args.ctlsock)
 		if err != nil {
 			tlog.Fatal.Printf("ctlsock: %v", err)
-			os.Exit(ErrExitMount)
+			os.Exit(exitcodes.Mount)
 		}
 		args._ctlsockFd = sock
 		// Close also deletes the socket file
@@ -118,7 +118,7 @@ func doMount(args *argContainer) int {
 			paniclog, err = ioutil.TempFile("", "gocryptfs_paniclog.")
 			if err != nil {
 				tlog.Fatal.Printf("Failed to create gocryptfs_paniclog: %v", err)
-				os.Exit(ErrExitMount)
+				os.Exit(exitcodes.Mount)
 			}
 			// Switch all of our logs and the generic logger to syslog
 			tlog.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
@@ -165,6 +165,7 @@ func doMount(args *argContainer) int {
 		} else if fi.Size() > 0 {
 			tlog.Warn.Printf("paniclog at %q is not empty (size %d). Not deleting it.",
 				paniclog.Name(), fi.Size())
+			return exitcodes.PanicLog
 		} else {
 			syscall.Unlink(paniclog.Name())
 		}
@@ -227,7 +228,7 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 			frontendArgs.CryptoBackend = cryptocore.BackendAESSIV
 		} else if args.reverse {
 			tlog.Fatal.Printf("AES-SIV is required by reverse mode, but not enabled in the config file")
-			os.Exit(ErrExitUsage)
+			os.Exit(exitcodes.Usage)
 		}
 	}
 	// If allow_other is set and we run as root, try to give newly created files to
@@ -306,7 +307,7 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 	srv, err := fuse.NewServer(conn.RawFS(), args.mountpoint, &mOpts)
 	if err != nil {
 		tlog.Fatal.Printf("Mount failed: %v", err)
-		os.Exit(ErrExitMount)
+		os.Exit(exitcodes.Mount)
 	}
 	srv.SetDebug(args.fusedebug)
 
@@ -336,6 +337,6 @@ func handleSigint(srv *fuse.Server, mountpoint string) {
 				cmd.Run()
 			}
 		}
-		os.Exit(1)
+		os.Exit(exitcodes.SigInt)
 	}()
 }

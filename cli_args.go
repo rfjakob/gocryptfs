@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
+	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/prefer_openssl"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
@@ -56,7 +57,7 @@ func prefixOArgs(osArgs []string) []string {
 			// Last argument?
 			if i+1 >= len(osArgs) {
 				tlog.Fatal.Printf("The \"-o\" option requires an argument")
-				os.Exit(ErrExitUsage)
+				os.Exit(exitcodes.Usage)
 			}
 			oOpts = strings.Split(osArgs[i+1], ",")
 			// Skip over the arguments to "-o"
@@ -76,7 +77,7 @@ func prefixOArgs(osArgs []string) []string {
 		}
 		if o == "o" || o == "-o" {
 			tlog.Fatal.Printf("You can't pass \"-o\" to \"-o\"")
-			os.Exit(ErrExitUsage)
+			os.Exit(exitcodes.Usage)
 		}
 		newArgs = append(newArgs, "-"+o)
 	}
@@ -153,7 +154,7 @@ func parseCliOpts() (args argContainer) {
 	if err != nil {
 		tlog.Warn.Printf("You passed: %s", prettyArgs())
 		tlog.Fatal.Printf("%v", err)
-		os.Exit(ErrExitUsage)
+		os.Exit(exitcodes.Usage)
 	}
 	// "-openssl" needs some post-processing
 	if opensslAuto == "auto" {
@@ -162,27 +163,27 @@ func parseCliOpts() (args argContainer) {
 		args.openssl, err = strconv.ParseBool(opensslAuto)
 		if err != nil {
 			tlog.Fatal.Printf("Invalid \"-openssl\" setting: %v", err)
-			os.Exit(ErrExitUsage)
+			os.Exit(exitcodes.Usage)
 		}
 	}
 	// "-forcedecode" only works with openssl. Check compilation and command line parameters
 	if args.forcedecode == true {
 		if stupidgcm.BuiltWithoutOpenssl == true {
 			tlog.Fatal.Printf("The -forcedecode flag requires openssl support, but gocryptfs was compiled without it!")
-			os.Exit(ErrExitUsage)
+			os.Exit(exitcodes.Usage)
 		}
 		if args.aessiv == true {
 			tlog.Fatal.Printf("The -forcedecode and -aessiv flags are incompatible because they use different crypto libs (openssl vs native Go)")
-			os.Exit(ErrExitUsage)
+			os.Exit(exitcodes.Usage)
 		}
 		if args.reverse == true {
 			tlog.Fatal.Printf("The reverse mode and the -forcedecode option are not compatible")
-			os.Exit(ErrExitUsage)
+			os.Exit(exitcodes.Usage)
 		}
 		// Has the user explicitely disabled openssl using "-openssl=false/0"?
 		if !args.openssl && opensslAuto != "auto" {
 			tlog.Fatal.Printf("-forcedecode requires openssl, but is disabled via command-line option")
-			os.Exit(ErrExitUsage)
+			os.Exit(exitcodes.Usage)
 		}
 		args.openssl = true
 
@@ -197,7 +198,7 @@ func parseCliOpts() (args argContainer) {
 	}
 	if args.extpass != "" && args.masterkey != "" {
 		tlog.Fatal.Printf("The options -extpass and -masterkey cannot be used at the same time")
-		os.Exit(ErrExitUsage)
+		os.Exit(exitcodes.Usage)
 	}
 	return args
 }

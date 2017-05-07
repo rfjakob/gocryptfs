@@ -12,20 +12,11 @@ import (
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/speed"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
-)
-
-// Exit codes
-const (
-	ErrExitUsage      = 1
-	ErrExitMount      = 3
-	ErrExitCipherDir  = 6
-	ErrExitInit       = 7
-	ErrExitLoadConf   = 8
-	ErrExitMountPoint = 10
 )
 
 // GitVersion is the gocryptfs version according to git, set by build.bash
@@ -85,7 +76,7 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 func changePassword(args *argContainer) {
 	masterkey, confFile, err := loadConfig(args)
 	if err != nil {
-		os.Exit(ErrExitLoadConf)
+		os.Exit(exitcodes.LoadConf)
 	}
 	tlog.Info.Println("Please enter your new password.")
 	newPw := readpassword.Twice(args.extpass)
@@ -96,7 +87,7 @@ func changePassword(args *argContainer) {
 		err = os.Link(args.config, bak)
 		if err != nil {
 			tlog.Fatal.Printf("Could not create backup file: %v", err)
-			os.Exit(ErrExitInit)
+			os.Exit(exitcodes.Init)
 		}
 		tlog.Info.Printf(tlog.ColorGrey+
 			"A copy of the old config file has been created at %q.\n"+
@@ -106,7 +97,7 @@ func changePassword(args *argContainer) {
 	err = confFile.WriteFile()
 	if err != nil {
 		tlog.Fatal.Println(err)
-		os.Exit(ErrExitInit)
+		os.Exit(exitcodes.Init)
 	}
 	tlog.Info.Printf(tlog.ColorGreen + "Password changed." + tlog.ColorReset)
 	os.Exit(0)
@@ -169,11 +160,11 @@ func main() {
 		err = checkDir(args.cipherdir)
 		if err != nil {
 			tlog.Fatal.Printf("Invalid cipherdir: %v", err)
-			os.Exit(ErrExitCipherDir)
+			os.Exit(exitcodes.CipherDir)
 		}
 	} else {
 		usageText()
-		os.Exit(ErrExitUsage)
+		os.Exit(exitcodes.Usage)
 	}
 	// "-q"
 	if args.quiet {
@@ -188,7 +179,7 @@ func main() {
 		args.config, err = filepath.Abs(args.config)
 		if err != nil {
 			tlog.Fatal.Printf("Invalid \"-config\" setting: %v", err)
-			os.Exit(ErrExitInit)
+			os.Exit(exitcodes.Init)
 		}
 		tlog.Info.Printf("Using config file at custom location %s", args.config)
 		args._configCustom = true
@@ -204,7 +195,7 @@ func main() {
 		f, err = os.Create(args.cpuprofile)
 		if err != nil {
 			tlog.Fatal.Println(err)
-			os.Exit(ErrExitInit)
+			os.Exit(exitcodes.Init)
 		}
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
@@ -216,7 +207,7 @@ func main() {
 		f, err = os.Create(args.memprofile)
 		if err != nil {
 			tlog.Fatal.Println(err)
-			os.Exit(ErrExitInit)
+			os.Exit(exitcodes.Init)
 		}
 		defer func() {
 			pprof.WriteHeapProfile(f)
@@ -238,7 +229,7 @@ func main() {
 	if args.init {
 		if flagSet.NArg() > 1 {
 			tlog.Fatal.Printf("Usage: %s -init [OPTIONS] CIPHERDIR", tlog.ProgramName)
-			os.Exit(ErrExitUsage)
+			os.Exit(exitcodes.Usage)
 		}
 		initDir(&args) // does not return
 	}
@@ -246,7 +237,7 @@ func main() {
 	if args.passwd {
 		if flagSet.NArg() > 1 {
 			tlog.Fatal.Printf("Usage: %s -passwd [OPTIONS] CIPHERDIR", tlog.ProgramName)
-			os.Exit(ErrExitUsage)
+			os.Exit(exitcodes.Usage)
 		}
 		changePassword(&args) // does not return
 	}
@@ -256,7 +247,7 @@ func main() {
 		tlog.Info.Printf("Wrong number of arguments (have %d, want 2). You passed: %s",
 			flagSet.NArg(), prettyArgs)
 		tlog.Fatal.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]", tlog.ProgramName)
-		os.Exit(ErrExitUsage)
+		os.Exit(exitcodes.Usage)
 	}
 	ret := doMount(&args)
 	if ret != 0 {

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
+	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
@@ -22,13 +23,13 @@ func initDir(args *argContainer) {
 		_, err = os.Stat(args.config)
 		if err == nil {
 			tlog.Fatal.Printf("Config file %q already exists", args.config)
-			os.Exit(ErrExitInit)
+			os.Exit(exitcodes.Init)
 		}
 	} else {
 		err = checkDirEmpty(args.cipherdir)
 		if err != nil {
 			tlog.Fatal.Printf("Invalid cipherdir: %v", err)
-			os.Exit(ErrExitInit)
+			os.Exit(exitcodes.Init)
 		}
 	}
 	// Choose password for config file
@@ -41,7 +42,7 @@ func initDir(args *argContainer) {
 	err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator, args.aessiv)
 	if err != nil {
 		tlog.Fatal.Println(err)
-		os.Exit(ErrExitInit)
+		os.Exit(exitcodes.Init)
 	}
 	// Forward mode with filename encryption enabled needs a gocryptfs.diriv
 	// in the root dir
@@ -49,7 +50,7 @@ func initDir(args *argContainer) {
 		err = nametransform.WriteDirIV(args.cipherdir)
 		if err != nil {
 			tlog.Fatal.Println(err)
-			os.Exit(ErrExitInit)
+			os.Exit(exitcodes.Init)
 		}
 	}
 	mountArgs := ""

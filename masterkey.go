@@ -8,6 +8,7 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
+	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -50,11 +51,11 @@ func parseMasterKey(masterkey string) []byte {
 	key, err := hex.DecodeString(masterkey)
 	if err != nil {
 		tlog.Fatal.Printf("Could not parse master key: %v", err)
-		os.Exit(1)
+		os.Exit(exitcodes.MasterKey)
 	}
 	if len(key) != cryptocore.KeyLen {
 		tlog.Fatal.Printf("Master key has length %d but we require length %d", len(key), cryptocore.KeyLen)
-		os.Exit(1)
+		os.Exit(exitcodes.MasterKey)
 	}
 	tlog.Info.Printf("Using explicit master key.")
 	tlog.Info.Printf(tlog.ColorYellow +
