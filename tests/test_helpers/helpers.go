@@ -1,6 +1,7 @@
 package test_helpers
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
@@ -27,6 +28,9 @@ const GocryptfsBinary = "../../gocryptfs"
 // UnmountScript is the fusermount/umount compatibility wrapper script
 const UnmountScript = "../fuse-unmount.bash"
 
+// X255 contains 255 uppercase "X". This can be used as a maximum-length filename.
+var X255 string
+
 // TmpDir is a unique temporary directory. "go test" runs package tests in parallel. We create a
 // unique TmpDir in init() so the tests do not interfere.
 var TmpDir string
@@ -38,6 +42,8 @@ var DefaultPlainDir string
 var DefaultCipherDir string
 
 func init() {
+	X255 = string(bytes.Repeat([]byte("X"), 255))
+
 	os.MkdirAll(testParentDir, 0700)
 	var err error
 	TmpDir, err = ioutil.TempDir(testParentDir, "")

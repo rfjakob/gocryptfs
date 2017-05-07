@@ -8,10 +8,8 @@ import (
 	"os/exec"
 	"runtime"
 	"sync"
-	"syscall"
 	"testing"
 
-	"github.com/rfjakob/gocryptfs/internal/ctlsock"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
@@ -39,36 +37,6 @@ func Test1980Tar(t *testing.T) {
 	m := fi.ModTime().Unix()
 	if m != 315619323 {
 		t.Errorf("Wrong mtime: %d", m)
-	}
-}
-
-func TestCtlSock(t *testing.T) {
-	cDir := test_helpers.InitFS(t)
-	pDir := cDir + ".mnt"
-	sock := cDir + ".sock"
-	test_helpers.MountOrFatal(t, cDir, pDir, "-ctlsock="+sock, "-extpass", "echo test")
-	defer test_helpers.UnmountPanic(pDir)
-	req := ctlsock.RequestStruct{
-		EncryptPath: "foobar",
-	}
-	response := test_helpers.QueryCtlSock(t, sock, req)
-	if response.Result == "" || response.ErrNo != 0 {
-		t.Errorf("got an error reply: %+v", response)
-	}
-	req.EncryptPath = "not-existing-dir/xyz"
-	response = test_helpers.QueryCtlSock(t, sock, req)
-	if response.ErrNo != int32(syscall.ENOENT) || response.Result != "" {
-		t.Errorf("incorrect error handling: %+v", response)
-	}
-	// Strange paths should not cause a crash
-	crashers := []string{"/foo", "foo/", "/foo/", ".", "/////", "/../../."}
-	for _, c := range crashers {
-		req.EncryptPath = c
-		// QueryCtlSock calls t.Fatal if it gets EOF when gocryptfs panics
-		response = test_helpers.QueryCtlSock(t, sock, req)
-		if response.WarnText == "" {
-			t.Errorf("We should get a warning about non-canonical paths here")
-		}
 	}
 }
 
