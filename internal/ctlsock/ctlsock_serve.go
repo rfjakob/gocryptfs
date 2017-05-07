@@ -1,4 +1,4 @@
-// Package ctlsock implementes the control socket interface that can be
+// Package ctlsock implements the control socket interface that can be
 // activated by passing "-ctlsock" on the command line.
 package ctlsock
 

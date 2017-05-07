@@ -16,7 +16,7 @@ const (
 	// ported over here.
 )
 
-// Err wraps and error with an associated numeric exit code
+// Err wraps an error with an associated numeric exit code
 type Err struct {
 	error
 	code int

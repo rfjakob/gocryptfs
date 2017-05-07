@@ -38,7 +38,7 @@ type ScryptKDF struct {
 	N int
 	// R: scrypt block size parameter
 	R int
-	// P: scrypt parallization paramter
+	// P: scrypt parallelization parameter
 	P int
 	// KeyLen is the output data length
 	KeyLen int

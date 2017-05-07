@@ -24,7 +24,7 @@ const testParentDir = "/tmp/gocryptfs-test-parent"
 // GocryptfsBinary is the assumed path to the gocryptfs build.
 const GocryptfsBinary = "../../gocryptfs"
 
-// UnmountScript is the fusermount/umount compatability wrapper script
+// UnmountScript is the fusermount/umount compatibility wrapper script
 const UnmountScript = "../fuse-unmount.bash"
 
 // TmpDir is a unique temporary directory. "go test" runs package tests in parallel. We create a
