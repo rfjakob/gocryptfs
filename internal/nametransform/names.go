@@ -2,6 +2,7 @@
 package nametransform
 
 import (
+	"bytes"
 	"crypto/aes"
 	"encoding/base64"
 	"syscall"
@@ -34,10 +35,8 @@ func New(e *eme.EMECipher, longNames bool, raw64 bool) *NameTransform {
 	}
 }
 
-// DecryptName - decrypt base64-encoded encrypted filename "cipherName"
-//
-// This function is exported because it allows for a very efficient readdir
-// implementation (read IV once, decrypt all names using this function).
+// DecryptName decrypts a base64-encoded encrypted filename "cipherName" using the
+// initialization vector "iv".
 func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error) {
 	bin, err := n.B64.DecodeString(cipherName)
 	if err != nil {
@@ -45,16 +44,21 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 	}
 	if len(bin)%aes.BlockSize != 0 {
 		tlog.Debug.Printf("DecryptName %q: decoded length %d is not a multiple of 16", cipherName, len(bin))
-		return "", syscall.EINVAL
+		return "", syscall.EBADMSG
 	}
 	bin = n.emeCipher.Decrypt(iv, bin)
 	bin, err = unPad16(bin)
 	if err != nil {
-		tlog.Debug.Printf("pad16 error detail: %v", err)
+		tlog.Debug.Printf("DecryptName: unPad16 error: %v", err)
 		// unPad16 returns detailed errors including the position of the
 		// incorrect bytes. Kill the padding oracle by lumping everything into
 		// a generic error.
-		return "", syscall.EINVAL
+		return "", syscall.EBADMSG
+	}
+	// A name can never contain a null byte or "/". Make sure we never return those
+	// to the user, even when we read a corrupted (or fuzzed) filesystem.
+	if bytes.Contains(bin, []byte{0}) || bytes.Contains(bin, []byte("/")) {
+		return "", syscall.EBADMSG
 	}
 	plain := string(bin)
 	return plain, err
