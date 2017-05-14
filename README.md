@@ -143,6 +143,15 @@ RM:    4.42
 Changelog
 ---------
 
+v1.3.1 (not yet released)
+* Increase open file limit to 4096 ([#82](https://github.com/rfjakob/gocryptfs/issues/82)).
+* Implement path decryption via ctlsock ([#84](https://github.com/rfjakob/gocryptfs/issues/84)).
+  Previously, decryption was only implemented for reverse mode. Now both
+  normal and reverse mode support both decryption and encryption of
+  paths via ctlsock.
+* Add more specific exit codes for the most common failure modes,
+  documented in [CLI_ABI.md](Documentation/CLI_ABI.md)
+
 v1.3, 2017-04-29
 * **Use HKDF to derive separate keys for GCM and EME**
   * New feature flag: `HKDF` (enabled by default)
