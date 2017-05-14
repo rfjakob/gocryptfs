@@ -37,6 +37,14 @@ Content of "mypassword.txt":
 
 1. The CIPHERDIR directory must exist and be empty
 
+#### Exit Codes
+
+* 0 = success
+* 6 = CIPHERDIR is invalid: not an empty directory
+* 22 = password is empty
+* 24 = could not create gocryptfs.conf
+* other = please inspect the message
+
 Mount
 -----
 
@@ -51,6 +59,14 @@ Same as for "Initialize Filesystem".
 #### Notes
 
 1. The MOUNTPOINT directory must exist and be empty.
+
+#### Exit Codes
+
+* 0 = success
+* 10 = MOUNTPOINT is not an empty directory or contains CIPHERDIR
+* 12 = password incorrect
+* 23 = gocryptfs.conf could not be opened (does not exist, is unreadable, ...)
+* other = please inspect the message
 
 Change Password
 ---------------
@@ -71,3 +87,16 @@ Content of "change.txt":
 3. New password
 4. Optional newline
 
+#### Exit Codes
+
+* 0 = success
+* 12 = password incorrect
+* 23 = gocryptfs.conf could not be opened for reading
+* 24 = could not write the updated gocryptfs.conf
+* other = please inspect the message
+
+Further Reading
+---------------
+
+Additional exit codes that are unlikely to occour are defined in
+[exitcodes.go](internal/exitcodes/exitcodes.go).
