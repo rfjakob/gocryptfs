@@ -99,4 +99,4 @@ Further Reading
 ---------------
 
 Additional exit codes that are unlikely to occour are defined in
-[exitcodes.go](internal/exitcodes/exitcodes.go).
+[exitcodes.go](../internal/exitcodes/exitcodes.go).
