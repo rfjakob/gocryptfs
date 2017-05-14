@@ -318,13 +318,42 @@ func TestInitTrailingGarbage(t *testing.T) {
 	}
 }
 
-// TestPasswordIncorrect makes sure the correct exit code is used when the password
-// was incorrect
-func TestPasswordIncorrect(t *testing.T) {
-	cDir := test_helpers.InitFS(t)
+// TestMountPasswordIncorrect makes sure the correct exit code is used when the password
+// was incorrect while mounting
+func TestMountPasswordIncorrect(t *testing.T) {
+	cDir := test_helpers.InitFS(t) // Create filesystem with password "test"
 	pDir := cDir + ".mnt"
 	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "echo WRONG", "-wpanic=false")
 	//          vvvvvvvvvvvvvv OMG vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+	exitCode := err.(*exec.ExitError).Sys().(syscall.WaitStatus).ExitStatus()
+	if exitCode != exitcodes.PasswordIncorrect {
+		t.Errorf("want=%d, got=%d", exitcodes.PasswordIncorrect, exitCode)
+	}
+}
+
+// TestPasswdPasswordIncorrect makes sure the correct exit code is used when the password
+// was incorrect while changing the password
+func TestPasswdPasswordIncorrect(t *testing.T) {
+	cDir := test_helpers.InitFS(t) // Create filesystem with password "test"
+	// Change password
+	cmd := exec.Command(test_helpers.GocryptfsBinary, "-passwd", cDir)
+	childStdin, err := cmd.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cmd.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = childStdin.Write([]byte("WRONGPASSWORD\nNewPassword"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = childStdin.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cmd.Wait()
 	exitCode := err.(*exec.ExitError).Sys().(syscall.WaitStatus).ExitStatus()
 	if exitCode != exitcodes.PasswordIncorrect {
 		t.Errorf("want=%d, got=%d", exitcodes.PasswordIncorrect, exitCode)

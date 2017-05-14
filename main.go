@@ -76,7 +76,7 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 func changePassword(args *argContainer) {
 	masterkey, confFile, err := loadConfig(args)
 	if err != nil {
-		os.Exit(exitcodes.LoadConf)
+		exitcodes.Exit(err)
 	}
 	tlog.Info.Println("Please enter your new password.")
 	newPw := readpassword.Twice(args.extpass)
