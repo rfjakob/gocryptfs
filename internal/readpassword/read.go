@@ -65,7 +65,7 @@ func readPasswordTerminal(prompt string) string {
 	fmt.Fprintf(os.Stderr, "\n")
 	if len(p) == 0 {
 		tlog.Fatal.Println("Password is empty")
-		os.Exit(exitcodes.ReadPassword)
+		os.Exit(exitcodes.PasswordEmpty)
 	}
 	return string(p)
 }

@@ -14,7 +14,8 @@ const (
 	// 3 is reserved because it was used by earlier gocryptfs version as a generic
 	// "mount" error.
 
-	// CipherDir means that the CIPHERDIR does not exist
+	// CipherDir means that the CIPHERDIR does not exist, is not empty, or is not
+	// a directory.
 	CipherDir = 6
 	// Init is an error on filesystem init
 	Init = 7
@@ -50,6 +51,8 @@ const (
 	CtlSock = 20
 	// PanicLogCreate - there was a problem creating the /tmp/gocryptfs_paniclog.XYZ file.
 	PanicLogCreate = 21
+	// PasswordEmpty - we received an empty password
+	PasswordEmpty = 22
 )
 
 // Err wraps an error with an associated numeric exit code
