@@ -64,7 +64,7 @@ func doMount(args *argContainer) int {
 		sock, err = net.Listen("unix", args.ctlsock)
 		if err != nil {
 			tlog.Fatal.Printf("ctlsock: %v", err)
-			os.Exit(exitcodes.Mount)
+			os.Exit(exitcodes.CtlSock)
 		}
 		args._ctlsockFd = sock
 		// Close also deletes the socket file
@@ -118,7 +118,7 @@ func doMount(args *argContainer) int {
 			paniclog, err = ioutil.TempFile("", "gocryptfs_paniclog.")
 			if err != nil {
 				tlog.Fatal.Printf("Failed to create gocryptfs_paniclog: %v", err)
-				os.Exit(exitcodes.Mount)
+				os.Exit(exitcodes.PanicLogCreate)
 			}
 			// Switch all of our logs and the generic logger to syslog
 			tlog.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
@@ -165,7 +165,7 @@ func doMount(args *argContainer) int {
 		} else if fi.Size() > 0 {
 			tlog.Warn.Printf("paniclog at %q is not empty (size %d). Not deleting it.",
 				paniclog.Name(), fi.Size())
-			return exitcodes.PanicLog
+			return exitcodes.PanicLogNotEmpty
 		} else {
 			syscall.Unlink(paniclog.Name())
 		}
@@ -306,8 +306,8 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 	}
 	srv, err := fuse.NewServer(conn.RawFS(), args.mountpoint, &mOpts)
 	if err != nil {
-		tlog.Fatal.Printf("Mount failed: %v", err)
-		os.Exit(exitcodes.Mount)
+		tlog.Fatal.Printf("fuse.NewServer failed: %v", err)
+		os.Exit(exitcodes.FuseNewServer)
 	}
 	srv.SetDebug(args.fusedebug)
 
