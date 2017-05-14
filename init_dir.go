@@ -42,7 +42,7 @@ func initDir(args *argContainer) {
 	err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator, args.aessiv)
 	if err != nil {
 		tlog.Fatal.Println(err)
-		os.Exit(exitcodes.Init)
+		os.Exit(exitcodes.WriteConf)
 	}
 	// Forward mode with filename encryption enabled needs a gocryptfs.diriv
 	// in the root dir

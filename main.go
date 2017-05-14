@@ -52,7 +52,7 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 	fd, err := os.Open(args.config)
 	if err != nil {
 		tlog.Fatal.Printf("Cannot open config file: %v", err)
-		return nil, nil, err
+		return nil, nil, exitcodes.NewErr(err.Error(), exitcodes.OpenConf)
 	}
 	fd.Close()
 	// The user has passed the master key (probably because he forgot the
@@ -97,7 +97,7 @@ func changePassword(args *argContainer) {
 	err = confFile.WriteFile()
 	if err != nil {
 		tlog.Fatal.Println(err)
-		os.Exit(exitcodes.Init)
+		os.Exit(exitcodes.WriteConf)
 	}
 	tlog.Info.Printf(tlog.ColorGreen + "Password changed." + tlog.ColorReset)
 	os.Exit(0)

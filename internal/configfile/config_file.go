@@ -96,6 +96,7 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 	// Read from disk
 	js, err := ioutil.ReadFile(filename)
 	if err != nil {
+		fmt.Printf("LoadConfFile: ReadFile: %#v\n", err)
 		return nil, nil, err
 	}
 

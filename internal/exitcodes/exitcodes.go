@@ -53,6 +53,10 @@ const (
 	PanicLogCreate = 21
 	// PasswordEmpty - we received an empty password
 	PasswordEmpty = 22
+	// OpenConf - the was an error opening the gocryptfs.conf file for reading
+	OpenConf = 23
+	// WriteConf - could not write the gocryptfs.conf
+	WriteConf = 24
 )
 
 // Err wraps an error with an associated numeric exit code
