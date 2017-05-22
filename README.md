@@ -143,7 +143,7 @@ RM:    4.42
 Changelog
 ---------
 
-v1.3.1 (not yet released)
+v1.4 (not yet released)
 * Increase open file limit to 4096 ([#82](https://github.com/rfjakob/gocryptfs/issues/82)).
 * Implement path decryption via ctlsock ([#84](https://github.com/rfjakob/gocryptfs/issues/84)).
   Previously, decryption was only implemented for reverse mode. Now both
@@ -171,7 +171,7 @@ v1.3, 2017-04-29
 * Use stable 64-bit inode numbers in reverse mode
   * This may cause problems for very old 32-bit applications
     that were compiled without Large File Support.
-* Passing "--" now also block "-o" parsing
+* Passing "--" now also blocks "-o" parsing
 
 v1.2.1, 2017-02-26
 * Add an integrated speed test, `gocryptfs -speed`
