@@ -42,6 +42,10 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 	if err != nil {
 		return "", err
 	}
+	if len(bin) == 0 {
+		tlog.Warn.Printf("DecryptName: empty input")
+		return "", syscall.EBADMSG
+	}
 	if len(bin)%aes.BlockSize != 0 {
 		tlog.Debug.Printf("DecryptName %q: decoded length %d is not a multiple of 16", cipherName, len(bin))
 		return "", syscall.EBADMSG
@@ -49,14 +53,14 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 	bin = n.emeCipher.Decrypt(iv, bin)
 	bin, err = unPad16(bin)
 	if err != nil {
-		tlog.Debug.Printf("DecryptName: unPad16 error: %v", err)
+		tlog.Debug.Printf("DecryptName: unPad16 error detail: %v", err)
 		// unPad16 returns detailed errors including the position of the
 		// incorrect bytes. Kill the padding oracle by lumping everything into
 		// a generic error.
 		return "", syscall.EBADMSG
 	}
 	// A name can never contain a null byte or "/". Make sure we never return those
-	// to the user, even when we read a corrupted (or fuzzed) filesystem.
+	// to the kernel, even when we read a corrupted (or fuzzed) filesystem.
 	if bytes.Contains(bin, []byte{0}) || bytes.Contains(bin, []byte("/")) {
 		return "", syscall.EBADMSG
 	}

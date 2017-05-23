@@ -273,16 +273,14 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 			// silently ignore "gocryptfs.conf" in the top level dir
 			continue
 		}
-		if !fs.args.PlaintextNames && cName == nametransform.DirIVFilename {
-			// silently ignore "gocryptfs.diriv" everywhere if dirIV is enabled
-			continue
-		}
-
 		if fs.args.PlaintextNames {
 			plain = append(plain, cipherEntries[i])
 			continue
 		}
-
+		if cName == nametransform.DirIVFilename {
+			// silently ignore "gocryptfs.diriv" everywhere if dirIV is enabled
+			continue
+		}
 		// Handle long file name
 		isLong := nametransform.LongNameNone
 		if fs.args.LongNames {
@@ -301,7 +299,6 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 			// ignore "gocryptfs.longname.*.name"
 			continue
 		}
-
 		name, err := fs.nameTransform.DecryptName(cName, cachedIV)
 		if err != nil {
 			tlog.Warn.Printf("OpenDir %q: invalid entry %q: %v",

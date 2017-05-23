@@ -32,3 +32,20 @@ func TestPad16(t *testing.T) {
 		}
 	}
 }
+
+// TestUnpad16Garbage - unPad16 should never crash on corrupt or malicious inputs
+func TestUnpad16Garbage(t *testing.T) {
+	var testCases [][]byte
+	testCases = append(testCases, make([]byte, 0))
+	testCases = append(testCases, make([]byte, 16))
+	testCases = append(testCases, make([]byte, 1))
+	testCases = append(testCases, make([]byte, 17))
+	testCases = append(testCases, bytes.Repeat([]byte{16}, 16))
+	testCases = append(testCases, bytes.Repeat([]byte{17}, 16))
+	for _, v := range testCases {
+		_, err := unPad16([]byte(v))
+		if err == nil {
+			t.Fail()
+		}
+	}
+}

@@ -2,7 +2,8 @@ package nametransform
 
 import (
 	"crypto/sha256"
-	"io/ioutil"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,13 +63,29 @@ func IsLongContent(cName string) bool {
 	return NameType(cName) == LongNameContent
 }
 
-// ReadLongName - read path.name
+// ReadLongName - read "$path.name"
 func ReadLongName(path string) (string, error) {
-	content, err := ioutil.ReadFile(path + LongNameSuffix)
+	path += LongNameSuffix
+	fd, err := os.Open(path)
 	if err != nil {
-		tlog.Warn.Printf("ReadLongName: %v", err)
+		return "", err
 	}
-	return string(content), err
+	defer fd.Close()
+	// 256 (=255 padded to 16) bytes base64-encoded take 344 bytes: "AAAAAAA...AAA=="
+	lim := 344
+	// Allocate a bigger buffer so we see whether the file is too big
+	buf := make([]byte, lim+1)
+	n, err := fd.ReadAt(buf, 0)
+	if err != nil && err != io.EOF {
+		return "", err
+	}
+	if n == 0 {
+		return "", fmt.Errorf("ReadLongName: empty file")
+	}
+	if n > lim {
+		return "", fmt.Errorf("ReadLongName: size=%d > limit=%d", n, lim)
+	}
+	return string(buf[0:n]), nil
 }
 
 // DeleteLongName deletes "hashName.name".
