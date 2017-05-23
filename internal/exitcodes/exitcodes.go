@@ -49,8 +49,9 @@ const (
 	FuseNewServer = 19
 	// CtlSock - the control socket file could not be created.
 	CtlSock = 20
-	// PanicLogCreate - there was a problem creating the /tmp/gocryptfs_paniclog.XYZ file.
-	PanicLogCreate = 21
+	// Downgraded to a warning in gocryptfs v1.4
+	//PanicLogCreate = 21
+
 	// PasswordEmpty - we received an empty password
 	PasswordEmpty = 22
 	// OpenConf - the was an error opening the gocryptfs.conf file for reading

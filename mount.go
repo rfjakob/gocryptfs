@@ -117,8 +117,8 @@ func doMount(args *argContainer) int {
 		if !args.nosyslog {
 			paniclog, err = ioutil.TempFile("", "gocryptfs_paniclog.")
 			if err != nil {
-				tlog.Fatal.Printf("Failed to create gocryptfs_paniclog: %v", err)
-				os.Exit(exitcodes.PanicLogCreate)
+				tlog.Warn.Printf("Failed to create paniclog: %v."+
+					" Carrying on, but fatal errors will not be logged.", err)
 			}
 			// Switch all of our logs and the generic logger to syslog
 			tlog.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
@@ -132,10 +132,21 @@ func doMount(args *argContainer) int {
 			// instead of closing them so users have a chance to get the
 			// backtrace on a panic.
 			// https://github.com/golang/go/issues/325#issuecomment-66049178
-			syscall.Dup2(int(paniclog.Fd()), 1)
-			syscall.Dup2(int(paniclog.Fd()), 2)
-			// No need for the extra FD anymore, we have it saved in Stderr
-			paniclog.Close()
+			if paniclog != nil {
+				err = syscall.Dup2(int(paniclog.Fd()), 1)
+				if err != nil {
+					tlog.Warn.Printf("paniclog stdout dup error: %v\n", err)
+				}
+				syscall.Dup2(int(paniclog.Fd()), 2)
+				if err != nil {
+					tlog.Warn.Printf("paniclog stderr dup error: %v\n", err)
+				}
+				// No need for the extra FD anymore, we have copies in Stdout and Stderr
+				err = paniclog.Close()
+				if err != nil {
+					tlog.Warn.Printf("paniclog close error: %v\n", err)
+				}
+			}
 		}
 		// Disconnect from the controlling terminal by creating a new session.
 		// This prevents us from getting SIGINT when the user presses Ctrl-C
@@ -158,7 +169,7 @@ func doMount(args *argContainer) int {
 	srv.Serve()
 	// Delete empty paniclogs
 	if paniclog != nil {
-		// The paniclog FD is saved in Stderr
+		// The paniclog FD is saved in Stdout and Stderr
 		fi, err := os.Stderr.Stat()
 		if err != nil {
 			tlog.Warn.Printf("paniclog fstat error: %v", err)
