@@ -4,6 +4,8 @@
 // decryption functions. It only support 32-byte keys and 16-bit IVs.
 package stupidgcm
 
+// #cgo LDFLAGS: -L/usr/local/opt/openssl/lib
+// #cgo CFLAGS: -I/usr/local/opt/openssl/include
 // #include <openssl/evp.h>
 // #cgo pkg-config: libcrypto
 import "C"

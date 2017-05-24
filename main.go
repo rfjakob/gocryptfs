@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 
 	"path/filepath"
 	"runtime"
@@ -123,12 +124,34 @@ func printVersion() {
 		tlog.ProgramName, GitVersion, buildFlags, GitVersionFuse, built)
 }
 
+func loadFuseIfNeeded() {
+	if runtime.GOOS == "darwin" {
+		if _, err := os.Stat("/dev/osxfuse0"); err != nil {
+			const oldLoadOsxFuseBin = "/Library/Filesystems/osxfusefs.fs/Support/load_osxfusefs"
+			const newLoadOsxFuseBin = "/Library/Filesystems/osxfuse.fs/Contents/Resources/load_osxfuse"
+			bin := oldLoadOsxFuseBin
+			if _, err := os.Stat(newLoadOsxFuseBin); err == nil {
+				bin = newLoadOsxFuseBin
+			}
+			cmd := exec.Command(bin)
+			cmd.Run()
+		}
+	}
+}
+
 func main() {
 	runtime.GOMAXPROCS(4)
 	var err error
 	// Parse all command-line options (i.e. arguments starting with "-")
 	// into "args". Path arguments are parsed below.
 	args := parseCliOpts()
+
+	// On some OSes we might need to load fuse if we are mounting a
+	// filesystem.
+	if flagSet.NArg() == 2 {
+		loadFuseIfNeeded()
+	}
+
 	// Fork a child into the background if "-fg" is not set AND we are mounting
 	// a filesystem. The child will do all the work.
 	if !args.fg && flagSet.NArg() == 2 {

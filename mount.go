@@ -2,12 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log/syslog"
 	"net"
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -303,6 +305,12 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 	if args.reverse {
 		mOpts.Name += "-reverse"
 	}
+
+	// Add a volume name if running osxfuse
+	if runtime.GOOS == "darwin" {
+		mOpts.Options = append(mOpts.Options, fmt.Sprintf("volname=%s", path.Base(args.mountpoint)))
+	}
+
 	// The kernel enforces read-only operation, we just have to pass "ro".
 	// Reverse mounts are always read-only.
 	if args.ro || args.reverse {
