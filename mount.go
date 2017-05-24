@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"fmt"
 	"log/syslog"
 	"net"
 	"os"
@@ -107,7 +107,6 @@ func doMount(args *argContainer) int {
 	// Initialize FUSE server
 	srv := initFuseFrontend(masterkey, args, confFile)
 	tlog.Info.Println(tlog.ColorGreen + "Filesystem mounted and ready." + tlog.ColorReset)
-	var paniclog *os.File
 	// We have been forked into the background, as evidenced by the set
 	// "notifypid".
 	if args.notifypid > 0 {
@@ -115,38 +114,13 @@ func doMount(args *argContainer) int {
 		os.Chdir("/")
 		// Switch to syslog
 		if !args.nosyslog {
-			paniclog, err = ioutil.TempFile("", "gocryptfs_paniclog.")
-			if err != nil {
-				tlog.Warn.Printf("Failed to create paniclog: %v."+
-					" Carrying on, but fatal errors will not be logged.", err)
-			}
 			// Switch all of our logs and the generic logger to syslog
 			tlog.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
 			tlog.Debug.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_DEBUG)
 			tlog.Warn.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
 			tlog.SwitchLoggerToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
-			// Daemons should close all fds (and we don't want to get killed by
-			// SIGPIPE if any of those get closed on the other end)
-			os.Stdin.Close()
-			// Redirect stdout and stderr to /tmp/gocryptfs_paniclog.NNNNNN
-			// instead of closing them so users have a chance to get the
-			// backtrace on a panic.
-			// https://github.com/golang/go/issues/325#issuecomment-66049178
-			if paniclog != nil {
-				err = syscall.Dup2(int(paniclog.Fd()), 1)
-				if err != nil {
-					tlog.Warn.Printf("paniclog stdout dup error: %v\n", err)
-				}
-				syscall.Dup2(int(paniclog.Fd()), 2)
-				if err != nil {
-					tlog.Warn.Printf("paniclog stderr dup error: %v\n", err)
-				}
-				// No need for the extra FD anymore, we have copies in Stdout and Stderr
-				err = paniclog.Close()
-				if err != nil {
-					tlog.Warn.Printf("paniclog close error: %v\n", err)
-				}
-			}
+			// Daemons should redirect stdin, stdout and stderr
+			redirectStdFds()
 		}
 		// Disconnect from the controlling terminal by creating a new session.
 		// This prevents us from getting SIGINT when the user presses Ctrl-C
@@ -167,21 +141,48 @@ func doMount(args *argContainer) int {
 	handleSigint(srv, args.mountpoint)
 	// Jump into server loop. Returns when it gets an umount request from the kernel.
 	srv.Serve()
-	// Delete empty paniclogs
-	if paniclog != nil {
-		// The paniclog FD is saved in Stdout and Stderr
-		fi, err := os.Stderr.Stat()
-		if err != nil {
-			tlog.Warn.Printf("paniclog fstat error: %v", err)
-		} else if fi.Size() > 0 {
-			tlog.Warn.Printf("paniclog at %q is not empty (size %d). Not deleting it.",
-				paniclog.Name(), fi.Size())
-			return exitcodes.PanicLogNotEmpty
-		} else {
-			syscall.Unlink(paniclog.Name())
-		}
-	}
 	return 0
+}
+
+// redirectStdFds redirects stderr and stdout to syslog; stdin to /dev/null
+func redirectStdFds() {
+	// stderr and stdout
+	pr, pw, err := os.Pipe()
+	if err != nil {
+		tlog.Warn.Printf("redirectStdFds: could not create pipe: %v\n", err)
+		return
+	}
+	tag := fmt.Sprintf("gocryptfs-%d-logger", os.Getpid())
+	cmd := exec.Command("logger", "-t", tag)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = pr
+	err = cmd.Start()
+	if err != nil {
+		tlog.Warn.Printf("redirectStdFds: could not start logger: %v\n", err)
+	}
+	pr.Close()
+	err = syscall.Dup2(int(pw.Fd()), 1)
+	if err != nil {
+		tlog.Warn.Printf("redirectStdFds: stdout dup error: %v\n", err)
+	}
+	syscall.Dup2(int(pw.Fd()), 2)
+	if err != nil {
+		tlog.Warn.Printf("redirectStdFds: stderr dup error: %v\n", err)
+	}
+	pw.Close()
+
+	// stdin
+	nullFd, err := os.Open("/dev/null")
+	if err != nil {
+		tlog.Warn.Printf("redirectStdFds: could not open /dev/null: %v\n", err)
+		return
+	}
+	err = syscall.Dup2(int(nullFd.Fd()), 0)
+	if err != nil {
+		tlog.Warn.Printf("redirectStdFds: stdin dup error: %v\n", err)
+	}
+	nullFd.Close()
 }
 
 // setOpenFileLimit tries to increase the open file limit to 4096 (the default hard
