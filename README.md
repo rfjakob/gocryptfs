@@ -151,6 +151,8 @@ v1.4 (not yet released)
   paths via ctlsock.
 * Add more specific exit codes for the most common failure modes,
   documented in [CLI_ABI.md](Documentation/CLI_ABI.md)
+* Reverse mode: make sure hard-linked files always return the same
+  ciphertext [commit](https://github.com/rfjakob/gocryptfs/commit/9ecf2d1a3f69e3d995012073afe3fc664bd928f2)
 
 v1.3, 2017-04-29
 * **Use HKDF to derive separate keys for GCM and EME**
