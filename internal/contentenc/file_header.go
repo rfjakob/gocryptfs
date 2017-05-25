@@ -6,10 +6,11 @@ package contentenc
 
 import (
 	"encoding/binary"
-	"fmt"
 	"log"
+	"syscall"
 
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 const (
@@ -43,12 +44,14 @@ func (h *FileHeader) Pack() []byte {
 // ParseHeader - parse "buf" into fileHeader object
 func ParseHeader(buf []byte) (*FileHeader, error) {
 	if len(buf) != HeaderLen {
-		return nil, fmt.Errorf("ParseHeader: invalid length: got %d, want %d", len(buf), HeaderLen)
+		tlog.Warn.Printf("ParseHeader: invalid length: want %d bytes, got %d. Returning EINVAL.", HeaderLen, len(buf))
+		return nil, syscall.EINVAL
 	}
 	var h FileHeader
 	h.Version = binary.BigEndian.Uint16(buf[0:headerVersionLen])
 	if h.Version != CurrentVersion {
-		return nil, fmt.Errorf("ParseHeader: invalid version: got %d, want %d", h.Version, CurrentVersion)
+		tlog.Warn.Printf("ParseHeader: invalid version: want %d, got %d. Returning EINVAL.", CurrentVersion, h.Version)
+		return nil, syscall.EINVAL
 	}
 	h.ID = buf[headerVersionLen:]
 	return &h, nil
