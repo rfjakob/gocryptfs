@@ -5,6 +5,7 @@ package contentenc
 // Format: [ "Version" uint16 big endian ] [ "Id" 16 random bytes ]
 
 import (
+	"bytes"
 	"encoding/binary"
 	"log"
 	"syscall"
@@ -41,6 +42,9 @@ func (h *FileHeader) Pack() []byte {
 
 }
 
+// allZeroFileID is preallocated to quickly check if the data read from disk is all zero
+var allZeroFileID = make([]byte, headerIDLen)
+
 // ParseHeader - parse "buf" into fileHeader object
 func ParseHeader(buf []byte) (*FileHeader, error) {
 	if len(buf) != HeaderLen {
@@ -54,6 +58,10 @@ func ParseHeader(buf []byte) (*FileHeader, error) {
 		return nil, syscall.EINVAL
 	}
 	h.ID = buf[headerVersionLen:]
+	if bytes.Equal(h.ID, allZeroFileID) {
+		tlog.Warn.Printf("ParseHeader: file id is all-zero. Returning EINVAL.")
+		return nil, syscall.EINVAL
+	}
 	return &h, nil
 }
 
