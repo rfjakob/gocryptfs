@@ -1,6 +1,7 @@
 package nametransform
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"path/filepath"
@@ -46,6 +47,9 @@ func ReadDirIVAt(dirfd *os.File) (iv []byte, err error) {
 	return fdReadDirIV(fd)
 }
 
+// allZeroDirIV is preallocated to quickly check if the data read from disk is all zero
+var allZeroDirIV = make([]byte, DirIVLen)
+
 // fdReadDirIV reads and verifies the DirIV from an opened gocryptfs.diriv file.
 func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 	// We want to detect if the file is bigger than DirIVLen, so
@@ -59,6 +63,10 @@ func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 	iv = iv[0:n]
 	if len(iv) != DirIVLen {
 		tlog.Warn.Printf("ReadDirIVAt: wanted %d bytes, got %d. Returning EINVAL.", DirIVLen, len(iv))
+		return nil, syscall.EINVAL
+	}
+	if bytes.Equal(iv, allZeroDirIV) {
+		tlog.Warn.Printf("ReadDirIVAt: diriv is all-zero. Returning EINVAL.")
 		return nil, syscall.EINVAL
 	}
 	return iv, nil
