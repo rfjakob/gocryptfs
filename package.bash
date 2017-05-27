@@ -3,8 +3,23 @@
 set -eu
 cd $(dirname "$0")
 
-source build.bash # Builds binary and sets GITVERSION (example: v0.7-15-gf01f599)
-source /etc/os-release # Sets ID (example: fedora) and VERSION_ID (example: 23)
+# Build binary and sets $GITVERSION (example: v0.7-15-gf01f599)
+source build.bash
+
+# Set $ID (example: "fedora", "debian") and $VERSION_ID (example: "23", "8")
+if [[ -e /etc/os-release ]]; then
+	# Modern Debian and Fedora
+	source /etc/os-release
+elif [[ -e /etc/redhat-release ]]; then
+	# RHEL and CentOS
+	ID=$(cat /etc/redhat-release | tr ' ' '_')
+	VERSION_ID=""
+else
+	echo "Could not get distribution version"
+	ID=unknown
+	VERSION_ID=.unknown
+fi
+
 ARCH=$(go env GOARCH)
 # Build gocryptfs.1 man page
 ./Documentation/MANPAGE-render.bash > /dev/null
