@@ -63,8 +63,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 	{
 		emeKey := key
 		if useHKDF {
-			info := "EME filename encryption"
-			emeKey = hkdfDerive(key, info, KeyLen)
+			emeKey = hkdfDerive(key, hkdfInfoEMENames, KeyLen)
 		}
 		emeBlockCipher, err := aes.NewCipher(emeKey)
 		if err != nil {
@@ -78,8 +77,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 	if aeadType == BackendOpenSSL || aeadType == BackendGoGCM {
 		gcmKey := key
 		if useHKDF {
-			info := "AES-GCM file content encryption"
-			gcmKey = hkdfDerive(key, info, KeyLen)
+			gcmKey = hkdfDerive(key, hkdfInfoGCMContent, KeyLen)
 		}
 		switch aeadType {
 		case BackendOpenSSL:
@@ -104,8 +102,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 		}
 		var key64 []byte
 		if useHKDF {
-			info := "AES-SIV file content encryption"
-			key64 = hkdfDerive(key, info, siv_aead.KeyLen)
+			key64 = hkdfDerive(key, hkdfInfoSIVContent, siv_aead.KeyLen)
 		} else {
 			// AES-SIV uses 1/2 of the key for authentication, 1/2 for
 			// encryption, so we need a 64-bytes key for AES-256. Derive it from
