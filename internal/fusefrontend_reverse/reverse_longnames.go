@@ -12,6 +12,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
+	"github.com/rfjakob/gocryptfs/internal/pathiv"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -91,7 +92,7 @@ func (rfs *ReverseFS) newNameFile(relPath string) (nodefs.File, fuse.Status) {
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	dirIV := derivePathIV(cDir, ivPurposeDirIV)
+	dirIV := pathiv.Derive(cDir, pathiv.PurposeDirIV)
 	// plain name
 	pName, err := rfs.findLongnameParent(pDir, dirIV, longname)
 	if err != nil {

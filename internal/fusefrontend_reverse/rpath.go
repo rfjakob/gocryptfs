@@ -1,13 +1,13 @@
 package fusefrontend_reverse
 
 import (
-	"crypto/sha256"
 	"encoding/base64"
 	"path/filepath"
 	"strings"
 	"syscall"
 
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
+	"github.com/rfjakob/gocryptfs/internal/pathiv"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -18,23 +18,6 @@ func saneDir(path string) string {
 		return ""
 	}
 	return d
-}
-
-type ivPurposeType string
-
-const (
-	ivPurposeDirIV     ivPurposeType = "DIRIV"
-	ivPurposeFileID    ivPurposeType = "FILEID"
-	ivPurposeSymlinkIV ivPurposeType = "SYMLINKIV"
-	ivPurposeBlock0IV  ivPurposeType = "BLOCK0IV"
-)
-
-// derivePathIV derives an IV from an encrypted path by hashing it with sha256
-func derivePathIV(path string, purpose ivPurposeType) []byte {
-	// Use null byte as separator as it cannot occur in the path
-	extended := []byte(path + "\000" + string(purpose))
-	hash := sha256.Sum256(extended)
-	return hash[:nametransform.DirIVLen]
 }
 
 // abs basically returns storage dir + "/" + relPath.
@@ -104,7 +87,7 @@ func (rfs *ReverseFS) decryptPath(relPath string) (string, error) {
 		// Start at the top and recurse
 		currentCipherDir := filepath.Join(parts[:i]...)
 		currentPlainDir := filepath.Join(transformedParts[:i]...)
-		dirIV = derivePathIV(currentCipherDir, ivPurposeDirIV)
+		dirIV = pathiv.Derive(currentCipherDir, pathiv.PurposeDirIV)
 		transformedPart, err := rfs.rDecryptName(parts[i], dirIV, currentPlainDir)
 		if err != nil {
 			return "", err
