@@ -2,7 +2,6 @@ package fusefrontend_reverse
 
 import (
 	"bytes"
-	"encoding/binary"
 	"io"
 	"os"
 	"syscall"
@@ -95,18 +94,13 @@ func (rf *reverseFile) GetAttr(*fuse.Attr) fuse.Status {
 // encryptBlocks - encrypt "plaintext" into a number of ciphertext blocks.
 // "plaintext" must already be block-aligned.
 func (rf *reverseFile) encryptBlocks(plaintext []byte, firstBlockNo uint64, fileID []byte, block0IV []byte) []byte {
-	nonce := make([]byte, len(block0IV))
-	copy(nonce, block0IV)
-	block0IVlow := binary.BigEndian.Uint64(block0IV[8:])
-	nonceLow := nonce[8:]
-
 	inBuf := bytes.NewBuffer(plaintext)
 	var outBuf bytes.Buffer
 	bs := int(rf.contentEnc.PlainBS())
 	for blockNo := firstBlockNo; inBuf.Len() > 0; blockNo++ {
-		binary.BigEndian.PutUint64(nonceLow, block0IVlow+blockNo)
 		inBlock := inBuf.Next(bs)
-		outBlock := rf.contentEnc.EncryptBlockNonce(inBlock, blockNo, fileID, nonce)
+		iv := pathiv.BlockIV(block0IV, blockNo)
+		outBlock := rf.contentEnc.EncryptBlockNonce(inBlock, blockNo, fileID, iv)
 		outBuf.Write(outBlock)
 	}
 	return outBuf.Bytes()
