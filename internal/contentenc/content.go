@@ -75,6 +75,11 @@ func (be *ContentEnc) CipherBS() uint64 {
 	return be.cipherBS
 }
 
+// UsingSIV returns true if we are using AES-SIV for file content encryption.
+func (be *ContentEnc) UsingSIV() bool {
+	return be.cryptoCore.AEADBackend == cryptocore.BackendAESSIV
+}
+
 // DecryptBlocks decrypts a number of blocks
 // TODO refactor to three-param for
 func (be *ContentEnc) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, fileID []byte) ([]byte, error) {

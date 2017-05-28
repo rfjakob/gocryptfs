@@ -100,11 +100,12 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 		return nil, fuse.EPERM
 	}
 	newFlags := fs.mangleOpenFlags(flags)
-	cPath, err := fs.getBackingPath(path)
+	cRelPath, err := fs.encryptPath(path)
 	if err != nil {
-		tlog.Debug.Printf("Open: getBackingPath: %v", err)
+		tlog.Debug.Printf("Open: encryptPath: %v", err)
 		return nil, fuse.ToStatus(err)
 	}
+	cPath := filepath.Join(fs.args.Cipherdir, cRelPath)
 	tlog.Debug.Printf("Open: %s", cPath)
 	f, err := os.OpenFile(cPath, newFlags, 0666)
 	if err != nil {
@@ -116,8 +117,7 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 		}
 		return nil, fuse.ToStatus(err)
 	}
-
-	return NewFile(f, fs)
+	return NewFile(f, fs, cRelPath)
 }
 
 // Create implements pathfs.Filesystem.
@@ -126,10 +126,11 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 		return nil, fuse.EPERM
 	}
 	newFlags := fs.mangleOpenFlags(flags)
-	cPath, err := fs.getBackingPath(path)
+	cRelPath, err := fs.encryptPath(path)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
+	cPath := filepath.Join(fs.args.Cipherdir, cRelPath)
 
 	var fd *os.File
 	cName := filepath.Base(cPath)
@@ -171,7 +172,7 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 			tlog.Warn.Printf("Create: fd.Chown failed: %v", err)
 		}
 	}
-	return NewFile(fd, fs)
+	return NewFile(fd, fs, path)
 }
 
 // Chmod implements pathfs.Filesystem.

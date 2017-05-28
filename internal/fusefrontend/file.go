@@ -16,6 +16,7 @@ import (
 
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/openfiletable"
+	"github.com/rfjakob/gocryptfs/internal/pathiv"
 	"github.com/rfjakob/gocryptfs/internal/serialize_reads"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
@@ -56,10 +57,13 @@ type file struct {
 	// have not implemented. This prevents build breakage when the go-fuse library
 	// adds new methods to the nodefs.File interface.
 	nodefs.File
+	// In AES-SIV mode, file ID and block IVs are deterministically derived from
+	// the path that was used to open the file.
+	pathIVs pathiv.FileIVs
 }
 
 // NewFile returns a new go-fuse File instance.
-func NewFile(fd *os.File, fs *FS) (nodefs.File, fuse.Status) {
+func NewFile(fd *os.File, fs *FS, relPath string) (nodefs.File, fuse.Status) {
 	var st syscall.Stat_t
 	err := syscall.Fstat(int(fd.Fd()), &st)
 	if err != nil {
@@ -68,8 +72,7 @@ func NewFile(fd *os.File, fs *FS) (nodefs.File, fuse.Status) {
 	}
 	qi := openfiletable.QInoFromStat(&st)
 	e := openfiletable.Register(qi)
-
-	return &file{
+	f := &file{
 		fd:             fd,
 		contentEnc:     fs.contentEnc,
 		qIno:           qi,
@@ -77,7 +80,11 @@ func NewFile(fd *os.File, fs *FS) (nodefs.File, fuse.Status) {
 		loopbackFile:   nodefs.NewLoopbackFile(fd),
 		fs:             fs,
 		File:           nodefs.NewDefaultFile(),
-	}, fuse.OK
+	}
+	if fs.contentEnc.UsingSIV() {
+		f.pathIVs = pathiv.DeriveFile(relPath)
+	}
+	return f, fuse.OK
 }
 
 // intFd - return the backing file descriptor as an integer. Used for debug
@@ -115,6 +122,10 @@ func (f *file) readFileID() ([]byte, error) {
 // The caller must hold fileIDLock.Lock().
 func (f *file) createHeader() (fileID []byte, err error) {
 	h := contentenc.RandomHeader()
+	if f.contentEnc.UsingSIV() {
+		// We use a deterministic file ID in SIV mode.
+		h.ID = f.pathIVs.ID
+	}
 	buf := h.Pack()
 	// Prevent partially written (=corrupt) header by preallocating the space beforehand
 	if !f.fs.args.NoPrealloc {
@@ -297,7 +308,13 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 			tlog.Debug.Printf("len(oldData)=%d len(blockData)=%d", len(oldData), len(blockData))
 		}
 		// Encrypt
-		blockData = f.contentEnc.EncryptBlock(blockData, b.BlockNo, fileID)
+		if f.fs.contentEnc.UsingSIV() {
+			// We use a deterministic block IV in SIV mode.
+			iv := pathiv.BlockIV(f.pathIVs.Block0IV, b.BlockNo)
+			blockData = f.contentEnc.EncryptBlockNonce(blockData, b.BlockNo, fileID, iv)
+		} else {
+			blockData = f.contentEnc.EncryptBlock(blockData, b.BlockNo, fileID)
+		}
 		tlog.Debug.Printf("ino%d: Writing %d bytes to block #%d",
 			f.qIno.Ino, uint64(len(blockData))-f.contentEnc.BlockOverhead(), b.BlockNo)
 		// Store output data in the writeChain
