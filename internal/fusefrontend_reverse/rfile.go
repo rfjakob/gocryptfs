@@ -33,11 +33,6 @@ type reverseFile struct {
 
 var inodeTable syncmap.Map
 
-type derivedIVContainer struct {
-	id       []byte
-	block0IV []byte
-}
-
 func (rfs *ReverseFS) newFile(relPath string, flags uint32) (nodefs.File, fuse.Status) {
 	absPath, err := rfs.abs(rfs.decryptPath(relPath))
 	if err != nil {
@@ -55,14 +50,13 @@ func (rfs *ReverseFS) newFile(relPath string, flags uint32) (nodefs.File, fuse.S
 	}
 	// See if we have that inode number already in the table
 	// (even if Nlink has dropped to 1)
-	var derivedIVs derivedIVContainer
+	var derivedIVs pathiv.FileIVs
 	v, found := inodeTable.Load(st.Ino)
 	if found {
 		tlog.Debug.Printf("ino%d: newFile: found in the inode table", st.Ino)
-		derivedIVs = v.(derivedIVContainer)
+		derivedIVs = v.(pathiv.FileIVs)
 	} else {
-		derivedIVs.id = pathiv.Derive(relPath, pathiv.PurposeFileID)
-		derivedIVs.block0IV = pathiv.Derive(relPath, pathiv.PurposeBlock0IV)
+		derivedIVs = pathiv.DeriveFile(relPath)
 		// Nlink > 1 means there is more than one path to this file.
 		// Store the derived values so we always return the same data,
 		// regardless of the path that is used to access the file.
@@ -71,7 +65,7 @@ func (rfs *ReverseFS) newFile(relPath string, flags uint32) (nodefs.File, fuse.S
 			v, found = inodeTable.LoadOrStore(st.Ino, derivedIVs)
 			if found {
 				// Another thread has stored a different value before we could.
-				derivedIVs = v.(derivedIVContainer)
+				derivedIVs = v.(pathiv.FileIVs)
 			} else {
 				tlog.Debug.Printf("ino%d: newFile: Nlink=%d, stored in the inode table", st.Ino, st.Nlink)
 			}
@@ -79,13 +73,13 @@ func (rfs *ReverseFS) newFile(relPath string, flags uint32) (nodefs.File, fuse.S
 	}
 	header := contentenc.FileHeader{
 		Version: contentenc.CurrentVersion,
-		ID:      derivedIVs.id,
+		ID:      derivedIVs.ID,
 	}
 	return &reverseFile{
 		File:       nodefs.NewDefaultFile(),
 		fd:         fd,
 		header:     header,
-		block0IV:   derivedIVs.block0IV,
+		block0IV:   derivedIVs.Block0IV,
 		contentEnc: rfs.contentEnc,
 	}, fuse.OK
 }
