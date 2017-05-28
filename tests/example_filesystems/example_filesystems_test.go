@@ -250,3 +250,57 @@ func TestExampleFSv13(t *testing.T) {
 	checkExampleFSLongnames(t, pDir)
 	test_helpers.UnmountPanic(pDir)
 }
+
+// gocryptfs v1.3 introduced HKDF.
+// We check the md5 sum of the encrypted version of a file to make sure we don't
+// accidentially change the ciphertext generation.
+func TestExampleFSv13reverse(t *testing.T) {
+	// Prepare directories
+	dirA := "v1.3-reverse"
+	dirB := test_helpers.TmpDir + "/" + dirA + ".B"
+	err := os.Mkdir(dirB, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dirC := test_helpers.TmpDir + "/" + dirA + ".C"
+	err = os.Mkdir(dirC, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Mount using password
+	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-extpass", "echo test", opensslOpt)
+	c := dirB + "/gocryptfs.conf"
+	if !test_helpers.VerifyExistence(c) {
+		t.Errorf("%s missing", c)
+	}
+	test_helpers.MountOrFatal(t, dirB, dirC, "-extpass", "echo test", opensslOpt)
+	// Test
+	checkExampleFSrw(t, dirC, false)
+	// Encrypted version of dir1/dir2/file (10000 zero bytes)
+	cPath := dirB + "/zOsW1-BUX54hC2hmhu2EOw/4ZqrpGQdw5r07KR1qw2ZeQ/tfCm9Sp9J_Dvc-jD7J6p8g"
+	want := "9818501d214c5eb42ca2472caf6c82a1"
+	actual := test_helpers.Md5fn(cPath)
+	if actual != want {
+		t.Errorf("wrong md5")
+	}
+	// Unmount
+	test_helpers.UnmountPanic(dirC)
+	test_helpers.UnmountPanic(dirB)
+
+	// Mount using masterkey
+	m := "2290a7f4-3e1908fb-b006f7d9-261bdaf1-4b72bc38-3b24956c-db7d8a8d-d996076a"
+	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-masterkey", m, opensslOpt)
+	if !test_helpers.VerifyExistence(c) {
+		t.Errorf("%s missing", c)
+	}
+	test_helpers.MountOrFatal(t, dirB, dirC, "-aessiv", "-masterkey", m, opensslOpt)
+	// Test
+	checkExampleFSrw(t, dirC, false)
+	actual = test_helpers.Md5fn(cPath)
+	if actual != want {
+		t.Errorf("wrong md5")
+	}
+	// Unmmount
+	test_helpers.UnmountPanic(dirC)
+	test_helpers.UnmountPanic(dirB)
+}
