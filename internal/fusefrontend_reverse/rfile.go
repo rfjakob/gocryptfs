@@ -14,6 +14,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/internal/pathiv"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -60,8 +61,8 @@ func (rfs *ReverseFS) newFile(relPath string, flags uint32) (nodefs.File, fuse.S
 		tlog.Debug.Printf("ino%d: newFile: found in the inode table", st.Ino)
 		derivedIVs = v.(derivedIVContainer)
 	} else {
-		derivedIVs.id = derivePathIV(relPath, ivPurposeFileID)
-		derivedIVs.block0IV = derivePathIV(relPath, ivPurposeBlock0IV)
+		derivedIVs.id = pathiv.Derive(relPath, pathiv.PurposeFileID)
+		derivedIVs.block0IV = pathiv.Derive(relPath, pathiv.PurposeBlock0IV)
 		// Nlink > 1 means there is more than one path to this file.
 		// Store the derived values so we always return the same data,
 		// regardless of the path that is used to access the file.

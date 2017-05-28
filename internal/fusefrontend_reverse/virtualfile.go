@@ -6,6 +6,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 
+	"github.com/rfjakob/gocryptfs/internal/pathiv"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -27,7 +28,7 @@ func (rfs *ReverseFS) newDirIVFile(cRelPath string) (nodefs.File, fuse.Status) {
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	return rfs.newVirtualFile(derivePathIV(cDir, ivPurposeDirIV), absDir)
+	return rfs.newVirtualFile(pathiv.Derive(cDir, pathiv.PurposeDirIV), absDir)
 }
 
 type virtualFile struct {
