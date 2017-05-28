@@ -2,6 +2,7 @@ package pathiv
 
 import (
 	"crypto/sha256"
+	"encoding/binary"
 
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 )
@@ -41,4 +42,16 @@ func DeriveFile(path string) (fileIVs FileIVs) {
 	fileIVs.ID = Derive(path, PurposeFileID)
 	fileIVs.Block0IV = Derive(path, PurposeBlock0IV)
 	return fileIVs
+}
+
+// BlockIV returns the block IV for block number "blockNo". "block0iv" is the block
+// IV of block #0.
+func BlockIV(block0iv []byte, blockNo uint64) []byte {
+	iv := make([]byte, len(block0iv))
+	copy(iv, block0iv)
+	// Add blockNo to one half of the iv
+	lowBytes := iv[8:]
+	lowInt := binary.BigEndian.Uint64(lowBytes)
+	binary.BigEndian.PutUint64(lowBytes, lowInt+blockNo)
+	return iv
 }
