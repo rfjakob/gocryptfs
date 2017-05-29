@@ -12,7 +12,8 @@ if [[ -e /etc/os-release ]]; then
 	source /etc/os-release
 elif [[ -e /etc/redhat-release ]]; then
 	# RHEL and CentOS
-	ID=$(cat /etc/redhat-release | tr ' ' '_')
+	# "CentOS release 5.11 (Final)" -> "CentOS_release_5.11_Final"
+	ID=$(cat /etc/redhat-release | tr ' ' '_' | tr -d '()')
 	VERSION_ID=""
 else
 	echo "Could not get distribution version"
