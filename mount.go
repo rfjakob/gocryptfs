@@ -217,6 +217,11 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 	if args.aessiv {
 		cryptoBackend = cryptocore.BackendAESSIV
 	}
+	// forceOwner implies allow_other, as documented.
+	// Set this early, so args.allow_other can be relied on below this point.
+	if args._forceOwner != nil {
+		args.allow_other = true
+	}
 	frontendArgs := fusefrontend.Args{
 		Cipherdir:      args.cipherdir,
 		Masterkey:      key,
@@ -229,6 +234,7 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 		HKDF:           args.hkdf,
 		SerializeReads: args.serialize_reads,
 		ForceDecode:    args.forcedecode,
+		ForceOwner:     args._forceOwner,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {

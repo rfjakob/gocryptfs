@@ -77,6 +77,9 @@ func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Stat
 		target, _ := fs.Readlink(name, context)
 		a.Size = uint64(len(target))
 	}
+	if fs.args.ForceOwner != nil {
+		a.Owner = *fs.args.ForceOwner
+	}
 	return a, status
 }
 

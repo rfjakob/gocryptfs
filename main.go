@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
@@ -17,6 +18,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/speed"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 // GitVersion is the gocryptfs version according to git, set by build.bash
@@ -189,6 +191,26 @@ func main() {
 		}
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
+	}
+	// "-force_owner"
+	if args.force_owner != "" {
+		var uidNum, gidNum int64
+		ownerPieces := strings.SplitN(args.force_owner, ":", 2)
+		if len(ownerPieces) != 2 {
+			tlog.Fatal.Printf("force_owner must be in form UID:GID")
+			os.Exit(exitcodes.Usage)
+		}
+		uidNum, err = strconv.ParseInt(ownerPieces[0], 0, 32)
+		if err != nil || uidNum < 0 {
+			tlog.Fatal.Printf("force_owner: Unable to parse UID %v as positive integer", ownerPieces[0])
+			os.Exit(exitcodes.Usage)
+		}
+		gidNum, err = strconv.ParseInt(ownerPieces[1], 0, 32)
+		if err != nil || gidNum < 0 {
+			tlog.Fatal.Printf("force_owner: Unable to parse GID %v as positive integer", ownerPieces[1])
+			os.Exit(exitcodes.Usage)
+		}
+		args._forceOwner = &fuse.Owner{Uid: uint32(uidNum), Gid: uint32(gidNum)}
 	}
 	// "-memprofile"
 	if args.memprofile != "" {

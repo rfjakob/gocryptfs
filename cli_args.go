@@ -13,6 +13,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/prefer_openssl"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 // argContainer stores the parsed CLI options and arguments
@@ -22,7 +23,7 @@ type argContainer struct {
 	longnames, allow_other, ro, reverse, aessiv, nonempty, raw64,
 	noprealloc, speed, hkdf, serialize_reads, forcedecode, hh, info bool
 	masterkey, mountpoint, cipherdir, cpuprofile, extpass,
-	memprofile, ko, passfile, ctlsock, fsname string
+	memprofile, ko, passfile, ctlsock, fsname, force_owner string
 	// Configuration file name override
 	config             string
 	notifypid, scryptn int
@@ -31,6 +32,8 @@ type argContainer struct {
 	_configCustom bool
 	// _ctlsockFd stores the control socket file descriptor (ctlsock stores the path)
 	_ctlsockFd net.Listener
+	// _forceOwner is, if non-nil, a parsed, validated Owner (as opposed to the string above)
+	_forceOwner        *fuse.Owner
 }
 
 var flagSet *flag.FlagSet
@@ -136,6 +139,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.StringVar(&args.ko, "ko", "", "Pass additional options directly to the kernel, comma-separated list")
 	flagSet.StringVar(&args.ctlsock, "ctlsock", "", "Create control socket at specified path")
 	flagSet.StringVar(&args.fsname, "fsname", "", "Override the filesystem name")
+	flagSet.StringVar(&args.force_owner, "force_owner", "", "uid:gid pair to coerce ownership")
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")
 	flagSet.IntVar(&args.scryptn, "scryptn", configfile.ScryptDefaultLogN, "scrypt cost parameter logN. Possible values: 10-28. "+

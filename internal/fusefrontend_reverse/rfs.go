@@ -115,6 +115,9 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 		}
 		var a fuse.Attr
 		a.FromStat(&st)
+		if rfs.args.ForceOwner != nil {
+			a.Owner = *rfs.args.ForceOwner
+		}
 		return &a, fuse.OK
 	}
 	// Handle virtual files (gocryptfs.diriv, *.name)
@@ -136,6 +139,9 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 		}
 		var a fuse.Attr
 		status = f.GetAttr(&a)
+		if rfs.args.ForceOwner != nil {
+			a.Owner = *rfs.args.ForceOwner
+		}
 		return &a, status
 	}
 	// Decrypt path to "plaintext relative path"
@@ -176,6 +182,9 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 		}
 
 		a.Size = uint64(len(linkTarget))
+	}
+	if rfs.args.ForceOwner != nil {
+		a.Owner = *rfs.args.ForceOwner
 	}
 	return &a, fuse.OK
 }

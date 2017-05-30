@@ -144,6 +144,9 @@ Changelog
 ---------
 
 v1.4 (not yet released)
+* Add `force_owner` option to allow files to be presented as owned by a
+  different user or group from the user running gocryptfs. Please see caveats
+  and guidance in the man page before using this functionality.
 * Increase open file limit to 4096 ([#82](https://github.com/rfjakob/gocryptfs/issues/82)).
 * Implement path decryption via ctlsock ([#84](https://github.com/rfjakob/gocryptfs/issues/84)).
   Previously, decryption was only implemented for reverse mode. Now both
