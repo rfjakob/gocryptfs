@@ -78,6 +78,17 @@ that uses built-in Go crypto.
 
 Setting this option forces the filesystem to read-only and noexec.
 
+#### -force_owner string
+If given a string of the form "uid:gid" (where both "uid" and "gid" are
+substituted with positive integers), presents all files as owned by the given
+uid and gid, regardless of their actual ownership. Implies "allow_other".
+
+This is rarely desired behavior: One should *usually* run gocryptfs as the
+account which owns the backing-store files, which should *usually* be one and
+the same with the account intended to access the decrypted content. An example
+of a case where this may be useful is a situation where content is stored on a
+filesystem that doesn't properly support UNIX ownership and permissions.
+
 #### -fsname string
 Override the filesystem name (first column in df -T). Can also be
 passed as "-o fsname=" and is equivalent to libfuse's option of the
