@@ -214,7 +214,19 @@ func main() {
 	} else {
 		tlog.Debug.Printf("OpenSSL enabled")
 	}
-	// Operation flags: -init or -passwd; otherwise: mount
+	// Operation flags
+	if args.info && args.init || args.info && args.passwd || args.passwd && args.init {
+		tlog.Fatal.Printf("At most one of -info, -init, -passwd is allowed")
+		os.Exit(exitcodes.Usage)
+	}
+	// "-info"
+	if args.info {
+		if flagSet.NArg() > 1 {
+			tlog.Fatal.Printf("Usage: %s -info CIPHERDIR", tlog.ProgramName)
+			os.Exit(exitcodes.Usage)
+		}
+		info(args.config) // does not return
+	}
 	// "-init"
 	if args.init {
 		if flagSet.NArg() > 1 {

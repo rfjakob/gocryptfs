@@ -86,6 +86,16 @@ same name. By default, CIPHERDIR is used.
 #### -fusedebug
 Enable fuse library debug output
 
+#### -h, -help
+Print a short help text that shows the more-often used options.
+
+#### -hh
+Long help text, shows all available options.
+
+#### -info
+Pretty-print the contents of the config file for human consumption,
+stripping out sensitive data.
+
 #### -init
 Initialize encrypted directory
 
