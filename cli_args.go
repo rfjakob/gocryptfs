@@ -20,7 +20,7 @@ type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, fg, version,
 	plaintextnames, quiet, nosyslog, wpanic,
 	longnames, allow_other, ro, reverse, aessiv, nonempty, raw64,
-	noprealloc, speed, hkdf, serialize_reads, forcedecode bool
+	noprealloc, speed, hkdf, serialize_reads, forcedecode, hh bool
 	masterkey, mountpoint, cipherdir, cpuprofile, extpass,
 	memprofile, ko, passfile, ctlsock, fsname string
 	// Configuration file name override
@@ -94,7 +94,7 @@ func parseCliOpts() (args argContainer) {
 	var opensslAuto string
 
 	flagSet = flag.NewFlagSet(tlog.ProgramName, flag.ContinueOnError)
-	flagSet.Usage = usageText
+	flagSet.Usage = helpShort
 	flagSet.BoolVar(&args.debug, "d", false, "")
 	flagSet.BoolVar(&args.debug, "debug", false, "Enable debug output")
 	flagSet.BoolVar(&args.fusedebug, "fusedebug", false, "Enable fuse library debug output")
@@ -125,6 +125,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.BoolVar(&args.serialize_reads, "serialize_reads", false, "Try to serialize read operations")
 	flagSet.BoolVar(&args.forcedecode, "forcedecode", false, "Force decode of files even if integrity check fails."+
 		" Requires gocryptfs to be compiled with openssl support and implies -openssl true")
+	flagSet.BoolVar(&args.hh, "hh", false, "Show this long help text")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")
@@ -145,7 +146,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.BoolVar(&dummyBool, "nosuid", false, ignoreText)
 	flagSet.BoolVar(&dummyBool, "nodev", false, ignoreText)
 	var dummyString string
-	flagSet.StringVar(&dummyString, "o", "", "For compatibility, all options can be also passed as a comma-separated list to -o.")
+	flagSet.StringVar(&dummyString, "o", "", "For compatibility with mount(1), options can be also passed as a comma-separated list to -o on the end.")
 	// Actual parsing
 	err = flagSet.Parse(os.Args[1:])
 	if err == flag.ErrHelp {

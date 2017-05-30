@@ -31,21 +31,6 @@ var BuildTime = "0"
 // raceDetector is set to true by race.go if we are compiled with "go build -race"
 var raceDetector bool
 
-func usageText() {
-	printVersion()
-	fmt.Printf(`
-Usage: %s -init|-passwd [OPTIONS] CIPHERDIR
-  or   %s [OPTIONS] CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]
-
-Options:
-`, tlog.ProgramName, tlog.ProgramName)
-
-	flagSet.PrintDefaults()
-	fmt.Print(`  --
-    	Stop option parsing
-`)
-}
-
 // loadConfig loads the config file "args.config", prompting the user for the password
 func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.ConfFile, err error) {
 	// Check if the file can be opened at all before prompting for a password
@@ -145,6 +130,11 @@ func main() {
 		printVersion()
 		os.Exit(0)
 	}
+	// "-hh"
+	if args.hh {
+		helpLong()
+		os.Exit(0)
+	}
 	// "-speed"
 	if args.speed {
 		speed.Run()
@@ -163,7 +153,7 @@ func main() {
 			os.Exit(exitcodes.CipherDir)
 		}
 	} else {
-		usageText()
+		helpShort()
 		os.Exit(exitcodes.Usage)
 	}
 	// "-q"
