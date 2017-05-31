@@ -17,7 +17,7 @@ func TestBlockIV(t *testing.T) {
 	b27 := BlockIV(b0, 0x27)
 	expected, _ := hex.DecodeString("00000000000000000000000000000027")
 	if !bytes.Equal(b27, expected) {
-		t.Error()
+		t.Errorf("\nhave=%s\nwant=%s", hex.EncodeToString(b27), hex.EncodeToString(expected))
 	}
 	bff := bytes.Repeat([]byte{0xff}, 16)
 	b28 := BlockIV(bff, 0x28)
