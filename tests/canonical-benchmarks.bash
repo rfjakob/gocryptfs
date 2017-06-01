@@ -24,7 +24,7 @@ cd "$1"
 # Execute command, discard all stdout output, print elapsed time
 # (to stderr, unfortunately).
 function etime {
-	# Make the bash builtin "time" print out only the elapse wall clock
+	# Make the bash builtin "time" print out only the elapsed wall clock
 	# seconds
 	TIMEFORMAT=%R
 	time "$@" > /dev/null

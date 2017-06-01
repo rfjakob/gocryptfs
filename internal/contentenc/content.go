@@ -76,7 +76,6 @@ func (be *ContentEnc) CipherBS() uint64 {
 }
 
 // DecryptBlocks decrypts a number of blocks
-// TODO refactor to three-param for
 func (be *ContentEnc) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, fileID []byte) ([]byte, error) {
 	cBuf := bytes.NewBuffer(ciphertext)
 	var err error
