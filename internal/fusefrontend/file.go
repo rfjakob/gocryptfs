@@ -272,22 +272,17 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 		// re-read it after the RLock().
 		f.fileTableEntry.HeaderLock.RLock()
 	}
-	fileID := f.fileTableEntry.ID
 	defer f.fileTableEntry.HeaderLock.RUnlock()
 	// Handle payload data
-	status := fuse.OK
 	dataBuf := bytes.NewBuffer(data)
 	blocks := f.contentEnc.ExplodePlainRange(uint64(off), uint64(len(data)))
-	writeChain := make([][]byte, len(blocks))
-	var numOutBytes int
+	toEncrypt := make([][]byte, len(blocks))
 	for i, b := range blocks {
 		blockData := dataBuf.Next(int(b.Length))
 		// Incomplete block -> Read-Modify-Write
 		if b.IsPartial() {
 			// Read
-			o := b.BlockPlainOff()
-			var oldData []byte
-			oldData, status = f.doRead(o, f.contentEnc.PlainBS())
+			oldData, status := f.doRead(b.BlockPlainOff(), f.contentEnc.PlainBS())
 			if status != fuse.OK {
 				tlog.Warn.Printf("ino%d fh%d: RMW read failed: %s", f.qIno.Ino, f.intFd(), status.String())
 				return 0, status
@@ -296,33 +291,26 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 			blockData = f.contentEnc.MergeBlocks(oldData, blockData, int(b.Skip))
 			tlog.Debug.Printf("len(oldData)=%d len(blockData)=%d", len(oldData), len(blockData))
 		}
-		// Encrypt
-		blockData = f.contentEnc.EncryptBlock(blockData, b.BlockNo, fileID)
 		tlog.Debug.Printf("ino%d: Writing %d bytes to block #%d",
 			f.qIno.Ino, uint64(len(blockData))-f.contentEnc.BlockOverhead(), b.BlockNo)
-		// Store output data in the writeChain
-		writeChain[i] = blockData
-		numOutBytes += len(blockData)
+		// Write into the to-encrypt list
+		toEncrypt[i] = blockData
 	}
-	// Concatenenate all elements in the writeChain into one contiguous buffer
-	tmp := make([]byte, numOutBytes)
-	writeBuf := bytes.NewBuffer(tmp[:0])
-	for _, w := range writeChain {
-		writeBuf.Write(w)
-	}
+	// Encrypt all blocks
+	ciphertext := f.contentEnc.EncryptBlocks(toEncrypt, blocks[0].BlockNo, f.fileTableEntry.ID)
 	// Preallocate so we cannot run out of space in the middle of the write.
 	// This prevents partially written (=corrupt) blocks.
 	var err error
-	cOff := blocks[0].BlockCipherOff()
+	cOff := int64(blocks[0].BlockCipherOff())
 	if !f.fs.args.NoPrealloc {
-		err = syscallcompat.EnospcPrealloc(int(f.fd.Fd()), int64(cOff), int64(writeBuf.Len()))
+		err = syscallcompat.EnospcPrealloc(int(f.fd.Fd()), cOff, int64(len(ciphertext)))
 		if err != nil {
 			tlog.Warn.Printf("ino%d fh%d: doWrite: prealloc failed: %s", f.qIno.Ino, f.intFd(), err.Error())
 			return 0, fuse.ToStatus(err)
 		}
 	}
 	// Write
-	_, err = f.fd.WriteAt(writeBuf.Bytes(), int64(cOff))
+	_, err = f.fd.WriteAt(ciphertext, cOff)
 	if err != nil {
 		tlog.Warn.Printf("doWrite: Write failed: %s", err.Error())
 		return 0, fuse.ToStatus(err)
