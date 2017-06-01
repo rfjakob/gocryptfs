@@ -28,6 +28,7 @@ v1.2.1-33         112          21    12    1.6    4.4 (go1.8)
 v1.2.1-33
 -serialize_reads  116          21    39    1.5    4.4
 v1.3-27           113          20    11    1.4    4.2
+v1.3-53-gf44902a  119          19    12    1.6    4.1
 
 Results for EncFS for comparison (benchmark.bash -encfs):     
 
