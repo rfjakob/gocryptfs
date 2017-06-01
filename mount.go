@@ -282,8 +282,11 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 		EntryTimeout:    time.Second,
 	}
 	conn := nodefs.NewFileSystemConnector(pathFs.Root(), fuseOpts)
-	var mOpts fuse.MountOptions
-	mOpts.AllowOther = false
+	mOpts := fuse.MountOptions{
+		// Bigger writes mean fewer calls and better throughput.
+		// Capped to 128KiB on Linux.
+		MaxWrite: 1048576,
+	}
 	if args.allow_other {
 		tlog.Info.Printf(tlog.ColorYellow + "The option \"-allow_other\" is set. Make sure the file " +
 			"permissions protect your data from unwanted access." + tlog.ColorReset)
