@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"runtime/trace"
 	"strconv"
 	"strings"
 	"time"
@@ -212,9 +213,13 @@ func main() {
 		f, err = os.Create(args.cpuprofile)
 		if err != nil {
 			tlog.Fatal.Println(err)
-			os.Exit(exitcodes.Init)
+			os.Exit(exitcodes.Profiler)
 		}
-		pprof.StartCPUProfile(f)
+		err = pprof.StartCPUProfile(f)
+		if err != nil {
+			tlog.Fatal.Println(err)
+			os.Exit(exitcodes.Profiler)
+		}
 		defer pprof.StopCPUProfile()
 	}
 	// "-memprofile"
@@ -224,7 +229,7 @@ func main() {
 		f, err = os.Create(args.memprofile)
 		if err != nil {
 			tlog.Fatal.Println(err)
-			os.Exit(exitcodes.Init)
+			os.Exit(exitcodes.Profiler)
 		}
 		defer func() {
 			pprof.WriteHeapProfile(f)
@@ -232,7 +237,22 @@ func main() {
 			return
 		}()
 	}
-	if args.cpuprofile != "" || args.memprofile != "" {
+	// "-trace"
+	if args.trace != "" {
+		tlog.Info.Printf("Writing execution trace to %s", args.trace)
+		f, err := os.Create(args.trace)
+		if err != nil {
+			tlog.Fatal.Println(err)
+			os.Exit(exitcodes.Profiler)
+		}
+		err = trace.Start(f)
+		if err != nil {
+			tlog.Fatal.Println(err)
+			os.Exit(exitcodes.Profiler)
+		}
+		defer trace.Stop()
+	}
+	if args.cpuprofile != "" || args.memprofile != "" || args.trace != "" {
 		tlog.Info.Printf("Note: You must unmount gracefully, otherwise the profile file(s) will stay empty!\n")
 	}
 	// "-openssl"

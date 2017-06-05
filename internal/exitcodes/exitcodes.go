@@ -58,6 +58,9 @@ const (
 	OpenConf = 23
 	// WriteConf - could not write the gocryptfs.conf
 	WriteConf = 24
+	// Profiler - error occoured when trying to write cpu or memory profile or
+	// execution trace
+	Profiler = 25
 )
 
 // Err wraps an error with an associated numeric exit code
