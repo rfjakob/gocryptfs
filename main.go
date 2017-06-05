@@ -185,18 +185,6 @@ func main() {
 	} else {
 		args.config = filepath.Join(args.cipherdir, configfile.ConfDefaultName)
 	}
-	// "-cpuprofile"
-	if args.cpuprofile != "" {
-		tlog.Info.Printf("Writing CPU profile to %s", args.cpuprofile)
-		var f *os.File
-		f, err = os.Create(args.cpuprofile)
-		if err != nil {
-			tlog.Fatal.Println(err)
-			os.Exit(exitcodes.Init)
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
 	// "-force_owner"
 	if args.force_owner != "" {
 		var uidNum, gidNum int64
@@ -216,6 +204,18 @@ func main() {
 			os.Exit(exitcodes.Usage)
 		}
 		args._forceOwner = &fuse.Owner{Uid: uint32(uidNum), Gid: uint32(gidNum)}
+	}
+	// "-cpuprofile"
+	if args.cpuprofile != "" {
+		tlog.Info.Printf("Writing CPU profile to %s", args.cpuprofile)
+		var f *os.File
+		f, err = os.Create(args.cpuprofile)
+		if err != nil {
+			tlog.Fatal.Println(err)
+			os.Exit(exitcodes.Init)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
 	}
 	// "-memprofile"
 	if args.memprofile != "" {
