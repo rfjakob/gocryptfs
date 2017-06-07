@@ -151,11 +151,9 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileID []b
 
 // EncryptBlocks is like EncryptBlock but takes multiple plaintext blocks.
 func (be *ContentEnc) EncryptBlocks(plaintextBlocks [][]byte, firstBlockNo uint64, fileID []byte) []byte {
-	// Encrypt piecewise.
+	// Encrypt piecewise. This allows easy parallization in the future.
 	ciphertextBlocks := make([][]byte, len(plaintextBlocks))
-	for i, v := range plaintextBlocks {
-		ciphertextBlocks[i] = be.EncryptBlock(v, firstBlockNo+uint64(i), fileID)
-	}
+	be.doEncryptBlocks(plaintextBlocks, ciphertextBlocks, firstBlockNo, fileID)
 	// Concatenate ciphertext into a single byte array.
 	// Size the output buffer for the maximum possible size (all blocks complete)
 	// to allocations in out.Write()
@@ -165,6 +163,13 @@ func (be *ContentEnc) EncryptBlocks(plaintextBlocks [][]byte, firstBlockNo uint6
 		out.Write(v)
 	}
 	return out.Bytes()
+}
+
+// doEncryptBlocks is called by EncryptBlocks to do the actual encryption work
+func (be *ContentEnc) doEncryptBlocks(in [][]byte, out [][]byte, firstBlockNo uint64, fileID []byte) {
+	for i, v := range in {
+		out[i] = be.EncryptBlock(v, firstBlockNo+uint64(i), fileID)
+	}
 }
 
 // EncryptBlock - Encrypt plaintext using a random nonce.
