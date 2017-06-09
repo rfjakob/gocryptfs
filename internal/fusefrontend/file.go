@@ -427,6 +427,9 @@ func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 	}
 	a.FromStat(&st)
 	a.Size = f.contentEnc.CipherSizeToPlainSize(a.Size)
+	if f.fs.args.ForceOwner != nil {
+		a.Owner = *f.fs.args.ForceOwner
+	}
 
 	return fuse.OK
 }
