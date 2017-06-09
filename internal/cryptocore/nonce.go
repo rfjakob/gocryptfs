@@ -28,6 +28,5 @@ type nonceGenerator struct {
 
 // Get a random "nonceLen"-byte nonce
 func (n *nonceGenerator) Get() []byte {
-	nonce := RandBytes(n.nonceLen)
-	return nonce
+	return randPrefetcher.read(n.nonceLen)
 }
