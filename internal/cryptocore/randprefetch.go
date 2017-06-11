@@ -22,9 +22,15 @@ Benchmark40960-2   	10000000	       147 ns/op	 108.82 MB/s
 */
 const prefetchN = 512
 
+func init() {
+	randPrefetcher.refill = make(chan []byte)
+	go randPrefetcher.refillWorker()
+}
+
 type randPrefetcherT struct {
 	sync.Mutex
-	buf bytes.Buffer
+	buf    bytes.Buffer
+	refill chan []byte
 }
 
 func (r *randPrefetcherT) read(want int) (out []byte) {
@@ -37,14 +43,24 @@ func (r *randPrefetcherT) read(want int) (out []byte) {
 		return out
 	}
 	// Buffer was empty -> re-fill
+	fresh := <-r.refill
+	if len(fresh) != prefetchN {
+		log.Panicf("randPrefetcher: refill: got %d bytes instead of %d", len(fresh), prefetchN)
+	}
 	r.buf.Reset()
-	r.buf.Write(RandBytes(prefetchN))
+	r.buf.Write(fresh)
 	have, err = r.buf.Read(out)
 	if have != want || err != nil {
 		log.Panicf("randPrefetcher could not satisfy read: have=%d want=%d err=%v", have, want, err)
 	}
 	r.Unlock()
 	return out
+}
+
+func (r *randPrefetcherT) refillWorker() {
+	for {
+		r.refill <- RandBytes(prefetchN)
+	}
 }
 
 var randPrefetcher randPrefetcherT
