@@ -7,6 +7,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"log"
+	"runtime"
+	"sync"
 
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
@@ -149,14 +151,42 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileID []b
 	return plaintext, nil
 }
 
+// At some point, splitting the ciphertext into more groups will not improve
+// performance, as spawning goroutines comes at a cost.
+// 2 seems to work ok for now.
+const encryptMaxSplit = 2
+
 // EncryptBlocks is like EncryptBlock but takes multiple plaintext blocks.
 func (be *ContentEnc) EncryptBlocks(plaintextBlocks [][]byte, firstBlockNo uint64, fileID []byte) []byte {
-	// Encrypt piecewise. This allows easy parallization in the future.
 	ciphertextBlocks := make([][]byte, len(plaintextBlocks))
-	be.doEncryptBlocks(plaintextBlocks, ciphertextBlocks, firstBlockNo, fileID)
+	// For large writes, we parallelize encryption.
+	if len(plaintextBlocks) >= 32 {
+		ncpu := runtime.NumCPU()
+		if ncpu > encryptMaxSplit {
+			ncpu = encryptMaxSplit
+		}
+		groupSize := len(plaintextBlocks) / ncpu
+		var wg sync.WaitGroup
+		for i := 0; i < ncpu; i++ {
+			wg.Add(1)
+			go func(i int) {
+				low := i * groupSize
+				high := (i + 1) * groupSize
+				if i == ncpu-1 {
+					// Last group, pick up any left-over blocks
+					high = len(plaintextBlocks)
+				}
+				be.doEncryptBlocks(plaintextBlocks[low:high], ciphertextBlocks[low:high], firstBlockNo+uint64(low), fileID)
+				wg.Done()
+			}(i)
+		}
+		wg.Wait()
+	} else {
+		be.doEncryptBlocks(plaintextBlocks, ciphertextBlocks, firstBlockNo, fileID)
+	}
 	// Concatenate ciphertext into a single byte array.
 	// Size the output buffer for the maximum possible size (all blocks complete)
-	// to allocations in out.Write()
+	// to prevent further allocations in out.Write()
 	tmp := make([]byte, len(plaintextBlocks)*int(be.CipherBS()))
 	out := bytes.NewBuffer(tmp[:0])
 	for _, v := range ciphertextBlocks {
