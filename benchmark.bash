@@ -8,12 +8,13 @@ MYNAME=$(basename "$0")
 source tests/fuse-unmount.bash
 
 function usage {
-	echo "Usage: $MYNAME [-encfs] [-openssl=true] [-openssl=false] [DIR]"
+	echo "Usage: $MYNAME [-encfs] [-openssl=true] [-openssl=false] [-dd] [DIR]"
 }
 
 OPT_ENCFS=0
 OPT_OPENSSL=""
 OPT_DIR=""
+DD_ONLY=""
 
 while [[ $# -gt 0 ]] ; do
 	case $1 in
@@ -29,6 +30,9 @@ while [[ $# -gt 0 ]] ; do
 			;;
 		-openssl=false)
 			OPT_OPENSSL="-openssl=false"
+			;;
+		-dd)
+			DD_ONLY=1
 			;;
 		-*)
 			echo "Invalid option: $1"
@@ -74,5 +78,11 @@ fi
 trap "cd /; fuse-unmount -z $MNT; rm -rf $CRYPT $MNT" EXIT
 
 # Benchmarks
-./tests/canonical-benchmarks.bash $MNT
+if [[ $DD_ONLY -eq 1 ]]; then
+	echo -n "WRITE: "
+	dd if=/dev/zero of=$MNT/zero bs=131072 count=2000 2>&1 | tail -n 1
+	rm $MNT/zero
+else
+	./tests/canonical-benchmarks.bash $MNT
+fi
 
