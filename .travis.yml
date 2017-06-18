@@ -21,6 +21,7 @@ script:
   - ./build.bash
   - ./gocryptfs -speed
   - ./test.bash
+  - ./crossbuild.bash
 
 # fuse on travis
 sudo: required

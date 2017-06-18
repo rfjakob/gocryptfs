@@ -1,6 +1,7 @@
 package syscallcompat
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -121,4 +122,12 @@ func dirfdAbs(dirfd int, path string) (string, error) {
 		return "", err
 	}
 	return filepath.Join(wd, path), nil
+}
+
+// Dup3 is not available on Darwin, so we use Dup2 instead.
+func Dup3(oldfd int, newfd int, flags int) (err error) {
+	if flags != 0 {
+		log.Panic("darwin does not support dup3 flags")
+	}
+	return syscall.Dup2(oldfd, newfd)
 }

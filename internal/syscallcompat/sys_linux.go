@@ -62,3 +62,9 @@ func Unlinkat(dirfd int, path string) error {
 func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 	return syscall.Mknodat(dirfd, path, mode, dev)
 }
+
+// Dup3 wraps the Dup3 syscall. We want to use Dup3 rather than Dup2 because Dup2
+// is not implemented on arm64.
+func Dup3(oldfd int, newfd int, flags int) (err error) {
+	return syscall.Dup3(oldfd, newfd, flags)
+}
