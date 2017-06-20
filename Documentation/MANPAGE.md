@@ -61,6 +61,17 @@ to mount the gocryptfs filesytem without user interaction.
 Stay in the foreground instead of forking away. Implies "-nosyslog".
 For compatability, "-f" is also accepted, but "-fg" is preferred.
 
+#### -force_owner string
+If given a string of the form "uid:gid" (where both "uid" and "gid" are
+substituted with positive integers), presents all files as owned by the given
+uid and gid, regardless of their actual ownership. Implies "allow_other".
+
+This is rarely desired behavior: One should *usually* run gocryptfs as the
+account which owns the backing-store files, which should *usually* be one and
+the same with the account intended to access the decrypted content. An example
+of a case where this may be useful is a situation where content is stored on a
+filesystem that doesn't properly support UNIX ownership and permissions.
+
 #### -forcedecode
 Force decode of encrypted files even if the integrity check fails, instead of
 failing with an IO error. Warning messages are still printed to syslog if corrupted 
@@ -78,17 +89,6 @@ that uses built-in Go crypto.
 
 Setting this option forces the filesystem to read-only and noexec.
 
-#### -force_owner string
-If given a string of the form "uid:gid" (where both "uid" and "gid" are
-substituted with positive integers), presents all files as owned by the given
-uid and gid, regardless of their actual ownership. Implies "allow_other".
-
-This is rarely desired behavior: One should *usually* run gocryptfs as the
-account which owns the backing-store files, which should *usually* be one and
-the same with the account intended to access the decrypted content. An example
-of a case where this may be useful is a situation where content is stored on a
-filesystem that doesn't properly support UNIX ownership and permissions.
-
 #### -fsname string
 Override the filesystem name (first column in df -T). Can also be
 passed as "-o fsname=" and is equivalent to libfuse's option of the
@@ -102,6 +102,10 @@ Print a short help text that shows the more-often used options.
 
 #### -hh
 Long help text, shows all available options.
+
+#### -hkdf
+Use HKDF to derive separate keys for content and name encryption from
+the master key.
 
 #### -info
 Pretty-print the contents of the config file for human consumption,
@@ -243,6 +247,9 @@ For more details visit https://github.com/rfjakob/gocryptfs/issues/92 .
 Run crypto speed test. Benchmark Go's built-in GCM against OpenSSL
 (if available). The library that will be selected on "-openssl=auto"
 (the default) is marked as such.
+
+#### -trace string
+Write execution trace to file. View the trace using "go tool trace FILE".
 
 #### -version
 Print version and exit. The output contains three fields seperated by ";".
