@@ -3,6 +3,7 @@
 set -eu
 
 cd "$(dirname "$0")"
+MYDIR=$PWD
 
 # GOPATH may contain multiple paths separated by ":"
 GOPATH1=$(go env GOPATH | cut -f1 -d:)
@@ -11,26 +12,17 @@ GOPATH1=$(go env GOPATH | cut -f1 -d:)
 GITVERSION=$(git describe --tags --dirty)
 
 # go-fuse version according to git
-# Note: git in CentOS 7 does not have "git -C" yet. That's why we use
-# plain "cd" in a subshell.
-GITVERSIONFUSE=$(
-	cd $GOPATH1/src/github.com/hanwen/go-fuse
-	SHORT=$(git rev-parse --short HEAD)
-
-	if [[ $SHORT == 5e829bc ]] ; then
-		echo "Error: The version $SHORT of the go-fuse library has a known crasher that" >&2
-		echo "has been fixed by https://github.com/hanwen/go-fuse/pull/131 . Please upgrade." >&2
-		exit 1
-	fi
-
-	# Check if the tree is dirty, adapted from
-	# http://stackoverflow.com/a/2659808/1380267
-	if ! git diff-index --quiet HEAD ; then
-		echo $SHORT-dirty
-	else
-		echo $SHORT
-	fi
-)
+# Note: git in CentOS 7 does not have "git -C" yet, so we use plain "cd".
+FAIL=0
+cd $GOPATH1/src/github.com/hanwen/go-fuse
+OUT=$(git describe --tags --dirty 2>&1) || FAIL=1
+if [[ $FAIL -ne 0 ]]; then
+	echo "$PWD: git describe: $OUT"
+	echo "Hint: are you missing git tags?"
+	exit 1
+fi
+GITVERSIONFUSE=$OUT
+cd "$MYDIR"
 
 # Build Unix timestamp, something like 1467554204.
 BUILDTIME=$(date +%s)
