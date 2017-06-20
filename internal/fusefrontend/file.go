@@ -311,6 +311,8 @@ func (f *file) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 	}
 	// Write
 	_, err = f.fd.WriteAt(ciphertext, cOff)
+	// Return memory to cWritePool
+	f.fs.contentEnc.CWritePut(ciphertext)
 	if err != nil {
 		tlog.Warn.Printf("doWrite: Write failed: %s", err.Error())
 		return 0, fuse.ToStatus(err)
