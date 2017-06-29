@@ -1,4 +1,5 @@
-All test performed on tmpfs, /tmp/a mounted on /tmp/b.
+All test performed on a Pentium G630 (Dual-core Sandy Bridge, no AES-NI).
+The working directory is on tmpfs.
 The untar test uses https://cdn.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz .
 The archive is placed on tmpfs as well.
 
@@ -10,28 +11,29 @@ RM:    time rm -Rf linux-3.0
 
 (or just run benchmark.bash)
 
-VERSION            WRITE    UNTAR   MD5    LS     RM
-v0.4                           48          1.5    5
-v0.5-rc1                       56          7     19
-v0.5-rc1-1                     54          4.1    9
-v0.5-rc1-2                     45          1.7    3.4
-v0.6                           47          1.8    4.3
-v0.7                           43          1.7    4.3
-v0.7.2                         26          1.8    4.3
-v0.8                           23          1.8    4.3
-v0.9-rc2           94          24          1.8    4.5
-v0.9               94          24          1.8    4.5
-v0.11             104          22          1.7    4.5
-v1.1              104          20          1.5    3.4 (go1.7.1)
-v1.1.1-34         112          22          1.5    3.6 (go1.7.3)
-v1.2.1-33         112          21    12    1.6    4.4 (go1.8)
--serialize_reads  116          21    39    1.5    4.4 (v1.2.1-33 with -serialize_reads)
-v1.3-27           113          20    11    1.4    4.2
-v1.3-53-gf44902a  119          19    12    1.6    4.1
-v1.3-64-g80516ed  123          19    11    1.3    4.2
-v1.3-67-g9837cb0  125          19    11    1.4    4.2 (go1.8.3)
-v1.3-69-ge52594d  145          19.0  11.6  1.4    4.1
-v1.4-1-g3c6fe98   154          17.2  11.7  1.4    4.1
+VERSION           WRITE    READ     UNTAR  MD5   LS     RM
+v0.4                                48          1.5    5
+v0.5-rc1                            56          7     19
+v0.5-rc1-1                          54          4.1    9
+v0.5-rc1-2                          45          1.7    3.4
+v0.6                                47          1.8    4.3
+v0.7                                43          1.7    4.3
+v0.7.2                              26          1.8    4.3
+v0.8                                23          1.8    4.3
+v0.9-rc2           94               24          1.8    4.5
+v0.9               94               24          1.8    4.5
+v0.11             104               22          1.7    4.5
+v1.1              104               20          1.5    3.4 (go1.7.1)
+v1.1.1-34         112               22          1.5    3.6 (go1.7.3)
+v1.2.1-33         112               21    12    1.6    4.4 (go1.8)
+-serialize_reads  116               21    39    1.5    4.4 (v1.2.1-33 with -serialize_reads)
+v1.3-27           113               20    11    1.4    4.2
+v1.3-53-gf44902a  119               19    12    1.6    4.1
+v1.3-64-g80516ed  123               19    11    1.3    4.2
+v1.3-67-g9837cb0  125               19    11    1.4    4.2 (go1.8.3)
+v1.3-69-ge52594d  145               19.0  11.6  1.4    4.1
+v1.4-1-g3c6fe98   154               17.2  11.7  1.4    4.1
+v1.4-5-g0cc6f53   182      144      16.7  11.1  1.3    3.3
 
 Results for EncFS for comparison (benchmark.bash -encfs):     
 
