@@ -26,4 +26,4 @@ done
 
 echo
 echo "Hint: go tool pprof ../gocryptfs $T/cprof"
-echo "      go tool pprof -alloc_space ../gocryptfs /tmp/tmp.DRhBSFO6pu/mprof"
+echo "      go tool pprof -alloc_space ../gocryptfs $T/mprof"
