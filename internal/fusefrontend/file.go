@@ -172,7 +172,8 @@ func (f *file) doRead(dst []byte, off uint64, length uint64) ([]byte, fuse.Statu
 	skip := blocks[0].Skip
 	tlog.Debug.Printf("JointCiphertextRange(%d, %d) -> %d, %d, %d", off, length, alignedOffset, alignedLength, skip)
 
-	ciphertext := make([]byte, int(alignedLength))
+	ciphertext := f.fs.contentEnc.CReqPool.Get()
+	ciphertext = ciphertext[:int(alignedLength)]
 	n, err := f.fd.ReadAt(ciphertext, int64(alignedOffset))
 	// We don't care if the file ID changes after we have read the data. Drop the lock.
 	f.fileTableEntry.HeaderLock.RUnlock()
@@ -188,6 +189,7 @@ func (f *file) doRead(dst []byte, off uint64, length uint64) ([]byte, fuse.Statu
 
 	// Decrypt it
 	plaintext, err := f.contentEnc.DecryptBlocks(ciphertext, firstBlockNo, fileID)
+	f.fs.contentEnc.CReqPool.Put(ciphertext)
 	if err != nil {
 		if f.fs.args.ForceDecode && err == stupidgcm.ErrAuth {
 			// We do not have the information which block was corrupt here anymore,
