@@ -112,6 +112,13 @@ func TestInplaceSeal(t *testing.T) {
 	}
 }
 
+// Open re-uses the "dst" buffer it is large enough.
+// Check that this works correctly by testing different "dst" capacities from
+// 5000 to 16 and "in" lengths from 1 to 5000.
+func TestInplaceOpen(t *testing.T) {
+	t.Skipf("TODO: IMPLEMENT TEST")
+}
+
 // TestCorruption verifies that changes in the ciphertext result in a decryption
 // error
 func TestCorruption(t *testing.T) {

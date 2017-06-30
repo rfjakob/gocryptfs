@@ -139,7 +139,18 @@ func (g stupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
 	if len(in) <= tagLen {
 		log.Panic("Input data too short")
 	}
-	buf := make([]byte, len(in)-tagLen)
+
+	// If the "dst" slice is large enough we can use it as our output buffer
+	outLen := len(in) - tagLen
+	var buf []byte
+	inplace := false
+	if cap(dst)-len(dst) >= outLen {
+		inplace = true
+		buf = dst[len(dst) : len(dst)+outLen]
+	} else {
+		buf = make([]byte, len(in)-tagLen)
+	}
+
 	ciphertext := in[:len(in)-tagLen]
 	tag := in[len(in)-tagLen:]
 
@@ -207,5 +218,8 @@ func (g stupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
 		return nil, ErrAuth
 	}
 
+	if inplace {
+		return dst[:len(dst)+outLen], nil
+	}
 	return append(dst, buf...), nil
 }
