@@ -60,6 +60,8 @@ type ContentEnc struct {
 	CReqPool bPool
 	// Plaintext block pool. Always returns plainBS-sized byte slices.
 	pBlockPool bPool
+	// Plaintext request data pool. Slice have size fuse.MAX_KERNEL_WRITE.
+	PReqPool bPool
 }
 
 // New returns an initialized ContentEnc instance.
@@ -80,6 +82,7 @@ func New(cc *cryptocore.CryptoCore, plainBS uint64, forceDecode bool) *ContentEn
 		cBlockPool:   newBPool(int(cipherBS)),
 		CReqPool:     newBPool(cReqSize),
 		pBlockPool:   newBPool(int(plainBS)),
+		PReqPool:     newBPool(fuse.MAX_KERNEL_WRITE),
 	}
 	return c
 }
@@ -98,7 +101,7 @@ func (be *ContentEnc) CipherBS() uint64 {
 func (be *ContentEnc) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, fileID []byte) ([]byte, error) {
 	cBuf := bytes.NewBuffer(ciphertext)
 	var err error
-	var pBuf bytes.Buffer
+	pBuf := bytes.NewBuffer(be.PReqPool.Get()[:0])
 	for cBuf.Len() > 0 {
 		cBlock := cBuf.Next(int(be.cipherBS))
 		var pBlock []byte

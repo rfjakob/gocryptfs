@@ -214,7 +214,10 @@ func (f *file) doRead(dst []byte, off uint64, length uint64) ([]byte, fuse.Statu
 	}
 	// else: out stays empty, file was smaller than the requested offset
 
-	return append(dst, out...), fuse.OK
+	out = append(dst, out...)
+	f.fs.contentEnc.PReqPool.Put(plaintext)
+
+	return out, fuse.OK
 }
 
 // Read - FUSE call
