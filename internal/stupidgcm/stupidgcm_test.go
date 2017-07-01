@@ -116,7 +116,38 @@ func TestInplaceSeal(t *testing.T) {
 // Check that this works correctly by testing different "dst" capacities from
 // 5000 to 16 and "in" lengths from 1 to 5000.
 func TestInplaceOpen(t *testing.T) {
-	t.Skipf("TODO: IMPLEMENT TEST")
+	key := randBytes(32)
+	sGCM := New(key, false)
+	authData := randBytes(24)
+	iv := randBytes(16)
+
+	gAES, err := aes.NewCipher(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gGCM, err := cipher.NewGCMWithNonceSize(gAES, 16)
+	if err != nil {
+		t.Fatal(err)
+	}
+	max := 5016
+	// Check all block sizes from 1 to 5000
+	for i := 1; i < max-16; i++ {
+		in := make([]byte, i)
+
+		gCiphertext := gGCM.Seal(iv, iv, in, authData)
+
+		dst := make([]byte, max-i)
+		// sPlaintext ... stupidgcm plaintext
+		sPlaintext, err := sGCM.Open(dst[:0], iv, gCiphertext[16:], authData)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Plaintext must be identical to Go GCM
+		if !bytes.Equal(in, sPlaintext) {
+			t.Fatalf("Compare failed, i=%d", i)
+		}
+	}
 }
 
 // TestCorruption verifies that changes in the ciphertext result in a decryption
