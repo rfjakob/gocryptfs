@@ -277,6 +277,10 @@ func (be *ContentEnc) doEncryptBlock(plaintext []byte, blockNo uint64, fileID []
 // MergeBlocks - Merge newData into oldData at offset
 // New block may be bigger than both newData and oldData
 func (be *ContentEnc) MergeBlocks(oldData []byte, newData []byte, offset int) []byte {
+	// Fastpath for small-file creation
+	if len(oldData) == 0 && offset == 0 {
+		return newData
+	}
 
 	// Make block of maximum size
 	out := make([]byte, be.plainBS)
