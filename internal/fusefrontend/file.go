@@ -181,6 +181,11 @@ func (f *file) doRead(dst []byte, off uint64, length uint64) ([]byte, fuse.Statu
 		tlog.Warn.Printf("read: ReadAt: %s", err.Error())
 		return nil, fuse.ToStatus(err)
 	}
+	// The ReadAt came back empty. We can skip all the decryption and return early.
+	if n == 0 {
+		f.fs.contentEnc.CReqPool.Put(ciphertext)
+		return dst, fuse.OK
+	}
 	// Truncate ciphertext buffer down to actually read bytes
 	ciphertext = ciphertext[0:n]
 
