@@ -337,6 +337,9 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 	srv, err := fuse.NewServer(conn.RawFS(), args.mountpoint, &mOpts)
 	if err != nil {
 		tlog.Fatal.Printf("fuse.NewServer failed: %v", err)
+		if runtime.GOOS == "darwin" {
+			tlog.Info.Printf("Maybe you should run: /Library/Filesystems/osxfuse.fs/Contents/Resources/load_osxfuse")
+		}
 		os.Exit(exitcodes.FuseNewServer)
 	}
 	srv.SetDebug(args.fusedebug)
