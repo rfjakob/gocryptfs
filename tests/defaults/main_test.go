@@ -4,6 +4,7 @@ package defaults
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"runtime"
@@ -160,4 +161,33 @@ func TestXfs124(t *testing.T) {
 	}()
 
 	wg.Wait()
+}
+
+func TestWrite0200File(t *testing.T) {
+	fn := test_helpers.DefaultPlainDir + "/TestWrite0200File"
+	err := ioutil.WriteFile(fn, nil, 0200)
+	if err != nil {
+		t.Fatalf("creating empty file failed: %v", err)
+	}
+	fd, err := os.OpenFile(fn, os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fi, err := fd.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+	perms := fi.Mode().Perm()
+	if perms != 0200 {
+		t.Fatal("wrong initial permissions")
+	}
+	defer fd.Close()
+	_, err = fd.Write(make([]byte, 10))
+	if err != nil {
+		t.Fatal(err)
+	}
+	perms = fi.Mode().Perm()
+	if perms != 0200 {
+		t.Fatal("wrong restored permissions")
+	}
 }

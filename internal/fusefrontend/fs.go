@@ -34,6 +34,9 @@ type FS struct {
 	nameTransform *nametransform.NameTransform
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
+	// This lock is used by openWriteOnlyFile() to block concurrent opens while
+	// it relaxes the permissions on a file.
+	openWriteOnlyLock sync.RWMutex
 }
 
 var _ pathfs.FileSystem = &FS{} // Verify that interface is implemented.
@@ -102,6 +105,10 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 	if fs.isFiltered(path) {
 		return nil, fuse.EPERM
 	}
+	// Taking this lock makes sure we don't race openWriteOnlyFile()
+	fs.openWriteOnlyLock.RLock()
+	defer fs.openWriteOnlyLock.RUnlock()
+
 	newFlags := fs.mangleOpenFlags(flags)
 	cPath, err := fs.getBackingPath(path)
 	if err != nil {
@@ -109,18 +116,66 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 		return nil, fuse.ToStatus(err)
 	}
 	tlog.Debug.Printf("Open: %s", cPath)
-	f, err := os.OpenFile(cPath, newFlags, 0666)
+	f, err := os.OpenFile(cPath, newFlags, 0)
 	if err != nil {
-		err2 := err.(*os.PathError)
-		if err2.Err == syscall.EMFILE {
+		sysErr := err.(*os.PathError).Err
+		if sysErr == syscall.EMFILE {
 			var lim syscall.Rlimit
 			syscall.Getrlimit(syscall.RLIMIT_NOFILE, &lim)
 			tlog.Warn.Printf("Open %q: too many open files. Current \"ulimit -n\": %d", cPath, lim.Cur)
 		}
+		if sysErr == syscall.EACCES && (int(flags)&os.O_WRONLY > 0) {
+			return fs.openWriteOnlyFile(cPath, newFlags)
+		}
 		return nil, fuse.ToStatus(err)
 	}
-
 	return NewFile(f, fs)
+}
+
+// Due to RMW, we always need read permissions on the backing file. This is a
+// problem if the file permissions do not allow reading (i.e. 0200 permissions).
+// This function works around that problem by chmod'ing the file, obtaining a fd,
+// and chmod'ing it back.
+func (fs *FS) openWriteOnlyFile(cPath string, newFlags int) (fuseFile nodefs.File, status fuse.Status) {
+	woFd, err := os.OpenFile(cPath, os.O_WRONLY, 0)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	defer woFd.Close()
+	fi, err := woFd.Stat()
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	perms := fi.Mode().Perm()
+	// Verify that we don't have read permissions
+	if perms&0400 != 0 {
+		tlog.Warn.Printf("openWriteOnlyFile: unexpected permissions %#o, returning EPERM", perms)
+		return nil, fuse.ToStatus(syscall.EPERM)
+	}
+	// Upgrade the lock to block other Open()s and downgrade again on return
+	fs.openWriteOnlyLock.RUnlock()
+	fs.openWriteOnlyLock.Lock()
+	defer func() {
+		fs.openWriteOnlyLock.Unlock()
+		fs.openWriteOnlyLock.RLock()
+	}()
+	// Relax permissions and revert on return
+	err = woFd.Chmod(perms | 0400)
+	if err != nil {
+		tlog.Warn.Printf("openWriteOnlyFile: changing permissions failed: %v", err)
+		return nil, fuse.ToStatus(err)
+	}
+	defer func() {
+		err2 := woFd.Chmod(perms)
+		if err2 != nil {
+			tlog.Warn.Printf("openWriteOnlyFile: reverting permissions failed: %v", err2)
+		}
+	}()
+	rwFd, err := os.OpenFile(cPath, newFlags, 0)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	return NewFile(rwFd, fs)
 }
 
 // Create implements pathfs.Filesystem.
