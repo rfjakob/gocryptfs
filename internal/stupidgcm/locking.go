@@ -8,7 +8,7 @@ package stupidgcm
 // has been removed completely in openssl 1.1.0.
 
 /*
-#include <openssl/evp.h>
+#include <openssl/crypto.h>
 #include <stdio.h>
 
 static void dummy_callback(int mode, int n, const char *file, int line) {
