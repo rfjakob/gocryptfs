@@ -18,36 +18,29 @@ cd "$(dirname "$0")"
 MYNAME=$(basename $0)
 source ../fuse-unmount.bash
 
-# Backing directory
-DIR=$(mktemp -d /tmp/fsstress.XXX)
-# Mountpoint
-MNT="$DIR.mnt"
-
-# Set the GOPATH variable to the default if it is empty
-GOPATH=$(go env GOPATH)
-
 # fsstress binary
-FSSTRESS=$GOPATH/src/xfstests/ltp/fsstress
-
+FSSTRESS=$HOME/fuse-xfstests/ltp/fsstress
 if [ ! -x $FSSTRESS ]
 then
-	echo "fsstress binary not found, adjust FSSTRESS=$FSSTRESS"
+	echo "$MYNAME: fsstress binary not found at $FSSTRESS"
+	echo "Please clone and compile https://github.com/rfjakob/fuse-xfstests"
 	exit 1
 fi
 
-# Setup
-fuse-unmount -z $MNT &> /dev/null || true
-mkdir -p $DIR $MNT
-rm -Rf $DIR/*
-rm -Rf $MNT/*
+# Backing directory
+DIR=$(mktemp -d /tmp/$MYNAME.XXX)
+# Mountpoint
+MNT="$DIR.mnt"
+mkdir $MNT
 
-
+# Set the GOPATH variable to the default if it is empty
+GOPATH=$(go env GOPATH)
 
 # FS-specific compile and mount
 if [ $MYNAME = fsstress-loopback.bash ]; then
 	echo "Recompile go-fuse loopback"
 	cd $GOPATH/src/github.com/hanwen/go-fuse/example/loopback
-	go build && go install
+	go build -race && go install
 	$GOPATH/bin/loopback -l $MNT $DIR &
 	disown
 elif [ $MYNAME = fsstress-gocryptfs.bash ]; then
@@ -64,17 +57,17 @@ else
 	exit 1
 fi
 
-echo -n "Waiting for mount: "
 sleep 0.5
+echo -n "Waiting for mount: "
 while ! grep "$MNT fuse" /proc/self/mounts > /dev/null
 do
 	sleep 1
 	echo -n x
 done
-echo
+echo " ok"
 
 # Cleanup trap
-trap "kill %1 ; cd /; fuse-unmount -z $MNT; rm -rf $DIR $MNT" EXIT
+trap "kill %1 ; cd / ; fuse-unmount -z $MNT ; rm -rf $DIR $MNT" EXIT
 
 echo "Starting fsstress loop"
 N=1
