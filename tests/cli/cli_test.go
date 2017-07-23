@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
@@ -357,5 +358,55 @@ func TestPasswdPasswordIncorrect(t *testing.T) {
 	exitCode := err.(*exec.ExitError).Sys().(syscall.WaitStatus).ExitStatus()
 	if exitCode != exitcodes.PasswordIncorrect {
 		t.Errorf("want=%d, got=%d", exitcodes.PasswordIncorrect, exitCode)
+	}
+}
+
+// Check that we correctly background on mount and close stderr and stdout.
+// Something like
+//   gocryptfs a b | cat
+// must not hang ( https://github.com/rfjakob/gocryptfs/issues/130 ).
+func TestMountBackground(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	mnt := dir + ".mnt"
+	err := os.Mkdir(mnt, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Manually create a pipe pair and connect the child's stdout and stderr
+	// to it. We cannot use StdoutPipe because that will close the pipe
+	// when the child forks away.
+	pr, pw, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	args := []string{"-extpass", "echo test", dir, mnt}
+	cmd := exec.Command(test_helpers.GocryptfsBinary, args...)
+	cmd.Stdout = pw
+	cmd.Stderr = pw
+	err = cmd.Run()
+	if err != nil {
+		t.Error(err)
+	}
+	pw.Close()
+	defer test_helpers.UnmountPanic(mnt)
+	// Read until we get EOF.
+	c1 := make(chan struct{}, 1)
+	go func() {
+		buf := make([]byte, 1000)
+		for {
+			_, err = pr.Read(buf)
+			// We should get io.EOF when the child closes stdout
+			// and stderr.
+			if err != nil {
+				c1 <- struct{}{}
+				return
+			}
+		}
+	}()
+	select {
+	case <-c1:
+		return
+	case <-time.After(time.Second * 5):
+		t.Fatal("timeout")
 	}
 }
