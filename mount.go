@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log/syslog"
 	"net"
 	"os"
@@ -26,7 +25,6 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend_reverse"
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
-	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -144,47 +142,6 @@ func doMount(args *argContainer) int {
 	// Jump into server loop. Returns when it gets an umount request from the kernel.
 	srv.Serve()
 	return 0
-}
-
-// redirectStdFds redirects stderr and stdout to syslog; stdin to /dev/null
-func redirectStdFds() {
-	// stderr and stdout
-	pr, pw, err := os.Pipe()
-	if err != nil {
-		tlog.Warn.Printf("redirectStdFds: could not create pipe: %v\n", err)
-		return
-	}
-	tag := fmt.Sprintf("gocryptfs-%d-logger", os.Getpid())
-	cmd := exec.Command("logger", "-t", tag)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = pr
-	err = cmd.Start()
-	if err != nil {
-		tlog.Warn.Printf("redirectStdFds: could not start logger: %v\n", err)
-	}
-	pr.Close()
-	err = syscallcompat.Dup3(int(pw.Fd()), 1, 0)
-	if err != nil {
-		tlog.Warn.Printf("redirectStdFds: stdout dup error: %v\n", err)
-	}
-	syscallcompat.Dup3(int(pw.Fd()), 2, 0)
-	if err != nil {
-		tlog.Warn.Printf("redirectStdFds: stderr dup error: %v\n", err)
-	}
-	pw.Close()
-
-	// stdin
-	nullFd, err := os.Open("/dev/null")
-	if err != nil {
-		tlog.Warn.Printf("redirectStdFds: could not open /dev/null: %v\n", err)
-		return
-	}
-	err = syscallcompat.Dup3(int(nullFd.Fd()), 0, 0)
-	if err != nil {
-		tlog.Warn.Printf("redirectStdFds: stdin dup error: %v\n", err)
-	}
-	nullFd.Close()
 }
 
 // setOpenFileLimit tries to increase the open file limit to 4096 (the default hard
