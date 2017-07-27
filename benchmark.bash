@@ -67,7 +67,7 @@ if [[ $OPT_ENCFS -eq 1 ]]; then
 		exit 1
 	fi
 	echo "Testing EncFS at $CRYPT"
-	encfs --extpass="echo test" --standard $CRYPT $MNT > /dev/null
+	/home/jakob.donotbackup/encfs/build/encfs --extpass="echo test" --standard $CRYPT $MNT > /dev/null
 else
 	echo "Testing gocryptfs at $CRYPT"
 	gocryptfs -q -init -extpass="echo test" -scryptn=10 $CRYPT

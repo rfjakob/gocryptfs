@@ -130,3 +130,13 @@ func TestAccessVirtual(t *testing.T) {
 		t.Errorf("should NOT be executable")
 	}
 }
+
+// Opening a nonexistant file name should return ENOENT
+// and not EBADMSG or EIO or anything else.
+func TestEnoent(t *testing.T) {
+	fn := dirB + "/TestEnoent"
+	_, err := syscall.Open(fn, syscall.O_RDONLY, 0)
+	if err != syscall.ENOENT {
+		t.Errorf("want ENOENT, got: %v", err)
+	}
+}

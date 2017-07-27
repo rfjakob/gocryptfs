@@ -46,7 +46,7 @@ func (rfs *ReverseFS) rDecryptName(cName string, dirIV []byte, pDir string) (pNa
 			// Stat attempts on the link target of encrypted symlinks.
 			// These are always valid base64 but the length is not a
 			// multiple of 16.
-			if err == syscall.EINVAL {
+			if err == syscall.EBADMSG {
 				return "", syscall.ENOENT
 			}
 			return "", err
