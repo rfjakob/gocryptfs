@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"syscall"
 	"time"
@@ -139,6 +140,9 @@ func doMount(args *argContainer) int {
 	// This prevents a dangling "Transport endpoint is not connected"
 	// mountpoint if the user hits CTRL-C.
 	handleSigint(srv, args.mountpoint)
+	// Return memory that was allocated for scrypt (64M by default!) and other
+	// stuff that is no longer needed to the OS
+	debug.FreeOSMemory()
 	// Jump into server loop. Returns when it gets an umount request from the kernel.
 	srv.Serve()
 	return 0
