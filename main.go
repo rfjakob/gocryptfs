@@ -3,11 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-
 	"path/filepath"
 	"runtime"
-	"runtime/pprof"
-	"runtime/trace"
 	"strconv"
 	"strings"
 	"time"
@@ -208,49 +205,18 @@ func main() {
 	}
 	// "-cpuprofile"
 	if args.cpuprofile != "" {
-		tlog.Info.Printf("Writing CPU profile to %s", args.cpuprofile)
-		var f *os.File
-		f, err = os.Create(args.cpuprofile)
-		if err != nil {
-			tlog.Fatal.Println(err)
-			os.Exit(exitcodes.Profiler)
-		}
-		err = pprof.StartCPUProfile(f)
-		if err != nil {
-			tlog.Fatal.Println(err)
-			os.Exit(exitcodes.Profiler)
-		}
-		defer pprof.StopCPUProfile()
+		onExitFunc := setupCpuprofile(args.cpuprofile)
+		defer onExitFunc()
 	}
 	// "-memprofile"
 	if args.memprofile != "" {
-		tlog.Info.Printf("Writing mem profile to %s", args.memprofile)
-		var f *os.File
-		f, err = os.Create(args.memprofile)
-		if err != nil {
-			tlog.Fatal.Println(err)
-			os.Exit(exitcodes.Profiler)
-		}
-		defer func() {
-			pprof.WriteHeapProfile(f)
-			f.Close()
-			return
-		}()
+		onExitFunc := setupMemprofile(args.memprofile)
+		defer onExitFunc()
 	}
 	// "-trace"
 	if args.trace != "" {
-		tlog.Info.Printf("Writing execution trace to %s", args.trace)
-		f, err := os.Create(args.trace)
-		if err != nil {
-			tlog.Fatal.Println(err)
-			os.Exit(exitcodes.Profiler)
-		}
-		err = trace.Start(f)
-		if err != nil {
-			tlog.Fatal.Println(err)
-			os.Exit(exitcodes.Profiler)
-		}
-		defer trace.Stop()
+		onExitFunc := setupTrace(args.trace)
+		defer onExitFunc()
 	}
 	if args.cpuprofile != "" || args.memprofile != "" || args.trace != "" {
 		tlog.Info.Printf("Note: You must unmount gracefully, otherwise the profile file(s) will stay empty!\n")
