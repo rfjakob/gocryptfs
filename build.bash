@@ -30,16 +30,6 @@ BUILDTIME=$(date +%s)
 # Make sure we have the go binary
 go version > /dev/null
 
-# Parse "go version go1.6.2 linux/amd64" to "1.6"
-V=$(go version | cut -d" " -f3 | cut -c3-5)
-# Reject old Go versions already here. It would fail with compile
-# errors anyway.
-if [[ $V == "1.3" || $V == "1.4" ]] ; then
-	echo "Error: you need Go 1.5 or higher to compile gocryptfs"
-	echo -n "You have: "
-	go version
-fi
-
 LDFLAGS="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildTime=$BUILDTIME"
 go build "-ldflags=$LDFLAGS" $@
 
