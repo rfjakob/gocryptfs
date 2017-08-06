@@ -1,4 +1,4 @@
-package nametransform
+package dirivcache
 
 import (
 	"sync"
@@ -7,7 +7,7 @@ import (
 
 // Single-entry DirIV cache. Stores the directory IV and the encrypted
 // path.
-type dirIVCache struct {
+type DirIVCache struct {
 	// Directory the DirIV belongs to
 	dir string
 	// Time the entry expires.
@@ -28,7 +28,7 @@ type dirIVCache struct {
 }
 
 // lookup - fetch entry for "dir" from the cache
-func (c *dirIVCache) lookup(dir string) ([]byte, string) {
+func (c *DirIVCache) Lookup(dir string) ([]byte, string) {
 	c.RLock()
 	defer c.RUnlock()
 	if c.cleared || c.dir != dir {
@@ -42,7 +42,7 @@ func (c *dirIVCache) lookup(dir string) ([]byte, string) {
 }
 
 // store - write entry for "dir" into the cache
-func (c *dirIVCache) store(dir string, iv []byte, cDir string) {
+func (c *DirIVCache) Store(dir string, iv []byte, cDir string) {
 	c.Lock()
 	defer c.Unlock()
 	c.cleared = false
@@ -56,7 +56,7 @@ func (c *dirIVCache) store(dir string, iv []byte, cDir string) {
 // Clear ... clear the cache.
 // Exported because it is called from fusefrontend when directories are
 // renamed or deleted.
-func (c *dirIVCache) Clear() {
+func (c *DirIVCache) Clear() {
 	c.Lock()
 	defer c.Unlock()
 	c.cleared = true

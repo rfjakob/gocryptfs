@@ -125,7 +125,7 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cip
 	// Check if the DirIV is cached. This catches the case of the user iterating
 	// over files in a directory pretty well.
 	parentDir := filepath.Dir(plainPath)
-	iv, cParentDir := be.DirIVCache.lookup(parentDir)
+	iv, cParentDir := be.DirIVCache.Lookup(parentDir)
 	if iv != nil {
 		cBaseName := be.encryptAndHashName(baseName, iv)
 		return filepath.Join(cParentDir, cBaseName), nil
@@ -138,7 +138,7 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cip
 	// cached. Then we can skip a few items in the directory walk.
 	// This catches the case of walking directories recursively.
 	parentDir2 := filepath.Dir(parentDir)
-	iv, cParentDir = be.DirIVCache.lookup(parentDir2)
+	iv, cParentDir = be.DirIVCache.Lookup(parentDir2)
 	if iv != nil {
 		parentDirBase := filepath.Base(parentDir)
 		cBaseName := be.encryptAndHashName(parentDirBase, iv)
@@ -159,6 +159,6 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cip
 	}
 	// Cache the final DirIV
 	cParentDir = filepath.Dir(cipherPath)
-	be.DirIVCache.store(parentDir, iv, cParentDir)
+	be.DirIVCache.Store(parentDir, iv, cParentDir)
 	return cipherPath, nil
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/rfjakob/eme"
 
+	"github.com/rfjakob/gocryptfs/internal/nametransform/dirivcache"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -16,7 +17,7 @@ import (
 type NameTransform struct {
 	emeCipher  *eme.EMECipher
 	longNames  bool
-	DirIVCache dirIVCache
+	DirIVCache dirivcache.DirIVCache
 	// B64 = either base64.URLEncoding or base64.RawURLEncoding, depeding
 	// on the Raw64 feature flag
 	B64 *base64.Encoding
