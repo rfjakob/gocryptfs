@@ -7,6 +7,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 
+	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/pathiv"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -31,7 +32,7 @@ const (
 )
 
 func (rfs *ReverseFS) newDirIVFile(cRelPath string) (nodefs.File, fuse.Status) {
-	cDir := saneDir(cRelPath)
+	cDir := nametransform.Dir(cRelPath)
 	absDir, err := rfs.abs(rfs.decryptPath(cDir))
 	if err != nil {
 		return nil, fuse.ToStatus(err)

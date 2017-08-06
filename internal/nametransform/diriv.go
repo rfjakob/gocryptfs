@@ -162,3 +162,12 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cip
 	be.DirIVCache.Store(parentDir, iv, cParentDir)
 	return cipherPath, nil
 }
+
+// Dir is like filepath.Dir but returns "" instead of ".".
+func Dir(path string) string {
+	d := filepath.Dir(path)
+	if d == "." {
+		return ""
+	}
+	return d
+}
