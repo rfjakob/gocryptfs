@@ -98,6 +98,16 @@ func WriteDirIV(dir string) error {
 	return nil
 }
 
+// encryptAndHashName encrypts "name" and hashes it to a longname if it is
+// too long.
+func (be *NameTransform) encryptAndHashName(name string, iv []byte) string {
+	cName := be.EncryptName(name, iv)
+	if be.longNames && len(cName) > syscall.NAME_MAX {
+		return be.HashLongName(cName)
+	}
+	return cName
+}
+
 // EncryptPathDirIV - encrypt relative plaintext path "plainPath" using EME with
 // DirIV. "rootDir" is the backing storage root directory.
 // Components that are longer than 255 bytes are hashed if be.longnames == true.
@@ -117,12 +127,8 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cip
 	parentDir := filepath.Dir(plainPath)
 	iv, cParentDir := be.DirIVCache.lookup(parentDir)
 	if iv != nil {
-		cBaseName := be.EncryptName(baseName, iv)
-		if be.longNames && len(cBaseName) > syscall.NAME_MAX {
-			cBaseName = be.HashLongName(cBaseName)
-		}
-		cipherPath = filepath.Join(cParentDir, cBaseName)
-		return cipherPath, nil
+		cBaseName := be.encryptAndHashName(baseName, iv)
+		return filepath.Join(cParentDir, cBaseName), nil
 	}
 	// We have to walk the directory tree, in the worst case starting at the root
 	// directory.
@@ -130,15 +136,12 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cip
 	plainNames := strings.Split(plainPath, "/")
 	// So the DirIV we need is not cached. But maybe one level higher is
 	// cached. Then we can skip a few items in the directory walk.
-	// The catches the case of walking directories recursively.
+	// This catches the case of walking directories recursively.
 	parentDir2 := filepath.Dir(parentDir)
 	iv, cParentDir = be.DirIVCache.lookup(parentDir2)
 	if iv != nil {
 		parentDirBase := filepath.Base(parentDir)
-		cBaseName := be.EncryptName(parentDirBase, iv)
-		if be.longNames && len(cBaseName) > syscall.NAME_MAX {
-			cBaseName = be.HashLongName(cBaseName)
-		}
+		cBaseName := be.encryptAndHashName(parentDirBase, iv)
 		wd = filepath.Join(wd, cParentDir, cBaseName)
 		cipherPath = filepath.Join(cParentDir, cBaseName)
 		skip := len(strings.Split(cipherPath, "/"))
@@ -150,10 +153,7 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (cip
 		if err != nil {
 			return "", err
 		}
-		encryptedName := be.EncryptName(plainName, iv)
-		if be.longNames && len(encryptedName) > syscall.NAME_MAX {
-			encryptedName = be.HashLongName(encryptedName)
-		}
+		encryptedName := be.encryptAndHashName(plainName, iv)
 		cipherPath = filepath.Join(cipherPath, encryptedName)
 		wd = filepath.Join(wd, encryptedName)
 	}
