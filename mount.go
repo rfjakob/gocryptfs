@@ -170,7 +170,7 @@ func setOpenFileLimit() {
 
 // initFuseFrontend - initialize gocryptfs/fusefrontend
 // Calls os.Exit on errors
-func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfFile) *fuse.Server {
+func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile.ConfFile) *fuse.Server {
 	// Reconciliate CLI and config file arguments into a fusefrontend.Args struct
 	// that is passed to the filesystem implementation
 	cryptoBackend := cryptocore.BackendGoGCM
@@ -187,7 +187,6 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 	}
 	frontendArgs := fusefrontend.Args{
 		Cipherdir:      args.cipherdir,
-		Masterkey:      key,
 		PlaintextNames: args.plaintextnames,
 		LongNames:      args.longnames,
 		CryptoBackend:  cryptoBackend,
@@ -222,13 +221,18 @@ func initFuseFrontend(key []byte, args *argContainer, confFile *configfile.ConfF
 	var finalFs pathfs.FileSystem
 	var ctlSockBackend ctlsock.Interface
 	if args.reverse {
-		fs := fusefrontend_reverse.NewFS(frontendArgs)
+		fs := fusefrontend_reverse.NewFS(masterkey, frontendArgs)
 		finalFs = fs
 		ctlSockBackend = fs
 	} else {
-		fs := fusefrontend.NewFS(frontendArgs)
+		fs := fusefrontend.NewFS(masterkey, frontendArgs)
 		finalFs = fs
 		ctlSockBackend = fs
+	}
+	// fusefrontend / fusefrontend_reverse have initialized their crypto with
+	// derived keys (HKDF), we can purge the master key from memory.
+	for i := range masterkey {
+		masterkey[i] = 0
 	}
 	// We have opened the socket early so that we cannot fail here after
 	// asking the user for the password

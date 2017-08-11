@@ -72,7 +72,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 		emeCipher = eme.New(emeBlockCipher)
 	}
 
-	// Initilize an AEAD cipher for file content encryption.
+	// Initialize an AEAD cipher for file content encryption.
 	var aeadCipher cipher.AEAD
 	if aeadType == BackendOpenSSL || aeadType == BackendGoGCM {
 		gcmKey := key
@@ -84,7 +84,13 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 			if IVLen != 16 {
 				log.Panic("stupidgcm only supports 128-bit IVs")
 			}
-			aeadCipher = stupidgcm.New(gcmKey, forceDecode)
+			// stupidgcm does not create a private copy of the key, so things
+			// break when initFuseFrontend() overwrites it with zeros. Create
+			// a copy here. This is unneccessary when useHKDF == true, but
+			// does no harm.
+			var stupidgcmKey []byte
+			stupidgcmKey = append(stupidgcmKey, gcmKey...)
+			aeadCipher = stupidgcm.New(stupidgcmKey, forceDecode)
 		case BackendGoGCM:
 			goGcmBlockCipher, err := aes.NewCipher(gcmKey)
 			if err != nil {
