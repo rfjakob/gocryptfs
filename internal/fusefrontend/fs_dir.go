@@ -242,16 +242,25 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 		return nil, fuse.ToStatus(err)
 	}
 	// Read ciphertext directory
-	cipherEntries, status := fs.FileSystem.OpenDir(cDirName, context)
-	if cipherEntries == nil {
-		return nil, status
+	cDirAbsPath := filepath.Join(fs.args.Cipherdir, cDirName)
+	var cipherEntries []fuse.DirEntry
+	var status fuse.Status
+	if syscallcompat.HaveGetdents {
+		// Getdents avoids calling Lstat on each file.
+		cipherEntries, err = syscallcompat.Getdents(cDirAbsPath)
+		if err != nil {
+			return nil, fuse.ToStatus(err)
+		}
+	} else {
+		cipherEntries, status = fs.FileSystem.OpenDir(cDirName, context)
+		if !status.Ok() {
+			return nil, status
+		}
 	}
 	// Get DirIV (stays nil if PlaintextNames is used)
 	var cachedIV []byte
-	var cDirAbsPath string
 	if !fs.args.PlaintextNames {
 		// Read the DirIV once and use it for all later name decryptions
-		cDirAbsPath = filepath.Join(fs.args.Cipherdir, cDirName)
 		cachedIV, err = nametransform.ReadDirIV(cDirAbsPath)
 		if err != nil {
 			// This can happen during normal operation when the directory has
