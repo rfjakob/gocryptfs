@@ -38,3 +38,11 @@ func TestRandPrefetch(t *testing.T) {
 		t.Errorf("random data should be incompressible, but: in=%d compressed=%d\n", p*l*l, b.Len())
 	}
 }
+
+func BenchmarkRandPrefetch(b *testing.B) {
+	// 16-byte nonces are default since gocryptfs v0.7
+	b.SetBytes(16)
+	for i := 0; i < b.N; i++ {
+		randPrefetcher.read(16)
+	}
+}

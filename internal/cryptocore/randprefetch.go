@@ -6,20 +6,9 @@ import (
 	"sync"
 )
 
-/*
-Number of bytes to prefetch.
-
-512 looks like a good compromise between throughput and latency:
-Benchmark16-2      	 3000000	       567 ns/op	  28.18 MB/s
-Benchmark64-2      	 5000000	       293 ns/op	  54.51 MB/s
-Benchmark128-2     	10000000	       220 ns/op	  72.48 MB/s
-Benchmark256-2     	10000000	       210 ns/op	  76.17 MB/s
-Benchmark512-2     	10000000	       191 ns/op	  83.75 MB/s
-Benchmark1024-2    	10000000	       171 ns/op	  93.48 MB/s
-Benchmark2048-2    	10000000	       165 ns/op	  96.45 MB/s
-Benchmark4096-2    	10000000	       165 ns/op	  96.58 MB/s
-Benchmark40960-2   	10000000	       147 ns/op	 108.82 MB/s
-*/
+// Number of bytes to prefetch.
+// 512 looks like a good compromise between throughput and latency - see
+// randsize_test.go for numbers.
 const prefetchN = 512
 
 func init() {
