@@ -1,6 +1,6 @@
 % GOCRYPTFS(1)
 % github.com/rfjakob
-% Oct 2016
+% Aug 2017
 
 NAME
 ====
@@ -11,13 +11,13 @@ SYNOPSIS
 ========
 
 #### Initialize encrypted filesystem
-gocryptfs -init [OPTIONS] CIPHERDIR
+gocryptfs -init \[OPTIONS\] CIPHERDIR
 
 #### Mount
-gocryptfs [OPTIONS] CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]
+gocryptfs \[OPTIONS\] CIPHERDIR MOUNTPOINT \[-o COMMA-SEPARATED-OPTIONS\]
 
 #### Change password
-gocryptfs -passwd [OPTIONS] CIPHERDIR
+gocryptfs -passwd \[OPTIONS\] CIPHERDIR
 
 DESCRIPTION
 ===========
@@ -289,7 +289,12 @@ EXIT CODES
 ==========
 
 0: success  
+6: CIPHERDIR is not an empty directory (on "-init")  
+10: MOUNTPOINT is not an empty directory  
 12: password incorrect  
+22: password is empty (on "-init")  
+23: could not read gocryptfs.conf  
+24: could not write gocryptfs.conf (on "-init" or "-password")  
 other: please check the error message
 
 SEE ALSO
