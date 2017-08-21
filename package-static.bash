@@ -1,6 +1,6 @@
 #!/bin/bash -eu
 
-cd $(dirname "$0")
+cd "$(dirname "$0")"
 
 # Compiles the gocryptfs binary and sets $GITVERSION
 source build-without-openssl.bash
@@ -19,7 +19,7 @@ OS=$(go env GOOS)
 
 TARGZ=gocryptfs_${GITVERSION}_${OS}-static_${ARCH}.tar.gz
 
-tar czf $TARGZ gocryptfs gocryptfs.1
+tar --owner=root --group=root -czf $TARGZ gocryptfs gocryptfs.1
 
 echo "Tar created."
 echo "Hint for signing: gpg -u 23A02740 --armor --detach-sig $TARGZ"
