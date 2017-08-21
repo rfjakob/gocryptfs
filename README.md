@@ -144,6 +144,30 @@ RM:    4.42
 Changelog
 ---------
 
+v1.4.1, 2017-08-21
+* **Use memory pools for buffer handling** (
+  [3c6fe98](https://github.com/rfjakob/gocryptfs/commit/3c6fe98),
+  [b2a23e9](https://github.com/rfjakob/gocryptfs/commit/b2a23e9),
+  [12c0101](https://github.com/rfjakob/gocryptfs/commit/12c0101))
+  * On my machine, this **doubles** the streaming read speed
+    (see [perfomance.txt](Documentation/performance.txt#L38))
+* Implement and use the getdents(2) syscall for a more efficient
+  OpenDir implementation
+  ([e50a6a5](https://github.com/rfjakob/gocryptfs/commit/e50a6a5))
+* Purge masterkey from memory as soon as possible
+  ([issue #137](https://github.com/rfjakob/gocryptfs/issues/137))
+* Reverse mode: fix inode number collision between .name and .diriv
+  files
+  ([d12aa57](https://github.com/rfjakob/gocryptfs/commit/d12aa57))
+* Prevent the logger from holding stdout open
+  ([issue #130](https://github.com/rfjakob/gocryptfs/issues/130))
+* MacOS: make testing without openssl work properly
+  ([ccf1a84](https://github.com/rfjakob/gocryptfs/commit/ccf1a84))
+* MacOS: specify a volume name
+  ([9f8e19b](https://github.com/rfjakob/gocryptfs/commit/9f8e19b))
+* Enable writing to write-only files
+  ([issue #125](https://github.com/rfjakob/gocryptfs/issues/125))
+
 v1.4, 2017-06-20
 * **Switch to static binary releases**
   * From gocryptfs v1.4, I will only release statically-built binaries.
@@ -160,11 +184,13 @@ v1.4, 2017-06-20
 * Add more specific exit codes for the most common failure modes,
   documented in [CLI_ABI.md](Documentation/CLI_ABI.md)
 * Reverse mode: make sure hard-linked files always return the same
-  ciphertext (commit 9ecf2d1a3f69e3d995012073afe3fc664bd928f2)
+  ciphertext
+  ([commit 9ecf2d1a](https://github.com/rfjakob/gocryptfs/commit/9ecf2d1a3f69e3d995012073afe3fc664bd928f2))
 * Display a shorter, friendlier help text by default.
-* Parallelize file content encryption by splitting data blocks into two
+* **Parallelize file content encryption** by splitting data blocks into two
   threads ([ticket#116](https://github.com/rfjakob/gocryptfs/issues/116))
-* Prefetch random nonces in the background (commit 80516ed3351477793eec882508969b6b29b69b0a)
+* Prefetch random nonces in the background
+  ([commit 80516ed](https://github.com/rfjakob/gocryptfs/commit/80516ed3351477793eec882508969b6b29b69b0a))
 * Add `-info` option to pretty-print infos about a filesystem.
 
 v1.3, 2017-04-29
