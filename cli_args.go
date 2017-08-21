@@ -187,7 +187,7 @@ func parseCliOpts() (args argContainer) {
 			tlog.Fatal.Printf("The reverse mode and the -forcedecode option are not compatible")
 			os.Exit(exitcodes.Usage)
 		}
-		// Has the user explicitely disabled openssl using "-openssl=false/0"?
+		// Has the user explicitly disabled openssl using "-openssl=false/0"?
 		if !args.openssl && opensslAuto != "auto" {
 			tlog.Fatal.Printf("-forcedecode requires openssl, but is disabled via command-line option")
 			os.Exit(exitcodes.Usage)

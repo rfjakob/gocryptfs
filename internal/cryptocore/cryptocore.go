@@ -86,7 +86,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 			}
 			// stupidgcm does not create a private copy of the key, so things
 			// break when initFuseFrontend() overwrites it with zeros. Create
-			// a copy here. This is unneccessary when useHKDF == true, but
+			// a copy here. This is unnecessary when useHKDF == true, but
 			// does no harm.
 			var stupidgcmKey []byte
 			stupidgcmKey = append(stupidgcmKey, gcmKey...)

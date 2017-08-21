@@ -108,7 +108,7 @@ func (be *ContentEnc) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, file
 		pBlock, err = be.DecryptBlock(cBlock, firstBlockNo, fileID)
 		if err != nil {
 			if be.forceDecode && err == stupidgcm.ErrAuth {
-				tlog.Warn.Printf("DecryptBlocks: authentication failure in block #%d, overriden by forcedecode", firstBlockNo)
+				tlog.Warn.Printf("DecryptBlocks: authentication failure in block #%d, overridden by forcedecode", firstBlockNo)
 			} else {
 				break
 			}

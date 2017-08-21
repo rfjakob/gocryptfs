@@ -283,7 +283,7 @@ v1.0, 2016-07-17
   * Allows to pass mount options directly to the kernel
 * Add support for device files and suid binaries
   * Only works when running as root
-  * Must be explicitely enabled by passing "-o dev" or "-o suid" or "-o suid,dev"
+  * Must be explicitly enabled by passing "-o dev" or "-o suid" or "-o suid,dev"
 * Experimental Mac OS X support. See
   [ticket #15](https://github.com/rfjakob/gocryptfs/issues/15) for details.
 
