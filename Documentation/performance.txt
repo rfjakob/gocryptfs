@@ -38,8 +38,10 @@ v1.4-8-g80676c6   178      148      16.1  11.0  1.3    4.0
 v1.4-14-g9f4bd76  182      286      15.4   7.5  1.3    4.1
 v1.4-45-gd5671b7  183      282      14.9   7.3  1.1    2.9
 v1.4-45-gd5671b7  252      285      15.5   7.2  1.1    2.9    go1.8.3, Linux 4.11
+v1.4.1            253      285      16.0   7.4  1.3    3.0    go1.9,   Linux 4.12.5
+v1.4.1-6-g276567e 258      289      16.1   7.5  1.3    3.0
 
-Results for EncFS for comparison (benchmark.bash -encfs):     
+Results for EncFS for comparison (benchmark.bash -encfs):
 
 VERSION            WRITE    UNTAR   MD5    LS     RM
 encfs v1.9.1       95          20     8    2.8    3.8
