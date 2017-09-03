@@ -1,6 +1,8 @@
 package dirivcache
 
 import (
+	"log"
+	"strings"
 	"sync"
 	"time"
 )
@@ -38,8 +40,10 @@ type DirIVCache struct {
 	sync.RWMutex
 }
 
-// Lookup - fetch entry for "dir" from the cache
-func (c *DirIVCache) Lookup(dir string) ([]byte, string) {
+// Lookup - fetch entry for "dir" (relative plaintext path) from the cache.
+// Returns the directory IV and the relative encrypted path, or (nil, "")
+// if the entry was not found.
+func (c *DirIVCache) Lookup(dir string) (iv []byte, cDir string) {
 	c.RLock()
 	defer c.RUnlock()
 	if dir == "" {
@@ -56,13 +60,23 @@ func (c *DirIVCache) Lookup(dir string) ([]byte, string) {
 	return v.iv, v.cDir
 }
 
-// Store - write entry for "dir" into the cache
+// Store - write an entry for directory "dir" into the cache.
+// Arguments:
+// dir ... relative plaintext path
+// iv .... directory IV
+// cDir .. relative ciphertext path
 func (c *DirIVCache) Store(dir string, iv []byte, cDir string) {
 	c.Lock()
 	defer c.Unlock()
 	if dir == "" {
 		c.rootDirIV = iv
 	}
+	// Sanity check: plaintext and chiphertext paths must have the same number
+	// of segments
+	if strings.Count(dir, "/") != strings.Count(cDir, "/") {
+		log.Panicf("inconsistent number of path segments: dir=%q cDir=%q", dir, cDir)
+	}
+	// Clear() may have cleared c.data: re-initialize
 	if c.data == nil {
 		c.data = make(map[string]cacheEntry, maxEntries)
 		// Set expiry time one second into the future
