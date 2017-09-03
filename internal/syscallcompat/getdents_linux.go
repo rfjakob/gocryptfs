@@ -8,6 +8,7 @@ package syscallcompat
 
 import (
 	"bytes"
+	"sync"
 	"syscall"
 	"unsafe"
 
@@ -121,6 +122,8 @@ func getdentsName(s syscall.Dirent) (string, error) {
 	return string(name), nil
 }
 
+var dtUnknownWarnOnce sync.Once
+
 // convertDType converts a Dirent.Type to at Stat_t.Mode value.
 func convertDType(dtype uint8, file string) (uint32, error) {
 	if dtype != syscall.DT_UNKNOWN {
@@ -128,6 +131,9 @@ func convertDType(dtype uint8, file string) (uint32, error) {
 		return uint32(dtype) << 12, nil
 	}
 	// DT_UNKNOWN: we have to call Lstat()
+	dtUnknownWarnOnce.Do(func() {
+		tlog.Warn.Printf("Getdents: convertDType: received DT_UNKNOWN, falling back to Lstat")
+	})
 	var st syscall.Stat_t
 	err := syscall.Lstat(file, &st)
 	if err != nil {

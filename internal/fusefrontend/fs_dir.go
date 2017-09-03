@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -234,6 +235,8 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 	return fuse.OK
 }
 
+var haveGetdentsWarnOnce sync.Once
+
 // OpenDir implements pathfs.FileSystem
 func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
 	tlog.Debug.Printf("OpenDir(%s)", dirName)
@@ -252,6 +255,9 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 			return nil, fuse.ToStatus(err)
 		}
 	} else {
+		haveGetdentsWarnOnce.Do(func() {
+			tlog.Warn.Printf("OpenDir: Getdents not available, falling back to OpenDir")
+		})
 		cipherEntries, status = fs.FileSystem.OpenDir(cDirName, context)
 		if !status.Ok() {
 			return nil, status
