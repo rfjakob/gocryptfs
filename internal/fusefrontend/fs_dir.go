@@ -20,6 +20,8 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
+const dsStoreName = ".DS_Store"
+
 func (fs *FS) mkdirWithIv(cPath string, mode uint32) error {
 	// Between the creation of the directory and the creation of gocryptfs.diriv
 	// the directory is inconsistent. Take the lock to prevent other readers
@@ -117,6 +119,16 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 	return fuse.OK
 }
 
+// haveDsstore return true if one of the entries in "names" is ".DS_Store".
+func haveDsstore(names []string) bool {
+	for _, n := range names {
+		if n == dsStoreName {
+			return true
+		}
+	}
+	return false
+}
+
 // Rmdir implements pathfs.FileSystem
 func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 	cPath, err := fs.getBackingPath(path)
@@ -175,6 +187,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 	}
 	dirfd := os.NewFile(uintptr(dirfdRaw), cName)
 	defer dirfd.Close()
+retry:
 	// Check directory contents
 	children, err := dirfd.Readdirnames(10)
 	if err == io.EOF {
@@ -188,6 +201,18 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 	if err != nil {
 		tlog.Warn.Printf("Rmdir: Readdirnames: %v", err)
 		return fuse.ToStatus(err)
+	}
+	// MacOS sprinkles .DS_Store files everywhere. This is hard to avoid for
+	// users, so handle it transparently here.
+	if runtime.GOOS == "darwin" && len(children) <= 2 && haveDsstore(children) {
+		ds := filepath.Join(cPath, dsStoreName)
+		err = syscall.Unlink(ds)
+		if err != nil {
+			tlog.Warn.Printf("Rmdir: failed to delete blocking file %q: %v", ds, err)
+			return fuse.ToStatus(err)
+		}
+		tlog.Warn.Printf("Rmdir: had to delete blocking file %q", ds)
+		goto retry
 	}
 	// If the directory is not empty besides gocryptfs.diriv, do not even
 	// attempt the dance around gocryptfs.diriv.
@@ -236,6 +261,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 	return fuse.OK
 }
 
+// If syscallcompat.HaveGetdents is false we will warn once about it
 var haveGetdentsWarnOnce sync.Once
 
 // OpenDir implements pathfs.FileSystem
@@ -325,7 +351,7 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 		if err != nil {
 			tlog.Warn.Printf("OpenDir %q: invalid entry %q: %v",
 				cDirName, cName, err)
-			if runtime.GOOS == "darwin" && cName == ".DS_Store" {
+			if runtime.GOOS == "darwin" && cName == dsStoreName {
 				// MacOS creates lots of these files. Log the warning but don't
 				// increment errorCount - does not warrant returning EIO.
 				continue
