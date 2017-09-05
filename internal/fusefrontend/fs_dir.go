@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"syscall"
 
@@ -324,6 +325,11 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 		if err != nil {
 			tlog.Warn.Printf("OpenDir %q: invalid entry %q: %v",
 				cDirName, cName, err)
+			if runtime.GOOS == "darwin" && cName == ".DS_Store" {
+				// MacOS creates lots of these files. Log the warning but don't
+				// increment errorCount - does not warrant returning EIO.
+				continue
+			}
 			errorCount++
 			continue
 		}
