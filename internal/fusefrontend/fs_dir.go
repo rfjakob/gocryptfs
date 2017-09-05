@@ -175,57 +175,57 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 	}
 	dirfd := os.NewFile(uintptr(dirfdRaw), cName)
 	defer dirfd.Close()
-
+	// Check directory contents
 	children, err := dirfd.Readdirnames(10)
-	if err == nil {
-		// If the directory is not empty besides gocryptfs.diriv, do not even
-		// attempt the dance around gocryptfs.diriv.
-		if len(children) > 1 {
-			return fuse.ToStatus(syscall.ENOTEMPTY)
-		}
-		// Move "gocryptfs.diriv" to the parent dir as "gocryptfs.diriv.rmdir.XYZ"
-		tmpName := fmt.Sprintf("gocryptfs.diriv.rmdir.%d", cryptocore.RandUint64())
-		tlog.Debug.Printf("Rmdir: Renaming %s to %s", nametransform.DirIVFilename, tmpName)
-		// The directory is in an inconsistent state between rename and rmdir.
-		// Protect against concurrent readers.
-		fs.dirIVLock.Lock()
-		defer fs.dirIVLock.Unlock()
-		err = syscallcompat.Renameat(int(dirfd.Fd()), nametransform.DirIVFilename,
-			int(parentDirFd.Fd()), tmpName)
-		if err != nil {
-			tlog.Warn.Printf("Rmdir: Renaming %s to %s failed: %v",
-				nametransform.DirIVFilename, tmpName, err)
-			return fuse.ToStatus(err)
-		}
-		// Actual Rmdir
-		// TODO Use syscall.Unlinkat with the AT_REMOVEDIR flag once it is available
-		// in Go
-		err = syscall.Rmdir(cPath)
-		if err != nil {
-			// This can happen if another file in the directory was created in the
-			// meantime, undo the rename
-			err2 := syscallcompat.Renameat(int(parentDirFd.Fd()), tmpName,
-				int(dirfd.Fd()), nametransform.DirIVFilename)
-			if err != nil {
-				tlog.Warn.Printf("Rmdir: Rename rollback failed: %v", err2)
-			}
-			return fuse.ToStatus(err)
-		}
-		// Delete "gocryptfs.diriv.rmdir.XYZ"
-		err = syscallcompat.Unlinkat(int(parentDirFd.Fd()), tmpName)
-		if err != nil {
-			tlog.Warn.Printf("Rmdir: Could not clean up %s: %v", tmpName, err)
-		}
-	} else if err == io.EOF {
+	if err == io.EOF {
 		// The directory is empty
 		tlog.Warn.Printf("Rmdir: %q: gocryptfs.diriv is missing", cPath)
 		err = syscall.Rmdir(cPath)
 		if err != nil {
 			return fuse.ToStatus(err)
 		}
-	} else {
+	}
+	if err != nil {
 		tlog.Warn.Printf("Rmdir: Readdirnames: %v", err)
 		return fuse.ToStatus(err)
+	}
+	// If the directory is not empty besides gocryptfs.diriv, do not even
+	// attempt the dance around gocryptfs.diriv.
+	if len(children) > 1 {
+		return fuse.ToStatus(syscall.ENOTEMPTY)
+	}
+	// Move "gocryptfs.diriv" to the parent dir as "gocryptfs.diriv.rmdir.XYZ"
+	tmpName := fmt.Sprintf("gocryptfs.diriv.rmdir.%d", cryptocore.RandUint64())
+	tlog.Debug.Printf("Rmdir: Renaming %s to %s", nametransform.DirIVFilename, tmpName)
+	// The directory is in an inconsistent state between rename and rmdir.
+	// Protect against concurrent readers.
+	fs.dirIVLock.Lock()
+	defer fs.dirIVLock.Unlock()
+	err = syscallcompat.Renameat(int(dirfd.Fd()), nametransform.DirIVFilename,
+		int(parentDirFd.Fd()), tmpName)
+	if err != nil {
+		tlog.Warn.Printf("Rmdir: Renaming %s to %s failed: %v",
+			nametransform.DirIVFilename, tmpName, err)
+		return fuse.ToStatus(err)
+	}
+	// Actual Rmdir
+	// TODO Use syscall.Unlinkat with the AT_REMOVEDIR flag once it is available
+	// in Go
+	err = syscall.Rmdir(cPath)
+	if err != nil {
+		// This can happen if another file in the directory was created in the
+		// meantime, undo the rename
+		err2 := syscallcompat.Renameat(int(parentDirFd.Fd()), tmpName,
+			int(dirfd.Fd()), nametransform.DirIVFilename)
+		if err != nil {
+			tlog.Warn.Printf("Rmdir: Rename rollback failed: %v", err2)
+		}
+		return fuse.ToStatus(err)
+	}
+	// Delete "gocryptfs.diriv.rmdir.XYZ"
+	err = syscallcompat.Unlinkat(int(parentDirFd.Fd()), tmpName)
+	if err != nil {
+		tlog.Warn.Printf("Rmdir: Could not clean up %s: %v", tmpName, err)
 	}
 	// Delete .name file
 	if nametransform.IsLongContent(cName) {
