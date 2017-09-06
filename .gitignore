@@ -13,3 +13,7 @@
 
 # Rendered manpage
 gocryptfs.1
+
+# Dependencies copied by "dep"
+/vendor
+/_vendor-*
