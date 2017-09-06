@@ -1,4 +1,11 @@
 #!/bin/bash
+#
+# Compile gocryptfs and bake the git version string of itself and the go-fuse
+# library into the binary.
+#
+# If you want to fake a build date to reproduce a specific build,
+# you can use:
+# BUILDDATE=2017-02-03 ./build.bash
 
 set -eu
 
@@ -24,13 +31,15 @@ fi
 GITVERSIONFUSE=$OUT
 cd "$MYDIR"
 
-# Build Unix timestamp, something like 1467554204.
-BUILDTIME=$(date +%s)
+# Build date, something like "2017-09-06"
+if [[ -z ${BUILDDATE:-} ]] ; then
+	BUILDDATE=$(date +%Y-%m-%d)
+fi
 
 # Make sure we have the go binary
 go version > /dev/null
 
-LDFLAGS="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildTime=$BUILDTIME"
+LDFLAGS="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildDate=$BUILDDATE"
 go build "-ldflags=$LDFLAGS" $@
 
 (cd gocryptfs-xray; go build $@)

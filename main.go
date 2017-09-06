@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
 
@@ -26,8 +25,8 @@ var GitVersion = "[GitVersion not set - please compile using ./build.bash]"
 // GitVersionFuse is the go-fuse library version, set by build.bash
 var GitVersionFuse = "[GitVersionFuse not set - please compile using ./build.bash]"
 
-// BuildTime is the Unix timestamp, set by build.bash
-var BuildTime = "0"
+// BuildDate is a date string like "2017-09-06", set by build.bash
+var BuildDate = "0000-00-00"
 
 // raceDetector is set to true by race.go if we are compiled with "go build -race"
 var raceDetector bool
@@ -92,16 +91,11 @@ func changePassword(args *argContainer) {
 // printVersion prints a version string like this:
 // gocryptfs v0.12-36-ge021b9d-dirty; go-fuse a4c968c; 2016-07-03 go1.6.2
 func printVersion() {
-	humanTime := "0000-00-00"
-	if i, _ := strconv.ParseInt(BuildTime, 10, 64); i > 0 {
-		t := time.Unix(i, 0).UTC()
-		humanTime = fmt.Sprintf("%d-%02d-%02d", t.Year(), t.Month(), t.Day())
-	}
 	buildFlags := ""
 	if stupidgcm.BuiltWithoutOpenssl {
 		buildFlags = " without_openssl"
 	}
-	built := fmt.Sprintf("%s %s", humanTime, runtime.Version())
+	built := fmt.Sprintf("%s %s", BuildDate, runtime.Version())
 	if raceDetector {
 		built += " -race"
 	}
