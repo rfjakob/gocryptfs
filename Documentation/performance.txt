@@ -3,7 +3,8 @@ The working directory is on tmpfs.
 The untar test uses https://cdn.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz .
 The archive is placed on tmpfs as well.
 
-WRITE: dd if=/dev/zero of=zero bs=128K count=2000
+WRITE: dd if=/dev/zero of=zero bs=131072 count=2000
+READ:  dd if=zero of=/dev/null bs=131072 count=2000 2>&1
 UNTAR: time tar xzf ../linux-3.0.tar.gz
 MD5:   time md5sum --quiet -c linux-3.0.md5sums
 LS:    time ls -lR linux-3.0 > /dev/null
