@@ -47,7 +47,7 @@ func (s *sivAead) Overhead() int {
 	return 16
 }
 
-// Seal encrypts "in" using "nonce" and "authData" and append the result to "dst"
+// Seal encrypts "in" using "nonce" and "authData" and appends the result to "dst"
 func (s *sivAead) Seal(dst, nonce, plaintext, authData []byte) []byte {
 	if len(nonce) != 16 {
 		// SIV supports any nonce size, but in gocryptfs we exclusively use 16.
@@ -65,7 +65,7 @@ func (s *sivAead) Seal(dst, nonce, plaintext, authData []byte) []byte {
 	return out
 }
 
-// Open decrypts "in" using "nonce" and "authData" and append the result to "dst"
+// Open decrypts "in" using "nonce" and "authData" and appends the result to "dst"
 func (s *sivAead) Open(dst, nonce, ciphertext, authData []byte) ([]byte, error) {
 	if len(nonce) != 16 {
 		// SIV supports any nonce size, but in gocryptfs we exclusively use 16.
