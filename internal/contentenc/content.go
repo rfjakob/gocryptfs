@@ -121,6 +121,22 @@ func (be *ContentEnc) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, file
 	return pBuf.Bytes(), err
 }
 
+// concatAD concatenates the block number and the file ID to a byte blob
+// that can be passed to AES-GCM as associated data (AD).
+// Result is: aData = blockNo.bigEndian + fileID.
+func concatAD(blockNo uint64, fileID []byte) (aData []byte) {
+	if fileID != nil && len(fileID) != headerIDLen {
+		// fileID is nil when decrypting the master key from the config file
+		log.Panicf("wrong fileID length: %d", len(fileID))
+	}
+	const lenUint64 = 8
+	// Preallocate space to save an allocation in append()
+	aData = make([]byte, lenUint64, lenUint64+headerIDLen)
+	binary.BigEndian.PutUint64(aData, blockNo)
+	aData = append(aData, fileID...)
+	return aData
+}
+
 // DecryptBlock - Verify and decrypt GCM block
 //
 // Corner case: A full-sized block of all-zero ciphertext bytes is translated
@@ -157,9 +173,7 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileID []b
 	// Decrypt
 	plaintext := be.pBlockPool.Get()
 	plaintext = plaintext[:0]
-	aData := make([]byte, 8)
-	aData = append(aData, fileID...)
-	binary.BigEndian.PutUint64(aData, blockNo)
+	aData := concatAD(blockNo, fileID)
 	plaintext, err := be.cryptoCore.AEADCipher.Open(plaintext, nonce, ciphertext, aData)
 
 	if err != nil {
@@ -257,9 +271,7 @@ func (be *ContentEnc) doEncryptBlock(plaintext []byte, blockNo uint64, fileID []
 		log.Panic("wrong nonce length")
 	}
 	// Block is authenticated with block number and file ID
-	aData := make([]byte, 8)
-	binary.BigEndian.PutUint64(aData, blockNo)
-	aData = append(aData, fileID...)
+	aData := concatAD(blockNo, fileID)
 	// Get a cipherBS-sized block of memory, copy the nonce into it and truncate to
 	// nonce length
 	cBlock := be.cBlockPool.Get()
