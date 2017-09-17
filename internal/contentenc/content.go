@@ -102,10 +102,11 @@ func (be *ContentEnc) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, file
 	cBuf := bytes.NewBuffer(ciphertext)
 	var err error
 	pBuf := bytes.NewBuffer(be.PReqPool.Get()[:0])
+	blockNo := firstBlockNo
 	for cBuf.Len() > 0 {
 		cBlock := cBuf.Next(int(be.cipherBS))
 		var pBlock []byte
-		pBlock, err = be.DecryptBlock(cBlock, firstBlockNo, fileID)
+		pBlock, err = be.DecryptBlock(cBlock, blockNo, fileID)
 		if err != nil {
 			if be.forceDecode && err == stupidgcm.ErrAuth {
 				tlog.Warn.Printf("DecryptBlocks: authentication failure in block #%d, overridden by forcedecode", firstBlockNo)
@@ -115,7 +116,7 @@ func (be *ContentEnc) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, file
 		}
 		pBuf.Write(pBlock)
 		be.pBlockPool.Put(pBlock)
-		firstBlockNo++
+		blockNo++
 	}
 	return pBuf.Bytes(), err
 }
