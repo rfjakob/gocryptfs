@@ -17,7 +17,14 @@ import (
 )
 
 const (
-	shortNameMax = 176
+	// File names are padded to 16-byte multiples, encrypted and
+	// base64-encoded. We can encode at most 176 bytes to stay below the 255
+	// bytes limit:
+	// * base64(176 bytes) = 235 bytes
+	// * base64(192 bytes) = 256 bytes (over 255!)
+	// But the PKCS#7 padding is at least one byte. This means we can only use
+	// 175 bytes for the file name.
+	shortNameMax = 175
 )
 
 var longnameParentCache map[string]string
@@ -57,6 +64,7 @@ func (rfs *ReverseFS) findLongnameParent(dir string, dirIV []byte, longname stri
 	}
 	dirEntries, err := dirfd.Readdirnames(-1)
 	if err != nil {
+		tlog.Warn.Printf("findLongnameParent: Readdirnames failed: %v\n", err)
 		return "", err
 	}
 	longnameCacheLock.Lock()
@@ -78,7 +86,6 @@ func (rfs *ReverseFS) findLongnameParent(dir string, dirIV []byte, longname stri
 	if hit == "" {
 		return "", syscall.ENOENT
 	}
-
 	return hit, nil
 }
 

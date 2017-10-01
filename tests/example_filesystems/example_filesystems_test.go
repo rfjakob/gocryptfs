@@ -254,6 +254,8 @@ func TestExampleFSv13(t *testing.T) {
 // gocryptfs v1.3 introduced HKDF.
 // We check the md5 sum of the encrypted version of a file to make sure we don't
 // accidentially change the ciphertext generation.
+// Create a full crypto round-trip by mounting two times:
+// dirA -> reverse mount -> dirB -> forward mount -> dirC
 func TestExampleFSv13reverse(t *testing.T) {
 	// Prepare directories
 	dirA := "v1.3-reverse"

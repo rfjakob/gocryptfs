@@ -1,6 +1,7 @@
 package reverse_test
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"syscall"
@@ -10,25 +11,26 @@ import (
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
+// TestLongnameStat checks that file names of all sizes (1 to 255) show up in
+// the decrypted reverse view (dirC, mounted in TestMain).
 func TestLongnameStat(t *testing.T) {
-	fd, err := os.Create(dirA + "/" + x240)
-	if err != nil {
-		t.Fatal(err)
+	for i := 1; i <= 255; i++ {
+		name := string(bytes.Repeat([]byte("x"), i))
+		fd, err := os.Create(dirA + "/" + name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		fd.Close()
+		path := dirC + "/" + name
+		if !test_helpers.VerifyExistence(path) {
+			t.Fail()
+		}
+		test_helpers.VerifySize(t, path, 0)
+		// A large number of longname files is a performance problem in
+		// reverse mode. Delete the file once we are done with it to speed up
+		// the test (2 seconds -> 0.2 seconds)
+		syscall.Unlink(dirA + "/" + name)
 	}
-	path := dirC + "/" + x240
-	if !test_helpers.VerifyExistence(path) {
-		t.Fail()
-	}
-	test_helpers.VerifySize(t, path, 0)
-	_, err = fd.Write(make([]byte, 10))
-	if err != nil {
-		t.Fatal(err)
-	}
-	fd.Close()
-	/*
-		time.Sleep(1000 * time.Millisecond)
-		test_helpers.VerifySize(t, path, 10)
-	*/
 }
 
 func TestSymlinks(t *testing.T) {
