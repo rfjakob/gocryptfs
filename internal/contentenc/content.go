@@ -194,6 +194,8 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileID []b
 const encryptMaxSplit = 2
 
 // EncryptBlocks is like EncryptBlock but takes multiple plaintext blocks.
+// Returns a byte slice from CReqPool - so don't forget to return it
+// to the pool.
 func (be *ContentEnc) EncryptBlocks(plaintextBlocks [][]byte, firstBlockNo uint64, fileID []byte) []byte {
 	ciphertextBlocks := make([][]byte, len(plaintextBlocks))
 	// For large writes, we parallelize encryption.

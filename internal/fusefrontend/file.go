@@ -132,6 +132,8 @@ func (f *file) createHeader() (fileID []byte, err error) {
 	return h.ID, err
 }
 
+var oversizedReadWarn sync.Once
+
 // doRead - read "length" plaintext bytes from plaintext offset "off" and append
 // to "dst".
 // Arguments "length" and "off" do not have to be block-aligned.
@@ -142,6 +144,16 @@ func (f *file) createHeader() (fileID []byte, err error) {
 // Called by Read() for normal reading,
 // by Write() and Truncate() for Read-Modify-Write
 func (f *file) doRead(dst []byte, off uint64, length uint64) ([]byte, fuse.Status) {
+	// Our byte cache pools are sized acc. to MAX_KERNEL_WRITE, but the
+	// running kernel may have a higher limit set. Clamp to what we can
+	// handle.
+	if length > fuse.MAX_KERNEL_WRITE {
+		oversizedReadWarn.Do(func() {
+			tlog.Warn.Printf("doRead: truncating oversized read: %d to %d bytes",
+				length, fuse.MAX_KERNEL_WRITE)
+		})
+		length = fuse.MAX_KERNEL_WRITE
+	}
 	// Make sure we have the file ID.
 	f.fileTableEntry.HeaderLock.RLock()
 	if f.fileTableEntry.ID == nil {
@@ -170,7 +182,8 @@ func (f *file) doRead(dst []byte, off uint64, length uint64) ([]byte, fuse.Statu
 	blocks := f.contentEnc.ExplodePlainRange(off, length)
 	alignedOffset, alignedLength := blocks[0].JointCiphertextRange(blocks)
 	skip := blocks[0].Skip
-	tlog.Debug.Printf("JointCiphertextRange(%d, %d) -> %d, %d, %d", off, length, alignedOffset, alignedLength, skip)
+	tlog.Debug.Printf("doRead: off=%d len=%d -> off=%d len=%d skip=%d\n",
+		off, length, alignedOffset, alignedLength, skip)
 
 	ciphertext := f.fs.contentEnc.CReqPool.Get()
 	ciphertext = ciphertext[:int(alignedLength)]
