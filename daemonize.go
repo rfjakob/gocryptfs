@@ -65,7 +65,7 @@ func redirectStdFds() {
 		return
 	}
 	tag := fmt.Sprintf("gocryptfs-%d-logger", os.Getpid())
-	cmd := exec.Command("logger", "-t", tag)
+	cmd := exec.Command("/usr/bin/logger", "-t", tag)
 	cmd.Stdin = pr
 	err = cmd.Start()
 	if err != nil {
