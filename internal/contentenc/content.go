@@ -53,13 +53,18 @@ type ContentEnc struct {
 	allZeroNonce []byte
 	// Force decode even if integrity check fails (openSSL only)
 	forceDecode bool
-	// Ciphertext block pool. Always returns cipherBS-sized byte slices.
+
+	// Ciphertext block "sync.Pool" pool. Always returns cipherBS-sized byte
+	// slices (usually 4128 bytes).
 	cBlockPool bPool
-	// Ciphertext request data pool. Always returns byte slices of size
-	// fuse.MAX_KERNEL_WRITE + overhead.
-	CReqPool bPool
-	// Plaintext block pool. Always returns plainBS-sized byte slices.
+	// Plaintext block pool. Always returns plainBS-sized byte slices
+	// (usually 4096 bytes).
 	pBlockPool bPool
+	// Ciphertext request data pool. Always returns byte slices of size
+	// fuse.MAX_KERNEL_WRITE + encryption overhead.
+	// Used by Read() to temporarily store the ciphertext as it is read from
+	// disk.
+	CReqPool bPool
 	// Plaintext request data pool. Slice have size fuse.MAX_KERNEL_WRITE.
 	PReqPool bPool
 }
@@ -69,6 +74,9 @@ func New(cc *cryptocore.CryptoCore, plainBS uint64, forceDecode bool) *ContentEn
 	cipherBS := plainBS + uint64(cc.IVLen) + cryptocore.AuthTagLen
 	// Take IV and GHASH overhead into account.
 	cReqSize := int(fuse.MAX_KERNEL_WRITE / plainBS * cipherBS)
+	// An unaligned read (could happen with O_DIRECT?) may touch one
+	// additional ciphertext block. Reserve space for it.
+	cReqSize += int(cipherBS)
 	if fuse.MAX_KERNEL_WRITE%plainBS != 0 {
 		log.Panicf("unaligned MAX_KERNEL_WRITE=%d", fuse.MAX_KERNEL_WRITE)
 	}
