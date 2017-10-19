@@ -134,7 +134,12 @@ option can be used to mount a gocryptfs filesystem without a config file.
 Note that the command line, and with it the master key, is visible to
 anybody on the machine who can execute "ps -auxwww".
 This is meant as a recovery option for emergencies, such as if you have
-forgotten your password.
+forgotten the password or lost the config file.
+
+Even if a config file exists, it will not be used. All non-standard
+settings have to be passed on the command line: `-aessiv` when you
+mount a filesystem that was created using reverse mode, or
+`-plaintextnames` for a filesystem that was created with that option.
 
 Example master key:  
 6f717d8b-6b5f8e8a-fd0aa206-778ec093-62c5669b-abd229cd-241e00cd-b4d6713d
