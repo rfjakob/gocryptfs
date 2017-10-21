@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/syslog"
 	"net"
 	"os"
@@ -250,9 +251,14 @@ func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile
 	}
 	conn := nodefs.NewFileSystemConnector(pathFs.Root(), fuseOpts)
 	mOpts := fuse.MountOptions{
-		// Bigger writes mean fewer calls and better throughput.
-		// Capped to 128KiB on Linux.
+		// Writes and reads are usually capped at 128kiB on Linux through
+		// the FUSE_MAX_PAGES_PER_REQ kernel constant in fuse_i.h. Our
+		// sync.Pool buffer pools are sized acc. to the default. Users may set
+		// the kernel constant higher, and Synology NAS kernels are known to
+		// have it >128kiB. We cannot handle more than 128kiB, so we tell
+		// the kernel to limit the size explicitely.
 		MaxWrite: fuse.MAX_KERNEL_WRITE,
+		Options:  []string{fmt.Sprintf("max_read=%d", fuse.MAX_KERNEL_WRITE)},
 	}
 	if args.allow_other {
 		tlog.Info.Printf(tlog.ColorYellow + "The option \"-allow_other\" is set. Make sure the file " +
