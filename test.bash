@@ -31,9 +31,9 @@ if [[ $OSTYPE == linux* ]] ; then
 fi
 
 if go tool | grep vet > /dev/null ; then
-	go tool vet -all -shadow .
+	go vet -all -shadow ./...
 else
-	echo "'go tool vet' not available - skipping"
+	echo "'go vet' not available - skipping"
 fi
 
 # We don't want all the subprocesses holding the lock file open
