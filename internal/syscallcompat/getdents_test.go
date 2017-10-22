@@ -25,9 +25,10 @@ func TestGetdents(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	// "/", "/dev" and "/proc" are good test cases because they contain many
-	// different file types (block and char devices, symlinks, mountpoints)
-	dirs := []string{testDir, "/", "/dev", "/proc"}
+	// "/", "/dev" and "/proc/self" are good test cases because they contain
+	// many different file types (block and char devices, symlinks,
+	// mountpoints).
+	dirs := []string{testDir, "/", "/dev", "/proc/self"}
 	for _, dir := range dirs {
 		// Read directory using stdlib Readdir()
 		fd, err := os.Open(dir)
