@@ -221,10 +221,19 @@ func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile
 	tlog.Debug.Printf("frontendArgs: %s", string(jsonBytes))
 	var finalFs pathfs.FileSystem
 	var ctlSockBackend ctlsock.Interface
+	// pathFsOpts are passed into go-fuse/pathfs
+	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
 	if args.reverse {
+		// The dance with the intermediate variables is because we need to
+		// cast the FS into pathfs.FileSystem *and* ctlsock.Interface. This
+		// avoids using interface{}.
 		fs := fusefrontend_reverse.NewFS(masterkey, frontendArgs)
 		finalFs = fs
 		ctlSockBackend = fs
+		// Reverse mode is read-only, so we don't need a working link().
+		// Disable hard link tracking to avoid strange breakage on duplicate
+		// inode numbers ( https://github.com/rfjakob/gocryptfs/issues/149 ).
+		pathFsOpts.ClientInodes = false
 	} else {
 		fs := fusefrontend.NewFS(masterkey, frontendArgs)
 		finalFs = fs
@@ -240,7 +249,6 @@ func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile
 	if args._ctlsockFd != nil {
 		go ctlsock.Serve(args._ctlsockFd, ctlSockBackend)
 	}
-	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
 	pathFs := pathfs.NewPathNodeFs(finalFs, pathFsOpts)
 	fuseOpts := &nodefs.Options{
 		// These options are to be compatible with libfuse defaults,
