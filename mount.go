@@ -47,6 +47,13 @@ func doMount(args *argContainer) int {
 			args.mountpoint, args.cipherdir)
 		os.Exit(exitcodes.MountPoint)
 	}
+	// Reverse-mounting "/foo" at "/foo/mnt" means we would be recursively
+	// encrypting ourselves.
+	if strings.HasPrefix(args.mountpoint, args.cipherdir+"/") {
+		tlog.Fatal.Printf("Mountpoint %q is contained in cipherdir %q, this is not supported",
+			args.mountpoint, args.cipherdir)
+		os.Exit(exitcodes.MountPoint)
+	}
 	if args.nonempty {
 		err = checkDir(args.mountpoint)
 	} else {
