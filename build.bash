@@ -16,6 +16,13 @@ go version > /dev/null
 # GOPATH may contain multiple paths separated by ":"
 GOPATH1=$(go env GOPATH | cut -f1 -d:)
 
+if [[ $PWD != *"/src/github.com/rfjakob/gocryptfs" ]] ; then
+	echo "Warning: Building outside of GOPATH will most likely fail."
+	echo "         Please rename $PWD to $GOPATH1/src/github.com/rfjakob/gocryptfs ."
+	sleep 5
+	echo
+fi
+
 # gocryptfs version according to git or a VERSION file
 if [[ -d .git ]] ; then
 	GITVERSION=$(git describe --tags --dirty)
