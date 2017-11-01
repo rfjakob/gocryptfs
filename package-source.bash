@@ -19,7 +19,9 @@ GITVERSION=$(git describe --tags --dirty)
 PREFIX=gocryptfs_${GITVERSION}_src+deps
 
 dep ensure
+echo $GITVERSION > VERSION
 git_archive_extra $PREFIX VERSION vendor
+rm VERSION
 
 echo "Tar created."
 echo "Hint for signing: gpg -u 23A02740 --armor --detach-sig $PREFIX.tar.gz"
