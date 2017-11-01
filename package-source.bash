@@ -16,7 +16,7 @@ git_archive_extra() {
 cd "$(dirname "$0")"
 
 GITVERSION=$(git describe --tags --dirty)
-PREFIX=gocryptfs_${GITVERSION}_src+deps
+PREFIX=gocryptfs_${GITVERSION}_src-deps
 
 dep ensure
 echo $GITVERSION > VERSION
