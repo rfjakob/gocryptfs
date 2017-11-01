@@ -144,6 +144,18 @@ RM:    4.42
 Changelog
 ---------
 
+v1.4.2, 2017-11-01
+* Add `Gopkg.toml` file for `dep` vendoring and reproducible builds
+  ([issue #142](https://github.com/rfjakob/gocryptfs/issues/142))
+* MacOS: deal with `.DS_Store` files inside CIPHERDIR
+  ([issue #140](https://github.com/rfjakob/gocryptfs/issues/140))
+* Reverse mode: fix ENOENT error affecting names exactly 176 bytes long
+  ([issue #143](https://github.com/rfjakob/gocryptfs/issues/143))
+* Support kernels compiled with > 128 kiB FUSE request size (Synology NAS)
+  ([issue #145](https://github.com/rfjakob/gocryptfs/issues/145))
+* Fix a startup hang when `$PATH` contains the mountpoint
+  ([issue #146](https://github.com/rfjakob/gocryptfs/issues/146))
+
 v1.4.1, 2017-08-21
 * **Use memory pools for buffer handling** (
   [3c6fe98](https://github.com/rfjakob/gocryptfs/commit/3c6fe98),
