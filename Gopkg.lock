@@ -5,37 +5,37 @@
   branch = "master"
   name = "github.com/hanwen/go-fuse"
   packages = ["fuse","fuse/nodefs","fuse/pathfs","splice"]
-  revision = "8412ede026c468f5bd2126c53308fc723ccb69d1"
+  revision = "cf21bc21cac77db799fff95d80e717908e6356a5"
 
 [[projects]]
   branch = "master"
   name = "github.com/jacobsa/crypto"
   packages = ["cmac","common","siv"]
-  revision = "293ce0c192fb4f59cd879b46544922b9ed09a13a"
+  revision = "c73681c634de898c869684602cf0c0d2ce938c4d"
 
 [[projects]]
   branch = "master"
   name = "github.com/rfjakob/eme"
   packages = ["."]
-  revision = "7c8316a9cb0a6af865265f899f5de6aadb31a24b"
+  revision = "2222dbd4ba467ab3fc7e8af41562fcfe69c0d770"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["hkdf","pbkdf2","scrypt","ssh/terminal"]
-  revision = "81e90905daefcd6fd217b62423c0908922eadb30"
+  revision = "bd6f299fb381e4c3393d1c4b1f0b94f5e77650c8"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sync"
   packages = ["syncmap"]
-  revision = "f52d1811a62927559de87708c8913c1650ce4f26"
+  revision = "8e0aa688b654ef28caa72506fa5ec8dba9fc7690"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "9aade4d3a3b7e6d876cd3823ad20ec45fc035402"
+  revision = "95c6576299259db960f6c5b9b69ea52422860fce"
 
 [solve-meta]
   analyzer-name = "dep"
