@@ -30,10 +30,12 @@ if [[ $OSTYPE == linux* ]] ; then
 	./build.bash
 fi
 
-if go tool | grep vet > /dev/null ; then
-	go tool vet -all -shadow .
-else
+if ! go tool | grep vet > /dev/null ; then
 	echo "'go tool vet' not available - skipping"
+elif [[ -d vendor ]] ; then
+	echo "vendor directory exists, skipping 'go tool vet'"
+else
+	go tool vet -all -shadow .
 fi
 
 # We don't want all the subprocesses holding the lock file open
