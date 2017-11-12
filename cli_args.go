@@ -21,7 +21,8 @@ type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, fg, version,
 	plaintextnames, quiet, nosyslog, wpanic,
 	longnames, allow_other, ro, reverse, aessiv, nonempty, raw64,
-	noprealloc, speed, hkdf, serialize_reads, forcedecode, hh, info bool
+	noprealloc, speed, hkdf, serialize_reads, forcedecode, hh, info,
+	sharedstorage bool
 	masterkey, mountpoint, cipherdir, cpuprofile, extpass,
 	memprofile, ko, passfile, ctlsock, fsname, force_owner, trace string
 	// Configuration file name override
@@ -130,6 +131,7 @@ func parseCliOpts() (args argContainer) {
 		" Requires gocryptfs to be compiled with openssl support and implies -openssl true")
 	flagSet.BoolVar(&args.hh, "hh", false, "Show this long help text")
 	flagSet.BoolVar(&args.info, "info", false, "Display information about CIPHERDIR")
+	flagSet.BoolVar(&args.sharedstorage, "sharedstorage", false, "Make concurrent access to a shared CIPHERDIR safer")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")

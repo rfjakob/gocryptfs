@@ -1,0 +1,36 @@
+ls: cannot access foo: No such file or directory
+ls: cannot access foo: No such file or directory
+ls: cannot access foo: No such file or directory
+ls: cannot access foo: No such file or directory
+36962337 -rwxrwxrwx 1 u1026 users 0 Nov 11 18:00 foo
+36962337 -rwxrwxrwx 1 u1026 users 0 Nov 11 18:00 foo
+36962337 -rwxrwxrwx 1 u1026 users 0 Nov 11 18:00 foo
+36962337 -rwxrwxrwx 1 u1026 users 0 Nov 11 18:00 foo
+
+
+u1026@d8min:/mnt/synology/public/tmp/g1$ strace -e lstat -p 8899 -f
+Process 8899 attached with 10 threads
+2017/11/11 18:12:21 Dispatch 238: LOOKUP, NodeId: 1. names: [foo] 4 bytes
+[pid 10539] lstat("/mnt/synology/public/tmp/g1/a/4DZNVle_txclugO7n_FRIg", 0xc4241adbe8) = -1 ENOENT (No such file or directory)
+2017/11/11 18:12:21 Serialize 238: LOOKUP code: OK value: {NodeId: 0 Generation=0 EntryValid=1.000 AttrValid=0.000 Attr={M00 SZ=0 L=0 0:0 B0*0 i0:0 A 0.000000000 M 0.000000000 C 0.000000000}}
+2017/11/11 18:12:22 Dispatch 239: LOOKUP, NodeId: 1. names: [foo] 4 bytes
+[pid  8903] lstat("/mnt/synology/public/tmp/g1/a/Xsy8mhdcIh0u9aiI7-iLiw", {st_mode=S_IFREG|0777, st_size=0, ...}) = 0
+2017/11/11 18:12:22 Serialize 239: LOOKUP code: OK value: {NodeId: 3 Generation=4 EntryValid=1.000 AttrValid=1.000 Attr={M0100777 SZ=0 L=1 1026:100 B0*16384 i0:36962337 A 1510419642.457639700 M 1510419642.457639700 C 1510419702.353712800}}
+
+
+Call Trace:
+
+nodefs/fsops.go   (c *rawBridge) Lookup
+	nodefs/fsops.go   (c *FileSystemConnector) internalLookup
+		nodefs/inode.go   (n *Inode) GetChild
+		pathfs/pathfs.go  (n *pathInode) GetAttr
+			pathfs/pathfs.go  (n *pathInode) GetPath
+				nodefs/inode.go   (n *Inode) Parent()
+			pathfs/loopback.go (fs *loopbackFileSystem) GetAttr
+
+Call Trace 2 (new child):
+
+nodefs/fsops.go   (c *rawBridge) Lookup
+	nodefs/fsops.go   (c *FileSystemConnector) internalLookup
+		pathfs/pathfs.go  (n *pathInode) Lookup
+			pathfs/pathfs.go  (n *pathInode) findChild

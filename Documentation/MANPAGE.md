@@ -248,6 +248,30 @@ These factors will limit throughput to below 70MB/s.
 
 For more details visit https://github.com/rfjakob/gocryptfs/issues/92 .
 
+#### -sharedstorage
+Enable work-arounds so gocryptfs works better when the backing
+storage directory is concurrently accessed by multiple gocryptfs
+instances.
+
+At the moment, it does two things:
+
+1. Disable stat() caching so changes to the backing storage show up
+   immediately.
+2. Disable hard link tracking, as the inode numbers on the backing
+   storage are not stable when files are deleted and re-created behind
+   our back. This would otherwise produce strange "file does not exist"
+   and other errors.
+
+When "-sharedstorage" is active, performance is reduced and hard
+links cannot be created.
+
+Even with this flag set, you may hit occasional problems. Running
+gocryptfs on shared storage does not receive as much testing as the
+usual (exclusive) use-case. Please test your workload in advance
+and report any problems you may hit.
+
+More info: https://github.com/rfjakob/gocryptfs/issues/156
+
 #### -speed
 Run crypto speed test. Benchmark Go's built-in GCM against OpenSSL
 (if available). The library that will be selected on "-openssl=auto"

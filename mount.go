@@ -230,6 +230,12 @@ func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile
 	var ctlSockBackend ctlsock.Interface
 	// pathFsOpts are passed into go-fuse/pathfs
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
+	if args.sharedstorage {
+		// shared storage mode disables hard link tracking as the backing inode
+		// numbers may change behind our back:
+		// https://github.com/rfjakob/gocryptfs/issues/156
+		pathFsOpts.ClientInodes = false
+	}
 	if args.reverse {
 		// The dance with the intermediate variables is because we need to
 		// cast the FS into pathfs.FileSystem *and* ctlsock.Interface. This
@@ -257,12 +263,19 @@ func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile
 		go ctlsock.Serve(args._ctlsockFd, ctlSockBackend)
 	}
 	pathFs := pathfs.NewPathNodeFs(finalFs, pathFsOpts)
-	fuseOpts := &nodefs.Options{
-		// These options are to be compatible with libfuse defaults,
-		// making benchmarking easier.
-		NegativeTimeout: time.Second,
-		AttrTimeout:     time.Second,
-		EntryTimeout:    time.Second,
+	var fuseOpts *nodefs.Options
+	if args.sharedstorage {
+		// sharedstorage mode sets all cache timeouts to zero so changes to the
+		// backing shared storage show up immediately.
+		fuseOpts = &nodefs.Options{}
+	} else {
+		fuseOpts = &nodefs.Options{
+			// These options are to be compatible with libfuse defaults,
+			// making benchmarking easier.
+			NegativeTimeout: time.Second,
+			AttrTimeout:     time.Second,
+			EntryTimeout:    time.Second,
+		}
 	}
 	conn := nodefs.NewFileSystemConnector(pathFs.Root(), fuseOpts)
 	mOpts := fuse.MountOptions{
