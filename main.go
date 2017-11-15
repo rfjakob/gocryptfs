@@ -143,17 +143,24 @@ func main() {
 		tlog.Warn.Wpanic = true
 		tlog.Debug.Printf("Panicing on warnings")
 	}
-	// Every operation below requires CIPHERDIR. Check that we have it.
-	if flagSet.NArg() >= 1 {
-		args.cipherdir, _ = filepath.Abs(flagSet.Arg(0))
-		err = checkDir(args.cipherdir)
-		if err != nil {
-			tlog.Fatal.Printf("Invalid cipherdir: %v", err)
-			os.Exit(exitcodes.CipherDir)
+	// Every operation below requires CIPHERDIR. Exit if we don't have it.
+	if flagSet.NArg() == 0 {
+		if flagSet.NFlag() == 0 {
+			// Naked call to "gocryptfs". Just print the help text.
+			helpShort()
+		} else {
+			// The user has passed some flags, but CIPHERDIR is missing. State
+			// what is wrong.
+			tlog.Fatal.Printf("CIPHERDIR argument is missing")
 		}
-	} else {
-		helpShort()
 		os.Exit(exitcodes.Usage)
+	}
+	// Check that CIPHERDIR exists
+	args.cipherdir, _ = filepath.Abs(flagSet.Arg(0))
+	err = checkDir(args.cipherdir)
+	if err != nil {
+		tlog.Fatal.Printf("Invalid cipherdir: %v", err)
+		os.Exit(exitcodes.CipherDir)
 	}
 	// "-q"
 	if args.quiet {

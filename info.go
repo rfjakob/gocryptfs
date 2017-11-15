@@ -20,7 +20,7 @@ func info(filename string) {
 	// Read from disk
 	js, err := ioutil.ReadFile(filename)
 	if err != nil {
-		tlog.Fatal.Printf("info: ReadFile: %#v\n", err)
+		tlog.Fatal.Printf("Reading config file failed: %v", err)
 		os.Exit(exitcodes.LoadConf)
 	}
 	// Unmarshal
