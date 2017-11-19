@@ -5,7 +5,9 @@ package configfile
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"log"
 
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
@@ -47,10 +49,25 @@ type ConfFile struct {
 	filename string
 }
 
+// randBytesDevRandom gets "n" random bytes from /dev/random or panics
+func randBytesDevRandom(n int) []byte {
+	f, err := os.Open("/dev/random")
+	if err != nil {
+		log.Panic("Failed to open /dev/random: " + err.Error())
+	}
+	defer f.Close()
+	b := make([]byte, n)
+	_, err = io.ReadFull(f, b)
+	if err != nil {
+		log.Panic("Failed to read random bytes: " + err.Error())
+	}
+	return b
+}
+
 // CreateConfFile - create a new config with a random key encrypted with
 // "password" and write it to "filename".
 // Uses scrypt with cost parameter logN.
-func CreateConfFile(filename string, password string, plaintextNames bool, logN int, creator string, aessiv bool) error {
+func CreateConfFile(filename string, password string, plaintextNames bool, logN int, creator string, aessiv bool, devrandom bool) error {
 	var cf ConfFile
 	cf.filename = filename
 	cf.Creator = creator
@@ -72,7 +89,12 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 	}
 
 	// Generate new random master key
-	key := cryptocore.RandBytes(cryptocore.KeyLen)
+	var key []byte
+	if devrandom {
+		key = randBytesDevRandom(cryptocore.KeyLen)
+	} else {
+		key = cryptocore.RandBytes(cryptocore.KeyLen)
+	}
 
 	// Encrypt it using the password
 	// This sets ScryptObject and EncryptedKey

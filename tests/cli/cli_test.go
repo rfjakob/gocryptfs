@@ -34,6 +34,11 @@ func TestInit(t *testing.T) {
 	}
 }
 
+// Test -init with -devrandom flag
+func TestInitDevRandom(t *testing.T) {
+	test_helpers.InitFS(t, "-devrandom")
+}
+
 // Test -init with -aessiv
 func TestInitAessiv(t *testing.T) {
 	dir := test_helpers.InitFS(t, "-aessiv")
