@@ -51,6 +51,13 @@ be suitable.
 #### -d, -debug
 Enable debug output
 
+#### -devrandom
+Use /dev/random for generating the master key instead of the default Go
+implementation. This is especially useful on embedded systems with Go versions
+prior to 1.9, which fall back to weak random data when the getrandom syscall
+is blocking. Using this option can block indefinitely when the kernel cannot
+harvest enough entropy.
+
 #### -extpass string
 Use an external program (like ssh-askpass) for the password prompt.
 The program should return the password on stdout, a trailing newline is
