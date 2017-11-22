@@ -65,6 +65,10 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 	if bytes.Contains(bin, []byte{0}) || bytes.Contains(bin, []byte("/")) {
 		return "", syscall.EBADMSG
 	}
+	// The name should never be "." or "..".
+	if bytes.Equal(bin, []byte(".")) || bytes.Equal(bin, []byte("..")) {
+		return "", syscall.EBADMSG
+	}
 	plain := string(bin)
 	return plain, err
 }
