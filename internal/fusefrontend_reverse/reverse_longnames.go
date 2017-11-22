@@ -63,6 +63,7 @@ func (rfs *ReverseFS) findLongnameParent(dir string, dirIV []byte, longname stri
 		return "", err
 	}
 	dirEntries, err := dirfd.Readdirnames(-1)
+	dirfd.Close()
 	if err != nil {
 		tlog.Warn.Printf("findLongnameParent: Readdirnames failed: %v\n", err)
 		return "", err
