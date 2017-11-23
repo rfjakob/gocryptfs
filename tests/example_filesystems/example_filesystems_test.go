@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"syscall"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
@@ -257,6 +258,7 @@ func TestExampleFSv13(t *testing.T) {
 // Create a full crypto round-trip by mounting two times:
 // dirA -> reverse mount -> dirB -> forward mount -> dirC
 func TestExampleFSv13reverse(t *testing.T) {
+	var R_OK uint32 = 4
 	// Prepare directories
 	dirA := "v1.3-reverse"
 	dirB := test_helpers.TmpDir + "/" + dirA + ".B"
@@ -278,8 +280,20 @@ func TestExampleFSv13reverse(t *testing.T) {
 	test_helpers.MountOrFatal(t, dirB, dirC, "-extpass", "echo test", opensslOpt)
 	// Test
 	checkExampleFSrw(t, dirC, false)
+	// Access to encrypted version of '..' should fail
+	cPath := dirB + "/D8VwRPqWW8x7M5OEoMs0Eg"
+	err = syscall.Access(cPath, R_OK)
+	if err != syscall.ENOENT {
+		t.Errorf("want ENOENT, got: %v", err)
+	}
+	// Access to encrypted version of '.' should fail
+	cPath = dirB + "/kkmARPseVj4XQFW-EL42-w"
+	err = syscall.Access(cPath, R_OK)
+	if err != syscall.ENOENT {
+		t.Errorf("want ENOENT, got: %v", err)
+	}
 	// Encrypted version of dir1/dir2/file (10000 zero bytes)
-	cPath := dirB + "/zOsW1-BUX54hC2hmhu2EOw/4ZqrpGQdw5r07KR1qw2ZeQ/tfCm9Sp9J_Dvc-jD7J6p8g"
+	cPath = dirB + "/zOsW1-BUX54hC2hmhu2EOw/4ZqrpGQdw5r07KR1qw2ZeQ/tfCm9Sp9J_Dvc-jD7J6p8g"
 	want := "9818501d214c5eb42ca2472caf6c82a1"
 	actual := test_helpers.Md5fn(cPath)
 	if actual != want {
