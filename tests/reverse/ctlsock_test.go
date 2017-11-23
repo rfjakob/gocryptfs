@@ -35,10 +35,11 @@ func TestCtlSockPathOps(t *testing.T) {
 	test_helpers.MountOrFatal(t, "ctlsock_reverse_test_fs", mnt, "-reverse", "-extpass", "echo test", "-ctlsock="+sock)
 	defer test_helpers.UnmountPanic(mnt)
 	var req ctlsock.RequestStruct
+	var response ctlsock.ResponseStruct
 	for i, tc := range ctlSockTestCases {
 		// Decrypt
 		req = ctlsock.RequestStruct{DecryptPath: tc[0]}
-		response := test_helpers.QueryCtlSock(t, sock, req)
+		response = test_helpers.QueryCtlSock(t, sock, req)
 		if response.ErrNo != 0 {
 			t.Errorf("Testcase %d Decrypt: %q ErrNo=%d ErrText=%s", i, tc[0], response.ErrNo, response.ErrText)
 		} else if response.Result != tc[1] {
@@ -52,6 +53,18 @@ func TestCtlSockPathOps(t *testing.T) {
 		} else if response.Result != tc[0] {
 			t.Errorf("Testcase %d Encrypt: Want %q got %q", i, tc[1], response.Result)
 		}
+	}
+	// At this point the longname parent cache should be populated.
+	// Check that we do not mix up information for different directories.
+	req = ctlsock.RequestStruct{DecryptPath: "gocryptfs.longname.y6rxCn6Id8hIZL2t_STpdLZpu-aE2HpprJR25xD60mk="}
+	response = test_helpers.QueryCtlSock(t, sock, req)
+	if response.ErrNo != -1 {
+		t.Errorf("File should not exist: ErrNo=%d ErrText=%s", response.ErrNo, response.ErrText)
+	}
+	req = ctlsock.RequestStruct{DecryptPath: "v6puXntoQOk7Mhl8zJ4Idg==/gocryptfs.longname.ZQCAoi5li3xvDZRO8McBV0L_kzJc4IcAOEzuW-2S1Y4="}
+	response = test_helpers.QueryCtlSock(t, sock, req)
+	if response.ErrNo != -1 {
+		t.Errorf("File should not exist: ErrNo=%d ErrText=%s", response.ErrNo, response.ErrText)
 	}
 }
 
