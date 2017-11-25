@@ -193,10 +193,7 @@ retry:
 	if err == io.EOF {
 		// The directory is empty
 		tlog.Warn.Printf("Rmdir: %q: gocryptfs.diriv is missing", cPath)
-		err = syscall.Rmdir(cPath)
-		if err != nil {
-			return fuse.ToStatus(err)
-		}
+		return fuse.ToStatus(syscall.Rmdir(cPath))
 	}
 	if err != nil {
 		tlog.Warn.Printf("Rmdir: Readdirnames: %v", err)
