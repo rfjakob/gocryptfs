@@ -544,7 +544,7 @@ func TestLongNames(t *testing.T) {
 	if !test_helpers.VerifyExistence(wd + n255x) {
 		t.Errorf("n255x is not in directory listing")
 	}
-	// Rename long to long
+	// Rename long to long (target does not exist)
 	n255y := string(bytes.Repeat([]byte("y"), 255))
 	err = os.Rename(wd+n255x, wd+n255y)
 	if err != nil {
@@ -553,7 +553,20 @@ func TestLongNames(t *testing.T) {
 	if !test_helpers.VerifyExistence(wd + n255y) {
 		t.Errorf("n255y is not in directory listing")
 	}
-	// Rename long to short
+	// Rename long to long (target exists)
+	f, err = os.Create(wd + n255x)
+	if err != nil {
+		t.Fatalf("Could not create n255x: %v", err)
+	}
+	f.Close()
+	err = os.Rename(wd+n255x, wd+n255y)
+	if err != nil {
+		t.Fatalf("Could not rename n255x to n255y: %v", err)
+	}
+	if !test_helpers.VerifyExistence(wd + n255y) {
+		t.Errorf("n255y is not in directory listing")
+	}
+	// Rename long to short (target does not exist)
 	err = os.Rename(wd+n255y, wd+"short")
 	if err != nil {
 		t.Fatalf("Could not rename n255y to short: %v", err)
@@ -561,13 +574,39 @@ func TestLongNames(t *testing.T) {
 	if !test_helpers.VerifyExistence(wd + "short") {
 		t.Errorf("short is not in directory listing")
 	}
-	// Rename short to long
+	// Rename long to short (target exists)
+	f, err = os.Create(wd + n255y)
+	if err != nil {
+		t.Fatalf("Could not create n255y: %v", err)
+	}
+	f.Close()
+	err = os.Rename(wd+n255y, wd+"short")
+	if err != nil {
+		t.Fatalf("Could not rename n255y to short: %v", err)
+	}
+	if !test_helpers.VerifyExistence(wd + "short") {
+		t.Errorf("short is not in directory listing")
+	}
+	// Rename short to long (target does not exist)
 	err = os.Rename(wd+"short", wd+n255x)
 	if err != nil {
 		t.Fatalf("Could not rename short to n255x: %v", err)
 	}
 	if !test_helpers.VerifyExistence(wd + n255x) {
 		t.Errorf("255x is not in directory listing II")
+	}
+	// Rename short to long (target exists)
+	f, err = os.Create(wd + "short")
+	if err != nil {
+		t.Fatalf("Could not create short: %v", err)
+	}
+	f.Close()
+	err = os.Rename(wd+"short", wd+n255x)
+	if err != nil {
+		t.Fatalf("Could not rename short to n255x: %v", err)
+	}
+	if !test_helpers.VerifyExistence(wd + n255x) {
+		t.Errorf("n255x is not in directory listing")
 	}
 	// Unlink
 	err = syscall.Unlink(wd + n255x)
