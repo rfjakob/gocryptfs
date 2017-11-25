@@ -114,7 +114,11 @@ func (n *NameTransform) WriteLongName(dirfd *os.File, hashName string, plainName
 	fdRaw, err := syscallcompat.Openat(int(dirfd.Fd()), hashName+LongNameSuffix,
 		syscall.O_WRONLY|syscall.O_CREAT|syscall.O_EXCL, 0600)
 	if err != nil {
-		tlog.Warn.Printf("WriteLongName: Openat: %v", err)
+		// Don't warn if the file already exists - this is allowed for renames
+		// and should be handled by the caller.
+		if err != syscall.EEXIST {
+			tlog.Warn.Printf("WriteLongName: Openat: %v", err)
+		}
 		return err
 	}
 	fd := os.NewFile(uintptr(fdRaw), hashName+LongNameSuffix)

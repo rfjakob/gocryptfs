@@ -517,7 +517,13 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 		finalNewPath = cNewName
 		// Create destination .name file
 		err = fs.nameTransform.WriteLongName(newDirFd, cNewName, newPath)
-		if err != nil {
+		// Failure to write the .name file is expected when the target path already
+		// exists. Since hashes are pretty unique, there is no need to modify the
+		// file anyway. We still set newDirFd to nil to ensure that we do not delete
+		// the file on error.
+		if err == syscall.EEXIST {
+			newDirFd = nil
+		} else if err != nil {
 			return fuse.ToStatus(err)
 		}
 	}
