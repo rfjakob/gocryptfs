@@ -68,3 +68,8 @@ func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 func Dup3(oldfd int, newfd int, flags int) (err error) {
 	return syscall.Dup3(oldfd, newfd, flags)
 }
+
+// Fchownat syscall.
+func Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error) {
+	return syscall.Fchownat(dirfd, path, uid, gid, flags)
+}

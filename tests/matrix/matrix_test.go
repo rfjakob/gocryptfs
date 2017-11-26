@@ -781,3 +781,12 @@ func TestUtimesNanoFd(t *testing.T) {
 	procPath := fmt.Sprintf("/proc/self/fd/%d", f.Fd())
 	doTestUtimesNano(t, procPath)
 }
+
+// Make sure the Mknod call works by creating a fifo (named pipe)
+func TestMkfifo(t *testing.T) {
+	path := test_helpers.DefaultPlainDir + "/fifo1"
+	err := syscall.Mkfifo(path, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+}

@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
@@ -280,15 +282,14 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
+	dirfd, err := os.Open(filepath.Dir(cPath))
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	defer dirfd.Close()
 	// Create ".name" file to store long file name
 	cName := filepath.Base(cPath)
 	if nametransform.IsLongContent(cName) {
-		var dirfd *os.File
-		dirfd, err = os.Open(filepath.Dir(cPath))
-		if err != nil {
-			return fuse.ToStatus(err)
-		}
-		defer dirfd.Close()
 		err = fs.nameTransform.WriteLongName(dirfd, cName, path)
 		if err != nil {
 			return fuse.ToStatus(err)
@@ -300,16 +301,17 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 		}
 	} else {
 		// Create regular device node
-		err = syscall.Mknod(cPath, mode, int(dev))
+		err = syscallcompat.Mknodat(int(dirfd.Fd()), cName, mode, int(dev))
 	}
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
 	// Set owner
 	if fs.args.PreserveOwner {
-		err = os.Lchown(cPath, int(context.Owner.Uid), int(context.Owner.Gid))
+		err = syscallcompat.Fchownat(int(dirfd.Fd()), cName, int(context.Owner.Uid),
+			int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
-			tlog.Warn.Printf("Mknod: Lchown failed: %v", err)
+			tlog.Warn.Printf("Mknod: Fchownat failed: %v", err)
 		}
 	}
 	return fuse.OK
