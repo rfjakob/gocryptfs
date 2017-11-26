@@ -319,5 +319,11 @@ func (rfs *ReverseFS) Readlink(cipherPath string, context *fuse.Context) (string
 	// Symlinks are encrypted like file contents and base64-encoded
 	cBinTarget := rfs.contentEnc.EncryptBlockNonce([]byte(plainTarget), 0, nil, nonce)
 	cTarget := rfs.nameTransform.B64.EncodeToString(cBinTarget)
+	// The kernel will reject a symlink target above 4096 chars and return
+	// and I/O error to the user. Better emit the proper error ourselves.
+	const PATH_MAX = 4096 // not defined on Darwin
+	if len(cTarget) > PATH_MAX {
+		return "", fuse.Status(syscall.ENAMETOOLONG)
+	}
 	return cTarget, fuse.OK
 }

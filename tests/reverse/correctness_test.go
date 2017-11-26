@@ -147,3 +147,25 @@ func TestEnoent(t *testing.T) {
 		t.Errorf("want ENOENT, got: %v", err)
 	}
 }
+
+// If the symlink target gets too long due to base64 encoding, we should
+// return ENAMETOOLONG instead of having the kernel reject the data and
+// returning an I/O error to the user.
+// https://github.com/rfjakob/gocryptfs/issues/167
+func TestTooLongSymlink(t *testing.T) {
+	fn := dirA + "/TooLongSymlink"
+	target := string(bytes.Repeat([]byte("x"), 4000))
+	err := os.Symlink(target, fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = os.Readlink(dirC + "/TooLongSymlink")
+	if err == nil {
+		return
+	}
+	err2 := err.(*os.PathError)
+	if err2.Err != syscall.ENAMETOOLONG {
+		t.Errorf("Expected %q error, got %q instead", syscall.ENAMETOOLONG,
+			err2.Err)
+	}
+}
