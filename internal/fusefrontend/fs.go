@@ -287,9 +287,9 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 		return fuse.ToStatus(err)
 	}
 	defer dirfd.Close()
-	// Create ".name" file to store long file name
+	// Create ".name" file to store long file name (except in PlaintextNames mode)
 	cName := filepath.Base(cPath)
-	if nametransform.IsLongContent(cName) {
+	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
 		err = fs.nameTransform.WriteLongName(dirfd, cName, path)
 		if err != nil {
 			return fuse.ToStatus(err)
