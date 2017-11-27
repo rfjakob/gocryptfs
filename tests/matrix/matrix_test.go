@@ -789,4 +789,9 @@ func TestMkfifo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	path = test_helpers.DefaultPlainDir + "/gocryptfs.longname.XXX"
+	err = syscall.Mkfifo(path, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
