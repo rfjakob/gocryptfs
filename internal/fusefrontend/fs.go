@@ -448,8 +448,7 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 			return fuse.ToStatus(err)
 		}
 		// Create "gocryptfs.longfile." symlink
-		// TODO use syscall.Symlinkat once it is available in Go
-		err = syscall.Symlink(cTarget, cPath)
+		err = syscallcompat.Symlinkat(cTarget, int(dirfd.Fd()), cName)
 		if err != nil {
 			nametransform.DeleteLongName(dirfd, cName)
 		}

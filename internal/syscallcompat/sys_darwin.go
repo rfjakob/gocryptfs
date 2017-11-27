@@ -148,3 +148,20 @@ func Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error) {
 	defer syscall.Fchdir(cwd)
 	return syscall.Lchown(path, uid, gid)
 }
+
+// Poor man's Symlinkat.
+func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
+	chdirMutex.Lock()
+	defer chdirMutex.Unlock()
+	cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
+	if err != nil {
+		return err
+	}
+	defer syscall.Close(cwd)
+	err = syscall.Fchdir(newdirfd)
+	if err != nil {
+		return err
+	}
+	defer syscall.Fchdir(cwd)
+	return syscall.Symlink(oldpath, newpath)
+}

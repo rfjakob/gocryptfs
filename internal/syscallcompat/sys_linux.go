@@ -4,6 +4,7 @@ package syscallcompat
 import (
 	"sync"
 	"syscall"
+	"unsafe"
 
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -72,4 +73,24 @@ func Dup3(oldfd int, newfd int, flags int) (err error) {
 // Fchownat syscall.
 func Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error) {
 	return syscall.Fchownat(dirfd, path, uid, gid, flags)
+}
+
+// Symlinkat syscall. Unfortunately this function is not exported directly, so
+// manually call it by using the corresponding syscall number.
+func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
+	var _p0 *byte
+	_p0, err = syscall.BytePtrFromString(oldpath)
+	if err != nil {
+		return
+	}
+	var _p1 *byte
+	_p1, err = syscall.BytePtrFromString(newpath)
+	if err != nil {
+		return
+	}
+	_, _, e1 := syscall.Syscall(syscall.SYS_SYMLINKAT, uintptr(unsafe.Pointer(_p0)), uintptr(newdirfd), uintptr(unsafe.Pointer(_p1)))
+	if e1 != 0 {
+		err = e1
+	}
+	return
 }
