@@ -427,16 +427,15 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	if fs.args.PlaintextNames {
-		err = os.Symlink(target, cPath)
-		return fuse.ToStatus(err)
+	var cTarget string = target
+	if !fs.args.PlaintextNames {
+		// Symlinks are encrypted like file contents (GCM) and base64-encoded
+		cBinTarget := fs.contentEnc.EncryptBlock([]byte(target), 0, nil)
+		cTarget = fs.nameTransform.B64.EncodeToString(cBinTarget)
 	}
-	// Symlinks are encrypted like file contents (GCM) and base64-encoded
-	cBinTarget := fs.contentEnc.EncryptBlock([]byte(target), 0, nil)
-	cTarget := fs.nameTransform.B64.EncodeToString(cBinTarget)
 	// Handle long file name
 	cName := filepath.Base(cPath)
-	if nametransform.IsLongContent(cName) {
+	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
 		var dirfd *os.File
 		dirfd, err = os.Open(filepath.Dir(cPath))
 		if err != nil {
