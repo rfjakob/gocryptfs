@@ -427,22 +427,20 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
+	dirfd, err := os.Open(filepath.Dir(cPath))
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	defer dirfd.Close()
 	var cTarget string = target
 	if !fs.args.PlaintextNames {
 		// Symlinks are encrypted like file contents (GCM) and base64-encoded
 		cBinTarget := fs.contentEnc.EncryptBlock([]byte(target), 0, nil)
 		cTarget = fs.nameTransform.B64.EncodeToString(cBinTarget)
 	}
-	// Handle long file name
+	// Create ".name" file to store long file name (except in PlaintextNames mode)
 	cName := filepath.Base(cPath)
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
-		var dirfd *os.File
-		dirfd, err = os.Open(filepath.Dir(cPath))
-		if err != nil {
-			return fuse.ToStatus(err)
-		}
-		defer dirfd.Close()
-		// Create ".name" file
 		err = fs.nameTransform.WriteLongName(dirfd, cName, linkName)
 		if err != nil {
 			return fuse.ToStatus(err)
@@ -454,16 +452,17 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 		}
 	} else {
 		// Create symlink
-		err = os.Symlink(cTarget, cPath)
+		err = syscallcompat.Symlinkat(cTarget, int(dirfd.Fd()), cName)
 	}
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
 	// Set owner
 	if fs.args.PreserveOwner {
-		err = os.Lchown(cPath, int(context.Owner.Uid), int(context.Owner.Gid))
+		err = syscallcompat.Fchownat(int(dirfd.Fd()), cName, int(context.Owner.Uid),
+			int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
-			tlog.Warn.Printf("Mknod: Lchown failed: %v", err)
+			tlog.Warn.Printf("Symlink: Fchownat failed: %v", err)
 		}
 	}
 	return fuse.OK
