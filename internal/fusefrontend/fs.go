@@ -278,17 +278,12 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
-	cPath, err := fs.getBackingPath(path)
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
-	dirfd, err := os.Open(filepath.Dir(cPath))
+	dirfd, cName, err := fs.openBackingPath(path)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
 	defer dirfd.Close()
 	// Create ".name" file to store long file name (except in PlaintextNames mode)
-	cName := filepath.Base(cPath)
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
 		err = fs.nameTransform.WriteLongName(dirfd, cName, path)
 		if err != nil {
@@ -423,11 +418,7 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	if fs.isFiltered(linkName) {
 		return fuse.EPERM
 	}
-	cPath, err := fs.getBackingPath(linkName)
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
-	dirfd, err := os.Open(filepath.Dir(cPath))
+	dirfd, cName, err := fs.openBackingPath(linkName)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
@@ -439,7 +430,6 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 		cTarget = fs.nameTransform.B64.EncodeToString(cBinTarget)
 	}
 	// Create ".name" file to store long file name (except in PlaintextNames mode)
-	cName := filepath.Base(cPath)
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
 		err = fs.nameTransform.WriteLongName(dirfd, cName, linkName)
 		if err != nil {
