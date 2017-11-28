@@ -382,33 +382,23 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
-	cPath, err := fs.getBackingPath(path)
+	dirfd, cName, err := fs.openBackingPath(path)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-
-	cName := filepath.Base(cPath)
+	defer dirfd.Close()
+	// Delete content
+	err = syscallcompat.Unlinkat(int(dirfd.Fd()), cName)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	// Delete ".name" file
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
-		var dirfd *os.File
-		dirfd, err = os.Open(filepath.Dir(cPath))
-		if err != nil {
-			return fuse.ToStatus(err)
-		}
-		defer dirfd.Close()
-		// Delete content
-		err = syscallcompat.Unlinkat(int(dirfd.Fd()), cName)
-		if err != nil {
-			return fuse.ToStatus(err)
-		}
-		// Delete ".name"
 		err = nametransform.DeleteLongName(dirfd, cName)
 		if err != nil {
 			tlog.Warn.Printf("Unlink: could not delete .name file: %v", err)
 		}
-		return fuse.ToStatus(err)
 	}
-
-	err = syscall.Unlink(cPath)
 	return fuse.ToStatus(err)
 }
 
