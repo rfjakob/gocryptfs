@@ -794,4 +794,21 @@ func TestMkfifo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	err = os.Remove(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Make sure the Symlink call works with paths starting with "gocryptfs.longname."
+func TestSymlink(t *testing.T) {
+	path := test_helpers.DefaultPlainDir + "/gocryptfs.longname.XXX"
+	err := syscall.Symlink("target", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Remove(path)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
