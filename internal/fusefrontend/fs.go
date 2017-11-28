@@ -388,7 +388,7 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	}
 
 	cName := filepath.Base(cPath)
-	if nametransform.IsLongContent(cName) {
+	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
 		var dirfd *os.File
 		dirfd, err = os.Open(filepath.Dir(cPath))
 		if err != nil {
