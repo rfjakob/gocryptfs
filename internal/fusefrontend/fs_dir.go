@@ -11,6 +11,8 @@ import (
 	"sync"
 	"syscall"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/hanwen/go-fuse/fuse"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
@@ -231,9 +233,7 @@ retry:
 		return fuse.ToStatus(err)
 	}
 	// Actual Rmdir
-	// TODO Use syscall.Unlinkat with the AT_REMOVEDIR flag once it is available
-	// in Go
-	err = syscall.Rmdir(cPath)
+	err = syscallcompat.Unlinkat(int(parentDirFd.Fd()), cName, unix.AT_REMOVEDIR)
 	if err != nil {
 		// This can happen if another file in the directory was created in the
 		// meantime, undo the rename
@@ -245,7 +245,7 @@ retry:
 		return fuse.ToStatus(err)
 	}
 	// Delete "gocryptfs.diriv.rmdir.XYZ"
-	err = syscallcompat.Unlinkat(int(parentDirFd.Fd()), tmpName)
+	err = syscallcompat.Unlinkat(int(parentDirFd.Fd()), tmpName, 0)
 	if err != nil {
 		tlog.Warn.Printf("Rmdir: Could not clean up %s: %v", tmpName, err)
 	}

@@ -90,7 +90,7 @@ func ReadLongName(path string) (string, error) {
 
 // DeleteLongName deletes "hashName.name".
 func DeleteLongName(dirfd *os.File, hashName string) error {
-	err := syscallcompat.Unlinkat(int(dirfd.Fd()), hashName+LongNameSuffix)
+	err := syscallcompat.Unlinkat(int(dirfd.Fd()), hashName+LongNameSuffix, 0)
 	if err != nil {
 		tlog.Warn.Printf("DeleteLongName: %v", err)
 	}

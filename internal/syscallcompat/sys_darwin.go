@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"sync"
 	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
 // Sorry, fallocate is not available on OSX at all and
@@ -71,21 +73,24 @@ func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) error 
 }
 
 // Poor man's Unlinkat
-func Unlinkat(dirfd int, path string) error {
+func Unlinkat(dirfd int, path string, flags int) (err error) {
 	chdirMutex.Lock()
 	defer chdirMutex.Unlock()
-	if !filepath.IsAbs(path) {
-		oldWd, err := os.Getwd()
-		if err != nil {
-			return err
-		}
-		defer os.Chdir(oldWd)
-	}
-	path, err := dirfdAbs(dirfd, path)
+	cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
 	if err != nil {
 		return err
 	}
-	return syscall.Unlink(path)
+	defer syscall.Close(cwd)
+	err = syscall.Fchdir(dirfd)
+	if err != nil {
+		return err
+	}
+	defer syscall.Fchdir(cwd)
+	if (flags & unix.AT_REMOVEDIR) != 0 {
+		return syscall.Rmdir(path)
+	} else {
+		return syscall.Unlink(path)
+	}
 }
 
 // Poor man's Mknodat

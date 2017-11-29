@@ -388,7 +388,7 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	}
 	defer dirfd.Close()
 	// Delete content
-	err = syscallcompat.Unlinkat(int(dirfd.Fd()), cName)
+	err = syscallcompat.Unlinkat(int(dirfd.Fd()), cName, 0)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}

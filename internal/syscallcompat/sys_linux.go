@@ -54,9 +54,19 @@ func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err e
 	return syscall.Renameat(olddirfd, oldpath, newdirfd, newpath)
 }
 
-// Unlinkat wraps the Unlinkat syscall.
-func Unlinkat(dirfd int, path string) error {
-	return syscall.Unlinkat(dirfd, path)
+// Unlinkat syscall. In old versions the 'flags' argument was missing, so
+// manually call it by using the corresponding syscall number.
+func Unlinkat(dirfd int, path string, flags int) (err error) {
+	var _p0 *byte
+	_p0, err = syscall.BytePtrFromString(path)
+	if err != nil {
+		return
+	}
+	_, _, e1 := syscall.Syscall(syscall.SYS_UNLINKAT, uintptr(dirfd), uintptr(unsafe.Pointer(_p0)), uintptr(flags))
+	if e1 != 0 {
+		err = e1
+	}
+	return
 }
 
 // Mknodat wraps the Mknodat syscall.
