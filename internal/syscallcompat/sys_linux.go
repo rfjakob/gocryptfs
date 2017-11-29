@@ -80,6 +80,11 @@ func Dup3(oldfd int, newfd int, flags int) (err error) {
 	return syscall.Dup3(oldfd, newfd, flags)
 }
 
+// Fchmodat syscall.
+func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
+	return syscall.Fchmodat(dirfd, path, mode, flags)
+}
+
 // Fchownat syscall.
 func Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error) {
 	return syscall.Fchownat(dirfd, path, uid, gid, flags)

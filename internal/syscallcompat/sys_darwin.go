@@ -137,6 +137,23 @@ func Dup3(oldfd int, newfd int, flags int) (err error) {
 	return syscall.Dup2(oldfd, newfd)
 }
 
+// Poor man's Fchmodat.
+func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
+	chdirMutex.Lock()
+	defer chdirMutex.Unlock()
+	cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
+	if err != nil {
+		return err
+	}
+	defer syscall.Close(cwd)
+	err = syscall.Fchdir(dirfd)
+	if err != nil {
+		return err
+	}
+	defer syscall.Fchdir(cwd)
+	return syscall.Chmod(path, mode)
+}
+
 // Poor man's Fchownat.
 func Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error) {
 	chdirMutex.Lock()

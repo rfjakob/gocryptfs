@@ -239,13 +239,14 @@ func (fs *FS) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.
 	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
-	cPath, err := fs.getBackingPath(path)
+	dirfd, cName, err := fs.openBackingPath(path)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
+	defer dirfd.Close()
 	// os.Chmod goes through the "syscallMode" translation function that messes
-	// up the suid and sgid bits. So use syscall.Chmod directly.
-	err = syscall.Chmod(cPath, mode)
+	// up the suid and sgid bits. So use a syscall directly.
+	err = syscallcompat.Fchmodat(int(dirfd.Fd()), cName, mode, unix.AT_SYMLINK_NOFOLLOW)
 	return fuse.ToStatus(err)
 }
 
