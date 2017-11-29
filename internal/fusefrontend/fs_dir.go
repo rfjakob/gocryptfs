@@ -24,7 +24,7 @@ import (
 
 const dsStoreName = ".DS_Store"
 
-func (fs *FS) mkdirWithIv(cPath string, mode uint32) error {
+func (fs *FS) mkdirWithIv(dirfd *os.File, cName string, mode uint32) error {
 	// Between the creation of the directory and the creation of gocryptfs.diriv
 	// the directory is inconsistent. Take the lock to prevent other readers
 	// from seeing it.
@@ -32,14 +32,14 @@ func (fs *FS) mkdirWithIv(cPath string, mode uint32) error {
 	// The new directory may take the place of an older one that is still in the cache
 	fs.nameTransform.DirIVCache.Clear()
 	defer fs.dirIVLock.Unlock()
-	err := os.Mkdir(cPath, os.FileMode(mode))
+	err := syscallcompat.Mkdirat(int(dirfd.Fd()), cName, mode)
 	if err != nil {
 		return err
 	}
 	// Create gocryptfs.diriv
-	err = nametransform.WriteDirIV(cPath)
+	err = nametransform.WriteDirIV(dirfd, cName)
 	if err != nil {
-		err2 := syscall.Rmdir(cPath)
+		err2 := syscallcompat.Unlinkat(int(dirfd.Fd()), cName, unix.AT_REMOVEDIR)
 		if err2 != nil {
 			tlog.Warn.Printf("mkdirWithIv: rollback failed: %v", err2)
 		}
@@ -52,17 +52,19 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 	if fs.isFiltered(newPath) {
 		return fuse.EPERM
 	}
-	cPath, err := fs.getBackingPath(newPath)
+	dirfd, cName, err := fs.openBackingPath(newPath)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
+	defer dirfd.Close()
 	if fs.args.PlaintextNames {
-		err = os.Mkdir(cPath, os.FileMode(mode))
+		err = syscallcompat.Mkdirat(int(dirfd.Fd()), cName, mode)
 		// Set owner
 		if fs.args.PreserveOwner {
-			err = os.Lchown(cPath, int(context.Owner.Uid), int(context.Owner.Gid))
+			err = syscallcompat.Fchownat(int(dirfd.Fd()), cName, int(context.Owner.Uid),
+				int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
 			if err != nil {
-				tlog.Warn.Printf("Mkdir: Lchown failed: %v", err)
+				tlog.Warn.Printf("Mkdir: Fchownat failed: %v", err)
 			}
 		}
 		return fuse.ToStatus(err)
@@ -73,15 +75,7 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 	mode = mode | 0300
 
 	// Handle long file name
-	cName := filepath.Base(cPath)
 	if nametransform.IsLongContent(cName) {
-		var dirfd *os.File
-		dirfd, err = os.Open(filepath.Dir(cPath))
-		if err != nil {
-			return fuse.ToStatus(err)
-		}
-		defer dirfd.Close()
-
 		// Create ".name"
 		err = fs.nameTransform.WriteLongName(dirfd, cName, newPath)
 		if err != nil {
@@ -89,33 +83,35 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 		}
 
 		// Create directory
-		err = fs.mkdirWithIv(cPath, mode)
+		err = fs.mkdirWithIv(dirfd, cName, mode)
 		if err != nil {
 			nametransform.DeleteLongName(dirfd, cName)
 			return fuse.ToStatus(err)
 		}
 	} else {
-		err = fs.mkdirWithIv(cPath, mode)
+		err = fs.mkdirWithIv(dirfd, cName, mode)
 		if err != nil {
 			return fuse.ToStatus(err)
 		}
 	}
 	// Set permissions back to what the user wanted
 	if origMode != mode {
-		err = os.Chmod(cPath, os.FileMode(origMode))
+		err = syscallcompat.Fchmodat(int(dirfd.Fd()), cName, origMode, unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
-			tlog.Warn.Printf("Mkdir: Chmod failed: %v", err)
+			tlog.Warn.Printf("Mkdir: Fchmodat failed: %v", err)
 		}
 	}
 	// Set owner
 	if fs.args.PreserveOwner {
-		err = os.Lchown(cPath, int(context.Owner.Uid), int(context.Owner.Gid))
+		err = syscallcompat.Fchownat(int(dirfd.Fd()), cName, int(context.Owner.Uid),
+			int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
-			tlog.Warn.Printf("Mkdir: Lchown 1 failed: %v", err)
+			tlog.Warn.Printf("Mkdir: Fchownat 1 failed: %v", err)
 		}
-		err = os.Lchown(filepath.Join(cPath, nametransform.DirIVFilename), int(context.Owner.Uid), int(context.Owner.Gid))
+		err = syscallcompat.Fchownat(int(dirfd.Fd()), filepath.Join(cName, nametransform.DirIVFilename),
+			int(context.Owner.Uid), int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
-			tlog.Warn.Printf("Mkdir: Lchown 2 failed: %v", err)
+			tlog.Warn.Printf("Mkdir: Fchownat 2 failed: %v", err)
 		}
 	}
 	return fuse.OK

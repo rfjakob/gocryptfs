@@ -47,7 +47,7 @@ func initDir(args *argContainer) {
 	// Forward mode with filename encryption enabled needs a gocryptfs.diriv
 	// in the root dir
 	if !args.plaintextnames && !args.reverse {
-		err = nametransform.WriteDirIV(args.cipherdir)
+		err = nametransform.WriteDirIV(nil, args.cipherdir)
 		if err != nil {
 			tlog.Fatal.Println(err)
 			os.Exit(exitcodes.Init)

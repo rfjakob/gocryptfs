@@ -75,16 +75,17 @@ func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 // WriteDirIV - create diriv file inside "dir" (absolute ciphertext path)
 // This function is exported because it is used from pathfs_frontend, main,
 // and also the automated tests.
-func WriteDirIV(dir string) error {
+func WriteDirIV(dirfd *os.File, dir string) error {
 	iv := cryptocore.RandBytes(DirIVLen)
 	file := filepath.Join(dir, DirIVFilename)
 	// 0400 permissions: gocryptfs.diriv should never be modified after creation.
 	// Don't use "ioutil.WriteFile", it causes trouble on NFS: https://github.com/rfjakob/gocryptfs/issues/105
-	fd, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0400)
+	fdRaw, err := syscallcompat.Openat(int(dirfd.Fd()), file, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0400)
 	if err != nil {
-		tlog.Warn.Printf("WriteDirIV: OpenFile: %v", err)
+		tlog.Warn.Printf("WriteDirIV: Openat: %v", err)
 		return err
 	}
+	fd := os.NewFile(uintptr(fdRaw), file)
 	_, err = fd.Write(iv)
 	if err != nil {
 		tlog.Warn.Printf("WriteDirIV: Write: %v", err)

@@ -109,3 +109,8 @@ func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
 	}
 	return
 }
+
+// Mkdirat syscall.
+func Mkdirat(dirfd int, path string, mode uint32) (err error) {
+	return syscall.Mkdirat(dirfd, path, mode)
+}

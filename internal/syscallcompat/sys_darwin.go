@@ -187,3 +187,20 @@ func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
 	defer syscall.Fchdir(cwd)
 	return syscall.Symlink(oldpath, newpath)
 }
+
+// Poor man's Mkdirat.
+func Mkdirat(dirfd int, path string, mode uint32) (err error) {
+	chdirMutex.Lock()
+	defer chdirMutex.Unlock()
+	cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
+	if err != nil {
+		return err
+	}
+	defer syscall.Close(cwd)
+	err = syscall.Fchdir(dirfd)
+	if err != nil {
+		return err
+	}
+	defer syscall.Fchdir(cwd)
+	return syscall.Mkdir(path, mode)
+}
