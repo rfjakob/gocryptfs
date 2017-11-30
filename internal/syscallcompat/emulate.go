@@ -135,6 +135,16 @@ func emulateFchmodat(dirfd int, path string, mode uint32, flags int) (err error)
 		return err
 	}
 	defer syscall.Fchdir(cwd)
+	// We also don't have Lchmod, so emulate it (poorly).
+	if flags&unix.AT_SYMLINK_NOFOLLOW > 0 {
+		fi, err := os.Lstat(path)
+		if err != nil {
+			return err
+		}
+		if fi.Mode()&os.ModeSymlink > 0 {
+			return nil
+		}
+	}
 	return syscall.Chmod(path, mode)
 }
 
