@@ -67,6 +67,15 @@ func TestEmulateOpenat(t *testing.T) {
 	if rawFd < 0 {
 		t.Fatalf("rawFd=%d", rawFd)
 	}
+	// Test with absolute path
+	rawFd, err = emulateOpenat(-1, tmpDir + "/testOpenAt", 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer syscall.Close(rawFd)
+	if rawFd < 0 {
+		t.Fatalf("rawFd=%d", rawFd)
+	}
 }
 
 func TestEmulateRenameat(t *testing.T) {
@@ -92,6 +101,15 @@ func TestEmulateRenameat(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = os.Stat(tmpDir + "/dir2/f2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Test with absolute path
+	err = emulateRenameat(-1, tmpDir + "/dir2/f2", -1, tmpDir + "/dir2/f1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = os.Stat(tmpDir + "/dir2/f1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,6 +153,19 @@ func TestEmulateUnlinkat(t *testing.T) {
 	if err == nil {
 		t.Fatalf("dir not deleted!")
 	}
+	// Test with absolute path
+	err = os.Mkdir(tmpDir + "/unlink1/d1", 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = emulateUnlinkat(-1, tmpDir + "/unlink1/d1", unix.AT_REMOVEDIR)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = os.Stat(tmpDir + "/unlink1/d1")
+	if err == nil {
+		t.Fatalf("dir not deleted!")
+	}
 }
 
 func TestEmulateMknodat(t *testing.T) {
@@ -143,6 +174,15 @@ func TestEmulateMknodat(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = os.Stat(tmpDir + "/fifo1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Test with absolute path
+	err = emulateMknodat(-1, tmpDir + "/fifo2", unix.S_IFIFO, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = os.Stat(tmpDir + "/fifo2")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,6 +227,18 @@ func TestEmulateFchmodat(t *testing.T) {
 	if st.Mode != 0100600 {
 		t.Fatalf("Wrong mode: have %o, want %o", st.Mode, 0100600)
 	}
+	// Test with absolute path
+	err = emulateFchmodat(-1, tmpDir + "/chmod", 0400, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = syscall.Lstat(tmpDir + "/chmod", &st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Mode != 0100400 {
+		t.Fatalf("Wrong mode: have %o, want %o", st.Mode, 0100400)
+	}
 }
 
 func TestEmulateFchownat(t *testing.T) {
@@ -206,6 +258,18 @@ func TestEmulateSymlinkat(t *testing.T) {
 	if st.Mode != 0120777 {
 		t.Fatalf("Wrong mode, have %o, want 0120777", st.Mode)
 	}
+	// Test with absolute path
+	err = emulateSymlinkat("/foo/bar/baz", -1, tmpDir + "/symlink2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = syscall.Lstat(tmpDir + "/symlink2", &st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Mode != 0120777 {
+		t.Fatalf("Wrong mode, have %o, want 0120777", st.Mode)
+	}
 }
 
 func TestEmulateMkdirat(t *testing.T) {
@@ -214,6 +278,18 @@ func TestEmulateMkdirat(t *testing.T) {
 		t.Fatal(err)
 	}
 	fi, err := os.Stat(tmpDir + "/mkdirat")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !fi.IsDir() {
+		t.Fatalf("mkdirat did not create a directory")
+	}
+	// Test with absolute path
+	err = emulateMkdirat(-1, tmpDir + "/mkdirat2", 0100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fi, err = os.Stat(tmpDir + "/mkdirat2")
 	if err != nil {
 		t.Fatal(err)
 	}
