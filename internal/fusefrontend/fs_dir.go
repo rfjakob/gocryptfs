@@ -146,7 +146,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 
 	cName := filepath.Base(cPath)
 	dirfdRaw, err := syscallcompat.Openat(int(parentDirFd.Fd()), cName,
-		syscall.O_RDONLY, 0)
+		syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
 	if err == syscall.EACCES {
 		// We need permission to read and modify the directory
 		tlog.Debug.Printf("Rmdir: handling EACCESS")
@@ -168,7 +168,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 		var st syscall.Stat_t
 		syscall.Lstat(cPath, &st)
 		dirfdRaw, err = syscallcompat.Openat(int(parentDirFd.Fd()), cName,
-			syscall.O_RDONLY, 0)
+			syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
 		// Undo the chmod if removing the directory failed
 		defer func() {
 			if code != fuse.OK {

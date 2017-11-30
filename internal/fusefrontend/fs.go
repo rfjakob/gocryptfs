@@ -211,7 +211,7 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 
 		// Create content
 		var fdRaw int
-		fdRaw, err = syscallcompat.Openat(int(dirfd.Fd()), cName, newFlags|os.O_CREATE, mode)
+		fdRaw, err = syscallcompat.Openat(int(dirfd.Fd()), cName, newFlags|os.O_CREATE|os.O_EXCL, mode)
 		if err != nil {
 			nametransform.DeleteLongName(dirfd, cName)
 			return nil, fuse.ToStatus(err)
@@ -219,7 +219,7 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 		fd = os.NewFile(uintptr(fdRaw), cName)
 	} else {
 		// Normal (short) file name
-		fd, err = os.OpenFile(cPath, newFlags|os.O_CREATE, os.FileMode(mode))
+		fd, err = os.OpenFile(cPath, newFlags|os.O_CREATE|os.O_EXCL, os.FileMode(mode))
 		if err != nil {
 			return nil, fuse.ToStatus(err)
 		}
