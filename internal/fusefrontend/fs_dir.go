@@ -24,6 +24,9 @@ import (
 
 const dsStoreName = ".DS_Store"
 
+// mkdirWithIv - create a new directory and corresponding diriv file. dirfd
+// should be a handle to the parent directory, cName is the name of the new
+// directory and mode specifies the access permissions to use.
 func (fs *FS) mkdirWithIv(dirfd *os.File, cName string, mode uint32) error {
 	// Between the creation of the directory and the creation of gocryptfs.diriv
 	// the directory is inconsistent. Take the lock to prevent other readers
