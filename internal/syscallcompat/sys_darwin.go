@@ -2,12 +2,7 @@ package syscallcompat
 
 import (
 	"log"
-	"os"
-	"path/filepath"
-	"sync"
 	"syscall"
-
-	"golang.org/x/sys/unix"
 )
 
 // Sorry, fallocate is not available on OSX at all and
@@ -22,113 +17,6 @@ func Fallocate(fd int, mode uint32, off int64, len int64) error {
 	return syscall.EOPNOTSUPP
 }
 
-var chdirMutex sync.Mutex
-
-// Poor man's Openat
-func Openat(dirfd int, path string, flags int, mode uint32) (int, error) {
-	chdirMutex.Lock()
-	defer chdirMutex.Unlock()
-	if !filepath.IsAbs(path) {
-		// Save the old working directory
-		oldWd, err := os.Getwd()
-		if err != nil {
-			return -1, err
-		}
-		// Chdir to target directory
-		err = syscall.Fchdir(dirfd)
-		if err != nil {
-			return -1, err
-		}
-		// Chdir back at the end
-		defer os.Chdir(oldWd)
-	}
-	return syscall.Open(path, flags, mode)
-}
-
-// Poor man's Renameat
-func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) error {
-	chdirMutex.Lock()
-	defer chdirMutex.Unlock()
-	// Unless both paths are absolute we have to save the old working dir and
-	// Chdir(oldWd) back to it in the end. If we error out before the first
-	// chdir, Chdir(oldWd) is unneccassary but does no harm.
-	if !filepath.IsAbs(oldpath) || !filepath.IsAbs(newpath) {
-		oldWd, err := os.Getwd()
-		if err != nil {
-			return err
-		}
-		defer os.Chdir(oldWd)
-	}
-	// Make oldpath absolute
-	oldpath, err := dirfdAbs(olddirfd, oldpath)
-	if err != nil {
-		return err
-	}
-	// Make newpath absolute
-	newpath, err = dirfdAbs(newdirfd, newpath)
-	if err != nil {
-		return err
-	}
-	return syscall.Rename(oldpath, newpath)
-}
-
-// Poor man's Unlinkat
-func Unlinkat(dirfd int, path string, flags int) (err error) {
-	chdirMutex.Lock()
-	defer chdirMutex.Unlock()
-	cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
-	if err != nil {
-		return err
-	}
-	defer syscall.Close(cwd)
-	err = syscall.Fchdir(dirfd)
-	if err != nil {
-		return err
-	}
-	defer syscall.Fchdir(cwd)
-	if (flags & unix.AT_REMOVEDIR) != 0 {
-		return syscall.Rmdir(path)
-	} else {
-		return syscall.Unlink(path)
-	}
-}
-
-// Poor man's Mknodat
-func Mknodat(dirfd int, path string, mode uint32, dev int) error {
-	chdirMutex.Lock()
-	defer chdirMutex.Unlock()
-	if !filepath.IsAbs(path) {
-		oldWd, err := os.Getwd()
-		if err != nil {
-			return err
-		}
-		defer os.Chdir(oldWd)
-	}
-	path, err := dirfdAbs(dirfd, path)
-	if err != nil {
-		return err
-	}
-	return syscall.Mknod(path, mode, dev)
-}
-
-// dirfdAbs transforms the dirfd-relative "path" to an absolute one. If the
-// path is not already absolute, this function will change the working
-// directory. The caller has to chdir back.
-func dirfdAbs(dirfd int, path string) (string, error) {
-	if filepath.IsAbs(path) {
-		return path, nil
-	}
-	err := syscall.Fchdir(dirfd)
-	if err != nil {
-		return "", err
-	}
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(wd, path), nil
-}
-
 // Dup3 is not available on Darwin, so we use Dup2 instead.
 func Dup3(oldfd int, newfd int, flags int) (err error) {
 	if flags != 0 {
@@ -137,70 +25,38 @@ func Dup3(oldfd int, newfd int, flags int) (err error) {
 	return syscall.Dup2(oldfd, newfd)
 }
 
-// Poor man's Fchmodat.
+////////////////////////////////////////////////////////
+//// Emulated Syscalls (see emulate.go) ////////////////
+////////////////////////////////////////////////////////
+
+func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) {
+	return emulateOpenat(dirfd, path, flags, mode)
+}
+
+func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
+	return emulateRenameat(olddirfd, oldpath, newdirfd, newpath)
+}
+
+func Unlinkat(dirfd int, path string, flags int) (err error) {
+	return emulateUnlinkat(dirfd, path, flags)
+}
+
+func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
+	return emulateMknodat(dirfd, path, mode, dev)
+}
+
 func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
-	chdirMutex.Lock()
-	defer chdirMutex.Unlock()
-	cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
-	if err != nil {
-		return err
-	}
-	defer syscall.Close(cwd)
-	err = syscall.Fchdir(dirfd)
-	if err != nil {
-		return err
-	}
-	defer syscall.Fchdir(cwd)
-	return syscall.Chmod(path, mode)
+	return emulateFchmodat(dirfd, path, mode, flags)
 }
 
-// Poor man's Fchownat.
 func Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error) {
-	chdirMutex.Lock()
-	defer chdirMutex.Unlock()
-	cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
-	if err != nil {
-		return err
-	}
-	defer syscall.Close(cwd)
-	err = syscall.Fchdir(dirfd)
-	if err != nil {
-		return err
-	}
-	defer syscall.Fchdir(cwd)
-	return syscall.Lchown(path, uid, gid)
+	return emulateFchownat(dirfd, path, uid, gid, flags)
 }
 
-// Poor man's Symlinkat.
 func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
-	chdirMutex.Lock()
-	defer chdirMutex.Unlock()
-	cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
-	if err != nil {
-		return err
-	}
-	defer syscall.Close(cwd)
-	err = syscall.Fchdir(newdirfd)
-	if err != nil {
-		return err
-	}
-	defer syscall.Fchdir(cwd)
-	return syscall.Symlink(oldpath, newpath)
+	return emulateSymlinkat(oldpath, newdirfd, newpath)
 }
 
-// Poor man's Mkdirat.
 func Mkdirat(dirfd int, path string, mode uint32) (err error) {
-	chdirMutex.Lock()
-	defer chdirMutex.Unlock()
-	cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
-	if err != nil {
-		return err
-	}
-	defer syscall.Close(cwd)
-	err = syscall.Fchdir(dirfd)
-	if err != nil {
-		return err
-	}
-	defer syscall.Fchdir(cwd)
-	return syscall.Mkdir(path, mode)
+	return emulateMkdirat(dirfd, path, mode)
 }
