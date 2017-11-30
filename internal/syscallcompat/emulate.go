@@ -14,21 +14,19 @@ var chdirMutex sync.Mutex
 // emulateOpenat emulates the syscall for platforms that don't have it
 // in the kernel (darwin).
 func emulateOpenat(dirfd int, path string, flags int, mode uint32) (int, error) {
-	chdirMutex.Lock()
-	defer chdirMutex.Unlock()
 	if !filepath.IsAbs(path) {
-		// Save the old working directory
-		oldWd, err := os.Getwd()
+		chdirMutex.Lock()
+		defer chdirMutex.Unlock()
+		cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
 		if err != nil {
 			return -1, err
 		}
-		// Chdir to target directory
+		defer syscall.Close(cwd)
 		err = syscall.Fchdir(dirfd)
 		if err != nil {
 			return -1, err
 		}
-		// Chdir back at the end
-		defer os.Chdir(oldWd)
+		defer syscall.Fchdir(cwd)
 	}
 	return syscall.Open(path, flags, mode)
 }
@@ -88,18 +86,19 @@ func emulateUnlinkat(dirfd int, path string, flags int) (err error) {
 // emulateMknodat emulates the syscall for platforms that don't have it
 // in the kernel (darwin).
 func emulateMknodat(dirfd int, path string, mode uint32, dev int) error {
-	chdirMutex.Lock()
-	defer chdirMutex.Unlock()
 	if !filepath.IsAbs(path) {
-		oldWd, err := os.Getwd()
+		chdirMutex.Lock()
+		defer chdirMutex.Unlock()
+		cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
 		if err != nil {
 			return err
 		}
-		defer os.Chdir(oldWd)
-	}
-	path, err := dirfdAbs(dirfd, path)
-	if err != nil {
-		return err
+		defer syscall.Close(cwd)
+		err = syscall.Fchdir(dirfd)
+		if err != nil {
+			return err
+		}
+		defer syscall.Fchdir(cwd)
 	}
 	return syscall.Mknod(path, mode, dev)
 }
