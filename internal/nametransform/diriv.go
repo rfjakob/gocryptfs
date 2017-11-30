@@ -3,6 +3,7 @@ package nametransform
 import (
 	"bytes"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -73,10 +74,16 @@ func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 	return iv, nil
 }
 
-// WriteDirIV - create diriv file inside "dir" (absolute ciphertext path)
-// This function is exported because it is used from pathfs_frontend, main,
-// and also the automated tests.
+// WriteDirIV - create diriv file inside of the specified directory. If dirfd
+// is nil "dir" should be the absolute path to the directory. If dirfd != nil
+// "dir" should be a path (without slashes) relative to the directory
+// described by "dirfd". This function is exported because it is used from
+// pathfs_frontend, main, and also the automated tests.
 func WriteDirIV(dirfd *os.File, dir string) error {
+	// For relative paths we do not expect that "dir" contains slashes
+	if dirfd != nil && strings.Contains(dir, "/") {
+		log.Panicf("WriteDirIV: Relative path should not contain slashes: %v", dir)
+	}
 	iv := cryptocore.RandBytes(DirIVLen)
 	file := filepath.Join(dir, DirIVFilename)
 	// 0400 permissions: gocryptfs.diriv should never be modified after creation.
