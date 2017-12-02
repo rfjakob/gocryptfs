@@ -218,7 +218,7 @@ func (rfs *ReverseFS) Open(relPath string, flags uint32, context *fuse.Context) 
 	if rfs.isNameFile(relPath) {
 		return rfs.newNameFile(relPath)
 	}
-	return rfs.newFile(relPath, flags)
+	return rfs.newFile(relPath)
 }
 
 func (rfs *ReverseFS) openDirPlaintextnames(relPath string, entries []fuse.DirEntry) ([]fuse.DirEntry, fuse.Status) {

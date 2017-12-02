@@ -14,6 +14,7 @@ import (
 
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/pathiv"
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -32,19 +33,22 @@ type reverseFile struct {
 
 var inodeTable syncmap.Map
 
-func (rfs *ReverseFS) newFile(relPath string, flags uint32) (nodefs.File, fuse.Status) {
-	absPath, err := rfs.abs(rfs.decryptPath(relPath))
+// newFile decrypts and opens the path "relPath" and returns a reverseFile
+// object. The backing file descriptor is always read-only.
+func (rfs *ReverseFS) newFile(relPath string) (*reverseFile, fuse.Status) {
+	pRelPath, err := rfs.decryptPath(relPath)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	fd, err := os.OpenFile(absPath, int(flags), 0666)
+	fd, err := syscallcompat.OpenNofollow(rfs.args.Cipherdir, pRelPath, syscall.O_RDONLY, 0)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
 	var st syscall.Stat_t
-	err = syscall.Fstat(int(fd.Fd()), &st)
+	err = syscall.Fstat(fd, &st)
 	if err != nil {
 		tlog.Warn.Printf("newFile: Fstat error: %v", err)
+		syscall.Close(fd)
 		return nil, fuse.ToStatus(err)
 	}
 	// See if we have that inode number already in the table
@@ -76,7 +80,7 @@ func (rfs *ReverseFS) newFile(relPath string, flags uint32) (nodefs.File, fuse.S
 	}
 	return &reverseFile{
 		File:       nodefs.NewDefaultFile(),
-		fd:         fd,
+		fd:         os.NewFile(uintptr(fd), pRelPath),
 		header:     header,
 		block0IV:   derivedIVs.Block0IV,
 		contentEnc: rfs.contentEnc,
