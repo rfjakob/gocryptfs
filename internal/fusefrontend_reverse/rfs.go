@@ -297,9 +297,20 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 	return entries, fuse.OK
 }
 
-// StatFs - FUSE call
-func (rfs *ReverseFS) StatFs(name string) *fuse.StatfsOut {
-	return rfs.loopbackfs.StatFs(name)
+// StatFs - FUSE call. Returns information about the filesystem (free space
+// etc).
+// Securing statfs against symlink races seems to be more trouble than
+// it's worth, so we just ignore the path and always return info about the
+// backing storage root dir.
+func (rfs *ReverseFS) StatFs(path string) *fuse.StatfsOut {
+	var s syscall.Statfs_t
+	err := syscall.Statfs(rfs.args.Cipherdir, &s)
+	if err != nil {
+		return nil
+	}
+	out := &fuse.StatfsOut{}
+	out.FromStatfsT(&s)
+	return out
 }
 
 // Readlink - FUSE call
