@@ -4,7 +4,6 @@ package syscallcompat
 import (
 	"sync"
 	"syscall"
-	"unsafe"
 
 	"golang.org/x/sys/unix"
 
@@ -61,19 +60,9 @@ func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err e
 	return syscall.Renameat(olddirfd, oldpath, newdirfd, newpath)
 }
 
-// Unlinkat syscall. In old versions the 'flags' argument was missing, so
-// manually call it by using the corresponding syscall number.
+// Unlinkat syscall.
 func Unlinkat(dirfd int, path string, flags int) (err error) {
-	var _p0 *byte
-	_p0, err = syscall.BytePtrFromString(path)
-	if err != nil {
-		return
-	}
-	_, _, e1 := syscall.Syscall(syscall.SYS_UNLINKAT, uintptr(dirfd), uintptr(unsafe.Pointer(_p0)), uintptr(flags))
-	if e1 != 0 {
-		err = e1
-	}
-	return
+	return unix.Unlinkat(dirfd, path, flags)
 }
 
 // Mknodat wraps the Mknodat syscall.
@@ -107,24 +96,9 @@ func Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error) {
 	return syscall.Fchownat(dirfd, path, uid, gid, flags)
 }
 
-// Symlinkat syscall. Unfortunately this function is not exported directly, so
-// manually call it by using the corresponding syscall number.
+// Symlinkat syscall.
 func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
-	var _p0 *byte
-	_p0, err = syscall.BytePtrFromString(oldpath)
-	if err != nil {
-		return
-	}
-	var _p1 *byte
-	_p1, err = syscall.BytePtrFromString(newpath)
-	if err != nil {
-		return
-	}
-	_, _, e1 := syscall.Syscall(syscall.SYS_SYMLINKAT, uintptr(unsafe.Pointer(_p0)), uintptr(newdirfd), uintptr(unsafe.Pointer(_p1)))
-	if e1 != 0 {
-		err = e1
-	}
-	return
+	return unix.Symlinkat(oldpath, newdirfd, newpath)
 }
 
 // Mkdirat syscall.
