@@ -1,53 +1,12 @@
 package syscallcompat
 
 import (
-	"fmt"
-	"io/ioutil"
 	"os"
 	"syscall"
 	"testing"
 
 	"golang.org/x/sys/unix"
 )
-
-var tmpDir string
-var tmpDirFd int
-
-func TestMain(m *testing.M) {
-	origWd, err := os.Getwd()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	parent := "/tmp/gocryptfs-test-parent"
-	err = os.MkdirAll(parent, 0700)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	tmpDir, err = ioutil.TempDir(parent, "syscallcompat")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	dirf, err := os.Open(tmpDir)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	defer dirf.Close()
-	tmpDirFd = int(dirf.Fd())
-	// Run the tests
-	r := m.Run()
-	// Check that we are in the same directory again (the emulated syscalls
-	// use Fchdir a lot)
-	cwd, _ := os.Getwd()
-	if cwd != origWd {
-		fmt.Printf("working dir has changed from %q to %q", origWd, cwd)
-		os.Exit(1)
-	}
-	os.Exit(r)
-}
 
 func TestEmulateOpenat(t *testing.T) {
 	_, err := emulateOpenat(tmpDirFd, "testOpenAt", 0, 0)
@@ -68,7 +27,7 @@ func TestEmulateOpenat(t *testing.T) {
 		t.Fatalf("rawFd=%d", rawFd)
 	}
 	// Test with absolute path
-	rawFd, err = emulateOpenat(-1, tmpDir + "/testOpenAt", 0, 0)
+	rawFd, err = emulateOpenat(-1, tmpDir+"/testOpenAt", 0, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +64,7 @@ func TestEmulateRenameat(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Test with absolute path
-	err = emulateRenameat(-1, tmpDir + "/dir2/f2", -1, tmpDir + "/dir2/f1")
+	err = emulateRenameat(-1, tmpDir+"/dir2/f2", -1, tmpDir+"/dir2/f1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,11 +113,11 @@ func TestEmulateUnlinkat(t *testing.T) {
 		t.Fatalf("dir not deleted!")
 	}
 	// Test with absolute path
-	err = os.Mkdir(tmpDir + "/unlink1/d1", 0700)
+	err = os.Mkdir(tmpDir+"/unlink1/d1", 0700)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = emulateUnlinkat(-1, tmpDir + "/unlink1/d1", unix.AT_REMOVEDIR)
+	err = emulateUnlinkat(-1, tmpDir+"/unlink1/d1", unix.AT_REMOVEDIR)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +137,7 @@ func TestEmulateMknodat(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Test with absolute path
-	err = emulateMknodat(-1, tmpDir + "/fifo2", unix.S_IFIFO, 0)
+	err = emulateMknodat(-1, tmpDir+"/fifo2", unix.S_IFIFO, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -228,11 +187,11 @@ func TestEmulateFchmodat(t *testing.T) {
 		t.Fatalf("Wrong mode: have %o, want %o", st.Mode, 0100600)
 	}
 	// Test with absolute path
-	err = emulateFchmodat(-1, tmpDir + "/chmod", 0400, 0)
+	err = emulateFchmodat(-1, tmpDir+"/chmod", 0400, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = syscall.Lstat(tmpDir + "/chmod", &st)
+	err = syscall.Lstat(tmpDir+"/chmod", &st)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,11 +218,11 @@ func TestEmulateSymlinkat(t *testing.T) {
 		t.Fatalf("Wrong mode, have %o, want 0120777", st.Mode)
 	}
 	// Test with absolute path
-	err = emulateSymlinkat("/foo/bar/baz", -1, tmpDir + "/symlink2")
+	err = emulateSymlinkat("/foo/bar/baz", -1, tmpDir+"/symlink2")
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = syscall.Lstat(tmpDir + "/symlink2", &st)
+	err = syscall.Lstat(tmpDir+"/symlink2", &st)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -285,7 +244,7 @@ func TestEmulateMkdirat(t *testing.T) {
 		t.Fatalf("mkdirat did not create a directory")
 	}
 	// Test with absolute path
-	err = emulateMkdirat(-1, tmpDir + "/mkdirat2", 0100)
+	err = emulateMkdirat(-1, tmpDir+"/mkdirat2", 0100)
 	if err != nil {
 		t.Fatal(err)
 	}
