@@ -3,6 +3,10 @@ package syscallcompat
 import (
 	"log"
 	"syscall"
+
+	"golang.org/x/sys/unix"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 // Sorry, fallocate is not available on OSX at all and
@@ -59,4 +63,12 @@ func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
 
 func Mkdirat(dirfd int, path string, mode uint32) (err error) {
 	return emulateMkdirat(dirfd, path, mode)
+}
+
+func Fstatat(dirfd int, path string, stat *unix.Stat_t, flags int) (err error) {
+	return emulateFstatat(dirfd, path, stat, flags)
+}
+
+func Getdents(fd int) ([]fuse.DirEntry, error) {
+	return emulateGetdents(fd)
 }
