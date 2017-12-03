@@ -12,26 +12,17 @@ import (
 	"syscall"
 	"unsafe"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/hanwen/go-fuse/fuse"
 
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-// HaveGetdents is true if we have a working implementation of Getdents
-const HaveGetdents = true
-
 const sizeofDirent = int(unsafe.Sizeof(syscall.Dirent{}))
 
-// Getdents wraps syscall.Getdents and converts the result to []fuse.DirEntry.
-// The function takes a path instead of an fd because we need to be able to
-// call Lstat on files. Fstatat is not yet available in Go as of v1.9:
-// https://github.com/golang/go/issues/14216
-func Getdents(dir string) ([]fuse.DirEntry, error) {
-	fd, err := syscall.Open(dir, syscall.O_RDONLY, 0)
-	if err != nil {
-		return nil, err
-	}
-	defer syscall.Close(fd)
+// getdents wraps syscall.Getdents and converts the result to []fuse.DirEntry.
+func getdents(fd int) ([]fuse.DirEntry, error) {
 	// Collect syscall result in smartBuf.
 	// "bytes.Buffer" is smart about expanding the capacity and avoids the
 	// exponential runtime of simple append().
@@ -84,7 +75,7 @@ func Getdents(dir string) ([]fuse.DirEntry, error) {
 			// os.File.Readdir() drops "." and "..". Let's be compatible.
 			continue
 		}
-		mode, err := convertDType(s.Type, dir+"/"+name)
+		mode, err := convertDType(fd, name, s.Type)
 		if err != nil {
 			// The file may have been deleted in the meantime. Just skip it
 			// and go on.
@@ -125,17 +116,17 @@ func getdentsName(s syscall.Dirent) (string, error) {
 var dtUnknownWarnOnce sync.Once
 
 // convertDType converts a Dirent.Type to at Stat_t.Mode value.
-func convertDType(dtype uint8, file string) (uint32, error) {
+func convertDType(dirfd int, name string, dtype uint8) (uint32, error) {
 	if dtype != syscall.DT_UNKNOWN {
 		// Shift up by four octal digits = 12 bits
 		return uint32(dtype) << 12, nil
 	}
-	// DT_UNKNOWN: we have to call Lstat()
+	// DT_UNKNOWN: we have to call stat()
 	dtUnknownWarnOnce.Do(func() {
-		tlog.Warn.Printf("Getdents: convertDType: received DT_UNKNOWN, falling back to Lstat")
+		tlog.Warn.Printf("Getdents: convertDType: received DT_UNKNOWN, falling back to stat")
 	})
-	var st syscall.Stat_t
-	err := syscall.Lstat(file, &st)
+	var st unix.Stat_t
+	err := Fstatat(dirfd, name, &st, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		return 0, err
 	}

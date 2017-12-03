@@ -7,6 +7,8 @@ import (
 
 	"golang.org/x/sys/unix"
 
+	"github.com/hanwen/go-fuse/fuse"
+
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -114,4 +116,9 @@ func Fstatat(dirfd int, path string, stat *unix.Stat_t, flags int) (err error) {
 		flags |= unix.AT_SYMLINK_NOFOLLOW
 	}
 	return unix.Fstatat(dirfd, path, stat, flags)
+}
+
+// Getdents syscall.
+func Getdents(fd int) ([]fuse.DirEntry, error) {
+	return getdents(fd)
 }

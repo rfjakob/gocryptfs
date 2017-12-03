@@ -271,20 +271,14 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 	cDirAbsPath := filepath.Join(fs.args.Cipherdir, cDirName)
 	var cipherEntries []fuse.DirEntry
 	var status fuse.Status
-	if syscallcompat.HaveGetdents {
-		// Getdents avoids calling Lstat on each file.
-		cipherEntries, err = syscallcompat.Getdents(cDirAbsPath)
-		if err != nil {
-			return nil, fuse.ToStatus(err)
-		}
-	} else {
-		haveGetdentsWarnOnce.Do(func() {
-			tlog.Warn.Printf("OpenDir: Getdents not available, falling back to OpenDir")
-		})
-		cipherEntries, status = fs.FileSystem.OpenDir(cDirName, context)
-		if !status.Ok() {
-			return nil, status
-		}
+	fd, err := syscall.Open(cDirAbsPath, syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	defer syscall.Close(fd)
+	cipherEntries, err = syscallcompat.Getdents(fd)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
 	}
 	// Get DirIV (stays nil if PlaintextNames is used)
 	var cachedIV []byte

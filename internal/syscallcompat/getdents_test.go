@@ -12,9 +12,19 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
+var getdentsUnderTest = getdents
+
 func TestGetdents(t *testing.T) {
+	t.Logf("testing native getdents")
+	testGetdents(t)
+	t.Logf("testing emulateGetdents")
+	getdentsUnderTest = emulateGetdents
+	testGetdents(t)
+}
+
+func testGetdents(t *testing.T) {
 	// Fill a directory with filenames of length 1 ... 255
-	testDir, err := ioutil.TempDir("", "TestGetdents")
+	testDir, err := ioutil.TempDir(tmpDir, "TestGetdents")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,17 +45,21 @@ func TestGetdents(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		defer fd.Close()
 		readdirEntries, err := fd.Readdir(0)
 		if err != nil {
 			t.Fatal(err)
 		}
-		fd.Close()
 		readdirMap := make(map[string]*syscall.Stat_t)
 		for _, v := range readdirEntries {
 			readdirMap[v.Name()] = fuse.ToStatT(v)
 		}
-		// Read using our Getdents()
-		getdentsEntries, err := Getdents(dir)
+		// Read using our Getdents() implementation
+		_, err = fd.Seek(0, 0) // Rewind directory
+		if err != nil {
+			t.Fatal(err)
+		}
+		getdentsEntries, err := getdentsUnderTest(int(fd.Fd()))
 		if err != nil {
 			t.Fatal(err)
 		}
