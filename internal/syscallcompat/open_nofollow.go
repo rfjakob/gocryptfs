@@ -27,6 +27,10 @@ func OpenNofollow(baseDir string, relPath string, flags int, mode uint32) (fd in
 	if err != nil {
 		return -1, err
 	}
+	// Caller wanted to open baseDir itself?
+	if relPath == "" {
+		return dirfd, nil
+	}
 	// Split the path into components and separate intermediate directories
 	// and the final basename
 	parts := strings.Split(relPath, "/")
