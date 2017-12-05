@@ -22,8 +22,8 @@ func OpenNofollow(baseDir string, relPath string, flags int, mode uint32) (fd in
 		tlog.Warn.Printf("BUG: OpenNofollow called with absolute relPath=%q", relPath)
 		return -1, syscall.EINVAL
 	}
-	// Open the base dir
-	dirfd, err := syscall.Open(baseDir, syscall.O_RDONLY, 0)
+	// Open the base dir (following symlinks)
+	dirfd, err := syscall.Open(baseDir, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
 	if err != nil {
 		return -1, err
 	}
@@ -39,7 +39,7 @@ func OpenNofollow(baseDir string, relPath string, flags int, mode uint32) (fd in
 	// Walk intermediate directories
 	var dirfd2 int
 	for _, name := range dirs {
-		dirfd2, err = Openat(dirfd, name, syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
+		dirfd2, err = Openat(dirfd, name, syscall.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_DIRECTORY, 0)
 		syscall.Close(dirfd)
 		if err != nil {
 			return -1, err

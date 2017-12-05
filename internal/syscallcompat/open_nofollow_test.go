@@ -31,8 +31,8 @@ func TestOpenNofollow(t *testing.T) {
 	if err == nil {
 		t.Fatalf("should have failed")
 	}
-	if err != syscall.ELOOP {
-		t.Errorf("expected ELOOP, got %v", err)
+	if err != syscall.ELOOP && err != syscall.ENOTDIR {
+		t.Errorf("expected ELOOP or ENOTDIR, got %v", err)
 	}
 	// Check to see that the base dir can be opened as well
 	fd, err = OpenNofollow(tmpDir, "", syscall.O_RDONLY, 0)
