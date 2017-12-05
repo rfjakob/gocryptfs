@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
@@ -150,15 +152,13 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	absPath, _ := rfs.abs(pRelPath, nil)
-	// Stat the backing file
-	var st syscall.Stat_t
-	if relPath == "" {
-		// Look through symlinks for the root dir
-		err = syscall.Stat(absPath, &st)
-	} else {
-		err = syscall.Lstat(absPath, &st)
+	// Stat the backing file/dir using Fstatat
+	var st unix.Stat_t
+	dirFd, err := syscallcompat.OpenNofollow(rfs.args.Cipherdir, filepath.Dir(pRelPath), syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
 	}
+	err = syscallcompat.Fstatat(dirFd, filepath.Base(pRelPath), &st, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
@@ -169,7 +169,8 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 		return nil, fuse.ToStatus(syscall.EOVERFLOW)
 	}
 	var a fuse.Attr
-	a.FromStat(&st)
+	st2 := syscallcompat.Unix2syscall(st)
+	a.FromStat(&st2)
 	// Calculate encrypted file size
 	if a.IsRegular() {
 		a.Size = rfs.contentEnc.PlainSizeToCipherSize(a.Size)
