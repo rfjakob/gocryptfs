@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"os"
 	"os/exec"
@@ -110,7 +111,11 @@ func ResetTmpDir(createDirIV bool) {
 func InitFS(t *testing.T, extraArgs ...string) string {
 	dir, err := ioutil.TempDir(TmpDir, "")
 	if err != nil {
-		t.Fatal(err)
+		if t != nil {
+			t.Fatal(err)
+		} else {
+			log.Panic(err)
+		}
 	}
 	args := []string{"-q", "-init", "-extpass", "echo test", "-scryptn=10"}
 	args = append(args, extraArgs...)
@@ -122,7 +127,11 @@ func InitFS(t *testing.T, extraArgs ...string) string {
 
 	err = cmd.Run()
 	if err != nil {
-		t.Fatalf("InitFS with args %v failed: %v", args, err)
+		if t != nil {
+			t.Fatalf("InitFS with args %v failed: %v", args, err)
+		} else {
+			log.Panic(err)
+		}
 	}
 
 	return dir
