@@ -8,7 +8,10 @@ import (
 	"syscall"
 	"testing"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/rfjakob/gocryptfs/internal/ctlsock"
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
@@ -135,6 +138,35 @@ func TestAccessVirtual(t *testing.T) {
 	err = syscall.Access(fn, X_OK)
 	if err == nil {
 		t.Errorf("should NOT be executable")
+	}
+}
+
+// Check that the access() syscall works on regular files
+func TestAccess(t *testing.T) {
+	f, err := os.Create(dirA + "/testaccess1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	f, err = os.Open(dirB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	names, err := f.Readdirnames(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, n := range names {
+		// Check if file exists - this should never fail
+		err = syscallcompat.Faccessat(unix.AT_FDCWD, dirB+"/"+n, unix.F_OK)
+		if err != nil {
+			t.Errorf("%s: %v", n, err)
+		}
+		// Check if file is readable
+		err = syscallcompat.Faccessat(unix.AT_FDCWD, dirB+"/"+n, unix.R_OK)
+		if err != nil {
+			t.Logf("%s: %v", n, err)
+		}
 	}
 }
 

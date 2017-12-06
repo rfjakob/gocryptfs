@@ -201,11 +201,16 @@ func (rfs *ReverseFS) Access(relPath string, mode uint32, context *fuse.Context)
 		}
 		return fuse.EPERM
 	}
-	absPath, err := rfs.abs(rfs.decryptPath(relPath))
+	dirfd, name, err := rfs.openBackingDir(relPath)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	return fuse.ToStatus(syscall.Access(absPath, mode))
+	err = syscallcompat.Faccessat(dirfd, name, mode)
+	if err != nil {
+		fmt.Printf("name=%q err=%v", name, err)
+	}
+	syscall.Close(dirfd)
+	return fuse.ToStatus(err)
 }
 
 // Open - FUSE call

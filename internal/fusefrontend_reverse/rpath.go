@@ -8,6 +8,7 @@ import (
 
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/pathiv"
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -88,4 +89,24 @@ func (rfs *ReverseFS) decryptPath(relPath string) (string, error) {
 	pRelPath := filepath.Join(transformedParts...)
 	rPathCache.store(cDir, dirIV, nametransform.Dir(pRelPath))
 	return pRelPath, nil
+}
+
+// openBackingDir decrypt the relative ciphertext path "cRelPath", opens
+// the directory that contains the target file/dir and returns the fd to
+// the directory and the decrypted name of the target file.
+// The fd/name pair is intended for use with fchownat and friends.
+func (rfs *ReverseFS) openBackingDir(cRelPath string) (dirfd int, pName string, err error) {
+	// Decrypt relative path
+	pRelPath, err := rfs.decryptPath(cRelPath)
+	if err != nil {
+		return -1, "", err
+	}
+	// Open directory, safe against symlink races
+	pDir := filepath.Dir(pRelPath)
+	dirfd, err = syscallcompat.OpenNofollow(rfs.args.Cipherdir, pDir, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
+	if err != nil {
+		return -1, "", err
+	}
+	pName = filepath.Base(pRelPath)
+	return dirfd, pName, nil
 }
