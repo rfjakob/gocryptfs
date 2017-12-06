@@ -3,7 +3,6 @@ package fusefrontend_reverse
 import (
 	"fmt"
 	"log"
-	"os"
 	"path/filepath"
 	"syscall"
 
@@ -321,19 +320,26 @@ func (rfs *ReverseFS) StatFs(path string) *fuse.StatfsOut {
 }
 
 // Readlink - FUSE call
-func (rfs *ReverseFS) Readlink(cipherPath string, context *fuse.Context) (string, fuse.Status) {
-	absPath, err := rfs.abs(rfs.decryptPath(cipherPath))
+func (rfs *ReverseFS) Readlink(relPath string, context *fuse.Context) (string, fuse.Status) {
+	// Decrypt path to "plaintext relative path"
+	pRelPath, err := rfs.decryptPath(relPath)
 	if err != nil {
 		return "", fuse.ToStatus(err)
 	}
-	plainTarget, err := os.Readlink(absPath)
+	// read the link target using Readlinkat
+	dirFd, err := syscallcompat.OpenNofollow(rfs.args.Cipherdir, filepath.Dir(pRelPath), syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
+	if err != nil {
+		return "", fuse.ToStatus(err)
+	}
+	plainTarget, err := syscallcompat.Readlinkat(dirFd, filepath.Base(pRelPath))
+	syscall.Close(dirFd)
 	if err != nil {
 		return "", fuse.ToStatus(err)
 	}
 	if rfs.args.PlaintextNames {
 		return plainTarget, fuse.OK
 	}
-	nonce := pathiv.Derive(cipherPath, pathiv.PurposeSymlinkIV)
+	nonce := pathiv.Derive(relPath, pathiv.PurposeSymlinkIV)
 	// Symlinks are encrypted like file contents and base64-encoded
 	cBinTarget := rfs.contentEnc.EncryptBlockNonce([]byte(plainTarget), 0, nil, nonce)
 	cTarget := rfs.nameTransform.B64.EncodeToString(cBinTarget)
