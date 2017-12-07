@@ -327,18 +327,13 @@ func (rfs *ReverseFS) StatFs(path string) *fuse.StatfsOut {
 
 // Readlink - FUSE call
 func (rfs *ReverseFS) Readlink(relPath string, context *fuse.Context) (string, fuse.Status) {
-	// Decrypt path to "plaintext relative path"
-	pRelPath, err := rfs.decryptPath(relPath)
+	dirfd, name, err := rfs.openBackingDir(relPath)
 	if err != nil {
 		return "", fuse.ToStatus(err)
 	}
 	// read the link target using Readlinkat
-	dirFd, err := syscallcompat.OpenNofollow(rfs.args.Cipherdir, filepath.Dir(pRelPath), syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
-	if err != nil {
-		return "", fuse.ToStatus(err)
-	}
-	plainTarget, err := syscallcompat.Readlinkat(dirFd, filepath.Base(pRelPath))
-	syscall.Close(dirFd)
+	plainTarget, err := syscallcompat.Readlinkat(dirfd, name)
+	syscall.Close(dirfd)
 	if err != nil {
 		return "", fuse.ToStatus(err)
 	}
