@@ -146,22 +146,17 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 		}
 		return &a, status
 	}
-	// Decrypt path to "plaintext relative path"
-	pRelPath, err := rfs.decryptPath(relPath)
+	dirfd, name, err := rfs.openBackingDir(relPath)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
 	// Stat the backing file/dir using Fstatat
 	var st unix.Stat_t
-	dirFd, err := syscallcompat.OpenNofollow(rfs.args.Cipherdir, filepath.Dir(pRelPath), syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
+	err = syscallcompat.Fstatat(dirfd, name, &st, unix.AT_SYMLINK_NOFOLLOW)
+	syscall.Close(dirfd)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	err = syscallcompat.Fstatat(dirFd, filepath.Base(pRelPath), &st, unix.AT_SYMLINK_NOFOLLOW)
-	if err != nil {
-		return nil, fuse.ToStatus(err)
-	}
-	syscall.Close(dirFd)
 	// Instead of risking an inode number collision, we return an error.
 	if st.Ino > inoBaseMin {
 		tlog.Warn.Printf("GetAttr %q: backing file inode number %d crosses reserved space, max=%d. Returning EOVERFLOW.",
