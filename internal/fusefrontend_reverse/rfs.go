@@ -161,6 +161,7 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
+	syscall.Close(dirFd)
 	// Instead of risking an inode number collision, we return an error.
 	if st.Ino > inoBaseMin {
 		tlog.Warn.Printf("GetAttr %q: backing file inode number %d crosses reserved space, max=%d. Returning EOVERFLOW.",
