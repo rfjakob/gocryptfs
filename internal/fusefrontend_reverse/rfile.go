@@ -51,6 +51,14 @@ func (rfs *ReverseFS) newFile(relPath string) (*reverseFile, fuse.Status) {
 		syscall.Close(fd)
 		return nil, fuse.ToStatus(err)
 	}
+	// Reject access if the file descriptor does not refer to a regular file.
+	var a fuse.Attr
+	a.FromStat(&st)
+	if !a.IsRegular() {
+		tlog.Warn.Printf("ino%d: newFile: not a regular file", st.Ino)
+		syscall.Close(fd)
+		return nil, fuse.ToStatus(syscall.EACCES)
+	}
 	// See if we have that inode number already in the table
 	// (even if Nlink has dropped to 1)
 	var derivedIVs pathiv.FileIVs
