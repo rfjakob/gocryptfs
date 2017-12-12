@@ -38,3 +38,8 @@ func Faccessat(dirfd int, path string, mode uint32) error {
 	}
 	return unix.Faccessat(dirfd, path, mode, 0)
 }
+
+// Linkat exists both in Linux and in MacOS 10.10+.
+func Linkat(olddirfd int, oldpath string, newdirfd int, newpath string, flags int) (err error) {
+	return unix.Linkat(olddirfd, oldpath, newdirfd, newpath, flags)
+}
