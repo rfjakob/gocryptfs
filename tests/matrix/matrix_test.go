@@ -812,3 +812,26 @@ func TestSymlink(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// Make sure the Link call works with paths starting with "gocryptfs.longname."
+func TestLink(t *testing.T) {
+	target := test_helpers.DefaultPlainDir + "/linktarget"
+	f, err := os.Create(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	path := test_helpers.DefaultPlainDir + "/gocryptfs.longname.XXX"
+	err = syscall.Link(target, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Remove(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Remove(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+}

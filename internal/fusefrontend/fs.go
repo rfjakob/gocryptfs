@@ -550,7 +550,7 @@ func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code 
 	}
 	// Handle long file name
 	cNewName := filepath.Base(cNewPath)
-	if nametransform.IsLongContent(cNewName) {
+	if !fs.args.PlaintextNames && nametransform.IsLongContent(cNewName) {
 		dirfd, err := os.Open(filepath.Dir(cNewPath))
 		if err != nil {
 			return fuse.ToStatus(err)
