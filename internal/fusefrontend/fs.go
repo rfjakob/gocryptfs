@@ -540,35 +540,32 @@ func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code 
 	if fs.isFiltered(newPath) {
 		return fuse.EPERM
 	}
-	cOldPath, err := fs.getBackingPath(oldPath)
+	oldDirFd, cOldName, err := fs.openBackingPath(oldPath)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	cNewPath, err := fs.getBackingPath(newPath)
+	defer oldDirFd.Close()
+	newDirFd, cNewName, err := fs.openBackingPath(newPath)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	// Handle long file name
-	cNewName := filepath.Base(cNewPath)
+	defer newDirFd.Close()
+	// Handle long file name (except in PlaintextNames mode)
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cNewName) {
-		dirfd, err := os.Open(filepath.Dir(cNewPath))
+		err = fs.nameTransform.WriteLongName(newDirFd, cNewName, newPath)
 		if err != nil {
 			return fuse.ToStatus(err)
 		}
-		defer dirfd.Close()
-		err = fs.nameTransform.WriteLongName(dirfd, cNewName, newPath)
+		// Create "gocryptfs.longfile." link
+		err = syscallcompat.Linkat(int(oldDirFd.Fd()), cOldName, int(newDirFd.Fd()), cNewName, 0)
 		if err != nil {
-			return fuse.ToStatus(err)
+			nametransform.DeleteLongName(newDirFd, cNewName)
 		}
-		// TODO Use syscall.Linkat once it is available in Go (it is not in Go
-		// 1.6).
-		err = syscall.Link(cOldPath, cNewPath)
-		if err != nil {
-			nametransform.DeleteLongName(dirfd, cNewName)
-		}
-		return fuse.ToStatus(err)
+	} else {
+		// Create regular link
+		err = syscallcompat.Linkat(int(oldDirFd.Fd()), cOldName, int(newDirFd.Fd()), cNewName, 0)
 	}
-	return fuse.ToStatus(os.Link(cOldPath, cNewPath))
+	return fuse.ToStatus(err)
 }
 
 // Access implements pathfs.Filesystem.
