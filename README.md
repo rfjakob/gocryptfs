@@ -162,7 +162,7 @@ v1.4.1, 2017-08-21
   [b2a23e9](https://github.com/rfjakob/gocryptfs/commit/b2a23e9),
   [12c0101](https://github.com/rfjakob/gocryptfs/commit/12c0101))
   * On my machine, this **doubles** the streaming read speed
-    (see [perfomance.txt](Documentation/performance.txt#L38))
+    (see [performance.txt](https://github.com/rfjakob/gocryptfs/blob/v1.4.1/Documentation/performance.txt#L38))
 * Implement and use the getdents(2) syscall for a more efficient
   OpenDir implementation
   ([e50a6a5](https://github.com/rfjakob/gocryptfs/commit/e50a6a5))
