@@ -6,7 +6,7 @@ git_archive_extra() {
 	local PREFIX=$1
 	shift
 	# Add files tracked in git
-	git archive --prefix "$PREFIX/" -o $PREFIX.tar master
+	git archive --prefix "$PREFIX/" -o $PREFIX.tar HEAD
 	# Add "extra" files
 	tar --transform "s!^!$PREFIX/!" --append -f $PREFIX.tar "$@"
 	# Compress
