@@ -16,12 +16,19 @@ git_archive_extra() {
 cd "$(dirname "$0")"
 
 GITVERSION=$(git describe --tags --dirty)
-PREFIX=gocryptfs_${GITVERSION}_src-deps
-
-dep ensure
 echo $GITVERSION > VERSION
-git_archive_extra $PREFIX VERSION vendor
+
+# gocryptfs source tarball
+PREFIX_SRC_ONLY=gocryptfs_${GITVERSION}_src
+git_archive_extra $PREFIX_SRC_ONLY VERSION
+
+# gocryptfs source + dependencies tarball
+dep ensure
+PREFIX_SRC_DEPS=gocryptfs_${GITVERSION}_src-deps
+git_archive_extra $PREFIX_SRC_DEPS VERSION vendor
+
 rm VERSION
 
-echo "Tar created."
-echo "Hint for signing: gpg -u 23A02740 --armor --detach-sig $PREFIX.tar.gz"
+echo "Tars created."
+echo "Hint for signing: gpg -u 23A02740 --armor --detach-sig $PREFIX_SRC_ONLY.tar.gz"
+echo "                  gpg -u 23A02740 --armor --detach-sig $PREFIX_SRC_DEPS.tar.gz"
