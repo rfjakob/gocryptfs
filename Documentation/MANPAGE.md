@@ -44,7 +44,7 @@ Write cpu profile to specified file
 #### -ctlsock string
 Create a control socket at the specified location. The socket can be
 used to decrypt and encrypt paths inside the filesystem. When using
-this option, make sure that the direcory you place the socket in is
+this option, make sure that the directory you place the socket in is
 not world-accessible. For example, `/run/user/UID/my.socket` would 
 be suitable.
 
@@ -62,11 +62,11 @@ harvest enough entropy.
 Use an external program (like ssh-askpass) for the password prompt.
 The program should return the password on stdout, a trailing newline is
 stripped by gocryptfs. Using something like "cat /mypassword.txt" allows
-to mount the gocryptfs filesytem without user interaction.
+one to mount the gocryptfs filesystem without user interaction.
 
 #### -fg, -f
 Stay in the foreground instead of forking away. Implies "-nosyslog".
-For compatability, "-f" is also accepted, but "-fg" is preferred.
+For compatibility, "-f" is also accepted, but "-fg" is preferred.
 
 #### -force_owner string
 If given a string of the form "uid:gid" (where both "uid" and "gid" are
@@ -122,7 +122,7 @@ stripping out sensitive data.
 Initialize encrypted directory
 
 #### -ko
-Pass additonal mount options to the kernel (comma-separated list).
+Pass additional mount options to the kernel (comma-separated list).
 FUSE filesystems are mounted with "nodev,nosuid" by default. If gocryptfs
 runs as root, you can enable device files by passing the opposite mount option,
 "dev", and if you want to enable suid-binaries, pass "suid".
@@ -157,7 +157,7 @@ memory usage of gocryptfs.
 
 #### -nonempty
 Allow mounting over non-empty directories. FUSE by default disallows
-this to prevent accidential shadowing of files.
+this to prevent accidental shadowing of files.
 
 #### -noprealloc
 Disable preallocation before writing. By default, gocryptfs
@@ -242,7 +242,7 @@ The kernel usually submits multiple concurrent reads to service
 userspace requests and kernel readahead. gocryptfs serves them
 concurrently and in arbitrary order. On backing storage that performs
 poorly for concurrent or out-of-order reads (like Amazon Cloud Drive),
-this behavoir can cause very slow read speeds.
+this behavior can cause very slow read speeds.
 
 The `-serialize_reads`
 option does two things: (1) reads will be submitted one-by-one (no
@@ -288,7 +288,7 @@ Run crypto speed test. Benchmark Go's built-in GCM against OpenSSL
 Write execution trace to file. View the trace using "go tool trace FILE".
 
 #### -version
-Print version and exit. The output contains three fields seperated by ";".
+Print version and exit. The output contains three fields separated by ";".
 Example: "gocryptfs v1.1.1-5-g75b776c; go-fuse 6b801d3; 2016-11-01 go1.7.3".
 Field 1 is the gocryptfs version, field 2 is the version of the go-fuse
 library, field 3 is the compile date and the Go version that was
