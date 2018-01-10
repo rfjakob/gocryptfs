@@ -5,7 +5,7 @@
 NAME
 ====
 
-gocryptfs-xray - examine GoCryptfs-related data
+gocryptfs-xray - examine gocryptfs-related data
 
 SYNOPSIS
 ========
@@ -37,4 +37,4 @@ Print the master key:
 
 SEE ALSO
 ========
-gocryptfs(1) fuse(8) fallocate(2)
+gocryptfs(1) fuse(8)
