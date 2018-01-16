@@ -5,7 +5,7 @@
   branch = "master"
   name = "github.com/hanwen/go-fuse"
   packages = ["fuse","fuse/nodefs","fuse/pathfs","splice"]
-  revision = "cf21bc21cac77db799fff95d80e717908e6356a5"
+  revision = "00d53976f3f71ce3d8327b3af528ce3d4700620e"
 
 [[projects]]
   branch = "master"
@@ -23,23 +23,23 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["hkdf","pbkdf2","scrypt","ssh/terminal"]
-  revision = "bd6f299fb381e4c3393d1c4b1f0b94f5e77650c8"
+  revision = "13931e22f9e72ea58bb73048bc752b48c6d4d4ac"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sync"
   packages = ["syncmap"]
-  revision = "8e0aa688b654ef28caa72506fa5ec8dba9fc7690"
+  revision = "fd80eb99c8f653c847d294a001bdf2a3a6f768f5"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "95c6576299259db960f6c5b9b69ea52422860fce"
+  revision = "fff93fa7cd278d84afc205751523809c464168ab"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "146e0ce80d2f3218b67980d099db45a0e27383d18c0ca03ef29ab99382797c68"
+  inputs-digest = "8a044d1457e3087ab77e5f8acd0eb46e345afbf0f8af972bfd6361ab99f3b59b"
   solver-name = "gps-cdcl"
   solver-version = 1
