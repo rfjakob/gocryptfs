@@ -58,6 +58,12 @@ func doMount(args *argContainer) int {
 		err = checkDir(args.mountpoint)
 	} else {
 		err = checkDirEmpty(args.mountpoint)
+		// OSXFuse will create the mountpoint for us if it is below /Volumes/
+		if runtime.GOOS == "darwin" && os.IsNotExist(err) && strings.HasPrefix(args.mountpoint, "/Volumes/") {
+			tlog.Info.Printf("Mountpoint %q does not exist, but should be created by OSXFuse",
+				args.mountpoint)
+			err = nil
+		}
 	}
 	if err != nil {
 		tlog.Fatal.Printf("Invalid mountpoint: %v", err)

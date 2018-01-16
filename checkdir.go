@@ -6,7 +6,8 @@ import (
 	"os"
 )
 
-// checkDirEmpty - check if "dir" exists and is an empty directory
+// checkDirEmpty - check if "dir" exists and is an empty directory.
+// Returns an *os.PathError if Stat() on the path fails.
 func checkDirEmpty(dir string) error {
 	err := checkDir(dir)
 	if err != nil {
