@@ -800,38 +800,58 @@ func TestMkfifo(t *testing.T) {
 	}
 }
 
-// Make sure the Symlink call works with paths starting with "gocryptfs.longname."
-func TestSymlink(t *testing.T) {
-	path := test_helpers.DefaultPlainDir + "/gocryptfs.longname.XXX"
-	err := syscall.Symlink("target", path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = os.Remove(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-// Make sure the Link call works with paths starting with "gocryptfs.longname."
-func TestLink(t *testing.T) {
-	target := test_helpers.DefaultPlainDir + "/linktarget"
-	f, err := os.Create(target)
-	if err != nil {
-		t.Fatal(err)
-	}
-	f.Close()
-	path := test_helpers.DefaultPlainDir + "/gocryptfs.longname.XXX"
-	err = syscall.Link(target, path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = os.Remove(target)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = os.Remove(path)
-	if err != nil {
-		t.Fatal(err)
+// TestMagicNames verifies that "magic" names are handled correctly
+// https://github.com/rfjakob/gocryptfs/issues/174
+func TestMagicNames(t *testing.T) {
+	names := []string{"gocryptfs.longname.QhUr5d9FHerwEs--muUs6_80cy6JRp89c1otLwp92Cs", "gocryptfs.diriv"}
+	for _, n := range names {
+		t.Logf("Testing n=%q", n)
+		p := test_helpers.DefaultPlainDir + "/" + n
+		// Create file
+		err := ioutil.WriteFile(p, []byte("xxxxxxx"), 0200)
+		if err != nil {
+			t.Fatalf("creating file %q failed: %v", n, err)
+		}
+		// Rename magic to normal
+		err = os.Rename(p, test_helpers.DefaultPlainDir+"/x")
+		if err != nil {
+			t.Fatalf("rename 1 failed: %v", err)
+		}
+		// Rename normal to magic
+		err = os.Rename(test_helpers.DefaultPlainDir+"/x", p)
+		if err != nil {
+			t.Fatalf("rename 2 failed: %v", err)
+		}
+		// Unlink
+		err = syscall.Unlink(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Mkdir
+		err = os.Mkdir(p, 0700)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Rmdir
+		err = syscall.Rmdir(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Symlink
+		err = syscall.Symlink("xxxyyyyzzz", p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		syscall.Unlink(p)
+		// Link
+		target := test_helpers.DefaultPlainDir + "/linktarget"
+		err = ioutil.WriteFile(target, []byte("yyyyy"), 0200)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = syscall.Link(target, p)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }

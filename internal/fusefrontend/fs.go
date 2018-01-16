@@ -195,7 +195,7 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 	cName := filepath.Base(cPath)
 
 	// Handle long file name
-	if nametransform.IsLongContent(cName) {
+	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
 		var dirfd *os.File
 		dirfd, err = os.Open(filepath.Dir(cPath))
 		if err != nil {
@@ -466,7 +466,10 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 	// The Rename may cause a directory to take the place of another directory.
 	// That directory may still be in the DirIV cache, clear it.
 	fs.nameTransform.DirIVCache.Clear()
-
+	// Easy case.
+	if fs.args.PlaintextNames {
+		return fuse.ToStatus(syscall.Rename(cOldPath, cNewPath))
+	}
 	// Handle long source file name
 	var oldDirFd *os.File
 	var finalOldDirFd int
