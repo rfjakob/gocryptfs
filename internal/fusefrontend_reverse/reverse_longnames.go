@@ -51,7 +51,7 @@ func initLongnameCache() {
 // findLongnameParent converts "gocryptfs.longname.XYZ" to the plaintext name
 func (rfs *ReverseFS) findLongnameParent(dir string, dirIV []byte, longname string) (plaintextName string, err error) {
 	longnameCacheLock.Lock()
-	hit := longnameParentCache[dir + "/" + longname]
+	hit := longnameParentCache[dir+"/"+longname]
 	longnameCacheLock.Unlock()
 	if hit != "" {
 		return hit, nil
@@ -79,7 +79,7 @@ func (rfs *ReverseFS) findLongnameParent(dir string, dirIV []byte, longname stri
 			log.Panic("logic error or wrong shortNameMax constant?")
 		}
 		hName := rfs.nameTransform.HashLongName(cName)
-		longnameParentCache[dir + "/" + hName] = plaintextName
+		longnameParentCache[dir+"/"+hName] = plaintextName
 		if longname == hName {
 			hit = plaintextName
 		}
