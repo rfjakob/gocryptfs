@@ -2,13 +2,17 @@ package fusefrontend_reverse
 
 import (
 	"log"
+	"path/filepath"
 	"syscall"
+
+	"golang.org/x/sys/unix"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/pathiv"
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -33,11 +37,12 @@ const (
 
 func (rfs *ReverseFS) newDirIVFile(cRelPath string) (nodefs.File, fuse.Status) {
 	cDir := nametransform.Dir(cRelPath)
-	absDir, err := rfs.abs(rfs.decryptPath(cDir))
+	dir, err := rfs.decryptPath(cDir)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	return rfs.newVirtualFile(pathiv.Derive(cDir, pathiv.PurposeDirIV), absDir, inoBaseDirIV)
+	iv := pathiv.Derive(cDir, pathiv.PurposeDirIV)
+	return rfs.newVirtualFile(iv, rfs.args.Cipherdir, dir, inoBaseDirIV)
 }
 
 type virtualFile struct {
@@ -45,7 +50,9 @@ type virtualFile struct {
 	nodefs.File
 	// file content
 	content []byte
-	// absolute path to a parent file
+	// backing directory
+	cipherdir string
+	// path to a parent file (relative to cipherdir)
 	parentFile string
 	// inode number of a virtual file is inode of parent file plus inoBase
 	inoBase uint64
@@ -53,15 +60,17 @@ type virtualFile struct {
 
 // newVirtualFile creates a new in-memory file that does not have a representation
 // on disk. "content" is the file content. Timestamps and file owner are copied
-// from "parentFile" (absolute plaintext path). For a "gocryptfs.diriv" file, you
-// would use the parent directory as "parentFile".
-func (rfs *ReverseFS) newVirtualFile(content []byte, parentFile string, inoBase uint64) (nodefs.File, fuse.Status) {
+// from "parentFile" (plaintext path relative to "cipherdir").
+// For a "gocryptfs.diriv" file, you would use the parent directory as
+// "parentFile".
+func (rfs *ReverseFS) newVirtualFile(content []byte, cipherdir string, parentFile string, inoBase uint64) (nodefs.File, fuse.Status) {
 	if inoBase < inoBaseMin {
 		log.Panicf("BUG: virtual inode number base %d is below reserved space", inoBase)
 	}
 	return &virtualFile{
 		File:       nodefs.NewDefaultFile(),
 		content:    content,
+		cipherdir:  cipherdir,
 		parentFile: parentFile,
 		inoBase:    inoBase,
 	}, fuse.OK
@@ -81,10 +90,17 @@ func (f *virtualFile) Read(buf []byte, off int64) (resultData fuse.ReadResult, s
 
 // GetAttr - FUSE call
 func (f *virtualFile) GetAttr(a *fuse.Attr) fuse.Status {
-	var st syscall.Stat_t
-	err := syscall.Lstat(f.parentFile, &st)
+	dir := filepath.Dir(f.parentFile)
+	dirfd, err := syscallcompat.OpenNofollow(f.cipherdir, dir, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
 	if err != nil {
-		tlog.Debug.Printf("GetAttr: Lstat %q: %v\n", f.parentFile, err)
+		return fuse.ToStatus(err)
+	}
+	defer syscall.Close(dirfd)
+	name := filepath.Base(f.parentFile)
+	var st unix.Stat_t
+	err = syscallcompat.Fstatat(dirfd, name, &st, unix.AT_SYMLINK_NOFOLLOW)
+	if err != nil {
+		tlog.Debug.Printf("GetAttr: Fstatat %q: %v\n", f.parentFile, err)
 		return fuse.ToStatus(err)
 	}
 	if st.Ino > inoBaseMin {
@@ -96,6 +112,7 @@ func (f *virtualFile) GetAttr(a *fuse.Attr) fuse.Status {
 	st.Size = int64(len(f.content))
 	st.Mode = virtualFileMode
 	st.Nlink = 1
-	a.FromStat(&st)
+	st2 := syscallcompat.Unix2syscall(st)
+	a.FromStat(&st2)
 	return fuse.OK
 }
