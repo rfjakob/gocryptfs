@@ -2,7 +2,6 @@ package fusefrontend_reverse
 
 import (
 	"log"
-	"os"
 	"path/filepath"
 	"sync"
 	"syscall"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/pathiv"
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -27,6 +27,9 @@ const (
 	shortNameMax = 175
 )
 
+// longnameParentCache maps dir+"/"+longname to plaintextname.
+// Yes, the combination of relative plaintext dir path and encrypted
+// longname is strange, but works fine as a map index.
 var longnameParentCache map[string]string
 var longnameCacheLock sync.Mutex
 
@@ -48,7 +51,9 @@ func initLongnameCache() {
 	go longnameCacheCleaner()
 }
 
-// findLongnameParent converts "gocryptfs.longname.XYZ" to the plaintext name
+// findLongnameParent converts "longname" = "gocryptfs.longname.XYZ" to the
+// plaintext name. "dir" = relative plaintext path to the directory the
+// longname file is in, "dirIV" = directory IV of the directory.
 func (rfs *ReverseFS) findLongnameParent(dir string, dirIV []byte, longname string) (plaintextName string, err error) {
 	longnameCacheLock.Lock()
 	hit := longnameParentCache[dir+"/"+longname]
@@ -56,26 +61,27 @@ func (rfs *ReverseFS) findLongnameParent(dir string, dirIV []byte, longname stri
 	if hit != "" {
 		return hit, nil
 	}
-	absDir := filepath.Join(rfs.args.Cipherdir, dir)
-	dirfd, err := os.Open(absDir)
+	fd, err := syscallcompat.OpenNofollow(rfs.args.Cipherdir, dir, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
 	if err != nil {
 		tlog.Warn.Printf("findLongnameParent: opendir failed: %v\n", err)
 		return "", err
 	}
-	dirEntries, err := dirfd.Readdirnames(-1)
-	dirfd.Close()
+	dirEntries, err := syscallcompat.Getdents(fd)
+	syscall.Close(fd)
 	if err != nil {
-		tlog.Warn.Printf("findLongnameParent: Readdirnames failed: %v\n", err)
+		tlog.Warn.Printf("findLongnameParent: Getdents failed: %v\n", err)
 		return "", err
 	}
 	longnameCacheLock.Lock()
 	defer longnameCacheLock.Unlock()
-	for _, plaintextName = range dirEntries {
+	for _, entry := range dirEntries {
+		plaintextName := entry.Name
 		if len(plaintextName) <= shortNameMax {
 			continue
 		}
 		cName := rfs.nameTransform.EncryptName(plaintextName, dirIV)
 		if len(cName) <= syscall.NAME_MAX {
+			// Entry should have been skipped by the "continue" above
 			log.Panic("logic error or wrong shortNameMax constant?")
 		}
 		hName := rfs.nameTransform.HashLongName(cName)

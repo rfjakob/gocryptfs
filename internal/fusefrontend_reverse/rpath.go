@@ -24,6 +24,9 @@ func (rfs *ReverseFS) abs(relPath string, err error) (string, error) {
 	return filepath.Join(rfs.args.Cipherdir, relPath), nil
 }
 
+// rDecryptName decrypts the ciphertext name "cName", given the dirIV of the
+// directory "cName" lies in. The relative plaintext path to the directory
+// "pDir" is used if a "gocryptfs.longname.XYZ.name" must be resolved.
 func (rfs *ReverseFS) rDecryptName(cName string, dirIV []byte, pDir string) (pName string, err error) {
 	nameType := nametransform.NameType(cName)
 	if nameType == nametransform.LongNameNone {
@@ -58,6 +61,8 @@ func (rfs *ReverseFS) rDecryptName(cName string, dirIV []byte, pDir string) (pNa
 	return pName, nil
 }
 
+// decryptPath decrypts a relative ciphertext path to a relative plaintext
+// path.
 func (rfs *ReverseFS) decryptPath(relPath string) (string, error) {
 	if rfs.args.PlaintextNames || relPath == "" {
 		return relPath, nil

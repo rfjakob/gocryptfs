@@ -17,6 +17,8 @@ type rPathCacheContainer struct {
 	dirIV []byte
 }
 
+// lookup relative ciphertext path "cPath". Returns dirIV, relative
+// plaintext path.
 func (c *rPathCacheContainer) lookup(cPath string) ([]byte, string) {
 	c.Lock()
 	defer c.Unlock()
@@ -28,7 +30,9 @@ func (c *rPathCacheContainer) lookup(cPath string) ([]byte, string) {
 	return nil, ""
 }
 
-// store - write entry for "cPath" into the cache
+// store - write entry for the directory at relative ciphertext path "cPath"
+// into the cache.
+// "dirIV" = directory IV of the directory, "pPath" = relative plaintext path
 func (c *rPathCacheContainer) store(cPath string, dirIV []byte, pPath string) {
 	c.Lock()
 	defer c.Unlock()
@@ -37,4 +41,5 @@ func (c *rPathCacheContainer) store(cPath string, dirIV []byte, pPath string) {
 	c.pPath = pPath
 }
 
+// rPathCache: see rPathCacheContainer above for a detailed description
 var rPathCache rPathCacheContainer
