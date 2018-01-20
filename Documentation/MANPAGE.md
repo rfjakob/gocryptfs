@@ -128,7 +128,13 @@ runs as root, you can enable device files by passing the opposite mount option,
 "dev", and if you want to enable suid-binaries, pass "suid".
 "ro" (equivalent to passing the "-ro" option) and "noexec" may also be
 interesting. For a complete list see the section
-`FILESYSTEM-INDEPENDENT MOUNT OPTIONS` in mount(8).
+`FILESYSTEM-INDEPENDENT MOUNT OPTIONS` in mount(8). On MacOS, "local",
+"noapplexattr", "noappledouble" may be interesting.
+
+Note that unlike "-o", "-ko" is a regular option and must be passed BEFORE
+the directories. Example:
+
+    gocryptfs -ko noexec /tmp/foo /tmp/bar
 
 #### -longnames
 Store names longer than 176 bytes in extra files (default true)
@@ -189,13 +195,23 @@ For compatibility with mount(1), options are also accepted as
 "-o COMMA-SEPARATED-OPTIONS" at the end of the command line.
 For example, "-o q,zerokey" is equivalent to passing "-q -zerokey".
 
+Note that you can only use options that are understood by gocryptfs
+with "-o". If you want to pass special flags to the kernel, you should
+use "-ko" (*k*ernel *o*ption). This is different in libfuse-based
+filesystems, that automatically pass any "-o" options they do not
+understand along to the kernel.
+
+Example:
+
+    gocryptfs /tmp/foo /tmp/bar -o q,zerokey
+
 #### -openssl bool/"auto"
 Use OpenSSL instead of built-in Go crypto (default "auto"). Using
 built-in crypto is 4x slower unless your CPU has AES instructions and
 you are using Go 1.6+. In mode "auto", gocrypts chooses the faster
 option.
 
-#### -passfile string
+#### -passfile string/
 Read password from the specified file. This is a shortcut for
 specifying '-extpass="/bin/cat -- FILE"'.
 
