@@ -144,6 +144,24 @@ RM:    4.42
 Changelog
 ---------
 
+v1.4.3, 2018-01-20
+* **Fix several symlink race attacks** in connection with reverse mode
+  and allow_other. Thanks to @slackner for reporting and helping to fix
+  the issues:
+  * Fix symlink races in reverse mode
+    ([issue #165](https://github.com/rfjakob/gocryptfs/issues/165))
+  * Fix symlink races in connection with `-allow_other`
+    ([issue #177](https://github.com/rfjakob/gocryptfs/issues/177))
+* Fix problems with special names when using `-plaintextnames`
+  ([issue #174](https://github.com/rfjakob/gocryptfs/issues/174))
+* Add `-devrandom` command-line option
+  ([commit](https://github.com/rfjakob/gocryptfs/commit/f3c777d5eaa682d878c638192311e52f9c204294))
+* Add `-sharedstorage` command-line option
+  ([commit](https://github.com/rfjakob/gocryptfs/commit/e36a0ebf189a826aaa63909c5518c16356f5f903),
+  [issue #156](https://github.com/rfjakob/gocryptfs/issues/156))
+* MacOS: let OSXFuse create the mountpoint if it does not exist
+  ([issue #194](https://github.com/rfjakob/gocryptfs/issues/194))
+
 v1.4.2, 2017-11-01
 * Add `Gopkg.toml` file for `dep` vendoring and reproducible builds
   ([issue #142](https://github.com/rfjakob/gocryptfs/issues/142))
@@ -152,7 +170,8 @@ v1.4.2, 2017-11-01
 * Reverse mode: fix ENOENT error affecting names exactly 176 bytes long
   ([issue #143](https://github.com/rfjakob/gocryptfs/issues/143))
 * Support kernels compiled with > 128 kiB FUSE request size (Synology NAS)
-  ([issue #145](https://github.com/rfjakob/gocryptfs/issues/145))
+  ([issue #145](https://github.com/rfjakob/gocryptfs/issues/145),
+  [commit](https://github.com/rfjakob/gocryptfs/commit/4954c87979efaf5b8184efccc7d9a38c21e4209b))
 * Fix a startup hang when `$PATH` contains the mountpoint
   ([issue #146](https://github.com/rfjakob/gocryptfs/issues/146))
 
