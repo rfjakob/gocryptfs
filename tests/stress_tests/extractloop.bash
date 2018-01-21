@@ -8,6 +8,8 @@
 #
 # This test is good at discovering inode-related memory leaks because it creates
 # huge numbers of files.
+#
+# See Documentation/extractloop.md for example output.
 
 set -eu
 
