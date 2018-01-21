@@ -144,7 +144,7 @@ RM:    4.42
 Changelog
 ---------
 
-v1.4.3, 2018-01-20
+v1.4.3, 2018-01-21
 * **Fix several symlink race attacks** in connection with reverse mode
   and allow_other. Thanks to @slackner for reporting and helping to fix
   the issues:
