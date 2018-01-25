@@ -55,7 +55,7 @@ func getdents(fd int) ([]fuse.DirEntry, error) {
 		}
 		if int(s.Reclen) > sizeofDirent {
 			tlog.Warn.Printf("Getdents: corrupt entry #%d: Reclen=%d > %d. Returning EBADR",
-				numEntries, sizeofDirent, s.Reclen)
+				numEntries, s.Reclen, sizeofDirent)
 			return nil, syscall.EBADR
 		}
 		offset += int(s.Reclen)
