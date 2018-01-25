@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sync"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -256,9 +255,6 @@ retry:
 	fs.nameTransform.DirIVCache.Clear()
 	return fuse.OK
 }
-
-// If syscallcompat.HaveGetdents is false we will warn once about it
-var haveGetdentsWarnOnce sync.Once
 
 // OpenDir implements pathfs.FileSystem
 func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
