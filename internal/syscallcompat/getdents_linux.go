@@ -61,7 +61,10 @@ func getdents(fd int) ([]fuse.DirEntry, error) {
 		offset += int(s.Reclen)
 		numEntries++
 	}
-	// Parse the buffer into entries
+	// Parse the buffer into entries.
+	// Note: syscall.ParseDirent() only returns the names,
+	// we want all the data, so we have to implement
+	// it on our own.
 	entries := make([]fuse.DirEntry, 0, numEntries)
 	offset = 0
 	for offset < len(buf) {
