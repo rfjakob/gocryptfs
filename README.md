@@ -44,7 +44,7 @@ Linux is gocryptfs' native platform.
 Beta-quality Mac OS X support is available, which means most things work
 fine but you may hit an occasional problem. Check out
 [ticket #15](https://github.com/rfjakob/gocryptfs/issues/15) for the history
-of Mac OS X support but please create a new ticket if you a problem.
+of Mac OS X support but please create a new ticket if you hit a problem.
 
 For Windows, an independent C++ reimplementation has been started:
 [cppcryptfs](https://github.com/bailey27/cppcryptfs)
