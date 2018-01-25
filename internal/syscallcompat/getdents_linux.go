@@ -21,6 +21,11 @@ import (
 
 const sizeofDirent = int(unsafe.Sizeof(syscall.Dirent{}))
 
+// maxReclen sanity check: Reclen should never be larger than this.
+// Due to padding between entries, it is 280 even on 32-bit architectures.
+// See https://github.com/rfjakob/gocryptfs/issues/197 for details.
+const maxReclen = 280
+
 // getdents wraps syscall.Getdents and converts the result to []fuse.DirEntry.
 func getdents(fd int) ([]fuse.DirEntry, error) {
 	// Collect syscall result in smartBuf.
@@ -53,9 +58,9 @@ func getdents(fd int) ([]fuse.DirEntry, error) {
 			// EBADR = Invalid request descriptor
 			return nil, syscall.EBADR
 		}
-		if int(s.Reclen) > sizeofDirent {
+		if int(s.Reclen) > maxReclen {
 			tlog.Warn.Printf("Getdents: corrupt entry #%d: Reclen=%d > %d. Returning EBADR",
-				numEntries, s.Reclen, sizeofDirent)
+				numEntries, s.Reclen, maxReclen)
 			return nil, syscall.EBADR
 		}
 		offset += int(s.Reclen)
