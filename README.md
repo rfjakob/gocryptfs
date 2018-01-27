@@ -89,6 +89,13 @@ See the [Quickstart](https://nuetzlich.net/gocryptfs/quickstart/) page for more 
 
 The [MANPAGE.md](Documentation/MANPAGE.md) describes all available command-line options.
 
+Use: Reverse Mode
+-----------------
+
+    $ mkdir cipher plain
+    $ ./gocryptfs -reverse -init plain
+    $ ./gocryptfs -reverse plain cipher
+
 Graphical Interface
 -------------------
 
