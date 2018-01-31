@@ -5,7 +5,7 @@
   branch = "master"
   name = "github.com/hanwen/go-fuse"
   packages = ["fuse","fuse/nodefs","fuse/pathfs","splice"]
-  revision = "00d53976f3f71ce3d8327b3af528ce3d4700620e"
+  revision = "6975cb38d30430450455caad8a62d5eba93e0e4e"
 
 [[projects]]
   branch = "master"
@@ -23,7 +23,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["hkdf","pbkdf2","scrypt","ssh/terminal"]
-  revision = "13931e22f9e72ea58bb73048bc752b48c6d4d4ac"
+  revision = "1875d0a70c90e57f11972aefd42276df65e895b9"
 
 [[projects]]
   branch = "master"
@@ -35,7 +35,7 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "fff93fa7cd278d84afc205751523809c464168ab"
+  revision = "3dbebcf8efb6a5011a60c2b4591c1022a759af8a"
 
 [solve-meta]
   analyzer-name = "dep"
