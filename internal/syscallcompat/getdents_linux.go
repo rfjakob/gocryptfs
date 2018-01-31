@@ -19,14 +19,14 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-const sizeofDirent = int(unsafe.Sizeof(syscall.Dirent{}))
+const sizeofDirent = int(unsafe.Sizeof(unix.Dirent{}))
 
 // maxReclen sanity check: Reclen should never be larger than this.
 // Due to padding between entries, it is 280 even on 32-bit architectures.
 // See https://github.com/rfjakob/gocryptfs/issues/197 for details.
 const maxReclen = 280
 
-// getdents wraps syscall.Getdents and converts the result to []fuse.DirEntry.
+// getdents wraps unix.Getdents and converts the result to []fuse.DirEntry.
 func getdents(fd int) ([]fuse.DirEntry, error) {
 	// Collect syscall result in smartBuf.
 	// "bytes.Buffer" is smart about expanding the capacity and avoids the
@@ -34,7 +34,7 @@ func getdents(fd int) ([]fuse.DirEntry, error) {
 	var smartBuf bytes.Buffer
 	tmp := make([]byte, 10000)
 	for {
-		n, err := syscall.Getdents(fd, tmp)
+		n, err := unix.Getdents(fd, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -51,7 +51,7 @@ func getdents(fd int) ([]fuse.DirEntry, error) {
 	// a fuse.DirEntry slice of the correct size at once.
 	var numEntries, offset int
 	for offset < len(buf) {
-		s := *(*syscall.Dirent)(unsafe.Pointer(&buf[offset]))
+		s := *(*unix.Dirent)(unsafe.Pointer(&buf[offset]))
 		if s.Reclen == 0 {
 			tlog.Warn.Printf("Getdents: corrupt entry #%d: Reclen=0 at offset=%d. Returning EBADR",
 				numEntries, offset)
@@ -73,7 +73,7 @@ func getdents(fd int) ([]fuse.DirEntry, error) {
 	entries := make([]fuse.DirEntry, 0, numEntries)
 	offset = 0
 	for offset < len(buf) {
-		s := *(*syscall.Dirent)(unsafe.Pointer(&buf[offset]))
+		s := *(*unix.Dirent)(unsafe.Pointer(&buf[offset]))
 		name, err := getdentsName(s)
 		if err != nil {
 			return nil, err
@@ -100,7 +100,7 @@ func getdents(fd int) ([]fuse.DirEntry, error) {
 
 // getdentsName extracts the filename from a Dirent struct and returns it as
 // a Go string.
-func getdentsName(s syscall.Dirent) (string, error) {
+func getdentsName(s unix.Dirent) (string, error) {
 	// After the loop, l contains the index of the first '\0'.
 	l := 0
 	for l = range s.Name {
