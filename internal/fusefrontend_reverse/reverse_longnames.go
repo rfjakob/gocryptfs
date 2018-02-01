@@ -7,6 +7,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 
@@ -80,7 +82,7 @@ func (rfs *ReverseFS) findLongnameParent(dir string, dirIV []byte, longname stri
 			continue
 		}
 		cName := rfs.nameTransform.EncryptName(plaintextName, dirIV)
-		if len(cName) <= syscall.NAME_MAX {
+		if len(cName) <= unix.NAME_MAX {
 			// Entry should have been skipped by the "continue" above
 			log.Panic("logic error or wrong shortNameMax constant?")
 		}

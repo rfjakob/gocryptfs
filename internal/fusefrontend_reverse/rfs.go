@@ -288,7 +288,7 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 			cName = configfile.ConfDefaultName
 		} else {
 			cName = rfs.nameTransform.EncryptName(entries[i].Name, dirIV)
-			if len(cName) > syscall.NAME_MAX {
+			if len(cName) > unix.NAME_MAX {
 				cName = rfs.nameTransform.HashLongName(cName)
 				dotNameFile := fuse.DirEntry{
 					Mode: virtualFileMode,

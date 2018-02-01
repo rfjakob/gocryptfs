@@ -3,7 +3,8 @@ package fusefrontend_reverse
 import (
 	"path/filepath"
 	"strings"
-	"syscall"
+
+	"golang.org/x/sys/unix"
 
 	"github.com/rfjakob/gocryptfs/internal/ctlsock"
 	"github.com/rfjakob/gocryptfs/internal/pathiv"
@@ -23,7 +24,7 @@ func (rfs *ReverseFS) EncryptPath(plainPath string) (string, error) {
 	for _, part := range parts {
 		dirIV := pathiv.Derive(cipherPath, pathiv.PurposeDirIV)
 		encryptedPart := rfs.nameTransform.EncryptName(part, dirIV)
-		if rfs.args.LongNames && len(encryptedPart) > syscall.NAME_MAX {
+		if rfs.args.LongNames && len(encryptedPart) > unix.NAME_MAX {
 			encryptedPart = rfs.nameTransform.HashLongName(encryptedPart)
 		}
 		cipherPath = filepath.Join(cipherPath, encryptedPart)

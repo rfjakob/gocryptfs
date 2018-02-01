@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"testing"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/hanwen/go-fuse/fuse"
 )
 
@@ -28,7 +30,7 @@ func testGetdents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i := 1; i <= syscall.NAME_MAX; i++ {
+	for i := 1; i <= unix.NAME_MAX; i++ {
 		n := strings.Repeat("x", i)
 		err = ioutil.WriteFile(testDir+"/"+n, nil, 0600)
 		if err != nil {

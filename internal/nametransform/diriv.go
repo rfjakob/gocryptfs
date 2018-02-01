@@ -9,6 +9,8 @@ import (
 	"strings"
 	"syscall"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
@@ -111,7 +113,7 @@ func WriteDirIV(dirfd *os.File, dir string) error {
 // too long.
 func (be *NameTransform) encryptAndHashName(name string, iv []byte) string {
 	cName := be.EncryptName(name, iv)
-	if be.longNames && len(cName) > syscall.NAME_MAX {
+	if be.longNames && len(cName) > unix.NAME_MAX {
 		return be.HashLongName(cName)
 	}
 	return cName
@@ -128,7 +130,7 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (str
 	}
 	// Reject names longer than 255 bytes.
 	baseName := filepath.Base(plainPath)
-	if len(baseName) > syscall.NAME_MAX {
+	if len(baseName) > unix.NAME_MAX {
 		return "", syscall.ENAMETOOLONG
 	}
 	// If we have the iv and the encrypted directory name in the cache, we
