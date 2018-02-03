@@ -2,7 +2,7 @@ package defaults
 
 import (
 	"os"
-	"syscall"
+	"golang.org/x/sys/unix"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/ctlsock"
@@ -24,7 +24,7 @@ func TestCtlSock(t *testing.T) {
 	}
 	req.EncryptPath = "not-existing-dir/xyz"
 	response = test_helpers.QueryCtlSock(t, sock, req)
-	if response.ErrNo != int32(syscall.ENOENT) || response.Result != "" {
+	if response.ErrNo != int32(unix.ENOENT) || response.Result != "" {
 		t.Errorf("incorrect error handling: %+v", response)
 	}
 	// Strange paths should not cause a crash

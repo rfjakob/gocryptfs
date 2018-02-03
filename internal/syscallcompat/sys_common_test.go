@@ -3,7 +3,7 @@ package syscallcompat
 import (
 	"bytes"
 	"os"
-	"syscall"
+	"golang.org/x/sys/unix"
 	"testing"
 )
 
@@ -21,7 +21,7 @@ func TestReadlinkat(t *testing.T) {
 		if target != target2 {
 			t.Errorf("target=%q != target2=%q", target, target2)
 		}
-		err = syscall.Unlink(tmpDir + "/readlinkat")
+		err = unix.Unlink(tmpDir + "/readlinkat")
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -5,7 +5,7 @@ import (
 	"log"
 	"path/filepath"
 	"syscall"
-
+	
 	"golang.org/x/sys/unix"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -110,13 +110,14 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 	// Handle "gocryptfs.conf"
 	if rfs.isTranslatedConfig(relPath) {
 		absConfPath, _ := rfs.abs(configfile.ConfReverseName, nil)
-		var st syscall.Stat_t
-		err := syscall.Lstat(absConfPath, &st)
+		var st unix.Stat_t
+		err := unix.Lstat(absConfPath, &st)
 		if err != nil {
 			return nil, fuse.ToStatus(err)
 		}
+		st2 := syscallcompat.Unix2syscall(st)
 		var a fuse.Attr
-		a.FromStat(&st)
+		a.FromStat(&st2)
 		if rfs.args.ForceOwner != nil {
 			a.Owner = *rfs.args.ForceOwner
 		}
@@ -153,7 +154,7 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 	// Stat the backing file/dir using Fstatat
 	var st unix.Stat_t
 	err = syscallcompat.Fstatat(dirfd, name, &st, unix.AT_SYMLINK_NOFOLLOW)
-	syscall.Close(dirfd)
+	unix.Close(dirfd)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
@@ -161,7 +162,7 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 	if st.Ino > inoBaseMin {
 		tlog.Warn.Printf("GetAttr %q: backing file inode number %d crosses reserved space, max=%d. Returning EOVERFLOW.",
 			relPath, st.Ino, inoBaseMin)
-		return nil, fuse.ToStatus(syscall.EOVERFLOW)
+		return nil, fuse.ToStatus(unix.EOVERFLOW)
 	}
 	var a fuse.Attr
 	st2 := syscallcompat.Unix2syscall(st)
@@ -205,7 +206,7 @@ func (rfs *ReverseFS) Access(relPath string, mode uint32, context *fuse.Context)
 	if err != nil {
 		fmt.Printf("name=%q err=%v", name, err)
 	}
-	syscall.Close(dirfd)
+	unix.Close(dirfd)
 	return fuse.ToStatus(err)
 }
 
@@ -255,12 +256,12 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 		return nil, fuse.ToStatus(err)
 	}
 	// Read plaintext dir
-	fd, err := syscallcompat.OpenNofollow(rfs.args.Cipherdir, relPath, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
+	fd, err := syscallcompat.OpenNofollow(rfs.args.Cipherdir, relPath, unix.O_RDONLY|unix.O_DIRECTORY, 0)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
 	entries, err := syscallcompat.Getdents(fd)
-	syscall.Close(fd)
+	unix.Close(fd)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
@@ -328,7 +329,7 @@ func (rfs *ReverseFS) Readlink(relPath string, context *fuse.Context) (string, f
 	}
 	// read the link target using Readlinkat
 	plainTarget, err := syscallcompat.Readlinkat(dirfd, name)
-	syscall.Close(dirfd)
+	unix.Close(dirfd)
 	if err != nil {
 		return "", fuse.ToStatus(err)
 	}
@@ -343,7 +344,7 @@ func (rfs *ReverseFS) Readlink(relPath string, context *fuse.Context) (string, f
 	// and I/O error to the user. Better emit the proper error ourselves.
 	const PATH_MAX = 4096 // not defined on Darwin
 	if len(cTarget) > PATH_MAX {
-		return "", fuse.Status(syscall.ENAMETOOLONG)
+		return "", fuse.Status(unix.ENAMETOOLONG)
 	}
 	return cTarget, fuse.OK
 }

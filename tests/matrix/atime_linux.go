@@ -1,9 +1,9 @@
 package matrix
 
 import (
-	"syscall"
+	"golang.org/x/sys/unix"
 )
 
-func extractAtimeMtime(st syscall.Stat_t) [2]syscall.Timespec {
-	return [2]syscall.Timespec{st.Atim, st.Mtim}
+func extractAtimeMtime(st unix.Stat_t) [2]unix.Timespec {
+	return [2]unix.Timespec{st.Atim, st.Mtim}
 }

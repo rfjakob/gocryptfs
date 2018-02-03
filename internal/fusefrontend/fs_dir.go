@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"syscall"
 
 	"golang.org/x/sys/unix"
 
@@ -136,7 +135,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 		return fuse.ToStatus(err)
 	}
 	if fs.args.PlaintextNames {
-		err = syscall.Rmdir(cPath)
+		err = unix.Rmdir(cPath)
 		return fuse.ToStatus(err)
 	}
 	parentDir := filepath.Dir(cPath)
@@ -148,11 +147,11 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 
 	cName := filepath.Base(cPath)
 	dirfdRaw, err := syscallcompat.Openat(int(parentDirFd.Fd()), cName,
-		syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
-	if err == syscall.EACCES {
+		unix.O_RDONLY|unix.O_NOFOLLOW, 0)
+	if err == unix.EACCES {
 		// We need permission to read and modify the directory
 		tlog.Debug.Printf("Rmdir: handling EACCESS")
-		// TODO use syscall.Fstatat once it is available in Go
+		// TODO use unix.Fstatat once it is available in Go
 		var fi os.FileInfo
 		fi, err = os.Lstat(cPath)
 		if err != nil {
@@ -160,17 +159,17 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 			return fuse.ToStatus(err)
 		}
 		origMode := fi.Mode()
-		// TODO use syscall.Chmodat once it is available in Go
+		// TODO use unix.Chmodat once it is available in Go
 		err = os.Chmod(cPath, origMode|0700)
 		if err != nil {
 			tlog.Debug.Printf("Rmdir: Chmod failed: %v", err)
 			return fuse.ToStatus(err)
 		}
 		// Retry open
-		var st syscall.Stat_t
-		syscall.Lstat(cPath, &st)
+		var st unix.Stat_t
+		unix.Lstat(cPath, &st)
 		dirfdRaw, err = syscallcompat.Openat(int(parentDirFd.Fd()), cName,
-			syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
+			unix.O_RDONLY|unix.O_NOFOLLOW, 0)
 		// Undo the chmod if removing the directory failed
 		defer func() {
 			if code != fuse.OK {
@@ -193,7 +192,7 @@ retry:
 	if err == io.EOF {
 		// The directory is empty
 		tlog.Warn.Printf("Rmdir: %q: gocryptfs.diriv is missing", cPath)
-		return fuse.ToStatus(syscall.Rmdir(cPath))
+		return fuse.ToStatus(unix.Rmdir(cPath))
 	}
 	if err != nil {
 		tlog.Warn.Printf("Rmdir: Readdirnames: %v", err)
@@ -203,7 +202,7 @@ retry:
 	// users, so handle it transparently here.
 	if runtime.GOOS == "darwin" && len(children) <= 2 && haveDsstore(children) {
 		ds := filepath.Join(cPath, dsStoreName)
-		err = syscall.Unlink(ds)
+		err = unix.Unlink(ds)
 		if err != nil {
 			tlog.Warn.Printf("Rmdir: failed to delete blocking file %q: %v", ds, err)
 			return fuse.ToStatus(err)
@@ -214,7 +213,7 @@ retry:
 	// If the directory is not empty besides gocryptfs.diriv, do not even
 	// attempt the dance around gocryptfs.diriv.
 	if len(children) > 1 {
-		return fuse.ToStatus(syscall.ENOTEMPTY)
+		return fuse.ToStatus(unix.ENOTEMPTY)
 	}
 	// Move "gocryptfs.diriv" to the parent dir as "gocryptfs.diriv.rmdir.XYZ"
 	tmpName := fmt.Sprintf("gocryptfs.diriv.rmdir.%d", cryptocore.RandUint64())
@@ -267,11 +266,11 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 	cDirAbsPath := filepath.Join(fs.args.Cipherdir, cDirName)
 	var cipherEntries []fuse.DirEntry
 	var status fuse.Status
-	fd, err := syscall.Open(cDirAbsPath, syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
+	fd, err := unix.Open(cDirAbsPath, unix.O_RDONLY|unix.O_NOFOLLOW, 0)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	defer syscall.Close(fd)
+	defer unix.Close(fd)
 	cipherEntries, err = syscallcompat.Getdents(fd)
 	if err != nil {
 		return nil, fuse.ToStatus(err)

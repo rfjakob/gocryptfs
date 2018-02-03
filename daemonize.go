@@ -1,11 +1,10 @@
 package main
-
 import (
 	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
-	"syscall"
+	"golang.org/x/sys/unix"
 
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
@@ -16,7 +15,7 @@ import (
 // 0 if we get it.
 func exitOnUsr1() {
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGUSR1)
+	signal.Notify(c, unix.SIGUSR1)
 	go func() {
 		<-c
 		os.Exit(0)
@@ -43,7 +42,7 @@ func forkChild() int {
 	err = c.Wait()
 	if err != nil {
 		if exiterr, ok := err.(*exec.ExitError); ok {
-			if waitstat, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+			if waitstat, ok := exiterr.Sys().(unix.WaitStatus); ok {
 				os.Exit(waitstat.ExitStatus())
 			}
 		}

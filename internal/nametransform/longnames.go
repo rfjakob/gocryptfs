@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
+	"golang.org/x/sys/unix"
 
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
@@ -112,11 +112,11 @@ func (n *NameTransform) WriteLongName(dirfd *os.File, hashName string, plainName
 
 	// Write the encrypted name into hashName.name
 	fdRaw, err := syscallcompat.Openat(int(dirfd.Fd()), hashName+LongNameSuffix,
-		syscall.O_WRONLY|syscall.O_CREAT|syscall.O_EXCL, 0600)
+		unix.O_WRONLY|unix.O_CREAT|unix.O_EXCL, 0600)
 	if err != nil {
 		// Don't warn if the file already exists - this is allowed for renames
 		// and should be handled by the caller.
-		if err != syscall.EEXIST {
+		if err != unix.EEXIST {
 			tlog.Warn.Printf("WriteLongName: Openat: %v", err)
 		}
 		return err

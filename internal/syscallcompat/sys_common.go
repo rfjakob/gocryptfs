@@ -1,8 +1,6 @@
 package syscallcompat
 
 import (
-	"syscall"
-
 	"golang.org/x/sys/unix"
 )
 
@@ -32,7 +30,7 @@ func Faccessat(dirfd int, path string, mode uint32) error {
 	if err != nil {
 		return err
 	}
-	if st.Mode&syscall.S_IFMT == syscall.S_IFLNK {
+	if st.Mode&unix.S_IFMT == unix.S_IFLNK {
 		// Pretend that a symlink is always accessible
 		return nil
 	}

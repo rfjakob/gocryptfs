@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"encoding/base64"
-	"syscall"
+	"golang.org/x/sys/unix"
 
 	"github.com/rfjakob/eme"
 
@@ -45,11 +45,11 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 	}
 	if len(bin) == 0 {
 		tlog.Warn.Printf("DecryptName: empty input")
-		return "", syscall.EBADMSG
+		return "", unix.EBADMSG
 	}
 	if len(bin)%aes.BlockSize != 0 {
 		tlog.Debug.Printf("DecryptName %q: decoded length %d is not a multiple of 16", cipherName, len(bin))
-		return "", syscall.EBADMSG
+		return "", unix.EBADMSG
 	}
 	bin = n.emeCipher.Decrypt(iv, bin)
 	bin, err = unPad16(bin)
@@ -58,16 +58,16 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 		// unPad16 returns detailed errors including the position of the
 		// incorrect bytes. Kill the padding oracle by lumping everything into
 		// a generic error.
-		return "", syscall.EBADMSG
+		return "", unix.EBADMSG
 	}
 	// A name can never contain a null byte or "/". Make sure we never return those
 	// to the kernel, even when we read a corrupted (or fuzzed) filesystem.
 	if bytes.Contains(bin, []byte{0}) || bytes.Contains(bin, []byte("/")) {
-		return "", syscall.EBADMSG
+		return "", unix.EBADMSG
 	}
 	// The name should never be "." or "..".
 	if bytes.Equal(bin, []byte(".")) || bytes.Equal(bin, []byte("..")) {
-		return "", syscall.EBADMSG
+		return "", unix.EBADMSG
 	}
 	plain := string(bin)
 	return plain, err

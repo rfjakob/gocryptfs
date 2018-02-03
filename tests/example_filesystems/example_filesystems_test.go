@@ -10,7 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"syscall"
+	"golang.org/x/sys/unix"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
@@ -282,14 +282,14 @@ func TestExampleFSv13reverse(t *testing.T) {
 	checkExampleFSrw(t, dirC, false)
 	// Access to encrypted version of '..' should fail
 	cPath := dirB + "/D8VwRPqWW8x7M5OEoMs0Eg"
-	err = syscall.Access(cPath, R_OK)
-	if err != syscall.ENOENT {
+	err = unix.Access(cPath, R_OK)
+	if err != unix.ENOENT {
 		t.Errorf("want ENOENT, got: %v", err)
 	}
 	// Access to encrypted version of '.' should fail
 	cPath = dirB + "/kkmARPseVj4XQFW-EL42-w"
-	err = syscall.Access(cPath, R_OK)
-	if err != syscall.ENOENT {
+	err = unix.Access(cPath, R_OK)
+	if err != unix.ENOENT {
 		t.Errorf("want ENOENT, got: %v", err)
 	}
 	// Encrypted version of dir1/dir2/file (10000 zero bytes)

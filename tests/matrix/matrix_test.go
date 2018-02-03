@@ -20,7 +20,7 @@ import (
 	"os/exec"
 	"runtime"
 	"sync"
-	"syscall"
+	"golang.org/x/sys/unix"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
@@ -203,8 +203,8 @@ const (
 // The expected allocated sizes are only valid on tmpfs and ext4. btrfs
 // gives different results, but that's not an error.
 func isWellKnownFS(fn string) bool {
-	var fs syscall.Statfs_t
-	err := syscall.Statfs(fn, &fs)
+	var fs unix.Statfs_t
+	err := unix.Statfs(fn, &fs)
 	if err != nil {
 		panic(err)
 	}
@@ -330,7 +330,7 @@ func TestFallocate(t *testing.T) {
 	}
 	// Cleanup
 	file.Close()
-	syscall.Unlink(fn)
+	unix.Unlink(fn)
 	if !wellKnown {
 		// Even though most tests have been executed still, inform the user
 		// that some were disabled
@@ -521,7 +521,7 @@ func TestDirOverwrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = syscall.Rename(dir1, dir2)
+	err = unix.Rename(dir1, dir2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -609,7 +609,7 @@ func TestLongNames(t *testing.T) {
 		t.Errorf("n255x is not in directory listing")
 	}
 	// Unlink
-	err = syscall.Unlink(wd + n255x)
+	err = unix.Unlink(wd + n255x)
 	if err != nil {
 		t.Fatalf("Could not unlink n255x: %v", err)
 	}
@@ -625,7 +625,7 @@ func TestLongNames(t *testing.T) {
 	if !test_helpers.VerifyExistence(wd + n255s) {
 		t.Errorf("n255s is not in directory listing")
 	}
-	err = syscall.Unlink(wd + n255s)
+	err = unix.Unlink(wd + n255s)
 	if err != nil {
 		t.Error(err)
 	}
@@ -635,7 +635,7 @@ func TestLongNames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = syscall.Rmdir(wd + n255d)
+	err = unix.Rmdir(wd + n255d)
 	if err != nil {
 		t.Error(err)
 	}
@@ -690,7 +690,7 @@ func TestUtimesNanoSymlink(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// syscall.UtimesNano does not provide a way to pass AT_SYMLINK_NOFOLLOW,
+	// unix.UtimesNano does not provide a way to pass AT_SYMLINK_NOFOLLOW,
 	// so we call the external utility "touch", which does.
 	cmd := exec.Command("touch", "--no-dereference", path)
 	cmd.Stderr = os.Stderr
@@ -703,12 +703,12 @@ func TestUtimesNanoSymlink(t *testing.T) {
 
 type utimesTestcaseStruct struct {
 	// Input atime and mtime
-	in [2]syscall.Timespec
+	in [2]unix.Timespec
 	// Expected output atime and mtime
-	out [2]syscall.Timespec
+	out [2]unix.Timespec
 }
 
-func compareUtimes(want [2]syscall.Timespec, actual [2]syscall.Timespec) error {
+func compareUtimes(want [2]unix.Timespec, actual [2]unix.Timespec) error {
 	tsNames := []string{"atime", "mtime"}
 	for i := range want {
 		if want[i].Sec != actual[i].Sec {
@@ -728,29 +728,29 @@ const _UTIME_OMIT = ((1 << 30) - 2)
 func doTestUtimesNano(t *testing.T, path string) {
 	utimeTestcases := []utimesTestcaseStruct{
 		{
-			in:  [2]syscall.Timespec{{Sec: 50, Nsec: 0}, {Sec: 50, Nsec: 0}},
-			out: [2]syscall.Timespec{{Sec: 50, Nsec: 0}, {Sec: 50, Nsec: 0}},
+			in:  [2]unix.Timespec{{Sec: 50, Nsec: 0}, {Sec: 50, Nsec: 0}},
+			out: [2]unix.Timespec{{Sec: 50, Nsec: 0}, {Sec: 50, Nsec: 0}},
 		},
 		{
-			in:  [2]syscall.Timespec{{Sec: 1, Nsec: 2}, {Sec: 3, Nsec: 4}},
-			out: [2]syscall.Timespec{{Sec: 1, Nsec: 2}, {Sec: 3, Nsec: 4}},
+			in:  [2]unix.Timespec{{Sec: 1, Nsec: 2}, {Sec: 3, Nsec: 4}},
+			out: [2]unix.Timespec{{Sec: 1, Nsec: 2}, {Sec: 3, Nsec: 4}},
 		},
 		{
-			in:  [2]syscall.Timespec{{Sec: 7, Nsec: 8}, {Sec: 99, Nsec: _UTIME_OMIT}},
-			out: [2]syscall.Timespec{{Sec: 7, Nsec: 8}, {Sec: 3, Nsec: 4}},
+			in:  [2]unix.Timespec{{Sec: 7, Nsec: 8}, {Sec: 99, Nsec: _UTIME_OMIT}},
+			out: [2]unix.Timespec{{Sec: 7, Nsec: 8}, {Sec: 3, Nsec: 4}},
 		},
 		{
-			in:  [2]syscall.Timespec{{Sec: 99, Nsec: _UTIME_OMIT}, {Sec: 5, Nsec: 6}},
-			out: [2]syscall.Timespec{{Sec: 7, Nsec: 8}, {Sec: 5, Nsec: 6}},
+			in:  [2]unix.Timespec{{Sec: 99, Nsec: _UTIME_OMIT}, {Sec: 5, Nsec: 6}},
+			out: [2]unix.Timespec{{Sec: 7, Nsec: 8}, {Sec: 5, Nsec: 6}},
 		},
 	}
 	for i, tc := range utimeTestcases {
-		err := syscall.UtimesNano(path, tc.in[:])
+		err := unix.UtimesNano(path, tc.in[:])
 		if err != nil {
 			t.Fatal(err)
 		}
-		var st syscall.Stat_t
-		err = syscall.Stat(path, &st)
+		var st unix.Stat_t
+		err = unix.Stat(path, &st)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -785,12 +785,12 @@ func TestUtimesNanoFd(t *testing.T) {
 // Make sure the Mknod call works by creating a fifo (named pipe)
 func TestMkfifo(t *testing.T) {
 	path := test_helpers.DefaultPlainDir + "/fifo1"
-	err := syscall.Mkfifo(path, 0700)
+	err := unix.Mkfifo(path, 0700)
 	if err != nil {
 		t.Fatal(err)
 	}
 	path = test_helpers.DefaultPlainDir + "/gocryptfs.longname.XXX"
-	err = syscall.Mkfifo(path, 0700)
+	err = unix.Mkfifo(path, 0700)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -823,7 +823,7 @@ func TestMagicNames(t *testing.T) {
 			t.Fatalf("rename 2 failed: %v", err)
 		}
 		// Unlink
-		err = syscall.Unlink(p)
+		err = unix.Unlink(p)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -833,23 +833,23 @@ func TestMagicNames(t *testing.T) {
 			t.Fatal(err)
 		}
 		// Rmdir
-		err = syscall.Rmdir(p)
+		err = unix.Rmdir(p)
 		if err != nil {
 			t.Fatal(err)
 		}
 		// Symlink
-		err = syscall.Symlink("xxxyyyyzzz", p)
+		err = unix.Symlink("xxxyyyyzzz", p)
 		if err != nil {
 			t.Fatal(err)
 		}
-		syscall.Unlink(p)
+		unix.Unlink(p)
 		// Link
 		target := test_helpers.DefaultPlainDir + "/linktarget"
 		err = ioutil.WriteFile(target, []byte("yyyyy"), 0200)
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = syscall.Link(target, p)
+		err = unix.Link(target, p)
 		if err != nil {
 			t.Fatal(err)
 		}

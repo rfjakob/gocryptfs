@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"syscall"
 	"testing"
 
 	"golang.org/x/sys/unix"
@@ -37,7 +36,7 @@ func TestLongnameStat(t *testing.T) {
 		// which will cause "Found linked inode, but Nlink == 1" warnings and
 		// file not found errors.
 		// TODO: This problem should be handled at the go-fuse level.
-		syscall.Rename(dirA+"/"+name, test_helpers.TmpDir+"/"+fmt.Sprintf("x%d", i))
+		unix.Rename(dirA+"/"+name, test_helpers.TmpDir+"/"+fmt.Sprintf("x%d", i))
 	}
 }
 
@@ -127,15 +126,15 @@ func TestAccessVirtual(t *testing.T) {
 	var W_OK uint32 = 2
 	var X_OK uint32 = 1
 	fn := dirB + "/gocryptfs.diriv"
-	err := syscall.Access(fn, R_OK)
+	err := unix.Access(fn, R_OK)
 	if err != nil {
 		t.Errorf("%q should be readable, but got error: %v", fn, err)
 	}
-	err = syscall.Access(fn, W_OK)
+	err = unix.Access(fn, W_OK)
 	if err == nil {
 		t.Errorf("should NOT be writeable")
 	}
-	err = syscall.Access(fn, X_OK)
+	err = unix.Access(fn, X_OK)
 	if err == nil {
 		t.Errorf("should NOT be executable")
 	}
@@ -174,8 +173,8 @@ func TestAccess(t *testing.T) {
 // and not EBADMSG or EIO or anything else.
 func TestEnoent(t *testing.T) {
 	fn := dirB + "/TestEnoent"
-	_, err := syscall.Open(fn, syscall.O_RDONLY, 0)
-	if err != syscall.ENOENT {
+	_, err := unix.Open(fn, unix.O_RDONLY, 0)
+	if err != unix.ENOENT {
 		t.Errorf("want ENOENT, got: %v", err)
 	}
 }
@@ -196,8 +195,8 @@ func TestTooLongSymlink(t *testing.T) {
 		return
 	}
 	err2 := err.(*os.PathError)
-	if err2.Err != syscall.ENAMETOOLONG {
-		t.Errorf("Expected %q error, got %q instead", syscall.ENAMETOOLONG,
+	if err2.Err != unix.ENAMETOOLONG {
+		t.Errorf("Expected %q error, got %q instead", unix.ENAMETOOLONG,
 			err2.Err)
 	}
 }

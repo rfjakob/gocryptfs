@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 	"sync"
-	"syscall"
+	"golang.org/x/sys/unix"
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -60,8 +60,8 @@ type file struct {
 
 // NewFile returns a new go-fuse File instance.
 func NewFile(fd *os.File, fs *FS) (nodefs.File, fuse.Status) {
-	var st syscall.Stat_t
-	err := syscall.Fstat(int(fd.Fd()), &st)
+	var st unix.Stat_t
+	err := unix.Fstat(int(fd.Fd()), &st)
 	if err != nil {
 		tlog.Warn.Printf("NewFile: Fstat on fd %d failed: %v\n", fd.Fd(), err)
 		return nil, fuse.ToStatus(err)
@@ -396,12 +396,12 @@ func (f *file) Flush() fuse.Status {
 	// Since Flush() may be called for each dup'd fd, we don't
 	// want to really close the file, we just want to flush. This
 	// is achieved by closing a dup'd fd.
-	newFd, err := syscall.Dup(int(f.fd.Fd()))
+	newFd, err := unix.Dup(int(f.fd.Fd()))
 
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	err = syscall.Close(newFd)
+	err = unix.Close(newFd)
 	return fuse.ToStatus(err)
 }
 
@@ -409,7 +409,7 @@ func (f *file) Fsync(flags int) (code fuse.Status) {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 
-	return fuse.ToStatus(syscall.Fsync(int(f.fd.Fd())))
+	return fuse.ToStatus(unix.Fsync(int(f.fd.Fd())))
 }
 
 func (f *file) Chmod(mode uint32) fuse.Status {
@@ -417,8 +417,8 @@ func (f *file) Chmod(mode uint32) fuse.Status {
 	defer f.fdLock.RUnlock()
 
 	// os.File.Chmod goes through the "syscallMode" translation function that messes
-	// up the suid and sgid bits. So use syscall.Fchmod directly.
-	err := syscall.Fchmod(f.intFd(), mode)
+	// up the suid and sgid bits. So use unix.Fchmod directly.
+	err := unix.Fchmod(f.intFd(), mode)
 	return fuse.ToStatus(err)
 }
 
@@ -434,12 +434,13 @@ func (f *file) GetAttr(a *fuse.Attr) fuse.Status {
 	defer f.fdLock.RUnlock()
 
 	tlog.Debug.Printf("file.GetAttr()")
-	st := syscall.Stat_t{}
-	err := syscall.Fstat(int(f.fd.Fd()), &st)
+	st := unix.Stat_t{}
+	err := unix.Fstat(int(f.fd.Fd()), &st)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	a.FromStat(&st)
+	st2 := syscallcompat.Unix2syscall(st)
+	a.FromStat(&st2)
 	a.Size = f.contentEnc.CipherSizeToPlainSize(a.Size)
 	if f.fs.args.ForceOwner != nil {
 		a.Owner = *f.fs.args.ForceOwner

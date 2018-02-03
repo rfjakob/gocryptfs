@@ -4,7 +4,6 @@ import (
 	"log"
 	"path/filepath"
 	"sync"
-	"syscall"
 	"time"
 
 	"golang.org/x/sys/unix"
@@ -63,13 +62,13 @@ func (rfs *ReverseFS) findLongnameParent(dir string, dirIV []byte, longname stri
 	if hit != "" {
 		return hit, nil
 	}
-	fd, err := syscallcompat.OpenNofollow(rfs.args.Cipherdir, dir, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
+	fd, err := syscallcompat.OpenNofollow(rfs.args.Cipherdir, dir, unix.O_RDONLY|unix.O_DIRECTORY, 0)
 	if err != nil {
 		tlog.Warn.Printf("findLongnameParent: opendir failed: %v\n", err)
 		return "", err
 	}
 	dirEntries, err := syscallcompat.Getdents(fd)
-	syscall.Close(fd)
+	unix.Close(fd)
 	if err != nil {
 		tlog.Warn.Printf("findLongnameParent: Getdents failed: %v\n", err)
 		return "", err
@@ -93,7 +92,7 @@ func (rfs *ReverseFS) findLongnameParent(dir string, dirIV []byte, longname stri
 		}
 	}
 	if hit == "" {
-		return "", syscall.ENOENT
+		return "", unix.ENOENT
 	}
 	return hit, nil
 }

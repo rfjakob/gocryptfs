@@ -3,7 +3,7 @@ package syscallcompat
 import (
 	"path/filepath"
 	"strings"
-	"syscall"
+	"golang.org/x/sys/unix"
 
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -16,14 +16,14 @@ import (
 func OpenNofollow(baseDir string, relPath string, flags int, mode uint32) (fd int, err error) {
 	if !filepath.IsAbs(baseDir) {
 		tlog.Warn.Printf("BUG: OpenNofollow called with relative baseDir=%q", baseDir)
-		return -1, syscall.EINVAL
+		return -1, unix.EINVAL
 	}
 	if filepath.IsAbs(relPath) {
 		tlog.Warn.Printf("BUG: OpenNofollow called with absolute relPath=%q", relPath)
-		return -1, syscall.EINVAL
+		return -1, unix.EINVAL
 	}
 	// Open the base dir (following symlinks)
-	dirfd, err := syscall.Open(baseDir, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
+	dirfd, err := unix.Open(baseDir, unix.O_RDONLY|unix.O_DIRECTORY, 0)
 	if err != nil {
 		return -1, err
 	}
@@ -39,15 +39,15 @@ func OpenNofollow(baseDir string, relPath string, flags int, mode uint32) (fd in
 	// Walk intermediate directories
 	var dirfd2 int
 	for _, name := range dirs {
-		dirfd2, err = Openat(dirfd, name, syscall.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_DIRECTORY, 0)
-		syscall.Close(dirfd)
+		dirfd2, err = Openat(dirfd, name, unix.O_RDONLY|unix.O_NOFOLLOW|unix.O_DIRECTORY, 0)
+		unix.Close(dirfd)
 		if err != nil {
 			return -1, err
 		}
 		dirfd = dirfd2
 	}
-	defer syscall.Close(dirfd)
+	defer unix.Close(dirfd)
 	// Open the final component with the flags and permissions requested by
 	// the user plus forced NOFOLLOW.
-	return Openat(dirfd, final, flags|syscall.O_NOFOLLOW, mode)
+	return Openat(dirfd, final, flags|unix.O_NOFOLLOW, mode)
 }

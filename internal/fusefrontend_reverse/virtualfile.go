@@ -3,7 +3,6 @@ package fusefrontend_reverse
 import (
 	"log"
 	"path/filepath"
-	"syscall"
 
 	"golang.org/x/sys/unix"
 
@@ -19,7 +18,7 @@ import (
 const (
 	// virtualFileMode is the mode to use for virtual files (gocryptfs.diriv and
 	// *.name). They are always readable, as stated in func Access
-	virtualFileMode = syscall.S_IFREG | 0444
+	virtualFileMode = unix.S_IFREG | 0444
 	// inoBaseDirIV is the start of the inode number range that is used
 	// for virtual gocryptfs.diriv files. inoBaseNameFile is the thing for
 	// *.name files.
@@ -91,11 +90,11 @@ func (f *virtualFile) Read(buf []byte, off int64) (resultData fuse.ReadResult, s
 // GetAttr - FUSE call
 func (f *virtualFile) GetAttr(a *fuse.Attr) fuse.Status {
 	dir := filepath.Dir(f.parentFile)
-	dirfd, err := syscallcompat.OpenNofollow(f.cipherdir, dir, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
+	dirfd, err := syscallcompat.OpenNofollow(f.cipherdir, dir, unix.O_RDONLY|unix.O_DIRECTORY, 0)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	defer syscall.Close(dirfd)
+	defer unix.Close(dirfd)
 	name := filepath.Base(f.parentFile)
 	var st unix.Stat_t
 	err = syscallcompat.Fstatat(dirfd, name, &st, unix.AT_SYMLINK_NOFOLLOW)
@@ -106,7 +105,7 @@ func (f *virtualFile) GetAttr(a *fuse.Attr) fuse.Status {
 	if st.Ino > inoBaseMin {
 		tlog.Warn.Printf("virtualFile.GetAttr: parent file inode number %d crosses reserved space, max=%d. Returning EOVERFLOW.",
 			st.Ino, inoBaseMin)
-		return fuse.ToStatus(syscall.EOVERFLOW)
+		return fuse.ToStatus(unix.EOVERFLOW)
 	}
 	st.Ino = st.Ino + f.inoBase
 	st.Size = int64(len(f.content))

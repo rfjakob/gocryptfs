@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"log"
-	"syscall"
+	"golang.org/x/sys/unix"
 
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
@@ -49,18 +49,18 @@ var allZeroFileID = make([]byte, headerIDLen)
 func ParseHeader(buf []byte) (*FileHeader, error) {
 	if len(buf) != HeaderLen {
 		tlog.Warn.Printf("ParseHeader: invalid length: want %d bytes, got %d. Returning EINVAL.", HeaderLen, len(buf))
-		return nil, syscall.EINVAL
+		return nil, unix.EINVAL
 	}
 	var h FileHeader
 	h.Version = binary.BigEndian.Uint16(buf[0:headerVersionLen])
 	if h.Version != CurrentVersion {
 		tlog.Warn.Printf("ParseHeader: invalid version: want %d, got %d. Returning EINVAL.", CurrentVersion, h.Version)
-		return nil, syscall.EINVAL
+		return nil, unix.EINVAL
 	}
 	h.ID = buf[headerVersionLen:]
 	if bytes.Equal(h.ID, allZeroFileID) {
 		tlog.Warn.Printf("ParseHeader: file id is all-zero. Returning EINVAL.")
-		return nil, syscall.EINVAL
+		return nil, unix.EINVAL
 	}
 	return &h, nil
 }

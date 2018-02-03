@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"path/filepath"
 	"strings"
-	"syscall"
+	"golang.org/x/sys/unix"
 
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/pathiv"
@@ -36,13 +36,13 @@ func (rfs *ReverseFS) rDecryptName(cName string, dirIV []byte, pDir string) (pNa
 			// are invalid base64. Convert them to ENOENT so the correct
 			// error gets returned to the user.
 			if _, ok := err.(base64.CorruptInputError); ok {
-				return "", syscall.ENOENT
+				return "", unix.ENOENT
 			}
 			// Stat attempts on the link target of encrypted symlinks.
 			// These are always valid base64 but the length is not a
 			// multiple of 16.
-			if err == syscall.EBADMSG {
-				return "", syscall.ENOENT
+			if err == unix.EBADMSG {
+				return "", unix.ENOENT
 			}
 			return "", err
 		}
@@ -56,7 +56,7 @@ func (rfs *ReverseFS) rDecryptName(cName string, dirIV []byte, pDir string) (pNa
 		// that has no representation in the plaintext filesystem. ".name"
 		// files should have already been handled in virtualfile.go.
 		tlog.Warn.Printf("rDecryptName: cannot decrypt virtual file %q", cName)
-		return "", syscall.EINVAL
+		return "", unix.EINVAL
 	}
 	return pName, nil
 }
@@ -108,7 +108,7 @@ func (rfs *ReverseFS) openBackingDir(cRelPath string) (dirfd int, pName string, 
 	}
 	// Open directory, safe against symlink races
 	pDir := filepath.Dir(pRelPath)
-	dirfd, err = syscallcompat.OpenNofollow(rfs.args.Cipherdir, pDir, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
+	dirfd, err = syscallcompat.OpenNofollow(rfs.args.Cipherdir, pDir, unix.O_RDONLY|unix.O_DIRECTORY, 0)
 	if err != nil {
 		return -1, "", err
 	}
