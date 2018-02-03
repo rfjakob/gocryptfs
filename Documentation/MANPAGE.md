@@ -5,19 +5,19 @@
 NAME
 ====
 
-gocryptfs - mount an encrypted directory
+gocryptfs - create or mount an encrypted filesystem
 
 SYNOPSIS
 ========
 
 #### Initialize encrypted filesystem
-gocryptfs -init \[OPTIONS\] CIPHERDIR
+`gocryptfs -init [OPTIONS] CIPHERDIR`
 
 #### Mount
-gocryptfs \[OPTIONS\] CIPHERDIR MOUNTPOINT \[-o COMMA-SEPARATED-OPTIONS\]
+`gocryptfs [OPTIONS] CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]`
 
 #### Change password
-gocryptfs -passwd \[OPTIONS\] CIPHERDIR
+`gocryptfs -passwd [OPTIONS] CIPHERDIR`
 
 DESCRIPTION
 ===========
@@ -36,10 +36,10 @@ user_allow_other is set in /etc/fuse.conf. This option is equivalent to
 "allow_other" plus "default_permissions" described in fuse(8).
 
 #### -config string
-Use specified config file instead of CIPHERDIR/gocryptfs.conf
+Use specified config file instead of `CIPHERDIR/gocryptfs.conf`.
 
 #### -cpuprofile string
-Write cpu profile to specified file
+Write cpu profile to specified file.
 
 #### -ctlsock string
 Create a control socket at the specified location. The socket can be
@@ -49,7 +49,7 @@ not world-accessible. For example, `/run/user/UID/my.socket` would
 be suitable.
 
 #### -d, -debug
-Enable debug output
+Enable debug output.
 
 #### -devrandom
 Use /dev/random for generating the master key instead of the default Go
@@ -102,7 +102,7 @@ passed as "-o fsname=" and is equivalent to libfuse's option of the
 same name. By default, CIPHERDIR is used.
 
 #### -fusedebug
-Enable fuse library debug output
+Enable fuse library debug output.
 
 #### -h, -help
 Print a short help text that shows the more-often used options.
@@ -119,7 +119,7 @@ Pretty-print the contents of the config file for human consumption,
 stripping out sensitive data.
 
 #### -init
-Initialize encrypted directory
+Initialize encrypted directory.
 
 #### -ko
 Pass additional mount options to the kernel (comma-separated list).
@@ -228,10 +228,10 @@ you have verified that you can access your files with the
 new password.
 
 #### -plaintextnames
-Do not encrypt file names and symlink targets
+Do not encrypt file names and symlink targets.
 
 #### -q, -quiet
-Quiet - silence informational messages
+Quiet - silence informational messages.
 
 #### -raw64
 Use unpadded base64 encoding for file names. This gets rid of the
@@ -243,7 +243,7 @@ Reverse mode shows a read-only encrypted view of a plaintext
 directory. Implies "-aessiv".
 
 #### -ro
-Mount the filesystem read-only
+Mount the filesystem read-only.
 
 #### -scryptn int
 scrypt cost parameter expressed as scryptn=log2(N). Possible values are
