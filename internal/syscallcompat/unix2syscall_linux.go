@@ -21,8 +21,8 @@ func Unix2syscall(u unix.Stat_t) syscall.Stat_t {
 		Size:    u.Size,
 		Blksize: u.Blksize,
 		Blocks:  u.Blocks,
-		Atim:    syscall.Timespec(u.Atim),
-		Mtim:    syscall.Timespec(u.Mtim),
-		Ctim:    syscall.Timespec(u.Ctim),
+		Atim:    syscall.NsecToTimespec(unix.TimespecToNsec(u.Atim)),
+		Mtim:    syscall.NsecToTimespec(unix.TimespecToNsec(u.Mtim)),
+		Ctim:    syscall.NsecToTimespec(unix.TimespecToNsec(u.Ctim)),
 	}
 }
