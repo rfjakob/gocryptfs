@@ -5,9 +5,7 @@ import (
 	"io"
 	"os"
 	"syscall"
-
-	// In newer Go versions, this has moved to just "sync/syncmap".
-	"golang.org/x/sync/syncmap"
+	"sync"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
@@ -31,7 +29,7 @@ type reverseFile struct {
 	contentEnc *contentenc.ContentEnc
 }
 
-var inodeTable syncmap.Map
+var inodeTable sync.Map
 
 // newFile decrypts and opens the path "relPath" and returns a reverseFile
 // object. The backing file descriptor is always read-only.
