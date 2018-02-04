@@ -141,7 +141,7 @@ func main() {
 	}
 	if args.wpanic {
 		tlog.Warn.Wpanic = true
-		tlog.Debug.Printf("Panicing on warnings")
+		tlog.Debug.Printf("Panicking on warnings")
 	}
 	// Every operation below requires CIPHERDIR. Exit if we don't have it.
 	if flagSet.NArg() == 0 {

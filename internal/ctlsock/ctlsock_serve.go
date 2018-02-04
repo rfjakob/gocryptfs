@@ -117,7 +117,7 @@ func (ch *ctlSockHandler) handleRequest(in *RequestStruct, conn *net.UnixConn) {
 	var inPath, outPath, clean, warnText string
 	// You cannot perform both decryption and encryption in one request
 	if in.DecryptPath != "" && in.EncryptPath != "" {
-		err = errors.New("Ambigous")
+		err = errors.New("Ambiguous")
 		sendResponse(conn, err, "", "")
 		return
 	}
