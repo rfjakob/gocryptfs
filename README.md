@@ -68,6 +68,8 @@ as well as in the go-fuse library.
 Compile
 -------
 
+With [go 1.5 or higher](.travis.yml#L8):
+
 	$ go get -d github.com/rfjakob/gocryptfs
 	$ cd $(go env GOPATH)/src/github.com/rfjakob/gocryptfs
 	$ ./build.bash
