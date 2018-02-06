@@ -66,10 +66,12 @@ if [[ $OPT_ENCFS -eq 1 ]]; then
 		echo "The option $OPT_OPENSSL only works with gocryptfs"
 		exit 1
 	fi
-	echo "Testing EncFS at $CRYPT"
+	echo -n "Testing EncFS at $CRYPT: "
+	encfs --version
 	/home/jakob.donotbackup/encfs/build/encfs --extpass="echo test" --standard $CRYPT $MNT > /dev/null
 else
-	echo "Testing gocryptfs at $CRYPT"
+	echo -n "Testing gocryptfs at $CRYPT: "
+	gocryptfs -version
 	gocryptfs -q -init -extpass="echo test" -scryptn=10 $CRYPT
 	gocryptfs -q -extpass="echo test" $OPT_OPENSSL $CRYPT $MNT
 fi
