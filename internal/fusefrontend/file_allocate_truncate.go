@@ -6,7 +6,7 @@ package fusefrontend
 import (
 	"log"
 	"sync"
-	"syscall"
+	"golang.org/x/sys/unix"
 
 	"github.com/hanwen/go-fuse/fuse"
 
@@ -42,7 +42,7 @@ func (f *file) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
 			tlog.Warn.Print("fallocate: only mode 0 (default) and 1 (keep size) are supported")
 		}
 		allocateWarnOnce.Do(f)
-		return fuse.Status(syscall.EOPNOTSUPP)
+		return fuse.Status(unix.EOPNOTSUPP)
 	}
 
 	f.fdLock.RLock()
@@ -105,7 +105,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 	var err error
 	// Common case first: Truncate to zero
 	if newSize == 0 {
-		err = syscall.Ftruncate(int(f.fd.Fd()), 0)
+		err = unix.Ftruncate(int(f.fd.Fd()), 0)
 		if err != nil {
 			tlog.Warn.Printf("ino%d fh%d: Ftruncate(fd, 0) returned error: %v", f.qIno.Ino, f.intFd(), err)
 			return fuse.ToStatus(err)
@@ -151,7 +151,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 		}
 	}
 	// Truncate down to the last complete block
-	err = syscall.Ftruncate(int(f.fd.Fd()), int64(cipherOff))
+	err = unix.Ftruncate(int(f.fd.Fd()), int64(cipherOff))
 	if err != nil {
 		tlog.Warn.Printf("Truncate: shrink Ftruncate returned error: %v", err)
 		return fuse.ToStatus(err)
@@ -215,7 +215,7 @@ func (f *file) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) fuse.Statu
 			f.fileTableEntry.ID = id
 		}
 		cSz := int64(f.contentEnc.PlainSizeToCipherSize(newPlainSz))
-		err := syscall.Ftruncate(f.intFd(), cSz)
+		err := unix.Ftruncate(f.intFd(), cSz)
 		if err != nil {
 			tlog.Warn.Printf("Truncate: grow Ftruncate returned error: %v", err)
 		}

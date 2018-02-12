@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 	"os"
-	"syscall"
+	"golang.org/x/sys/unix"
 
 	// In newer Go versions, this has moved to just "sync/syncmap".
 	"golang.org/x/sync/syncmap"
@@ -40,24 +40,25 @@ func (rfs *ReverseFS) newFile(relPath string) (*reverseFile, fuse.Status) {
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	fd, err := syscallcompat.OpenNofollow(rfs.args.Cipherdir, pRelPath, syscall.O_RDONLY, 0)
+	fd, err := syscallcompat.OpenNofollow(rfs.args.Cipherdir, pRelPath, unix.O_RDONLY, 0)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	var st syscall.Stat_t
-	err = syscall.Fstat(fd, &st)
+	var st unix.Stat_t
+	err = unix.Fstat(fd, &st)
 	if err != nil {
 		tlog.Warn.Printf("newFile: Fstat error: %v", err)
-		syscall.Close(fd)
+		unix.Close(fd)
 		return nil, fuse.ToStatus(err)
 	}
 	// Reject access if the file descriptor does not refer to a regular file.
 	var a fuse.Attr
-	a.FromStat(&st)
+	st2 := syscallcompat.Unix2syscall(st)
+	a.FromStat(&st2)
 	if !a.IsRegular() {
 		tlog.Warn.Printf("ino%d: newFile: not a regular file", st.Ino)
-		syscall.Close(fd)
-		return nil, fuse.ToStatus(syscall.EACCES)
+		unix.Close(fd)
+		return nil, fuse.ToStatus(unix.EACCES)
 	}
 	// See if we have that inode number already in the table
 	// (even if Nlink has dropped to 1)

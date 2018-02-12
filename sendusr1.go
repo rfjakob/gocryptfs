@@ -2,7 +2,7 @@ package main
 
 import (
 	"os"
-	"syscall"
+	"golang.org/x/sys/unix"
 
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -15,7 +15,7 @@ func sendUsr1(pid int) {
 		tlog.Warn.Printf("sendUsr1: FindProcess: %v\n", err)
 		return
 	}
-	err = p.Signal(syscall.SIGUSR1)
+	err = p.Signal(unix.SIGUSR1)
 	if err != nil {
 		tlog.Warn.Printf("sendUsr1: Signal: %v\n", err)
 	}

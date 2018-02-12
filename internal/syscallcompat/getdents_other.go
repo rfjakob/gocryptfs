@@ -2,7 +2,6 @@ package syscallcompat
 
 import (
 	"os"
-	"syscall"
 
 	"golang.org/x/sys/unix"
 
@@ -14,7 +13,7 @@ import (
 func emulateGetdents(fd int) (out []fuse.DirEntry, err error) {
 	// os.File closes the fd in its finalizer. Duplicate the fd to not affect
 	// the original fd.
-	newFd, err := syscall.Dup(fd)
+	newFd, err := unix.Dup(fd)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +29,7 @@ func emulateGetdents(fd int) (out []fuse.DirEntry, err error) {
 	for _, name := range names {
 		var st unix.Stat_t
 		err = Fstatat(fd, name, &st, unix.AT_SYMLINK_NOFOLLOW)
-		if err == syscall.ENOENT {
+		if err == unix.ENOENT {
 			// File disappeared between readdir and stat. Pretend we did not
 			// see it.
 			continue
@@ -40,7 +39,7 @@ func emulateGetdents(fd int) (out []fuse.DirEntry, err error) {
 		}
 		newEntry := fuse.DirEntry{
 			Name: name,
-			Mode: uint32(st.Mode) & syscall.S_IFMT,
+			Mode: uint32(st.Mode) & unix.S_IFMT,
 			Ino:  st.Ino,
 		}
 		out = append(out, newEntry)

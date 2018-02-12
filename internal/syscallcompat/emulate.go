@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"syscall"
 
 	"golang.org/x/sys/unix"
 )
@@ -17,18 +16,18 @@ func emulateOpenat(dirfd int, path string, flags int, mode uint32) (int, error) 
 	if !filepath.IsAbs(path) {
 		chdirMutex.Lock()
 		defer chdirMutex.Unlock()
-		cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
+		cwd, err := unix.Open(".", unix.O_RDONLY, 0)
 		if err != nil {
 			return -1, err
 		}
-		defer syscall.Close(cwd)
-		err = syscall.Fchdir(dirfd)
+		defer unix.Close(cwd)
+		err = unix.Fchdir(dirfd)
 		if err != nil {
 			return -1, err
 		}
-		defer syscall.Fchdir(cwd)
+		defer unix.Fchdir(cwd)
 	}
-	return syscall.Open(path, flags, mode)
+	return unix.Open(path, flags, mode)
 }
 
 // emulateRenameat emulates the syscall for platforms that don't have it
@@ -56,7 +55,7 @@ func emulateRenameat(olddirfd int, oldpath string, newdirfd int, newpath string)
 	if err != nil {
 		return err
 	}
-	return syscall.Rename(oldpath, newpath)
+	return unix.Rename(oldpath, newpath)
 }
 
 // emulateUnlinkat emulates the syscall for platforms that don't have it
@@ -65,21 +64,21 @@ func emulateUnlinkat(dirfd int, path string, flags int) (err error) {
 	if !filepath.IsAbs(path) {
 		chdirMutex.Lock()
 		defer chdirMutex.Unlock()
-		cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
+		cwd, err := unix.Open(".", unix.O_RDONLY, 0)
 		if err != nil {
 			return err
 		}
-		defer syscall.Close(cwd)
-		err = syscall.Fchdir(dirfd)
+		defer unix.Close(cwd)
+		err = unix.Fchdir(dirfd)
 		if err != nil {
 			return err
 		}
-		defer syscall.Fchdir(cwd)
+		defer unix.Fchdir(cwd)
 	}
 	if (flags & unix.AT_REMOVEDIR) != 0 {
-		return syscall.Rmdir(path)
+		return unix.Rmdir(path)
 	} else {
-		return syscall.Unlink(path)
+		return unix.Unlink(path)
 	}
 }
 
@@ -89,18 +88,18 @@ func emulateMknodat(dirfd int, path string, mode uint32, dev int) error {
 	if !filepath.IsAbs(path) {
 		chdirMutex.Lock()
 		defer chdirMutex.Unlock()
-		cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
+		cwd, err := unix.Open(".", unix.O_RDONLY, 0)
 		if err != nil {
 			return err
 		}
-		defer syscall.Close(cwd)
-		err = syscall.Fchdir(dirfd)
+		defer unix.Close(cwd)
+		err = unix.Fchdir(dirfd)
 		if err != nil {
 			return err
 		}
-		defer syscall.Fchdir(cwd)
+		defer unix.Fchdir(cwd)
 	}
-	return syscall.Mknod(path, mode, dev)
+	return unix.Mknod(path, mode, dev)
 }
 
 // dirfdAbs transforms the dirfd-relative "path" to an absolute one. If the
@@ -110,7 +109,7 @@ func dirfdAbs(dirfd int, path string) (string, error) {
 	if filepath.IsAbs(path) {
 		return path, nil
 	}
-	err := syscall.Fchdir(dirfd)
+	err := unix.Fchdir(dirfd)
 	if err != nil {
 		return "", err
 	}
@@ -127,16 +126,16 @@ func emulateFchmodat(dirfd int, path string, mode uint32, flags int) (err error)
 	if !filepath.IsAbs(path) {
 		chdirMutex.Lock()
 		defer chdirMutex.Unlock()
-		cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
+		cwd, err := unix.Open(".", unix.O_RDONLY, 0)
 		if err != nil {
 			return err
 		}
-		defer syscall.Close(cwd)
-		err = syscall.Fchdir(dirfd)
+		defer unix.Close(cwd)
+		err = unix.Fchdir(dirfd)
 		if err != nil {
 			return err
 		}
-		defer syscall.Fchdir(cwd)
+		defer unix.Fchdir(cwd)
 	}
 	// We also don't have Lchmod, so emulate it (poorly).
 	if flags&unix.AT_SYMLINK_NOFOLLOW != 0 {
@@ -148,7 +147,7 @@ func emulateFchmodat(dirfd int, path string, mode uint32, flags int) (err error)
 			return nil
 		}
 	}
-	return syscall.Chmod(path, mode)
+	return unix.Chmod(path, mode)
 }
 
 // emulateFchownat emulates the syscall for platforms that don't have it
@@ -157,18 +156,18 @@ func emulateFchownat(dirfd int, path string, uid int, gid int, flags int) (err e
 	if !filepath.IsAbs(path) {
 		chdirMutex.Lock()
 		defer chdirMutex.Unlock()
-		cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
+		cwd, err := unix.Open(".", unix.O_RDONLY, 0)
 		if err != nil {
 			return err
 		}
-		defer syscall.Close(cwd)
-		err = syscall.Fchdir(dirfd)
+		defer unix.Close(cwd)
+		err = unix.Fchdir(dirfd)
 		if err != nil {
 			return err
 		}
-		defer syscall.Fchdir(cwd)
+		defer unix.Fchdir(cwd)
 	}
-	return syscall.Lchown(path, uid, gid)
+	return unix.Lchown(path, uid, gid)
 }
 
 // emulateSymlinkat emulates the syscall for platforms that don't have it
@@ -177,18 +176,18 @@ func emulateSymlinkat(oldpath string, newdirfd int, newpath string) (err error) 
 	if !filepath.IsAbs(newpath) {
 		chdirMutex.Lock()
 		defer chdirMutex.Unlock()
-		cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
+		cwd, err := unix.Open(".", unix.O_RDONLY, 0)
 		if err != nil {
 			return err
 		}
-		defer syscall.Close(cwd)
-		err = syscall.Fchdir(newdirfd)
+		defer unix.Close(cwd)
+		err = unix.Fchdir(newdirfd)
 		if err != nil {
 			return err
 		}
-		defer syscall.Fchdir(cwd)
+		defer unix.Fchdir(cwd)
 	}
-	return syscall.Symlink(oldpath, newpath)
+	return unix.Symlink(oldpath, newpath)
 }
 
 // emulateMkdirat emulates the syscall for platforms that don't have it
@@ -197,18 +196,18 @@ func emulateMkdirat(dirfd int, path string, mode uint32) (err error) {
 	if !filepath.IsAbs(path) {
 		chdirMutex.Lock()
 		defer chdirMutex.Unlock()
-		cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
+		cwd, err := unix.Open(".", unix.O_RDONLY, 0)
 		if err != nil {
 			return err
 		}
-		defer syscall.Close(cwd)
-		err = syscall.Fchdir(dirfd)
+		defer unix.Close(cwd)
+		err = unix.Fchdir(dirfd)
 		if err != nil {
 			return err
 		}
-		defer syscall.Fchdir(cwd)
+		defer unix.Fchdir(cwd)
 	}
-	return syscall.Mkdir(path, mode)
+	return unix.Mkdir(path, mode)
 }
 
 // emulateFstatat emulates the syscall for platforms that don't have it
@@ -217,16 +216,16 @@ func emulateFstatat(dirfd int, path string, stat *unix.Stat_t, flags int) (err e
 	if !filepath.IsAbs(path) {
 		chdirMutex.Lock()
 		defer chdirMutex.Unlock()
-		cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
+		cwd, err := unix.Open(".", unix.O_RDONLY, 0)
 		if err != nil {
 			return err
 		}
-		defer syscall.Close(cwd)
-		err = syscall.Fchdir(dirfd)
+		defer unix.Close(cwd)
+		err = unix.Fchdir(dirfd)
 		if err != nil {
 			return err
 		}
-		defer syscall.Fchdir(cwd)
+		defer unix.Fchdir(cwd)
 	}
 	return unix.Lstat(path, stat)
 }

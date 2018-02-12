@@ -13,7 +13,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strings"
-	"syscall"
+	"golang.org/x/sys/unix"
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -140,7 +140,7 @@ func doMount(args *argContainer) int {
 		// Disconnect from the controlling terminal by creating a new session.
 		// This prevents us from getting SIGINT when the user presses Ctrl-C
 		// to exit a running script that has called gocryptfs.
-		_, err = syscall.Setsid()
+		_, err = unix.Setsid()
 		if err != nil {
 			tlog.Warn.Printf("Setsid: %v", err)
 		}
@@ -165,8 +165,8 @@ func doMount(args *argContainer) int {
 // setOpenFileLimit tries to increase the open file limit to 4096 (the default hard
 // limit on Linux).
 func setOpenFileLimit() {
-	var lim syscall.Rlimit
-	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &lim)
+	var lim unix.Rlimit
+	err := unix.Getrlimit(unix.RLIMIT_NOFILE, &lim)
 	if err != nil {
 		tlog.Warn.Printf("Getting RLIMIT_NOFILE failed: %v", err)
 		return
@@ -175,7 +175,7 @@ func setOpenFileLimit() {
 		return
 	}
 	lim.Cur = 4096
-	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &lim)
+	err = unix.Setrlimit(unix.RLIMIT_NOFILE, &lim)
 	if err != nil {
 		tlog.Warn.Printf("Setting RLIMIT_NOFILE to %+v failed: %v", lim, err)
 		//         %+v output: "{Cur:4097 Max:4096}" ^
@@ -352,7 +352,7 @@ func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile
 	// All FUSE file and directory create calls carry explicit permission
 	// information. We need an unrestricted umask to create the files and
 	// directories with the requested permissions.
-	syscall.Umask(0000)
+	unix.Umask(0000)
 
 	return srv
 }
@@ -360,7 +360,7 @@ func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile
 func handleSigint(srv *fuse.Server, mountpoint string) {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
-	signal.Notify(ch, syscall.SIGTERM)
+	signal.Notify(ch, unix.SIGTERM)
 	go func() {
 		<-ch
 		err := srv.Unmount()

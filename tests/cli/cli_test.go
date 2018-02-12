@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"syscall"
+	"golang.org/x/sys/unix"
 	"testing"
 	"time"
 
@@ -142,7 +142,7 @@ func TestPasswdMasterkey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	syscall.Unlink(dir + "/gocryptfs.conf")
+	unix.Unlink(dir + "/gocryptfs.conf")
 	err = ioutil.WriteFile(dir+"/gocryptfs.conf", conf, 0600)
 	if err != nil {
 		t.Fatal(err)
@@ -331,7 +331,7 @@ func TestMountPasswordIncorrect(t *testing.T) {
 	pDir := cDir + ".mnt"
 	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "echo WRONG", "-wpanic=false")
 	//          vvvvvvvvvvvvvv OMG vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-	exitCode := err.(*exec.ExitError).Sys().(syscall.WaitStatus).ExitStatus()
+	exitCode := err.(*exec.ExitError).Sys().(unix.WaitStatus).ExitStatus()
 	if exitCode != exitcodes.PasswordIncorrect {
 		t.Errorf("want=%d, got=%d", exitcodes.PasswordIncorrect, exitCode)
 	}
@@ -360,7 +360,7 @@ func TestPasswdPasswordIncorrect(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = cmd.Wait()
-	exitCode := err.(*exec.ExitError).Sys().(syscall.WaitStatus).ExitStatus()
+	exitCode := err.(*exec.ExitError).Sys().(unix.WaitStatus).ExitStatus()
 	if exitCode != exitcodes.PasswordIncorrect {
 		t.Errorf("want=%d, got=%d", exitcodes.PasswordIncorrect, exitCode)
 	}

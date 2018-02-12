@@ -7,8 +7,8 @@ import (
 	"os"
 	"runtime"
 	"strings"
-	"syscall"
 	"testing"
+	"syscall"
 
 	"golang.org/x/sys/unix"
 

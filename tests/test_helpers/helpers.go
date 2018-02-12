@@ -12,7 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"syscall"
+	"golang.org/x/sys/unix"
 	"testing"
 	"time"
 
@@ -70,7 +70,7 @@ func ResetTmpDir(createDirIV bool) {
 			err = os.Remove(d)
 			if err != nil {
 				pe := err.(*os.PathError)
-				if pe.Err == syscall.EBUSY {
+				if pe.Err == unix.EBUSY {
 					if testing.Verbose() {
 						fmt.Printf("Remove failed: %v. Maybe still mounted?\n", pe)
 					}
@@ -78,7 +78,7 @@ func ResetTmpDir(createDirIV bool) {
 					if err != nil {
 						panic(err)
 					}
-				} else if pe.Err != syscall.ENOTEMPTY {
+				} else if pe.Err != unix.ENOTEMPTY {
 					panic("Unhandled error: " + pe.Err.Error())
 				}
 				err = os.RemoveAll(d)
@@ -242,7 +242,7 @@ func TestMkdirRmdir(t *testing.T, plainDir string) {
 		t.Error(err)
 		return
 	}
-	err = syscall.Rmdir(dir)
+	err = unix.Rmdir(dir)
 	if err != nil {
 		t.Error(err)
 		return
@@ -258,16 +258,16 @@ func TestMkdirRmdir(t *testing.T, plainDir string) {
 		return
 	}
 	f.Close()
-	err = syscall.Rmdir(dir)
-	errno := err.(syscall.Errno)
-	if errno != syscall.ENOTEMPTY {
+	err = unix.Rmdir(dir)
+	errno := err.(unix.Errno)
+	if errno != unix.ENOTEMPTY {
 		t.Errorf("Should have gotten ENOTEMPTY, go %v", errno)
 	}
-	if syscall.Unlink(dir+"/file") != nil {
+	if unix.Unlink(dir+"/file") != nil {
 		t.Error(err)
 		return
 	}
-	if syscall.Rmdir(dir) != nil {
+	if unix.Rmdir(dir) != nil {
 		t.Error(err)
 		return
 	}
@@ -278,7 +278,7 @@ func TestMkdirRmdir(t *testing.T, plainDir string) {
 		t.Error(err)
 		return
 	}
-	err = syscall.Rmdir(dir)
+	err = unix.Rmdir(dir)
 	if err != nil {
 		// Make sure the directory can cleaned up by the next test run
 		os.Chmod(dir, 0700)
@@ -296,12 +296,12 @@ func TestRename(t *testing.T, plainDir string) {
 		t.Error(err)
 		return
 	}
-	err = syscall.Rename(file1, file2)
+	err = unix.Rename(file1, file2)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	syscall.Unlink(file2)
+	unix.Unlink(file2)
 }
 
 // VerifyExistence checks in 3 ways that "path" exists:
@@ -339,8 +339,8 @@ func VerifyExistence(path string) bool {
 // Du returns the disk usage of the file "fd" points to, in bytes.
 // Same as "du --block-size=1".
 func Du(t *testing.T, fd int) (nBytes int64) {
-	var st syscall.Stat_t
-	err := syscall.Fstat(fd, &st)
+	var st unix.Stat_t
+	err := unix.Fstat(fd, &st)
 	if err != nil {
 		t.Fatal(err)
 	}

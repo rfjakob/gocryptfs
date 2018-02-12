@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"sync"
-	"syscall"
+	"golang.org/x/sys/unix"
 	"testing"
 	"time"
 
@@ -57,11 +57,11 @@ func TestDirIVRace(t *testing.T) {
 	time.Sleep(time.Millisecond)
 
 	// Overwrite dir2 with dir1
-	err = syscall.Unlink(file2)
+	err = unix.Unlink(file2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = syscall.Rename(dir1, dir2)
+	err = unix.Rename(dir1, dir2)
 	if err != nil {
 		t.Fatal(err)
 	}

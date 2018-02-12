@@ -2,7 +2,7 @@ package syscallcompat
 
 import (
 	"os"
-	"syscall"
+	"golang.org/x/sys/unix"
 	"testing"
 )
 
@@ -12,11 +12,11 @@ func TestOpenNofollow(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Create a file
-	fd, err := OpenNofollow(tmpDir, "d1/d2/d3/f1", syscall.O_RDWR|syscall.O_CREAT|syscall.O_EXCL, 0600)
+	fd, err := OpenNofollow(tmpDir, "d1/d2/d3/f1", unix.O_RDWR|unix.O_CREAT|unix.O_EXCL, 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
-	syscall.Close(fd)
+	unix.Close(fd)
 	_, err = os.Stat(tmpDir + "/d1/d2/d3/f1")
 	if err != nil {
 		t.Fatal(err)
@@ -27,18 +27,18 @@ func TestOpenNofollow(t *testing.T) {
 		t.Fatal(err)
 	}
 	os.Symlink(tmpDir+"/d1.renamed", tmpDir+"/d1")
-	fd, err = OpenNofollow(tmpDir, "d1/d2/d3/f1", syscall.O_RDWR|syscall.O_CREAT, 0600)
+	fd, err = OpenNofollow(tmpDir, "d1/d2/d3/f1", unix.O_RDWR|unix.O_CREAT, 0600)
 	if err == nil {
 		t.Fatalf("should have failed")
 	}
-	if err != syscall.ELOOP && err != syscall.ENOTDIR {
+	if err != unix.ELOOP && err != unix.ENOTDIR {
 		t.Errorf("expected ELOOP or ENOTDIR, got %v", err)
 	}
 	// Check to see that the base dir can be opened as well
-	fd, err = OpenNofollow(tmpDir, "", syscall.O_RDONLY, 0)
+	fd, err = OpenNofollow(tmpDir, "", unix.O_RDONLY, 0)
 	if err != nil {
 		t.Errorf("cannot open base dir: %v", err)
 	} else {
-		syscall.Close(fd)
+		unix.Close(fd)
 	}
 }

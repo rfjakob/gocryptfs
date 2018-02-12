@@ -2,7 +2,6 @@ package syscallcompat
 
 import (
 	"os"
-	"syscall"
 	"testing"
 
 	"golang.org/x/sys/unix"
@@ -22,7 +21,7 @@ func TestEmulateOpenat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer syscall.Close(rawFd)
+	defer unix.Close(rawFd)
 	if rawFd < 0 {
 		t.Fatalf("rawFd=%d", rawFd)
 	}
@@ -31,7 +30,7 @@ func TestEmulateOpenat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer syscall.Close(rawFd)
+	defer unix.Close(rawFd)
 	if rawFd < 0 {
 		t.Fatalf("rawFd=%d", rawFd)
 	}
@@ -162,8 +161,8 @@ func TestEmulateFchmodat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var st syscall.Stat_t
-	err = syscall.Lstat(tmpDir+"/chmod", &st)
+	var st unix.Stat_t
+	err = unix.Lstat(tmpDir+"/chmod", &st)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,7 +178,7 @@ func TestEmulateFchmodat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = syscall.Lstat(tmpDir+"/chmod", &st)
+	err = unix.Lstat(tmpDir+"/chmod", &st)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,7 +190,7 @@ func TestEmulateFchmodat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = syscall.Lstat(tmpDir+"/chmod", &st)
+	err = unix.Lstat(tmpDir+"/chmod", &st)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,8 +208,8 @@ func TestEmulateSymlinkat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var st syscall.Stat_t
-	err = syscall.Lstat(tmpDir+"/symlink1", &st)
+	var st unix.Stat_t
+	err = unix.Lstat(tmpDir+"/symlink1", &st)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,7 +221,7 @@ func TestEmulateSymlinkat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = syscall.Lstat(tmpDir+"/symlink2", &st)
+	err = unix.Lstat(tmpDir+"/symlink2", &st)
 	if err != nil {
 		t.Fatal(err)
 	}

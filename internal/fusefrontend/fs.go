@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"syscall"
 	"time"
 
 	"golang.org/x/sys/unix"
@@ -121,12 +120,12 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 	f, err := os.OpenFile(cPath, newFlags, 0)
 	if err != nil {
 		sysErr := err.(*os.PathError).Err
-		if sysErr == syscall.EMFILE {
-			var lim syscall.Rlimit
-			syscall.Getrlimit(syscall.RLIMIT_NOFILE, &lim)
+		if sysErr == unix.EMFILE {
+			var lim unix.Rlimit
+			unix.Getrlimit(unix.RLIMIT_NOFILE, &lim)
 			tlog.Warn.Printf("Open %q: too many open files. Current \"ulimit -n\": %d", cPath, lim.Cur)
 		}
-		if sysErr == syscall.EACCES && (int(flags)&os.O_WRONLY > 0) {
+		if sysErr == unix.EACCES && (int(flags)&os.O_WRONLY > 0) {
 			return fs.openWriteOnlyFile(cPath, newFlags)
 		}
 		return nil, fuse.ToStatus(err)
@@ -152,7 +151,7 @@ func (fs *FS) openWriteOnlyFile(cPath string, newFlags int) (fuseFile nodefs.Fil
 	// Verify that we don't have read permissions
 	if perms&0400 != 0 {
 		tlog.Warn.Printf("openWriteOnlyFile: unexpected permissions %#o, returning EPERM", perms)
-		return nil, fuse.ToStatus(syscall.EPERM)
+		return nil, fuse.ToStatus(unix.EPERM)
 	}
 	// Upgrade the lock to block other Open()s and downgrade again on return
 	fs.openWriteOnlyLock.RUnlock()
@@ -468,7 +467,7 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 	fs.nameTransform.DirIVCache.Clear()
 	// Easy case.
 	if fs.args.PlaintextNames {
-		return fuse.ToStatus(syscall.Rename(cOldPath, cNewPath))
+		return fuse.ToStatus(unix.Rename(cOldPath, cNewPath))
 	}
 	// Handle long source file name
 	var oldDirFd *os.File
@@ -505,7 +504,7 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 		// exists. Since hashes are pretty unique, there is no need to modify the
 		// file anyway. We still set newDirFd to nil to ensure that we do not delete
 		// the file on error.
-		if err == syscall.EEXIST {
+		if err == unix.EEXIST {
 			newDirFd = nil
 		} else if err != nil {
 			return fuse.ToStatus(err)
@@ -514,7 +513,7 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 	// Actual rename
 	tlog.Debug.Printf("Renameat oldfd=%d oldpath=%s newfd=%d newpath=%s\n", finalOldDirFd, finalOldPath, finalNewDirFd, finalNewPath)
 	err = syscallcompat.Renameat(finalOldDirFd, finalOldPath, finalNewDirFd, finalNewPath)
-	if err == syscall.ENOTEMPTY || err == syscall.EEXIST {
+	if err == unix.ENOTEMPTY || err == unix.EEXIST {
 		// If an empty directory is overwritten we will always get an error as
 		// the "empty" directory will still contain gocryptfs.diriv.
 		// Interestingly, ext4 returns ENOTEMPTY while xfs returns EEXIST.
@@ -580,7 +579,7 @@ func (fs *FS) Access(path string, mode uint32, context *fuse.Context) (code fuse
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	return fuse.ToStatus(syscall.Access(cPath, mode))
+	return fuse.ToStatus(unix.Access(cPath, mode))
 }
 
 // GetXAttr implements pathfs.Filesystem.

@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 
 	"golang.org/x/sys/unix"
 
@@ -40,7 +39,7 @@ func ReadDirIV(dir string) (iv []byte, err error) {
 // Using the dirfd makes it immune to concurrent renames of the directory.
 func ReadDirIVAt(dirfd *os.File) (iv []byte, err error) {
 	fdRaw, err := syscallcompat.Openat(int(dirfd.Fd()), DirIVFilename,
-		syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
+		unix.O_RDONLY|unix.O_NOFOLLOW, 0)
 	if err != nil {
 		tlog.Warn.Printf("ReadDirIVAt: opening %q in dir %q failed: %v",
 			DirIVFilename, dirfd.Name(), err)
@@ -67,11 +66,11 @@ func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 	iv = iv[0:n]
 	if len(iv) != DirIVLen {
 		tlog.Warn.Printf("ReadDirIVAt: wanted %d bytes, got %d. Returning EINVAL.", DirIVLen, len(iv))
-		return nil, syscall.EINVAL
+		return nil, unix.EINVAL
 	}
 	if bytes.Equal(iv, allZeroDirIV) {
 		tlog.Warn.Printf("ReadDirIVAt: diriv is all-zero. Returning EINVAL.")
-		return nil, syscall.EINVAL
+		return nil, unix.EINVAL
 	}
 	return iv, nil
 }
@@ -131,7 +130,7 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (str
 	// Reject names longer than 255 bytes.
 	baseName := filepath.Base(plainPath)
 	if len(baseName) > unix.NAME_MAX {
-		return "", syscall.ENAMETOOLONG
+		return "", unix.ENAMETOOLONG
 	}
 	// If we have the iv and the encrypted directory name in the cache, we
 	// can skip the directory walk. This optimization yields a 10% improvement

@@ -7,7 +7,7 @@ package openfiletable
 import (
 	"sync"
 	"sync/atomic"
-	"syscall"
+	"golang.org/x/sys/unix"
 )
 
 // QIno = Qualified Inode number.
@@ -20,7 +20,7 @@ type QIno struct {
 }
 
 // QInoFromStat fills a new QIno struct with the passed Stat_t info.
-func QInoFromStat(st *syscall.Stat_t) QIno {
+func QInoFromStat(st *unix.Stat_t) QIno {
 	return QIno{
 		// There are some architectures that use 32-bit values here
 		// (darwin, freebsd-32, maybe others). Add and explicit cast to make
