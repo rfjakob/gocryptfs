@@ -21,28 +21,28 @@ func errExit() {
 	os.Exit(exitcodes.OpenSSL)
 }
 
-func New(_ []byte, _ bool) stupidGCM {
+func New(_ []byte, _ bool) *stupidGCM {
 	errExit()
 	// Never reached
-	return stupidGCM{}
+	return &stupidGCM{}
 }
 
-func (g stupidGCM) NonceSize() int {
+func (g *stupidGCM) NonceSize() int {
 	errExit()
 	return -1
 }
 
-func (g stupidGCM) Overhead() int {
+func (g *stupidGCM) Overhead() int {
 	errExit()
 	return -1
 }
 
-func (g stupidGCM) Seal(_, _, _, _ []byte) []byte {
+func (g *stupidGCM) Seal(_, _, _, _ []byte) []byte {
 	errExit()
 	return nil
 }
 
-func (g stupidGCM) Open(_, _, _, _ []byte) ([]byte, error) {
+func (g *stupidGCM) Open(_, _, _, _ []byte) ([]byte, error) {
 	errExit()
 	return nil, nil
 }

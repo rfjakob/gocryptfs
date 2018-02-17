@@ -29,6 +29,7 @@ type stupidGCM struct {
 	forceDecode bool
 }
 
+// Verify that we satisfy the cipher.AEAD interface
 var _ cipher.AEAD = &stupidGCM{}
 
 // New returns a new cipher.AEAD implementation..
@@ -36,19 +37,19 @@ func New(key []byte, forceDecode bool) cipher.AEAD {
 	if len(key) != keyLen {
 		log.Panicf("Only %d-byte keys are supported", keyLen)
 	}
-	return stupidGCM{key: key, forceDecode: forceDecode}
+	return &stupidGCM{key: key, forceDecode: forceDecode}
 }
 
-func (g stupidGCM) NonceSize() int {
+func (g *stupidGCM) NonceSize() int {
 	return ivLen
 }
 
-func (g stupidGCM) Overhead() int {
+func (g *stupidGCM) Overhead() int {
 	return tagLen
 }
 
 // Seal encrypts "in" using "iv" and "authData" and append the result to "dst"
-func (g stupidGCM) Seal(dst, iv, in, authData []byte) []byte {
+func (g *stupidGCM) Seal(dst, iv, in, authData []byte) []byte {
 	if len(iv) != ivLen {
 		log.Panicf("Only %d-byte IVs are supported", ivLen)
 	}
@@ -132,7 +133,7 @@ func (g stupidGCM) Seal(dst, iv, in, authData []byte) []byte {
 }
 
 // Open decrypts "in" using "iv" and "authData" and append the result to "dst"
-func (g stupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
+func (g *stupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
 	if len(iv) != ivLen {
 		log.Panicf("Only %d-byte IVs are supported", ivLen)
 	}
