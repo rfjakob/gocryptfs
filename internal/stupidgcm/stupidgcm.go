@@ -56,6 +56,9 @@ func (g *stupidGCM) Seal(dst, iv, in, authData []byte) []byte {
 	if len(in) == 0 {
 		log.Panic("Zero-length input data is not supported")
 	}
+	if len(g.key) != keyLen {
+		log.Panicf("Wrong key length: %d. Key has been wiped?", len(g.key))
+	}
 
 	// If the "dst" slice is large enough we can use it as our output buffer
 	outLen := len(in) + tagLen
@@ -140,6 +143,9 @@ func (g *stupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
 	if len(in) <= tagLen {
 		log.Panic("Input data too short")
 	}
+	if len(g.key) != keyLen {
+		log.Panicf("Wrong key length: %d. Key has been wiped?", len(g.key))
+	}
 
 	// If the "dst" slice is large enough we can use it as our output buffer
 	outLen := len(in) - tagLen
@@ -223,4 +229,16 @@ func (g *stupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
 		return dst[:len(dst)+outLen], nil
 	}
 	return append(dst, buf...), nil
+}
+
+// Wipe wipes the AES key from memory by overwriting it with zeros and
+// setting the reference to nil.
+//
+// This is not bulletproof due to possible GC copies, but
+// still raises to bar for extracting the key.
+func (g *stupidGCM) Wipe() {
+	for i := range g.key {
+		g.key[i] = 0
+	}
+	g.key = nil
 }
