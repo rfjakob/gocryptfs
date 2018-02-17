@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"log/syslog"
 	"net"
 	"os"
@@ -21,11 +22,13 @@ import (
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
+	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/ctlsock"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend_reverse"
+	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -182,6 +185,13 @@ func setOpenFileLimit() {
 	}
 }
 
+// ctlsockFs satisfies both the pathfs.FileSystem and the ctlsock.Interface
+// interfaces
+type ctlsockFs interface {
+	pathfs.FileSystem
+	ctlsock.Interface
+}
+
 // initFuseFrontend - initialize gocryptfs/fusefrontend
 // Calls os.Exit on errors
 func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile.ConfFile) *fuse.Server {
@@ -203,11 +213,8 @@ func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile
 		Cipherdir:      args.cipherdir,
 		PlaintextNames: args.plaintextnames,
 		LongNames:      args.longnames,
-		CryptoBackend:  cryptoBackend,
 		ConfigCustom:   args._configCustom,
-		Raw64:          args.raw64,
 		NoPrealloc:     args.noprealloc,
-		HKDF:           args.hkdf,
 		SerializeReads: args.serialize_reads,
 		ForceDecode:    args.forcedecode,
 		ForceOwner:     args._forceOwner,
@@ -216,10 +223,10 @@ func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile
 	if confFile != nil {
 		// Settings from the config file override command line args
 		frontendArgs.PlaintextNames = confFile.IsFeatureFlagSet(configfile.FlagPlaintextNames)
-		frontendArgs.Raw64 = confFile.IsFeatureFlagSet(configfile.FlagRaw64)
-		frontendArgs.HKDF = confFile.IsFeatureFlagSet(configfile.FlagHKDF)
+		args.raw64 = confFile.IsFeatureFlagSet(configfile.FlagRaw64)
+		args.hkdf = confFile.IsFeatureFlagSet(configfile.FlagHKDF)
 		if confFile.IsFeatureFlagSet(configfile.FlagAESSIV) {
-			frontendArgs.CryptoBackend = cryptocore.BackendAESSIV
+			cryptoBackend = cryptocore.BackendAESSIV
 		} else if args.reverse {
 			tlog.Fatal.Printf("AES-SIV is required by reverse mode, but not enabled in the config file")
 			os.Exit(exitcodes.Usage)
@@ -232,8 +239,6 @@ func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile
 	}
 	jsonBytes, _ := json.MarshalIndent(frontendArgs, "", "\t")
 	tlog.Debug.Printf("frontendArgs: %s", string(jsonBytes))
-	var finalFs pathfs.FileSystem
-	var ctlSockBackend ctlsock.Interface
 	// pathFsOpts are passed into go-fuse/pathfs
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
 	if args.sharedstorage {
@@ -242,21 +247,23 @@ func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile
 		// https://github.com/rfjakob/gocryptfs/issues/156
 		pathFsOpts.ClientInodes = false
 	}
+	// Init crypto backend
+	cCore := cryptocore.New(masterkey, cryptoBackend, contentenc.DefaultIVBits, args.hkdf, args.forcedecode)
+	cEnc := contentenc.New(cCore, contentenc.DefaultBS, args.forcedecode)
+	nameTransform := nametransform.New(cCore.EMECipher, frontendArgs.LongNames, args.raw64)
+	// Spawn fusefrontend
+	var fs ctlsockFs
 	if args.reverse {
-		// The dance with the intermediate variables is because we need to
-		// cast the FS into pathfs.FileSystem *and* ctlsock.Interface. This
-		// avoids using interface{}.
-		fs := fusefrontend_reverse.NewFS(masterkey, frontendArgs)
-		finalFs = fs
-		ctlSockBackend = fs
+		if cryptoBackend != cryptocore.BackendAESSIV {
+			log.Panic("reverse mode must use AES-SIV, everything else is insecure")
+		}
+		fs = fusefrontend_reverse.NewFS(frontendArgs, cEnc, nameTransform)
 		// Reverse mode is read-only, so we don't need a working link().
 		// Disable hard link tracking to avoid strange breakage on duplicate
 		// inode numbers ( https://github.com/rfjakob/gocryptfs/issues/149 ).
 		pathFsOpts.ClientInodes = false
 	} else {
-		fs := fusefrontend.NewFS(masterkey, frontendArgs)
-		finalFs = fs
-		ctlSockBackend = fs
+		fs = fusefrontend.NewFS(frontendArgs, cEnc, nameTransform)
 	}
 	// fusefrontend / fusefrontend_reverse have initialized their crypto with
 	// derived keys (HKDF), we can purge the master key from memory.
@@ -266,9 +273,9 @@ func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile
 	// We have opened the socket early so that we cannot fail here after
 	// asking the user for the password
 	if args._ctlsockFd != nil {
-		go ctlsock.Serve(args._ctlsockFd, ctlSockBackend)
+		go ctlsock.Serve(args._ctlsockFd, fs)
 	}
-	pathFs := pathfs.NewPathNodeFs(finalFs, pathFsOpts)
+	pathFs := pathfs.NewPathNodeFs(fs, pathFsOpts)
 	var fuseOpts *nodefs.Options
 	if args.sharedstorage {
 		// sharedstorage mode sets all cache timeouts to zero so changes to the

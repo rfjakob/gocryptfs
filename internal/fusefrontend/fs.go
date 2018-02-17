@@ -17,7 +17,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
-	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/serialize_reads"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
@@ -44,20 +43,15 @@ type FS struct {
 var _ pathfs.FileSystem = &FS{} // Verify that interface is implemented.
 
 // NewFS returns a new encrypted FUSE overlay filesystem.
-func NewFS(masterkey []byte, args Args) *FS {
-	cryptoCore := cryptocore.New(masterkey, args.CryptoBackend, contentenc.DefaultIVBits, args.HKDF, args.ForceDecode)
-	contentEnc := contentenc.New(cryptoCore, contentenc.DefaultBS, args.ForceDecode)
-	nameTransform := nametransform.New(cryptoCore.EMECipher, args.LongNames, args.Raw64)
-
+func NewFS(args Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) *FS {
 	if args.SerializeReads {
 		serialize_reads.InitSerializer()
 	}
-
 	return &FS{
 		FileSystem:    pathfs.NewLoopbackFileSystem(args.Cipherdir),
 		args:          args,
-		nameTransform: nameTransform,
-		contentEnc:    contentEnc,
+		nameTransform: n,
+		contentEnc:    c,
 	}
 }
 

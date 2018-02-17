@@ -2,7 +2,6 @@ package fusefrontend_reverse
 
 import (
 	"fmt"
-	"log"
 	"path/filepath"
 	"syscall"
 
@@ -42,22 +41,15 @@ var _ pathfs.FileSystem = &ReverseFS{}
 // NewFS returns an encrypted FUSE overlay filesystem.
 // In this case (reverse mode) the backing directory is plain-text and
 // ReverseFS provides an encrypted view.
-func NewFS(masterkey []byte, args fusefrontend.Args) *ReverseFS {
-	if args.CryptoBackend != cryptocore.BackendAESSIV {
-		log.Panic("reverse mode must use AES-SIV, everything else is insecure")
-	}
+func NewFS(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) *ReverseFS {
 	initLongnameCache()
-	cryptoCore := cryptocore.New(masterkey, args.CryptoBackend, contentenc.DefaultIVBits, args.HKDF, false)
-	contentEnc := contentenc.New(cryptoCore, contentenc.DefaultBS, false)
-	nameTransform := nametransform.New(cryptoCore.EMECipher, args.LongNames, args.Raw64)
-
 	return &ReverseFS{
 		// pathfs.defaultFileSystem returns ENOSYS for all operations
 		FileSystem:    pathfs.NewDefaultFileSystem(),
 		loopbackfs:    pathfs.NewLoopbackFileSystem(args.Cipherdir),
 		args:          args,
-		nameTransform: nameTransform,
-		contentEnc:    contentEnc,
+		nameTransform: n,
+		contentEnc:    c,
 	}
 }
 
