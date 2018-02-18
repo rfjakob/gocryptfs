@@ -87,20 +87,23 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 	if aessiv {
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagAESSIV])
 	}
-
-	// Generate new random master key
-	var key []byte
-	if devrandom {
-		key = randBytesDevRandom(cryptocore.KeyLen)
-	} else {
-		key = cryptocore.RandBytes(cryptocore.KeyLen)
+	{
+		// Generate new random master key
+		var key []byte
+		if devrandom {
+			key = randBytesDevRandom(cryptocore.KeyLen)
+		} else {
+			key = cryptocore.RandBytes(cryptocore.KeyLen)
+		}
+		// Encrypt it using the password
+		// This sets ScryptObject and EncryptedKey
+		// Note: this looks at the FeatureFlags, so call it AFTER setting them.
+		cf.EncryptKey(key, password, logN)
+		for i := range key {
+			key[i] = 0
+		}
+		// key runs out of scope here
 	}
-
-	// Encrypt it using the password
-	// This sets ScryptObject and EncryptedKey
-	// Note: this looks at the FeatureFlags, so call it AFTER setting them.
-	cf.EncryptKey(key, password, logN)
-
 	// Write file to disk
 	return cf.WriteFile()
 }
@@ -197,14 +200,17 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 // Uses scrypt with cost parameter logN and stores the scrypt parameters in
 // cf.ScryptObject.
 func (cf *ConfFile) EncryptKey(key []byte, password string, logN int) {
-	// Generate derived key from password
+	// Generate scrypt-derived key from password
 	cf.ScryptObject = NewScryptKDF(logN)
 	scryptHash := cf.ScryptObject.DeriveKey(password)
-
 	// Lock master key using password-based key
 	useHKDF := cf.IsFeatureFlagSet(FlagHKDF)
 	ce := getKeyEncrypter(scryptHash, useHKDF)
 	cf.EncryptedKey = ce.EncryptBlock(key, 0, nil)
+	// Purge scrypt-derived key
+	for i := range scryptHash {
+		scryptHash[i] = 0
+	}
 }
 
 // WriteFile - write out config in JSON format to file "filename.tmp"
