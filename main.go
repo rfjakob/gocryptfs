@@ -44,7 +44,7 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 	// password).
 	if args.masterkey != "" {
 		masterkey = parseMasterKey(args.masterkey)
-		_, confFile, err = configfile.LoadConfFile(args.config, "")
+		_, confFile, err = configfile.LoadConfFile(args.config, nil)
 	} else {
 		pw := readpassword.Once(args.extpass)
 		tlog.Info.Println("Decrypting master key")

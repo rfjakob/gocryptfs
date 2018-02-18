@@ -8,6 +8,8 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
+var testPw = []byte("test")
+
 func TestMain(m *testing.M) {
 	// Shut up info output
 	tlog.Info.Enabled = false
@@ -16,7 +18,7 @@ func TestMain(m *testing.M) {
 
 func TestExtpass(t *testing.T) {
 	p1 := "ads2q4tw41reg52"
-	p2 := readPasswordExtpass("echo " + p1)
+	p2 := string(readPasswordExtpass("echo " + p1))
 	if p1 != p2 {
 		t.Errorf("p1=%q != p2=%q", p1, p2)
 	}
@@ -24,7 +26,7 @@ func TestExtpass(t *testing.T) {
 
 func TestOnceExtpass(t *testing.T) {
 	p1 := "lkadsf0923rdfi48rqwhdsf"
-	p2 := Once("echo " + p1)
+	p2 := string(Once("echo " + p1))
 	if p1 != p2 {
 		t.Errorf("p1=%q != p2=%q", p1, p2)
 	}
@@ -32,7 +34,7 @@ func TestOnceExtpass(t *testing.T) {
 
 func TestTwiceExtpass(t *testing.T) {
 	p1 := "w5w44t3wfe45srz434"
-	p2 := Once("echo " + p1)
+	p2 := string(Once("echo " + p1))
 	if p1 != p2 {
 		t.Errorf("p1=%q != p2=%q", p1, p2)
 	}

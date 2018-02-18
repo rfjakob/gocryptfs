@@ -61,10 +61,10 @@ func NewScryptKDF(logN int) ScryptKDF {
 }
 
 // DeriveKey returns a new key from a supplied password.
-func (s *ScryptKDF) DeriveKey(pw string) []byte {
+func (s *ScryptKDF) DeriveKey(pw []byte) []byte {
 	s.validateParams()
 
-	k, err := scrypt.Key([]byte(pw), s.Salt, s.N, s.R, s.P, s.KeyLen)
+	k, err := scrypt.Key(pw, s.Salt, s.N, s.R, s.P, s.KeyLen)
 	if err != nil {
 		log.Panicf("DeriveKey failed: %v", err)
 	}

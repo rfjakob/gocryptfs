@@ -67,7 +67,7 @@ func randBytesDevRandom(n int) []byte {
 // CreateConfFile - create a new config with a random key encrypted with
 // "password" and write it to "filename".
 // Uses scrypt with cost parameter logN.
-func CreateConfFile(filename string, password string, plaintextNames bool, logN int, creator string, aessiv bool, devrandom bool) error {
+func CreateConfFile(filename string, password []byte, plaintextNames bool, logN int, creator string, aessiv bool, devrandom bool) error {
 	var cf ConfFile
 	cf.filename = filename
 	cf.Creator = creator
@@ -114,7 +114,7 @@ func CreateConfFile(filename string, password string, plaintextNames bool, logN 
 //
 // If "password" is empty, the config file is read
 // but the key is not decrypted (returns nil in its place).
-func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
+func LoadConfFile(filename string, password []byte) ([]byte, *ConfFile, error) {
 	var cf ConfFile
 	cf.filename = filename
 
@@ -171,7 +171,7 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 
 		return nil, nil, fmt.Errorf("Deprecated filesystem")
 	}
-	if password == "" {
+	if len(password) == 0 {
 		// We have validated the config file, but without a password we cannot
 		// decrypt the master key. Return only the parsed config.
 		return nil, &cf, nil
@@ -199,7 +199,7 @@ func LoadConfFile(filename string, password string) ([]byte, *ConfFile, error) {
 // and store it in cf.EncryptedKey.
 // Uses scrypt with cost parameter logN and stores the scrypt parameters in
 // cf.ScryptObject.
-func (cf *ConfFile) EncryptKey(key []byte, password string, logN int) {
+func (cf *ConfFile) EncryptKey(key []byte, password []byte, logN int) {
 	// Generate scrypt-derived key from password
 	cf.ScryptObject = NewScryptKDF(logN)
 	scryptHash := cf.ScryptObject.DeriveKey(password)

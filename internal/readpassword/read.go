@@ -2,6 +2,7 @@
 package readpassword
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -23,7 +24,7 @@ const (
 
 // Once tries to get a password from the user, either from the terminal, extpass
 // or stdin.
-func Once(extpass string) string {
+func Once(extpass string) []byte {
 	if extpass != "" {
 		return readPasswordExtpass(extpass)
 	}
@@ -35,7 +36,7 @@ func Once(extpass string) string {
 
 // Twice is the same as Once but will prompt twice if we get the password from
 // the terminal.
-func Twice(extpass string) string {
+func Twice(extpass string) []byte {
 	if extpass != "" {
 		return readPasswordExtpass(extpass)
 	}
@@ -44,7 +45,7 @@ func Twice(extpass string) string {
 	}
 	p1 := readPasswordTerminal("Password: ")
 	p2 := readPasswordTerminal("Repeat: ")
-	if p1 != p2 {
+	if !bytes.Equal(p1, p2) {
 		tlog.Fatal.Println("Passwords do not match")
 		os.Exit(exitcodes.ReadPassword)
 	}
@@ -53,7 +54,7 @@ func Twice(extpass string) string {
 
 // readPasswordTerminal reads a line from the terminal.
 // Exits on read error or empty result.
-func readPasswordTerminal(prompt string) string {
+func readPasswordTerminal(prompt string) []byte {
 	fd := int(os.Stdin.Fd())
 	fmt.Fprintf(os.Stderr, prompt)
 	// terminal.ReadPassword removes the trailing newline
@@ -67,12 +68,12 @@ func readPasswordTerminal(prompt string) string {
 		tlog.Fatal.Println("Password is empty")
 		os.Exit(exitcodes.PasswordEmpty)
 	}
-	return string(p)
+	return p
 }
 
 // readPasswordStdin reads a line from stdin.
 // It exits with a fatal error on read error or empty result.
-func readPasswordStdin() string {
+func readPasswordStdin() []byte {
 	tlog.Info.Println("Reading password from stdin")
 	p := readLineUnbuffered(os.Stdin)
 	if len(p) == 0 {
@@ -85,7 +86,7 @@ func readPasswordStdin() string {
 // readPasswordExtpass executes the "extpass" program and returns the first line
 // of the output.
 // Exits on read error or empty result.
-func readPasswordExtpass(extpass string) string {
+func readPasswordExtpass(extpass string) []byte {
 	tlog.Info.Println("Reading password from extpass program")
 	var parts []string
 	// The option "-passfile=FILE" gets transformed to
@@ -125,7 +126,7 @@ func readPasswordExtpass(extpass string) string {
 
 // readLineUnbuffered reads single bytes from "r" util it gets "\n" or EOF.
 // The returned string does NOT contain the trailing "\n".
-func readLineUnbuffered(r io.Reader) (l string) {
+func readLineUnbuffered(r io.Reader) (l []byte) {
 	b := make([]byte, 1)
 	for {
 		if len(l) > maxPasswordLen {
@@ -146,7 +147,7 @@ func readLineUnbuffered(r io.Reader) (l string) {
 		if b[0] == '\n' {
 			return l
 		}
-		l = l + string(b)
+		l = append(l, b...)
 	}
 }
 

@@ -11,7 +11,7 @@ import (
 func TestStdin(t *testing.T) {
 	p1 := "g55434t55wef"
 	if os.Getenv("TEST_SLAVE") == "1" {
-		p2 := readPasswordStdin()
+		p2 := string(readPasswordStdin())
 		if p1 != p2 {
 			fmt.Fprintf(os.Stderr, "%q != %q", p1, p2)
 			os.Exit(1)
@@ -44,7 +44,7 @@ func TestStdin(t *testing.T) {
 func TestStdinEof(t *testing.T) {
 	p1 := "asd45as5f4a36"
 	if os.Getenv("TEST_SLAVE") == "1" {
-		p2 := readPasswordStdin()
+		p2 := string(readPasswordStdin())
 		if p1 != p2 {
 			fmt.Fprintf(os.Stderr, "%q != %q", p1, p2)
 			os.Exit(1)
