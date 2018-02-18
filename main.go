@@ -49,6 +49,9 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 		pw := readpassword.Once(args.extpass)
 		tlog.Info.Println("Decrypting master key")
 		masterkey, confFile, err = configfile.LoadConfFile(args.config, pw)
+		for i := range pw {
+			pw[i] = 0
+		}
 	}
 	if err != nil {
 		tlog.Fatal.Println(err)
@@ -64,9 +67,15 @@ func changePassword(args *argContainer) {
 		exitcodes.Exit(err)
 	}
 	tlog.Info.Println("Please enter your new password.")
-	newPw := readpassword.Twice(args.extpass)
-	readpassword.CheckTrailingGarbage()
-	confFile.EncryptKey(masterkey, newPw, confFile.ScryptObject.LogN())
+	{
+		newPw := readpassword.Twice(args.extpass)
+		readpassword.CheckTrailingGarbage()
+		confFile.EncryptKey(masterkey, newPw, confFile.ScryptObject.LogN())
+		for i := range newPw {
+			newPw[i] = 0
+		}
+		// newPw runs out of scope here
+	}
 	// Are we resetting the password without knowing the old one using
 	// "-masterkey"?
 	if args.masterkey != "" {

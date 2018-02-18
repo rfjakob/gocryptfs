@@ -45,8 +45,9 @@ func initDir(args *argContainer) {
 			tlog.Fatal.Println(err)
 			os.Exit(exitcodes.WriteConf)
 		}
-		// Note: cannot overwrite password because in Go, strings are
-		// read-only byte slices.
+		for i := range password {
+			password[i] = 0
+		}
 		// password runs out of scope here
 	}
 	// Forward mode with filename encryption enabled needs a gocryptfs.diriv

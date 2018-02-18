@@ -67,6 +67,9 @@ func dumpMasterKey(fn string) {
 		exitcodes.Exit(err)
 	}
 	fmt.Println(hex.EncodeToString(masterkey))
+	for i := range pw {
+		pw[i] = 0
+	}
 }
 
 func inspectCiphertext(fd *os.File) {
