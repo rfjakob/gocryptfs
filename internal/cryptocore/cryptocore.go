@@ -17,22 +17,23 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-// AEADTypeEnum indicates the type of AEAD backend in use.
-type AEADTypeEnum int
-
 const (
 	// KeyLen is the cipher key length in bytes.  32 for AES-256.
 	KeyLen = 32
 	// AuthTagLen is the length of a GCM auth tag in bytes.
 	AuthTagLen = 16
+)
 
-	_ = iota // Skip zero
+// AEADTypeEnum indicates the type of AEAD backend in use.
+type AEADTypeEnum int
+
+const (
 	// BackendOpenSSL specifies the OpenSSL backend.
-	BackendOpenSSL AEADTypeEnum = iota
+	BackendOpenSSL AEADTypeEnum = 3
 	// BackendGoGCM specifies the Go based GCM backend.
-	BackendGoGCM AEADTypeEnum = iota
+	BackendGoGCM AEADTypeEnum = 4
 	// BackendAESSIV specifies an AESSIV backend.
-	BackendAESSIV AEADTypeEnum = iota
+	BackendAESSIV AEADTypeEnum = 5
 )
 
 // CryptoCore is the low level crypto implementation.
