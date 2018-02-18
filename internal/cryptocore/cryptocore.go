@@ -65,12 +65,18 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 
 	// Initialize EME for filename encryption.
 	var emeCipher *eme.EMECipher
+	var err error
 	{
-		emeKey := key
+		var emeBlockCipher cipher.Block
 		if useHKDF {
-			emeKey = hkdfDerive(key, hkdfInfoEMENames, KeyLen)
+			emeKey := hkdfDerive(key, hkdfInfoEMENames, KeyLen)
+			emeBlockCipher, err = aes.NewCipher(emeKey)
+			for i := range emeKey {
+				emeKey[i] = 0
+			}
+		} else {
+			emeBlockCipher, err = aes.NewCipher(key)
 		}
-		emeBlockCipher, err := aes.NewCipher(emeKey)
 		if err != nil {
 			log.Panic(err)
 		}
@@ -80,9 +86,11 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 	// Initialize an AEAD cipher for file content encryption.
 	var aeadCipher cipher.AEAD
 	if aeadType == BackendOpenSSL || aeadType == BackendGoGCM {
-		gcmKey := key
+		var gcmKey []byte
 		if useHKDF {
 			gcmKey = hkdfDerive(key, hkdfInfoGCMContent, KeyLen)
+		} else {
+			gcmKey = append([]byte{}, key...)
 		}
 		switch aeadType {
 		case BackendOpenSSL:
@@ -100,22 +108,29 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 				log.Panic(err)
 			}
 		}
+		for i := range gcmKey {
+			gcmKey[i] = 0
+		}
 	} else if aeadType == BackendAESSIV {
 		if IVLen != 16 {
 			// SIV supports any nonce size, but we only use 16.
 			log.Panic("AES-SIV must use 16-byte nonces")
 		}
+		// AES-SIV uses 1/2 of the key for authentication, 1/2 for
+		// encryption, so we need a 64-bytes key for AES-256. Derive it from
+		// the 32-byte master key using HKDF, or, for older filesystems, with
+		// SHA256.
 		var key64 []byte
 		if useHKDF {
 			key64 = hkdfDerive(key, hkdfInfoSIVContent, siv_aead.KeyLen)
 		} else {
-			// AES-SIV uses 1/2 of the key for authentication, 1/2 for
-			// encryption, so we need a 64-bytes key for AES-256. Derive it from
-			// the master key by hashing it with SHA-512.
 			s := sha512.Sum512(key)
 			key64 = s[:]
 		}
 		aeadCipher = siv_aead.New(key64)
+		for i := range key64 {
+			key64[i] = 0
+		}
 	} else {
 		log.Panic("unknown backend cipher")
 	}
@@ -129,20 +144,25 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 	}
 }
 
+type wiper interface {
+	Wipe()
+}
+
 // Wipe tries to wipe secret keys from memory by overwriting them with zeros
 // and/or setting references to nil.
 //
 // This is not bulletproof due to possible GC copies, but
 // still raises to bar for extracting the key.
 func (c *CryptoCore) Wipe() {
-	if c.AEADBackend == BackendOpenSSL {
-		tlog.Debug.Print("CryptoCore.Wipe: Wiping stupidgcm key")
+	be := c.AEADBackend
+	if be == BackendOpenSSL || be == BackendAESSIV {
+		tlog.Debug.Printf("CryptoCore.Wipe: Wiping AEADBackend %d key", be)
 		// We don't use "x, ok :=" because we *want* to crash loudly if the
-		// type assertion fails (it should never fail).
-		sgcm := c.AEADCipher.(*stupidgcm.StupidGCM)
-		sgcm.Wipe()
+		// type assertion fails.
+		w := c.AEADCipher.(wiper)
+		w.Wipe()
 	} else {
-		tlog.Debug.Print("CryptoCore.Wipe: niling stdlib refs")
+		tlog.Debug.Print("CryptoCore.Wipe: Only nil'ing stdlib refs")
 	}
 	// We have no access to the keys (or key-equivalents) stored inside the
 	// Go stdlib. Best we can is to nil the references and force a GC.
