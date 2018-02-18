@@ -35,7 +35,7 @@ import (
 
 // doMount mounts an encrypted directory.
 // Called from main.
-func doMount(args *argContainer) int {
+func doMount(args *argContainer) {
 	// Check mountpoint
 	var err error
 	args.mountpoint, err = filepath.Abs(flagSet.Arg(1))
@@ -95,7 +95,6 @@ func doMount(args *argContainer) int {
 	}
 	var confFile *configfile.ConfFile
 	var srv *fuse.Server
-	var wipeKeys func()
 	{
 		// Get master key (may prompt for the password)
 		var masterkey []byte
@@ -126,7 +125,10 @@ func doMount(args *argContainer) int {
 		// We cannot use JSON for pretty-printing as the fields are unexported
 		tlog.Debug.Printf("cli args: %#v", args)
 		// Initialize FUSE server
+		var wipeKeys func()
 		srv, wipeKeys = initFuseFrontend(masterkey, args, confFile)
+		// Try to wipe secrect keys from memory after unmount
+		defer wipeKeys()
 		// fusefrontend / fusefrontend_reverse have initialized their crypto,
 		// we can purge the master key from memory.
 		for i := range masterkey {
@@ -172,9 +174,6 @@ func doMount(args *argContainer) int {
 	debug.FreeOSMemory()
 	// Jump into server loop. Returns when it gets an umount request from the kernel.
 	srv.Serve()
-	// Try to wipe secrect keys from memory
-	wipeKeys()
-	return 0
 }
 
 // setOpenFileLimit tries to increase the open file limit to 4096 (the default hard
