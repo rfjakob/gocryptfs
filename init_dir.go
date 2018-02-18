@@ -36,13 +36,18 @@ func initDir(args *argContainer) {
 	if args.extpass == "" {
 		tlog.Info.Printf("Choose a password for protecting your files.")
 	}
-	password := readpassword.Twice(args.extpass)
-	readpassword.CheckTrailingGarbage()
-	creator := tlog.ProgramName + " " + GitVersion
-	err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator, args.aessiv, args.devrandom)
-	if err != nil {
-		tlog.Fatal.Println(err)
-		os.Exit(exitcodes.WriteConf)
+	{
+		creator := tlog.ProgramName + " " + GitVersion
+		password := readpassword.Twice(args.extpass)
+		readpassword.CheckTrailingGarbage()
+		err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator, args.aessiv, args.devrandom)
+		if err != nil {
+			tlog.Fatal.Println(err)
+			os.Exit(exitcodes.WriteConf)
+		}
+		// Note: cannot overwrite password because in Go, strings are
+		// read-only byte slices.
+		// password runs out of scope here
 	}
 	// Forward mode with filename encryption enabled needs a gocryptfs.diriv
 	// in the root dir

@@ -93,37 +93,47 @@ func doMount(args *argContainer) int {
 			}
 		}()
 	}
-	// Get master key (may prompt for the password)
-	var masterkey []byte
 	var confFile *configfile.ConfFile
-	if args.masterkey != "" {
-		// "-masterkey"
-		masterkey = parseMasterKey(args.masterkey)
-	} else if args.zerokey {
-		// "-zerokey"
-		tlog.Info.Printf("Using all-zero dummy master key.")
-		tlog.Info.Printf(tlog.ColorYellow +
-			"ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING." +
-			tlog.ColorReset)
-		masterkey = make([]byte, cryptocore.KeyLen)
-	} else {
-		// Load master key from config file
-		// Prompts the user for the password
-		masterkey, confFile, err = loadConfig(args)
-		if err != nil {
-			if args._ctlsockFd != nil {
-				// Close the socket file (which also deletes it)
-				args._ctlsockFd.Close()
+	var srv *fuse.Server
+	var wipeKeys func()
+	{
+		// Get master key (may prompt for the password)
+		var masterkey []byte
+		if args.masterkey != "" {
+			// "-masterkey"
+			masterkey = parseMasterKey(args.masterkey)
+		} else if args.zerokey {
+			// "-zerokey"
+			tlog.Info.Printf("Using all-zero dummy master key.")
+			tlog.Info.Printf(tlog.ColorYellow +
+				"ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING." +
+				tlog.ColorReset)
+			masterkey = make([]byte, cryptocore.KeyLen)
+		} else {
+			// Load master key from config file
+			// Prompts the user for the password
+			masterkey, confFile, err = loadConfig(args)
+			if err != nil {
+				if args._ctlsockFd != nil {
+					// Close the socket file (which also deletes it)
+					args._ctlsockFd.Close()
+				}
+				exitcodes.Exit(err)
 			}
-			exitcodes.Exit(err)
+			readpassword.CheckTrailingGarbage()
+			printMasterKey(masterkey)
 		}
-		readpassword.CheckTrailingGarbage()
-		printMasterKey(masterkey)
+		// We cannot use JSON for pretty-printing as the fields are unexported
+		tlog.Debug.Printf("cli args: %#v", args)
+		// Initialize FUSE server
+		srv, wipeKeys = initFuseFrontend(masterkey, args, confFile)
+		// fusefrontend / fusefrontend_reverse have initialized their crypto,
+		// we can purge the master key from memory.
+		for i := range masterkey {
+			masterkey[i] = 0
+		}
+		// masterkey runs out of scope here
 	}
-	// We cannot use JSON for pretty-printing as the fields are unexported
-	tlog.Debug.Printf("cli args: %#v", args)
-	// Initialize FUSE server
-	srv, wipeKeys := initFuseFrontend(masterkey, args, confFile)
 	tlog.Info.Println(tlog.ColorGreen + "Filesystem mounted and ready." + tlog.ColorReset)
 	// We have been forked into the background, as evidenced by the set
 	// "notifypid".
@@ -266,11 +276,6 @@ func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile
 		pathFsOpts.ClientInodes = false
 	} else {
 		fs = fusefrontend.NewFS(frontendArgs, cEnc, nameTransform)
-	}
-	// fusefrontend / fusefrontend_reverse have initialized their crypto with
-	// derived keys (HKDF), we can purge the master key from memory.
-	for i := range masterkey {
-		masterkey[i] = 0
 	}
 	// We have opened the socket early so that we cannot fail here after
 	// asking the user for the password
