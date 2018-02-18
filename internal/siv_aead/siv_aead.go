@@ -32,7 +32,9 @@ func New(key []byte) cipher.AEAD {
 }
 
 // Same as "New" without the 64-byte restriction.
-func new2(key []byte) cipher.AEAD {
+func new2(keyIn []byte) cipher.AEAD {
+	// Create a private copy so the caller can zero the one he owns
+	key := append([]byte{}, keyIn...)
 	return &sivAead{
 		key: key,
 	}
@@ -53,6 +55,9 @@ func (s *sivAead) Seal(dst, nonce, plaintext, authData []byte) []byte {
 		// SIV supports any nonce size, but in gocryptfs we exclusively use 16.
 		log.Panic("nonce must be 16 bytes long")
 	}
+	if len(s.key) == 0 {
+		log.Panic("Key has been wiped?")
+	}
 	// https://github.com/jacobsa/crypto/blob/master/siv/encrypt.go#L48:
 	// As per RFC 5297 section 3, you may use this function for nonce-based
 	// authenticated encryption by passing a nonce as the last associated
@@ -71,7 +76,22 @@ func (s *sivAead) Open(dst, nonce, ciphertext, authData []byte) ([]byte, error) 
 		// SIV supports any nonce size, but in gocryptfs we exclusively use 16.
 		log.Panic("nonce must be 16 bytes long")
 	}
+	if len(s.key) == 0 {
+		log.Panic("Key has been wiped?")
+	}
 	associated := [][]byte{authData, nonce}
 	dec, err := siv.Decrypt(s.key, ciphertext, associated)
 	return append(dst, dec...), err
+}
+
+// Wipe tries to wipe the AES key from memory by overwriting it with zeros
+// and setting the reference to nil.
+//
+// This is not bulletproof due to possible GC copies, but
+// still raises to bar for extracting the key.
+func (s *sivAead) Wipe() {
+	for i := range s.key {
+		s.key[i] = 0
+	}
+	s.key = nil
 }
