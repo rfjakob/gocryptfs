@@ -49,6 +49,10 @@ func Twice(extpass string) []byte {
 		tlog.Fatal.Println("Passwords do not match")
 		os.Exit(exitcodes.ReadPassword)
 	}
+	// Wipe the password duplicate from memory
+	for i := range p2 {
+		p2[i] = 0
+	}
 	return p1
 }
 

@@ -61,20 +61,27 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 }
 
 // changePassword - change the password of config file "filename"
+// Does not return (calls os.Exit both on success and on error).
 func changePassword(args *argContainer) {
-	masterkey, confFile, err := loadConfig(args)
-	if err != nil {
-		exitcodes.Exit(err)
-	}
-	tlog.Info.Println("Please enter your new password.")
+	var confFile *configfile.ConfFile
+	var err error
 	{
+		var masterkey []byte
+		masterkey, confFile, err = loadConfig(args)
+		if err != nil {
+			exitcodes.Exit(err)
+		}
+		tlog.Info.Println("Please enter your new password.")
 		newPw := readpassword.Twice(args.extpass)
 		readpassword.CheckTrailingGarbage()
 		confFile.EncryptKey(masterkey, newPw, confFile.ScryptObject.LogN())
 		for i := range newPw {
 			newPw[i] = 0
 		}
-		// newPw runs out of scope here
+		for i := range masterkey {
+			masterkey[i] = 0
+		}
+		// masterkey and newPw run out of scope here
 	}
 	// Are we resetting the password without knowing the old one using
 	// "-masterkey"?
