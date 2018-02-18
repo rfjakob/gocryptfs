@@ -86,13 +86,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 			if IVLen != 16 {
 				log.Panic("stupidgcm only supports 128-bit IVs")
 			}
-			// stupidgcm does not create a private copy of the key, so things
-			// break when initFuseFrontend() overwrites it with zeros. Create
-			// a copy here. This is unnecessary when useHKDF == true, but
-			// does no harm.
-			var stupidgcmKey []byte
-			stupidgcmKey = append(stupidgcmKey, gcmKey...)
-			aeadCipher = stupidgcm.New(stupidgcmKey, forceDecode)
+			aeadCipher = stupidgcm.New(gcmKey, forceDecode)
 		case BackendGoGCM:
 			goGcmBlockCipher, err := aes.NewCipher(gcmKey)
 			if err != nil {

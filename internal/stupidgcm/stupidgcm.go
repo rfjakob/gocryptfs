@@ -33,10 +33,12 @@ type StupidGCM struct {
 var _ cipher.AEAD = &StupidGCM{}
 
 // New returns a new cipher.AEAD implementation..
-func New(key []byte, forceDecode bool) cipher.AEAD {
-	if len(key) != keyLen {
+func New(keyIn []byte, forceDecode bool) cipher.AEAD {
+	if len(keyIn) != keyLen {
 		log.Panicf("Only %d-byte keys are supported", keyLen)
 	}
+	// Create a private copy of the key
+	key := append([]byte{}, keyIn...)
 	return &StupidGCM{key: key, forceDecode: forceDecode}
 }
 
