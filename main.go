@@ -67,6 +67,8 @@ func changePassword(args *argContainer) {
 	newPw := readpassword.Twice(args.extpass)
 	readpassword.CheckTrailingGarbage()
 	confFile.EncryptKey(masterkey, newPw, confFile.ScryptObject.LogN())
+	// Are we resetting the password without knowing the old one using
+	// "-masterkey"?
 	if args.masterkey != "" {
 		bak := args.config + ".bak"
 		err = os.Link(args.config, bak)

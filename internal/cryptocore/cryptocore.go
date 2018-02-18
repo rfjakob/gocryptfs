@@ -53,6 +53,9 @@ type CryptoCore struct {
 // Even though the "GCMIV128" feature flag is now mandatory, we must still
 // support 96-bit IVs here because they were used for encrypting the master
 // key in gocryptfs.conf up to gocryptfs v1.2. v1.3 switched to 128 bits.
+//
+// Note: "key" is either the scrypt hash of the password (when decrypting
+// a config file) or the masterkey (when finally mounting the filesystem).
 func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDecode bool) *CryptoCore {
 	if len(key) != KeyLen {
 		log.Panic(fmt.Sprintf("Unsupported key length %d", len(key)))
