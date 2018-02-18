@@ -123,7 +123,7 @@ func doMount(args *argContainer) int {
 	// We cannot use JSON for pretty-printing as the fields are unexported
 	tlog.Debug.Printf("cli args: %#v", args)
 	// Initialize FUSE server
-	srv := initFuseFrontend(masterkey, args, confFile)
+	srv, wipeKeys := initFuseFrontend(masterkey, args, confFile)
 	tlog.Info.Println(tlog.ColorGreen + "Filesystem mounted and ready." + tlog.ColorReset)
 	// We have been forked into the background, as evidenced by the set
 	// "notifypid".
@@ -162,6 +162,8 @@ func doMount(args *argContainer) int {
 	debug.FreeOSMemory()
 	// Jump into server loop. Returns when it gets an umount request from the kernel.
 	srv.Serve()
+	// Try to wipe secrect keys from memory
+	wipeKeys()
 	return 0
 }
 
@@ -194,7 +196,7 @@ type ctlsockFs interface {
 
 // initFuseFrontend - initialize gocryptfs/fusefrontend
 // Calls os.Exit on errors
-func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile.ConfFile) *fuse.Server {
+func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile.ConfFile) (srv *fuse.Server, wipeKeys func()) {
 	// Reconciliate CLI and config file arguments into a fusefrontend.Args struct
 	// that is passed to the filesystem implementation
 	cryptoBackend := cryptocore.BackendGoGCM
@@ -361,7 +363,7 @@ func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile
 	// directories with the requested permissions.
 	syscall.Umask(0000)
 
-	return srv
+	return srv, func() { cCore.Wipe() }
 }
 
 func handleSigint(srv *fuse.Server, mountpoint string) {

@@ -24,32 +24,32 @@ const (
 )
 
 // stupidGCM implements the cipher.AEAD interface
-type stupidGCM struct {
+type StupidGCM struct {
 	key         []byte
 	forceDecode bool
 }
 
 // Verify that we satisfy the cipher.AEAD interface
-var _ cipher.AEAD = &stupidGCM{}
+var _ cipher.AEAD = &StupidGCM{}
 
 // New returns a new cipher.AEAD implementation..
 func New(key []byte, forceDecode bool) cipher.AEAD {
 	if len(key) != keyLen {
 		log.Panicf("Only %d-byte keys are supported", keyLen)
 	}
-	return &stupidGCM{key: key, forceDecode: forceDecode}
+	return &StupidGCM{key: key, forceDecode: forceDecode}
 }
 
-func (g *stupidGCM) NonceSize() int {
+func (g *StupidGCM) NonceSize() int {
 	return ivLen
 }
 
-func (g *stupidGCM) Overhead() int {
+func (g *StupidGCM) Overhead() int {
 	return tagLen
 }
 
 // Seal encrypts "in" using "iv" and "authData" and append the result to "dst"
-func (g *stupidGCM) Seal(dst, iv, in, authData []byte) []byte {
+func (g *StupidGCM) Seal(dst, iv, in, authData []byte) []byte {
 	if len(iv) != ivLen {
 		log.Panicf("Only %d-byte IVs are supported", ivLen)
 	}
@@ -136,7 +136,7 @@ func (g *stupidGCM) Seal(dst, iv, in, authData []byte) []byte {
 }
 
 // Open decrypts "in" using "iv" and "authData" and append the result to "dst"
-func (g *stupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
+func (g *StupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
 	if len(iv) != ivLen {
 		log.Panicf("Only %d-byte IVs are supported", ivLen)
 	}
@@ -231,12 +231,12 @@ func (g *stupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
 	return append(dst, buf...), nil
 }
 
-// Wipe wipes the AES key from memory by overwriting it with zeros and
-// setting the reference to nil.
+// Wipe tries to wipe the AES key from memory by overwriting it with zeros
+// and setting the reference to nil.
 //
 // This is not bulletproof due to possible GC copies, but
 // still raises to bar for extracting the key.
-func (g *stupidGCM) Wipe() {
+func (g *StupidGCM) Wipe() {
 	for i := range g.key {
 		g.key[i] = 0
 	}

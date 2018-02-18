@@ -8,11 +8,13 @@ import (
 	"crypto/sha512"
 	"fmt"
 	"log"
+	"runtime"
 
 	"github.com/rfjakob/eme"
 
 	"github.com/rfjakob/gocryptfs/internal/siv_aead"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 // AEADTypeEnum indicates the type of AEAD backend in use.
@@ -128,4 +130,26 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 		IVGenerator: &nonceGenerator{nonceLen: IVLen},
 		IVLen:       IVLen,
 	}
+}
+
+// Wipe tries to wipe secret keys from memory by overwriting them with zeros
+// and/or setting references to nil.
+//
+// This is not bulletproof due to possible GC copies, but
+// still raises to bar for extracting the key.
+func (c *CryptoCore) Wipe() {
+	if c.AEADBackend == BackendOpenSSL {
+		tlog.Debug.Print("CryptoCore.Wipe: Wiping stupidgcm key")
+		// We don't use "x, ok :=" because we *want* to crash loudly if the
+		// type assertion fails (it should never fail).
+		sgcm := c.AEADCipher.(*stupidgcm.StupidGCM)
+		sgcm.Wipe()
+	} else {
+		tlog.Debug.Print("CryptoCore.Wipe: niling stdlib refs")
+	}
+	// We have no access to the keys (or key-equivalents) stored inside the
+	// Go stdlib. Best we can is to nil the references and force a GC.
+	c.AEADCipher = nil
+	c.EMECipher = nil
+	runtime.GC()
 }

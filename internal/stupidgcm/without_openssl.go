@@ -9,7 +9,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 )
 
-type stupidGCM struct{}
+type StupidGCM struct{}
 
 const (
 	// BuiltWithoutOpenssl indicates if openssl been disabled at compile-time
@@ -21,28 +21,32 @@ func errExit() {
 	os.Exit(exitcodes.OpenSSL)
 }
 
-func New(_ []byte, _ bool) *stupidGCM {
+func New(_ []byte, _ bool) *StupidGCM {
 	errExit()
 	// Never reached
-	return &stupidGCM{}
+	return &StupidGCM{}
 }
 
-func (g *stupidGCM) NonceSize() int {
+func (g *StupidGCM) NonceSize() int {
 	errExit()
 	return -1
 }
 
-func (g *stupidGCM) Overhead() int {
+func (g *StupidGCM) Overhead() int {
 	errExit()
 	return -1
 }
 
-func (g *stupidGCM) Seal(_, _, _, _ []byte) []byte {
+func (g *StupidGCM) Seal(_, _, _, _ []byte) []byte {
 	errExit()
 	return nil
 }
 
-func (g *stupidGCM) Open(_, _, _, _ []byte) ([]byte, error) {
+func (g *StupidGCM) Open(_, _, _, _ []byte) ([]byte, error) {
 	errExit()
 	return nil, nil
+}
+
+func (g *StupidGCM) Wipe() {
+	errExit()
 }
