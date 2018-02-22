@@ -46,7 +46,7 @@ fine but you may hit an occasional problem. Check out
 [ticket #15](https://github.com/rfjakob/gocryptfs/issues/15) for the history
 of Mac OS X support but please create a new ticket if you hit a problem.
 
-For Windows, an independent C++ reimplementation has been started:
+For Windows, an independent C++ reimplementation can be found here:
 [cppcryptfs](https://github.com/bailey27/cppcryptfs)
 
 Testing
