@@ -38,8 +38,12 @@ else
 	go tool vet -all -shadow .
 fi
 
-# We don't want all the subprocesses holding the lock file open
-go test ./... $* 200>&-
+#            We don't want all the subprocesses
+#               holding the lock file open
+#                         vvvvv
+go test -count 1 ./... $* 200>&-
+#       ^^^^^^^^
+#   Disable result caching
 
 # The tests cannot to this themselves as they are run in parallel.
 # Don't descend into possibly still mounted example filesystems.
