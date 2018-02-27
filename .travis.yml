@@ -6,12 +6,13 @@ git:
 # Build with the lastest versions of Go 1.5 and later
 # See https://golang.org/dl/
 go:
-  - 1.5.4
-  - 1.6.4
-  - 1.7.6
-  - 1.8.5
-  - 1.9.2
-  - 1.10
+  - 1.5.x
+  - 1.6.x
+  - 1.7.x
+  - 1.8.x
+  - 1.9.x
+  - 1.10.x
+  - stable
 
 install:
   - go get .
