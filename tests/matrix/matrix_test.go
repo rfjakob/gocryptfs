@@ -697,6 +697,10 @@ func TestUtimesNanoSymlink(t *testing.T) {
 	cmd.Stdout = os.Stdout
 	err = cmd.Run()
 	if err != nil {
+		if runtime.GOOS == "darwin" {
+			// MacOS "touch" does not support "--no-dereference"
+			t.Skip(err)
+		}
 		t.Error(err)
 	}
 }
@@ -773,6 +777,9 @@ func TestUtimesNano(t *testing.T) {
 
 // Set nanoseconds by fd
 func TestUtimesNanoFd(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skipf("MacOS does not have /proc")
+	}
 	path := test_helpers.DefaultPlainDir + "/utimesnanofd"
 	f, err := os.Create(path)
 	if err != nil {
