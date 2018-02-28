@@ -2,6 +2,7 @@ package syscallcompat
 
 import (
 	"os"
+	"runtime"
 	"syscall"
 	"testing"
 
@@ -214,8 +215,16 @@ func TestEmulateSymlinkat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if st.Mode != 0120777 {
-		t.Fatalf("Wrong mode, have %o, want 0120777", st.Mode)
+	if runtime.GOOS == "darwin" {
+		// On MacOS, symlinks don't carry their own permissions, so
+		// only check the file type.
+		if st.Mode&syscall.S_IFMT != syscall.S_IFLNK {
+			t.Fatalf("This is not a symlink: mode = 0%o", st.Mode)
+		}
+	} else {
+		if st.Mode != 0120777 {
+			t.Fatalf("Wrong mode, have 0%o, want 0120777", st.Mode)
+		}
 	}
 	// Test with absolute path
 	err = emulateSymlinkat("/foo/bar/baz", -1, tmpDir+"/symlink2")
