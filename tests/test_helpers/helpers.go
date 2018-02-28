@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -157,8 +158,17 @@ func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 
 	cmd := exec.Command(GocryptfsBinary, args...)
 	if showOutput {
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
+		// The Go test logic waits for our stdout to close, and when we share
+		// it with the subprocess, it will wait for it to close it as well.
+		// Use an intermediate pipe so the tests do not hang when unmouting
+		// fails.
+		pr, pw, err := os.Pipe()
+		if err != nil {
+			return err
+		}
+		cmd.Stderr = pw
+		cmd.Stdout = pw
+		go func() { io.Copy(os.Stdout, pr) }()
 	}
 
 	return cmd.Run()
