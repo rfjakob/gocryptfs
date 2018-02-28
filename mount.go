@@ -89,7 +89,7 @@ func doMount(args *argContainer) {
 		defer func() {
 			err = sock.Close()
 			if err != nil {
-				tlog.Warn.Print(err)
+				tlog.Warn.Printf("ctlsock close: %v", err)
 			}
 		}()
 	}
@@ -378,7 +378,7 @@ func handleSigint(srv *fuse.Server, mountpoint string) {
 		<-ch
 		err := srv.Unmount()
 		if err != nil {
-			tlog.Warn.Print(err)
+			tlog.Warn.Printf("handleSigint: srv.Unmount returned %v", err)
 			if runtime.GOOS == "linux" {
 				// MacOSX does not support lazy unmount
 				tlog.Info.Printf("Trying lazy unmount")

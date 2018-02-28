@@ -39,7 +39,7 @@ var allocateWarnOnce sync.Once
 func (f *file) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
 	if mode != FALLOC_DEFAULT && mode != FALLOC_FL_KEEP_SIZE {
 		f := func() {
-			tlog.Warn.Print("fallocate: only mode 0 (default) and 1 (keep size) are supported")
+			tlog.Warn.Printf("fallocate: only mode 0 (default) and 1 (keep size) are supported")
 		}
 		allocateWarnOnce.Do(f)
 		return fuse.Status(syscall.EOPNOTSUPP)

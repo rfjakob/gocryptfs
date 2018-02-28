@@ -53,7 +53,7 @@ type toggledLogger struct {
 	prefix  string
 	postfix string
 
-	*log.Logger
+	Logger *log.Logger
 }
 
 func (l *toggledLogger) Printf(format string, v ...interface{}) {
@@ -125,7 +125,7 @@ func (l *toggledLogger) SwitchToSyslog(p syslog.Priority) {
 	if err != nil {
 		Warn.Printf("SwitchToSyslog: %v", err)
 	} else {
-		l.SetOutput(w)
+		l.Logger.SetOutput(w)
 	}
 }
 

@@ -163,7 +163,7 @@ func (c *CryptoCore) Wipe() {
 		w := c.AEADCipher.(wiper)
 		w.Wipe()
 	} else {
-		tlog.Debug.Print("CryptoCore.Wipe: Only nil'ing stdlib refs")
+		tlog.Debug.Printf("CryptoCore.Wipe: Only nil'ing stdlib refs")
 	}
 	// We have no access to the keys (or key-equivalents) stored inside the
 	// Go stdlib. Best we can is to nil the references and force a GC.
