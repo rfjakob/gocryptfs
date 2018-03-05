@@ -2,4 +2,4 @@
 
 cd "$(dirname "$0")"
 
-./test.bash -tags without_openssl
+./test.bash -tags without_openssl "$@"

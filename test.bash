@@ -43,7 +43,7 @@ fi
 #            We don't want all the subprocesses
 #               holding the lock file open
 #                         vvvvv
-go test -count 1 ./... $* 200>&-
+go test -count 1 ./... "$@" 200>&-
 #       ^^^^^^^^
 #   Disable result caching
 
