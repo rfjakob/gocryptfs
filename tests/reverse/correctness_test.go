@@ -153,6 +153,7 @@ func TestAccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer f.Close()
 	names, err := f.Readdirnames(0)
 	if err != nil {
 		t.Fatal(err)
