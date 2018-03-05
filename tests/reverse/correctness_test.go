@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"syscall"
 	"testing"
 
@@ -185,8 +186,12 @@ func TestEnoent(t *testing.T) {
 // returning an I/O error to the user.
 // https://github.com/rfjakob/gocryptfs/issues/167
 func TestTooLongSymlink(t *testing.T) {
+	l := 4000
+	if runtime.GOOS == "darwin" {
+		l = 1000 // max length is much lower on darwin
+	}
 	fn := dirA + "/TooLongSymlink"
-	target := string(bytes.Repeat([]byte("x"), 4000))
+	target := string(bytes.Repeat([]byte("x"), l))
 	err := os.Symlink(target, fn)
 	if err != nil {
 		t.Fatal(err)
