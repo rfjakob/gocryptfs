@@ -686,7 +686,7 @@ func TestLchown(t *testing.T) {
 }
 
 // Set nanoseconds by path, symlink
-func TestUtimesNanoSymlink(t *testing.T) {
+func Symlink(t *testing.T) {
 	if runtime.GOOS == "darwin" {
 		t.Skipf("MacOS \"touch\" does not support \"--no-dereference\"")
 	}
@@ -713,17 +713,15 @@ type utimesTestcaseStruct struct {
 	out [2]syscall.Timespec
 }
 
-func compareUtimes(want [2]syscall.Timespec, actual [2]syscall.Timespec) error {
-	tsNames := []string{"atime", "mtime"}
-	for i := range want {
-		if want[i].Sec != actual[i].Sec {
-			return fmt.Errorf("Wrong %s seconds: want=%d actual=%d", tsNames[i], want[i].Sec, actual[i].Sec)
-		}
-		if want[i].Nsec != actual[i].Nsec {
-			return fmt.Errorf("Wrong %s nanoseconds: want=%d actual=%d", tsNames[i], want[i].Nsec, actual[i].Nsec)
-		}
+// compareTimespec return true if the two passed Timespec are identical.
+func compareTimespec(want syscall.Timespec, actual syscall.Timespec) bool {
+	if want.Sec != actual.Sec {
+		return false
 	}
-	return nil
+	if want.Nsec != actual.Nsec {
+		return false
+	}
+	return true
 }
 
 const _UTIME_OMIT = ((1 << 30) - 2)
@@ -759,9 +757,13 @@ func doTestUtimesNano(t *testing.T, path string) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = compareUtimes(tc.out, extractAtimeMtime(st))
-		if err != nil {
-			t.Errorf("Testcase %d: %v", i, err)
+		want := tc.out
+		have := extractAtimeMtime(st)
+		if !compareTimespec(want[0], have[0]) {
+			t.Errorf("Testcase %d: atime: want=%+v, have=%+v", i, want[0], have[0])
+		}
+		if !compareTimespec(want[1], have[1]) {
+			t.Errorf("Testcase %d: mtime: want=%+v, have=%+v", i, want[1], have[1])
 		}
 	}
 }
