@@ -27,8 +27,8 @@ for i in $(mount | grep $TESTDIR | cut -f3 -d" "); do
 done
 
 ./build-without-openssl.bash
-# Building with openssl is difficult on OSX, so only do it on Linux.
-if [[ $OSTYPE == linux* ]] ; then
+# Don't build with openssl if we were passed "-tags without_openssl"
+if [[ "$@" != *without_openssl* ]] ; then
 	./build.bash
 fi
 
