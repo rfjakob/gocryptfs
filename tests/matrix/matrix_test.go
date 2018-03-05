@@ -731,8 +731,8 @@ const _UTIME_OMIT = ((1 << 30) - 2)
 func doTestUtimesNano(t *testing.T, path string) {
 	utimeTestcases := []utimesTestcaseStruct{
 		{
-			in:  [2]syscall.Timespec{{Sec: 50, Nsec: 0}, {Sec: 50, Nsec: 0}},
-			out: [2]syscall.Timespec{{Sec: 50, Nsec: 0}, {Sec: 50, Nsec: 0}},
+			in:  [2]syscall.Timespec{{Sec: 50, Nsec: 0}, {Sec: 51, Nsec: 0}},
+			out: [2]syscall.Timespec{{Sec: 50, Nsec: 0}, {Sec: 51, Nsec: 0}},
 		},
 		{
 			in:  [2]syscall.Timespec{{Sec: 1, Nsec: 2}, {Sec: 3, Nsec: 4}},
@@ -746,6 +746,10 @@ func doTestUtimesNano(t *testing.T, path string) {
 			in:  [2]syscall.Timespec{{Sec: 99, Nsec: _UTIME_OMIT}, {Sec: 5, Nsec: 6}},
 			out: [2]syscall.Timespec{{Sec: 7, Nsec: 8}, {Sec: 5, Nsec: 6}},
 		},
+	}
+	if runtime.GOOS == "darwin" {
+		// darwin neither supports UTIME_OMIT nor nanoseconds (!?)
+		utimeTestcases = utimeTestcases[:1]
 	}
 	for i, tc := range utimeTestcases {
 		err := syscall.UtimesNano(path, tc.in[:])
