@@ -205,6 +205,22 @@ func TestEmulateFchownat(t *testing.T) {
 	t.Skipf("TODO")
 }
 
+// symlinkCheckMode looks if the mode bits in "st" say that this is a symlink.
+// Calls t.Fatal() if not.
+func symlinkCheckMode(t *testing.T, st syscall.Stat_t) {
+	if runtime.GOOS == "darwin" {
+		// On MacOS, symlinks don't carry their own permissions, so
+		// only check the file type.
+		if st.Mode&syscall.S_IFMT != syscall.S_IFLNK {
+			t.Fatalf("This is not a symlink: mode = 0%o", st.Mode)
+		}
+		return
+	}
+	if st.Mode != 0120777 {
+		t.Fatalf("Wrong mode, have 0%o, want 0120777", st.Mode)
+	}
+}
+
 func TestEmulateSymlinkat(t *testing.T) {
 	err := emulateSymlinkat("/foo/bar/baz", tmpDirFd, "symlink1")
 	if err != nil {
@@ -215,17 +231,7 @@ func TestEmulateSymlinkat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if runtime.GOOS == "darwin" {
-		// On MacOS, symlinks don't carry their own permissions, so
-		// only check the file type.
-		if st.Mode&syscall.S_IFMT != syscall.S_IFLNK {
-			t.Fatalf("This is not a symlink: mode = 0%o", st.Mode)
-		}
-	} else {
-		if st.Mode != 0120777 {
-			t.Fatalf("Wrong mode, have 0%o, want 0120777", st.Mode)
-		}
-	}
+	symlinkCheckMode(t, st)
 	// Test with absolute path
 	err = emulateSymlinkat("/foo/bar/baz", -1, tmpDir+"/symlink2")
 	if err != nil {
@@ -235,9 +241,7 @@ func TestEmulateSymlinkat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if st.Mode != 0120777 {
-		t.Fatalf("Wrong mode, have %o, want 0120777", st.Mode)
-	}
+	symlinkCheckMode(t, st)
 }
 
 func TestEmulateMkdirat(t *testing.T) {
