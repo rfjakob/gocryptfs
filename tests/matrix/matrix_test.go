@@ -405,10 +405,12 @@ func TestRmwRace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("file create failed")
 	}
+	defer f1.Close()
 	f2, err := os.Create(fn)
 	if err != nil {
 		t.Fatalf("file create failed")
 	}
+	defer f2.Close()
 
 	oldBlock := bytes.Repeat([]byte("o"), 4096)
 

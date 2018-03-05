@@ -45,7 +45,7 @@ func TestDirIVRace(t *testing.T) {
 		for {
 			// Keep dir2 in the diriv cache
 			fd, err2 := os.Open(file2)
-			if err2 != nil {
+			if err2 == nil {
 				fd.Close()
 			}
 			if stop {

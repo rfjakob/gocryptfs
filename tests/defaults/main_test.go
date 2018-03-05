@@ -51,6 +51,7 @@ func TestOpenTruncateRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer writeFd.Close()
 	abc := []byte("abc")
 	_, err = writeFd.WriteAt(abc, 0)
 	if err != nil {
@@ -61,6 +62,7 @@ func TestOpenTruncateRead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer readFd.Close()
 	content := make([]byte, 3)
 	_, err = readFd.ReadAt(content, 0)
 	if err != nil {
