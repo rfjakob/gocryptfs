@@ -685,6 +685,9 @@ func TestLchown(t *testing.T) {
 
 // Set nanoseconds by path, symlink
 func TestUtimesNanoSymlink(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skipf("MacOS \"touch\" does not support \"--no-dereference\"")
+	}
 	path := test_helpers.DefaultPlainDir + "/utimesnano_symlink"
 	err := os.Symlink("/some/nonexisting/file", path)
 	if err != nil {
@@ -697,10 +700,6 @@ func TestUtimesNanoSymlink(t *testing.T) {
 	cmd.Stdout = os.Stdout
 	err = cmd.Run()
 	if err != nil {
-		if runtime.GOOS == "darwin" {
-			// MacOS "touch" does not support "--no-dereference"
-			t.Skip(err)
-		}
 		t.Error(err)
 	}
 }
