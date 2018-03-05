@@ -12,7 +12,9 @@ mkdir -p $TESTDIR
 (
 # Prevent multiple parallel test.bash instances as this causes
 # all kinds of mayham
-if ! flock -n 200 ; then
+if ! command -v flock > /dev/null ; then
+	echo "flock is not available, skipping"
+elif ! flock -n 200 ; then
 	echo "Could not acquire lock on $LOCKFILE - already running?"
 	exit 1
 fi
