@@ -23,6 +23,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
@@ -58,6 +59,9 @@ func TestMain(m *testing.M) {
 	// Make "testing.Verbose()" return the correct value
 	flag.Parse()
 	for _, testcase = range matrix {
+		if testcase.openssl == "true" && stupidgcm.BuiltWithoutOpenssl {
+			continue
+		}
 		if testing.Verbose() {
 			fmt.Printf("matrix: testcase = %#v\n", testcase)
 		}
