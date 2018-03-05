@@ -245,7 +245,7 @@ func TestEmulateSymlinkat(t *testing.T) {
 }
 
 func TestEmulateMkdirat(t *testing.T) {
-	err := emulateMkdirat(tmpDirFd, "mkdirat", 0100)
+	err := emulateMkdirat(tmpDirFd, "mkdirat", 0700)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +257,7 @@ func TestEmulateMkdirat(t *testing.T) {
 		t.Fatalf("mkdirat did not create a directory")
 	}
 	// Test with absolute path
-	err = emulateMkdirat(-1, tmpDir+"/mkdirat2", 0100)
+	err = emulateMkdirat(-1, tmpDir+"/mkdirat2", 0700)
 	if err != nil {
 		t.Fatal(err)
 	}

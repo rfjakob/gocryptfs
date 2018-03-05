@@ -49,7 +49,12 @@ go test -count 1 ./... "$@" 200>&-
 
 # The tests cannot to this themselves as they are run in parallel.
 # Don't descend into possibly still mounted example filesystems.
-rm -Rf --one-file-system $TESTDIR
+if [[ $OSTYPE == *linux* ]] ; then
+	rm -Rf --one-file-system $TESTDIR
+else
+	# MacOS "rm" does not understand "--one-file-system"
+	rm -Rf $TESTDIR
+fi
 
 if grep -R "panic(" internal ; then
 	echo "Please use log.Panic instead of naked panic!"
