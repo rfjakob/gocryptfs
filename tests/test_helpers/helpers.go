@@ -178,7 +178,7 @@ func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 func MountOrExit(c string, p string, extraArgs ...string) {
 	err := Mount(c, p, true, extraArgs...)
 	if err != nil {
-		fmt.Printf("mount failed: %v", err)
+		fmt.Printf("mount failed: %v\n", err)
 		os.Exit(1)
 	}
 }
