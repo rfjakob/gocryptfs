@@ -796,6 +796,7 @@ func TestUtimesNanoFd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer f.Close()
 	procPath := fmt.Sprintf("/proc/self/fd/%d", f.Fd())
 	doTestUtimesNano(t, procPath)
 }

@@ -195,14 +195,18 @@ func MountOrFatal(t *testing.T, c string, p string, extraArgs ...string) {
 func UnmountPanic(dir string) {
 	err := UnmountErr(dir)
 	if err != nil {
-		fmt.Println(err)
-		panic(err)
+		fmt.Printf("UnmountPanic: %v. Running lsof %s\n", err, dir)
+		cmd := exec.Command("lsof", dir)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Run()
+		panic("UnmountPanic: unmount failed: " + err.Error())
 	}
 }
 
 // UnmountErr tries to unmount "dir" and returns the resulting error.
 func UnmountErr(dir string) error {
-	cmd := exec.Command(UnmountScript, "-u", "-z", dir)
+	cmd := exec.Command(UnmountScript, "-u", dir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
