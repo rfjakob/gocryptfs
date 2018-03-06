@@ -9,10 +9,13 @@ mkdir -p $TESTDIR
 LOCKFILE=$TESTDIR/$MYNAME.lock
 
 function unmount_leftovers {
+	RET=0
 	for i in $(mount | grep $TESTDIR | cut -f3 -d" "); do
 		echo "Warning: unmounting leftover filesystem: $i"
 		tests/fuse-unmount.bash $i
+		RET=1
 	done
+	return $RET
 }
 
 (
@@ -25,8 +28,8 @@ elif ! flock -n 200 ; then
 	exit 1
 fi
 
-# Clean up dangling filesystems
-unmount_leftovers
+# Clean up dangling filesystems and don't exit if we found some
+unmount_leftovers || true
 
 ./build-without-openssl.bash
 # Don't build with openssl if we were passed "-tags without_openssl"
@@ -49,13 +52,15 @@ go test -count 1 ./... "$@" 200>&-
 #       ^^^^^^^^
 #   Disable result caching
 
+# Clean up dangling filesystems but do exit with an error if we found one
+unmount_leftovers || { echo "Error: the tests left mounted filesystems behind" ; exit 1 ; }
+
 # The tests cannot to this themselves as they are run in parallel.
 # Don't descend into possibly still mounted example filesystems.
 if [[ $OSTYPE == *linux* ]] ; then
 	rm -Rf --one-file-system $TESTDIR
 else
 	# MacOS "rm" does not understand "--one-file-system"
-	unmount_leftovers
 	rm -Rf $TESTDIR
 fi
 
