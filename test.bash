@@ -5,9 +5,15 @@ set -eu
 cd "$(dirname "$0")"
 MYNAME=$(basename "$0")
 TESTDIR=/tmp/gocryptfs-test-parent
+mkdir -p $TESTDIR
 LOCKFILE=$TESTDIR/$MYNAME.lock
 
-mkdir -p $TESTDIR
+function unmount_leftovers {
+	for i in $(mount | grep $TESTDIR | cut -f3 -d" "); do
+		echo "Warning: unmounting leftover filesystem: $i"
+		tests/fuse-unmount.bash $i
+	done
+}
 
 (
 # Prevent multiple parallel test.bash instances as this causes
@@ -20,11 +26,7 @@ elif ! flock -n 200 ; then
 fi
 
 # Clean up dangling filesystems
-source tests/fuse-unmount.bash
-for i in $(mount | grep $TESTDIR | cut -f3 -d" "); do
-	echo "Warning: unmounting leftover filesystem: $i"
-	fuse-unmount $i
-done
+unmount_leftovers
 
 ./build-without-openssl.bash
 # Don't build with openssl if we were passed "-tags without_openssl"
@@ -53,6 +55,7 @@ if [[ $OSTYPE == *linux* ]] ; then
 	rm -Rf --one-file-system $TESTDIR
 else
 	# MacOS "rm" does not understand "--one-file-system"
+	unmount_leftovers
 	rm -Rf $TESTDIR
 fi
 
