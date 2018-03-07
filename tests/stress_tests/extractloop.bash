@@ -48,7 +48,7 @@ echo "Test dir: $CRYPT"
 sleep 1
 cd $MNT
 
-ln -sTf $CSV /tmp/extractloop.csv
+ln -sTf $CSV /tmp/extractloop.csv || true # fails on MacOS
 
 # Cleanup trap
 # Note: gocryptfs may have already umounted itself because bash relays SIGINT
@@ -56,12 +56,11 @@ ln -sTf $CSV /tmp/extractloop.csv
 trap "cd /; fuse-unmount -z $MNT; rm -rf $CRYPT $MNT" EXIT
 
 function loop {
-	# Note: In a subshell, $$ returns the PID of the parent shell.
-	# We need our own PID, which is why we use $BASHPID.
-	mkdir $BASHPID
-	cd $BASHPID
+	ID=$1
+	mkdir $ID
+	cd $ID
 
-	echo "[pid $BASHPID] Starting loop"
+	echo "[looper $ID] Starting"
 
 	N=1
 	RSS=0
@@ -77,7 +76,7 @@ function loop {
 			RSS=$(grep VmRSS /proc/$FSPID/status | tr -s ' ' | cut -f2 -d ' ')
 			echo "$N,$SECONDS,$RSS" >> $CSV
 		fi
-		echo "[pid $BASHPID] Iteration $N done, $delta seconds, RSS $RSS kiB"
+		echo "[looper $ID] Iteration $N done, $delta seconds, RSS $RSS kiB"
 		let N=$N+1
 	done
 }
@@ -89,7 +88,7 @@ function memprof {
 	done
 }
 
-loop &
-loop &
+loop 1 &
+loop 2 &
 #memprof &
 wait
