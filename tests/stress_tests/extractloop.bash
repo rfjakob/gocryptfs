@@ -39,7 +39,7 @@ elif [ $# -eq 1 ] && [ "$1" == "-loopback" ]; then
 else
 	echo "Testing gocryptfs"
 	gocryptfs -q -init -extpass="echo test" -scryptn=10 $CRYPT
-	gocryptfs -q -extpass="echo test" -nosyslog -f $CRYPT $MNT &
+	gocryptfs -q -extpass="echo test" -nosyslog -fg $CRYPT $MNT &
 	FSPID=$(jobs -p)
 	#gocryptfs -q -extpass="echo test" -nosyslog -memprofile /tmp/extractloop-mem $CRYPT $MNT
 fi
@@ -48,7 +48,7 @@ echo "Test dir: $CRYPT"
 sleep 1
 cd $MNT
 
-ln -sTf $CSV /tmp/extractloop.csv || true # fails on MacOS
+ln -v -sTf $CSV /tmp/extractloop.csv 2> /dev/null || true # fails on MacOS, ignore
 
 # Cleanup trap
 # Note: gocryptfs may have already umounted itself because bash relays SIGINT
@@ -67,7 +67,9 @@ function loop {
 	while true
 	do
 		t1=$SECONDS
-		tar xf /tmp/linux-3.0.tar.gz
+		tar xf /tmp/linux-3.0.tar.gz --exclude linux-3.0/arch/microblaze/boot/dts/system.dts
+		#                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+		# Exclude the one symlink in the tarball - causes problems on MacOS: "Can't set permissions to 0755"
 		md5sum --status -c $MD5
 		rm -Rf linux-3.0
 		t2=$SECONDS
