@@ -8,8 +8,8 @@ MYNAME=$(basename "$0")
 source ../fuse-unmount.bash
 
 # Setup dirs
+../dl-linux-tarball.bash
 cd /tmp
-wget -nv --show-progress -c https://www.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz
 WD=$(mktemp -d /tmp/$MYNAME.XXX)
 
 # Cleanup trap
