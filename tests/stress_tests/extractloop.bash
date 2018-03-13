@@ -21,7 +21,9 @@ source ../fuse-unmount.bash
 # Setup dirs
 ../dl-linux-tarball.bash
 cd /tmp
-CRYPT=$(mktemp -d /tmp/$MYNAME.XXX)
+EXTRACTLOOP_TMPDIR=/tmp/extractloop_tmpdir
+mkdir -p $EXTRACTLOOP_TMPDIR
+CRYPT=$(mktemp -d $EXTRACTLOOP_TMPDIR/XXX)
 CSV=$CRYPT.csv
 MNT=$CRYPT.mnt
 mkdir $MNT
@@ -65,7 +67,7 @@ ln -v -sTf $CSV /tmp/extractloop.csv 2> /dev/null || true # fails on MacOS, igno
 # Cleanup trap
 # Note: gocryptfs may have already umounted itself because bash relays SIGINT
 # Just ignore unmount errors.
-trap "cd / ; fuse-unmount -z $MNT ; rm -rf $CRYPT; rmdir $MNT" EXIT
+trap "cd / ; rm -Rf $CRYPT ; fuse-unmount -z $MNT || true ; rmdir $MNT" EXIT
 
 function loop {
 	ID=$1
@@ -86,7 +88,7 @@ function loop {
 		rm -Rf linux-3.0
 		t2=$SECONDS
 		delta=$((t2-t1))
-		if [ $FSPID -gt 0 ]; then
+		if [[ $FSPID -gt 0 && -d /proc ]]; then
 			RSS=$(grep VmRSS /proc/$FSPID/status | tr -s ' ' | cut -f2 -d ' ')
 			echo "$N,$SECONDS,$RSS" >> $CSV
 		fi
