@@ -26,6 +26,16 @@ CSV=$CRYPT.csv
 MNT=$CRYPT.mnt
 mkdir $MNT
 
+function check_md5sums {
+	if command -v md5sum > /dev/null ; then
+		md5sum --status -c $1
+	else
+		# MacOS / darwin which do not have the md5sum utility
+		# installed by default
+		echo "Skipping md5sum (not installed). Hint: brew install md5sha1sum"
+	fi
+}
+
 # Mount
 FSPID=0
 if [ $# -eq 1 ] && [ "$1" == "-encfs" ]; then
@@ -36,11 +46,13 @@ elif [ $# -eq 1 ] && [ "$1" == "-loopback" ]; then
 	rm -f /tmp/loopback*.memprof
 	loopback -l -memprofile=/tmp/loopback $MNT $CRYPT &
 	FSPID=$(jobs -p)
+	disown
 else
 	echo "Testing gocryptfs"
 	gocryptfs -q -init -extpass="echo test" -scryptn=10 $CRYPT
 	gocryptfs -q -extpass="echo test" -nosyslog -fg $CRYPT $MNT &
 	FSPID=$(jobs -p)
+	disown
 	#gocryptfs -q -extpass="echo test" -nosyslog -memprofile /tmp/extractloop-mem $CRYPT $MNT
 fi
 echo "Test dir: $CRYPT"
@@ -53,7 +65,7 @@ ln -v -sTf $CSV /tmp/extractloop.csv 2> /dev/null || true # fails on MacOS, igno
 # Cleanup trap
 # Note: gocryptfs may have already umounted itself because bash relays SIGINT
 # Just ignore unmount errors.
-trap "cd /; fuse-unmount -z $MNT; rm -rf $CRYPT $MNT" EXIT
+trap "cd / ; fuse-unmount -z $MNT ; rm -rf $CRYPT; rmdir $MNT" EXIT
 
 function loop {
 	ID=$1
@@ -70,7 +82,7 @@ function loop {
 		tar xf /tmp/linux-3.0.tar.gz --exclude linux-3.0/arch/microblaze/boot/dts/system.dts
 		#                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 		# Exclude the one symlink in the tarball - causes problems on MacOS: "Can't set permissions to 0755"
-		md5sum --status -c $MD5
+		check_md5sums $MD5
 		rm -Rf linux-3.0
 		t2=$SECONDS
 		delta=$((t2-t1))
