@@ -153,6 +153,19 @@ RM:    4.42
 Changelog
 ---------
 
+v1.4.4, 2018-03-18
+* Overwrite secrets in memory with zeros as soon as possible
+  ([#211](https://github.com/rfjakob/gocryptfs/issues/211))
+* Fix Getdents problems on i386 and mips64le
+  ([#197](https://github.com/rfjakob/gocryptfs/issues/197),
+  [#200](https://github.com/rfjakob/gocryptfs/issues/200))
+* Make building with gccgo work
+  ([#201](https://github.com/rfjakob/gocryptfs/issues/201))
+* MacOS: fix `osxfuse: vnode changed generation` / `Error code -36` issue in go-fuse
+  ([#213](https://github.com/rfjakob/gocryptfs/issues/213),
+  [commit](https://github.com/hanwen/go-fuse/commit/a9ddcb8a4b609500fc59c89ccc9ee05f00a5fefd))
+* Fix various test issues on MacOS
+
 v1.4.3, 2018-01-21
 * **Fix several symlink race attacks** in connection with reverse mode
   and allow_other. Thanks to @slackner for reporting and helping to fix
