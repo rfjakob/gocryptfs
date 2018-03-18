@@ -592,23 +592,3 @@ func (fs *FS) Access(path string, mode uint32, context *fuse.Context) (code fuse
 	}
 	return fuse.ToStatus(syscall.Access(cPath, mode))
 }
-
-// GetXAttr implements pathfs.Filesystem.
-func (fs *FS) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
-	return nil, fuse.ENOSYS
-}
-
-// SetXAttr implements pathfs.Filesystem.
-func (fs *FS) SetXAttr(name string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
-	return fuse.ENOSYS
-}
-
-// ListXAttr implements pathfs.Filesystem.
-func (fs *FS) ListXAttr(name string, context *fuse.Context) ([]string, fuse.Status) {
-	return nil, fuse.ENOSYS
-}
-
-// RemoveXAttr implements pathfs.Filesystem.
-func (fs *FS) RemoveXAttr(name string, attr string, context *fuse.Context) fuse.Status {
-	return fuse.ENOSYS
-}

@@ -131,10 +131,11 @@ func (be *ContentEnc) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, file
 
 // concatAD concatenates the block number and the file ID to a byte blob
 // that can be passed to AES-GCM as associated data (AD).
-// Result is: aData = blockNo.bigEndian + fileID.
+// Result is: aData = [blockNo.bigEndian fileID].
 func concatAD(blockNo uint64, fileID []byte) (aData []byte) {
 	if fileID != nil && len(fileID) != headerIDLen {
-		// fileID is nil when decrypting the master key from the config file
+		// fileID is nil when decrypting the master key from the config file,
+		// and for symlinks and xattrs.
 		log.Panicf("wrong fileID length: %d", len(fileID))
 	}
 	const lenUint64 = 8
