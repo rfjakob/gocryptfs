@@ -153,6 +153,10 @@ RM:    4.42
 Changelog
 ---------
 
+vNEXT, in progress
+* Add `-masterkey=stdin` functionality
+  ([#218](https://github.com/rfjakob/gocryptfs/issues/218))
+
 v1.4.4, 2018-03-18
 * Overwrite secrets in memory with zeros as soon as possible
   ([#211](https://github.com/rfjakob/gocryptfs/issues/211))

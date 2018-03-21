@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"syscall"
 	"testing"
 
@@ -248,6 +249,38 @@ func TestExampleFSv13(t *testing.T) {
 	test_helpers.MountOrFatal(t, cDir, pDir, "-masterkey",
 		"fd890dab-86bf61cf-ec5ad460-ad3ed01f-9c52d546-2a31783d-a56b088d-3d05232e",
 		opensslOpt)
+	checkExampleFSLongnames(t, pDir)
+	test_helpers.UnmountPanic(pDir)
+}
+
+// Check that the masterkey=stdin cli option works.
+func TestExampleFSv13MasterkeyStdin(t *testing.T) {
+	cDir := "v1.3"
+	pDir := test_helpers.TmpDir + "/TestExampleFSv13MasterkeyStdin.mnt"
+	err := os.Mkdir(pDir, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	args := []string{"-q", "-masterkey=stdin", opensslOpt, cDir, pDir}
+	cmd := exec.Command(test_helpers.GocryptfsBinary, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	p, err := cmd.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cmd.Start()
+	if err != nil {
+		t.Error(err)
+	}
+	// Write masterkey to stdin
+	p.Write([]byte("fd890dab-86bf61cf-ec5ad460-ad3ed01f-9c52d546-2a31783d-a56b088d-3d05232e"))
+	p.Close()
+	err = cmd.Wait()
+	if err != nil {
+		t.Error(err)
+	}
+	// Check that the fs decrypts ok & unmount
 	checkExampleFSLongnames(t, pDir)
 	test_helpers.UnmountPanic(pDir)
 }

@@ -142,20 +142,24 @@ This flag is useful when recovering old gocryptfs filesystems using
 "-masterkey". It is ignored (stays at the default) otherwise.
 
 #### -masterkey string
-Use a explicit master key specified on the command line. This
+Use a explicit master key specified on the command line or, if the special
+value "stdin" is used, read the masterkey from stdin. This
 option can be used to mount a gocryptfs filesystem without a config file.
 Note that the command line, and with it the master key, is visible to
-anybody on the machine who can execute "ps -auxwww".
-This is meant as a recovery option for emergencies, such as if you have
-forgotten the password or lost the config file.
+anybody on the machine who can execute "ps -auxwww". Use "-masterkey=stdin"
+to avoid that risk.
+
+The masterkey option is meant as a recovery option for emergencies, such as
+if you have forgotten the password or lost the config file.
 
 Even if a config file exists, it will not be used. All non-standard
 settings have to be passed on the command line: `-aessiv` when you
 mount a filesystem that was created using reverse mode, or
 `-plaintextnames` for a filesystem that was created with that option.
 
-Example master key:  
-6f717d8b-6b5f8e8a-fd0aa206-778ec093-62c5669b-abd229cd-241e00cd-b4d6713d
+Examples:  
+-masterkey=6f717d8b-6b5f8e8a-fd0aa206-778ec093-62c5669b-abd229cd-241e00cd-b4d6713d  
+-masterkey=stdin
 
 #### -memprofile string
 Write memory profile to the specified file. This is useful when debugging

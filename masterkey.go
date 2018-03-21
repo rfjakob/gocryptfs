@@ -46,7 +46,7 @@ paper and store it in a drawer. Use "-q" to suppress this message.
 
 // parseMasterKey - Parse a hex-encoded master key that was passed on the command line
 // Calls os.Exit on failure
-func parseMasterKey(masterkey string) []byte {
+func parseMasterKey(masterkey string, fromStdin bool) []byte {
 	masterkey = strings.Replace(masterkey, "-", "", -1)
 	key, err := hex.DecodeString(masterkey)
 	if err != nil {
@@ -58,8 +58,10 @@ func parseMasterKey(masterkey string) []byte {
 		os.Exit(exitcodes.MasterKey)
 	}
 	tlog.Info.Printf("Using explicit master key.")
-	tlog.Info.Printf(tlog.ColorYellow +
-		"THE MASTER KEY IS VISIBLE VIA \"ps ax\" AND MAY BE STORED IN YOUR SHELL HISTORY!\n" +
-		"ONLY USE THIS MODE FOR EMERGENCIES." + tlog.ColorReset)
+	if !fromStdin {
+		tlog.Info.Printf(tlog.ColorYellow +
+			"THE MASTER KEY IS VISIBLE VIA \"ps ax\" AND MAY BE STORED IN YOUR SHELL HISTORY!\n" +
+			"ONLY USE THIS MODE FOR EMERGENCIES" + tlog.ColorReset)
+	}
 	return key
 }

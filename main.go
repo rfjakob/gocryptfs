@@ -43,10 +43,10 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 	// The user has passed the master key (probably because he forgot the
 	// password).
 	if args.masterkey != "" {
-		masterkey = parseMasterKey(args.masterkey)
+		masterkey = parseMasterKey(args.masterkey, false)
 		_, confFile, err = configfile.LoadConfFile(args.config, nil)
 	} else {
-		pw := readpassword.Once(args.extpass)
+		pw := readpassword.Once(args.extpass, "")
 		tlog.Info.Println("Decrypting master key")
 		masterkey, confFile, err = configfile.LoadConfFile(args.config, pw)
 		for i := range pw {

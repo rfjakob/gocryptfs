@@ -98,9 +98,14 @@ func doMount(args *argContainer) {
 	{
 		// Get master key (may prompt for the password)
 		var masterkey []byte
+		masterkeyFromStdin := false
+		if args.masterkey == "stdin" {
+			args.masterkey = string(readpassword.Once("", "Masterkey"))
+			masterkeyFromStdin = true
+		}
 		if args.masterkey != "" {
 			// "-masterkey"
-			masterkey = parseMasterKey(args.masterkey)
+			masterkey = parseMasterKey(args.masterkey, masterkeyFromStdin)
 		} else if args.zerokey {
 			// "-zerokey"
 			tlog.Info.Printf("Using all-zero dummy master key.")
@@ -354,7 +359,7 @@ func initFuseFrontend(masterkey []byte, args *argContainer, confFile *configfile
 	}
 	srv, err := fuse.NewServer(conn.RawFS(), args.mountpoint, &mOpts)
 	if err != nil {
-		tlog.Fatal.Printf("fuse.NewServer failed: %v", err)
+		tlog.Fatal.Printf("fuse.NewServer failed: %q", err)
 		if runtime.GOOS == "darwin" {
 			tlog.Info.Printf("Maybe you should run: /Library/Filesystems/osxfuse.fs/Contents/Resources/load_osxfuse")
 		}

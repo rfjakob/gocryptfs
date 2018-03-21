@@ -23,15 +23,18 @@ const (
 )
 
 // Once tries to get a password from the user, either from the terminal, extpass
-// or stdin.
-func Once(extpass string) []byte {
+// or stdin. Leave "prompt" empty to use the default "Password: " prompt.
+func Once(extpass string, prompt string) []byte {
 	if extpass != "" {
 		return readPasswordExtpass(extpass)
 	}
-	if !terminal.IsTerminal(int(os.Stdin.Fd())) {
-		return readPasswordStdin()
+	if prompt == "" {
+		prompt = "Password"
 	}
-	return readPasswordTerminal("Password: ")
+	if !terminal.IsTerminal(int(os.Stdin.Fd())) {
+		return readPasswordStdin(prompt)
+	}
+	return readPasswordTerminal(prompt + ": ")
 }
 
 // Twice is the same as Once but will prompt twice if we get the password from
@@ -41,7 +44,7 @@ func Twice(extpass string) []byte {
 		return readPasswordExtpass(extpass)
 	}
 	if !terminal.IsTerminal(int(os.Stdin.Fd())) {
-		return readPasswordStdin()
+		return readPasswordStdin("Password")
 	}
 	p1 := readPasswordTerminal("Password: ")
 	p2 := readPasswordTerminal("Repeat: ")
@@ -77,11 +80,11 @@ func readPasswordTerminal(prompt string) []byte {
 
 // readPasswordStdin reads a line from stdin.
 // It exits with a fatal error on read error or empty result.
-func readPasswordStdin() []byte {
-	tlog.Info.Println("Reading password from stdin")
+func readPasswordStdin(prompt string) []byte {
+	tlog.Info.Printf("Reading %s from stdin", prompt)
 	p := readLineUnbuffered(os.Stdin)
 	if len(p) == 0 {
-		tlog.Fatal.Println("Got empty password from stdin")
+		tlog.Fatal.Printf("Got empty %s from stdin", prompt)
 		os.Exit(exitcodes.ReadPassword)
 	}
 	return p
