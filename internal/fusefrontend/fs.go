@@ -346,6 +346,20 @@ func (fs *FS) StatFs(path string) *fuse.StatfsOut {
 	return fs.FileSystem.StatFs(cPath)
 }
 
+// decryptSymlinkTarget: "cData64" is base64-decoded and decrypted
+// like file contents (GCM).
+func (fs *FS) decryptSymlinkTarget(cData64 string) (string, error) {
+	cData, err := fs.nameTransform.B64.DecodeString(cData64)
+	if err != nil {
+		return "", err
+	}
+	data, err := fs.contentEnc.DecryptBlock([]byte(cData), 0, nil)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
 // Readlink implements pathfs.Filesystem.
 func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status fuse.Status) {
 	cPath, err := fs.getBackingPath(path)
@@ -360,12 +374,7 @@ func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status f
 		return cTarget, fuse.OK
 	}
 	// Symlinks are encrypted like file contents (GCM) and base64-encoded
-	cBinTarget, err := fs.nameTransform.B64.DecodeString(cTarget)
-	if err != nil {
-		tlog.Warn.Printf("Readlink: %v", err)
-		return "", fuse.EIO
-	}
-	target, err := fs.contentEnc.DecryptBlock([]byte(cBinTarget), 0, nil)
+	target, err := fs.decryptSymlinkTarget(cTarget)
 	if err != nil {
 		tlog.Warn.Printf("Readlink: %v", err)
 		return "", fuse.EIO
@@ -398,6 +407,14 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	return fuse.ToStatus(err)
 }
 
+// encryptSymlinkTarget: "data" is encrypted like file contents (GCM)
+// and base64-encoded.
+func (fs *FS) encryptSymlinkTarget(data string) (cData64 string) {
+	cData := fs.contentEnc.EncryptBlock([]byte(data), 0, nil)
+	cData64 = fs.nameTransform.B64.EncodeToString(cData)
+	return cData64
+}
+
 // Symlink implements pathfs.Filesystem.
 func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (code fuse.Status) {
 	tlog.Debug.Printf("Symlink(\"%s\", \"%s\")", target, linkName)
@@ -412,8 +429,7 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	var cTarget string = target
 	if !fs.args.PlaintextNames {
 		// Symlinks are encrypted like file contents (GCM) and base64-encoded
-		cBinTarget := fs.contentEnc.EncryptBlock([]byte(target), 0, nil)
-		cTarget = fs.nameTransform.B64.EncodeToString(cBinTarget)
+		cTarget = fs.encryptSymlinkTarget(target)
 	}
 	// Create ".name" file to store long file name (except in PlaintextNames mode)
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
