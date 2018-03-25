@@ -348,7 +348,11 @@ func (fs *FS) StatFs(path string) *fuse.StatfsOut {
 
 // decryptSymlinkTarget: "cData64" is base64-decoded and decrypted
 // like file contents (GCM).
+// The empty string decrypts to the empty string.
 func (fs *FS) decryptSymlinkTarget(cData64 string) (string, error) {
+	if cData64 == "" {
+		return "", nil
+	}
 	cData, err := fs.nameTransform.B64.DecodeString(cData64)
 	if err != nil {
 		return "", err
@@ -409,7 +413,11 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 
 // encryptSymlinkTarget: "data" is encrypted like file contents (GCM)
 // and base64-encoded.
+// The empty string encrypts to the empty string.
 func (fs *FS) encryptSymlinkTarget(data string) (cData64 string) {
+	if data == "" {
+		return ""
+	}
 	cData := fs.contentEnc.EncryptBlock([]byte(data), 0, nil)
 	cData64 = fs.nameTransform.B64.EncodeToString(cData)
 	return cData64
