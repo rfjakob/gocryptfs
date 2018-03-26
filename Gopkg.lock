@@ -20,6 +20,12 @@
   revision = "2222dbd4ba467ab3fc7e8af41562fcfe69c0d770"
 
 [[projects]]
+  name = "github.com/rfjakob/pkg-xattr"
+  packages = ["."]
+  revision = "1d7b7ffe7c46974a836eb583b7452f22de1c18cf"
+  version = "v0.2.3"
+
+[[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["hkdf","pbkdf2","scrypt","ssh/terminal"]
@@ -40,6 +46,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8a044d1457e3087ab77e5f8acd0eb46e345afbf0f8af972bfd6361ab99f3b59b"
+  inputs-digest = "27445dec9a2aacb7d95ca8b595e98ae5c9b31c0402360bd8ab2cc9a6802c37b5"
   solver-name = "gps-cdcl"
   solver-version = 1
