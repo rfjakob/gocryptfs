@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"syscall"
 	"testing"
 
 	xattr "github.com/rfjakob/pkg-xattr"
@@ -18,10 +19,10 @@ import (
 var alternateTestParentDir = "/var/tmp/gocryptfs-xattr-test-parent"
 
 func TestMain(m *testing.M) {
-	if !xattr.Supported(test_helpers.TmpDir) {
+	if !xattrSupported(test_helpers.TmpDir) {
 		test_helpers.SwitchTestParentDir(alternateTestParentDir)
 	}
-	if !xattr.Supported(test_helpers.TmpDir) {
+	if !xattrSupported(test_helpers.TmpDir) {
 		fmt.Printf("xattrs not supported on %q", test_helpers.TmpDir)
 		os.Exit(1)
 	}
@@ -147,4 +148,16 @@ func TestXattrList(t *testing.T) {
 			t.Errorf("unexpected attr name: %q", n)
 		}
 	}
+}
+
+func xattrSupported(path string) bool {
+	_, err := xattr.Get(path, "user.xattrSupported-dummy-value")
+	if err == nil {
+		return true
+	}
+	err2 := err.(*xattr.Error)
+	if err2.Err == syscall.EOPNOTSUPP {
+		return false
+	}
+	return true
 }
