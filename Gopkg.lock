@@ -14,16 +14,16 @@
   revision = "c73681c634de898c869684602cf0c0d2ce938c4d"
 
 [[projects]]
+  name = "github.com/pkg/xattr"
+  packages = ["."]
+  revision = "1d7b7ffe7c46974a836eb583b7452f22de1c18cf"
+  version = "v0.2.3"
+
+[[projects]]
   branch = "master"
   name = "github.com/rfjakob/eme"
   packages = ["."]
   revision = "2222dbd4ba467ab3fc7e8af41562fcfe69c0d770"
-
-[[projects]]
-  name = "github.com/rfjakob/pkg-xattr"
-  packages = ["."]
-  revision = "1d7b7ffe7c46974a836eb583b7452f22de1c18cf"
-  version = "v0.2.3"
 
 [[projects]]
   branch = "master"
@@ -46,6 +46,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "27445dec9a2aacb7d95ca8b595e98ae5c9b31c0402360bd8ab2cc9a6802c37b5"
+  inputs-digest = "e3ad06e025f86b190df0e903117eacc6b490d935c21c3716516f68ba7724bf78"
   solver-name = "gps-cdcl"
   solver-version = 1

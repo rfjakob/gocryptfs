@@ -8,7 +8,7 @@ import (
 	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
-	xattr "github.com/rfjakob/pkg-xattr"
+	"github.com/pkg/xattr"
 
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )

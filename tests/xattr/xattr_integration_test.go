@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"testing"
 
-	xattr "github.com/rfjakob/pkg-xattr"
+	"github.com/pkg/xattr"
 
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
