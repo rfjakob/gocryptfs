@@ -228,6 +228,12 @@ func (f *file) doRead(dst []byte, off uint64, length uint64) ([]byte, fuse.Statu
 
 // Read - FUSE call
 func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fuse.Status) {
+	if len(buf) > fuse.MAX_KERNEL_WRITE {
+		// This would crash us due to our fixed-size buffer pool
+		tlog.Warn.Printf("Read: rejecting oversized request with EMSGSIZE, len=%d", len(buf))
+		return nil, fuse.Status(syscall.EMSGSIZE)
+	}
+
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 
@@ -346,6 +352,11 @@ func (f *file) isConsecutiveWrite(off int64) bool {
 //
 // If the write creates a hole, pads the file to the next block boundary.
 func (f *file) Write(data []byte, off int64) (uint32, fuse.Status) {
+	if len(data) > fuse.MAX_KERNEL_WRITE {
+		// This would crash us due to our fixed-size buffer pool
+		tlog.Warn.Printf("Write: rejecting oversized request with EMSGSIZE, len=%d", len(data))
+		return 0, fuse.Status(syscall.EMSGSIZE)
+	}
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 	if f.released {
