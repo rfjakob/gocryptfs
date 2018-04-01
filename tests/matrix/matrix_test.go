@@ -146,6 +146,7 @@ func TestTruncate(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
+	defer file.Close()
 	// Grow to two blocks
 	file.Truncate(7000)
 	test_helpers.VerifySize(t, fn, 7000)
@@ -230,6 +231,7 @@ func TestFallocate(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
+	defer file.Close()
 	wellKnown := isWellKnownFS(test_helpers.DefaultCipherDir)
 	fd := int(file.Fd())
 	nBytes := test_helpers.Du(t, fd)
@@ -333,7 +335,6 @@ func TestFallocate(t *testing.T) {
 		}
 	}
 	// Cleanup
-	file.Close()
 	syscall.Unlink(fn)
 	if !wellKnown {
 		// Even though most tests have been executed still, inform the user
@@ -348,6 +349,7 @@ func TestAppend(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
+	defer file.Close()
 	data := []byte("testdata123456789") // length 17
 	var buf bytes.Buffer
 	var hashWant string
@@ -381,6 +383,7 @@ func TestFileHoles(t *testing.T) {
 	if err != nil {
 		t.Errorf("file create failed")
 	}
+	defer file.Close()
 	foo := []byte("foo")
 	file.Write(foo)
 	file.WriteAt(foo, 4096)
