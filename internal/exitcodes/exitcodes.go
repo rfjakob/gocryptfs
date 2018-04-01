@@ -61,6 +61,8 @@ const (
 	// Profiler - error occoured when trying to write cpu or memory profile or
 	// execution trace
 	Profiler = 25
+	// FsckErrors - the filesystem check found errors
+	FsckErrors = 26
 )
 
 // Err wraps an error with an associated numeric exit code

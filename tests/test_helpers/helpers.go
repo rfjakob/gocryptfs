@@ -400,3 +400,15 @@ func QueryCtlSock(t *testing.T, socketPath string, req ctlsock.RequestStruct) (r
 	json.Unmarshal(buf, &response)
 	return response
 }
+
+// Extract the exit code from an error value that was returned from
+// exec / cmd.Run()
+func ExtractCmdExitCode(err error) int {
+	if err == nil {
+		return 0
+	}
+	// OMG this is convoluted
+	err2 := err.(*exec.ExitError)
+	code := err2.Sys().(syscall.WaitStatus).ExitStatus()
+	return code
+}

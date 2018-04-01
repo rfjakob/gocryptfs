@@ -18,18 +18,6 @@ import (
 
 var testPw = []byte("test")
 
-// Extract the exit code from an error value that was returned from
-// exec.Run()
-func extractExitCode(err error) int {
-	if err == nil {
-		return 0
-	}
-	// OMG this is convoluted
-	err2 := err.(*exec.ExitError)
-	code := err2.Sys().(syscall.WaitStatus).ExitStatus()
-	return code
-}
-
 func TestMain(m *testing.M) {
 	test_helpers.ResetTmpDir(false)
 	r := m.Run()
@@ -344,7 +332,7 @@ func TestMountPasswordIncorrect(t *testing.T) {
 	cDir := test_helpers.InitFS(t) // Create filesystem with password "test"
 	pDir := cDir + ".mnt"
 	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "echo WRONG", "-wpanic=false")
-	exitCode := extractExitCode(err)
+	exitCode := test_helpers.ExtractCmdExitCode(err)
 	if exitCode != exitcodes.PasswordIncorrect {
 		t.Errorf("want=%d, got=%d", exitcodes.PasswordIncorrect, exitCode)
 	}
@@ -373,7 +361,7 @@ func TestPasswdPasswordIncorrect(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = cmd.Wait()
-	exitCode := extractExitCode(err)
+	exitCode := test_helpers.ExtractCmdExitCode(err)
 	if exitCode != exitcodes.PasswordIncorrect {
 		t.Errorf("want=%d, got=%d", exitcodes.PasswordIncorrect, exitCode)
 	}
@@ -444,7 +432,7 @@ func TestMultipleOperationFlags(t *testing.T) {
 			//t.Logf("testing %v", args)
 			cmd := exec.Command(test_helpers.GocryptfsBinary, args...)
 			err := cmd.Run()
-			exitCode := extractExitCode(err)
+			exitCode := test_helpers.ExtractCmdExitCode(err)
 			if exitCode != exitcodes.Usage {
 				t.Fatalf("this should have failed with code %d, but returned %d",
 					exitcodes.Usage, exitCode)

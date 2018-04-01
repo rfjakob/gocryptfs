@@ -287,5 +287,6 @@ func main() {
 	// "-fsck"
 	if args.fsck {
 		fsck(&args)
+		os.Exit(0)
 	}
 }
