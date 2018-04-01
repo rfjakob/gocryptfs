@@ -246,45 +246,46 @@ func main() {
 		tlog.Debug.Printf("OpenSSL enabled")
 	}
 	// Operation flags
-	if args.info && args.init || args.info && args.passwd || args.passwd && args.init {
-		tlog.Fatal.Printf("At most one of -info, -init, -passwd is allowed")
+	nOps := countOpFlags(&args)
+	if nOps == 0 {
+		// Default operation: mount.
+		if flagSet.NArg() != 2 {
+			prettyArgs := prettyArgs()
+			tlog.Info.Printf("Wrong number of arguments (have %d, want 2). You passed: %s",
+				flagSet.NArg(), prettyArgs)
+			tlog.Fatal.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]", tlog.ProgramName)
+			os.Exit(exitcodes.Usage)
+		}
+		doMount(&args)
+		// Don't call os.Exit to give deferred functions a chance to run
+		return
+	}
+	if nOps > 1 {
+		tlog.Fatal.Printf("At most one of -info, -init, -passwd, -fsck is allowed")
+		os.Exit(exitcodes.Usage)
+	}
+	if flagSet.NArg() != 1 {
+		tlog.Fatal.Printf("The options -info, -init, -passwd, -fsck take exactly one argument, %d given",
+			flagSet.NArg())
 		os.Exit(exitcodes.Usage)
 	}
 	// "-info"
 	if args.info {
-		if flagSet.NArg() > 1 {
-			tlog.Fatal.Printf("Usage: %s -info CIPHERDIR", tlog.ProgramName)
-			os.Exit(exitcodes.Usage)
-		}
 		info(args.config)
 		os.Exit(0)
 	}
 	// "-init"
 	if args.init {
-		if flagSet.NArg() > 1 {
-			tlog.Fatal.Printf("Usage: %s -init [OPTIONS] CIPHERDIR", tlog.ProgramName)
-			os.Exit(exitcodes.Usage)
-		}
 		initDir(&args)
 		os.Exit(0)
 	}
 	// "-passwd"
 	if args.passwd {
-		if flagSet.NArg() > 1 {
-			tlog.Fatal.Printf("Usage: %s -passwd [OPTIONS] CIPHERDIR", tlog.ProgramName)
-			os.Exit(exitcodes.Usage)
-		}
 		changePassword(&args)
 		os.Exit(0)
 	}
-	// Default operation: mount.
-	if flagSet.NArg() != 2 {
-		prettyArgs := prettyArgs()
-		tlog.Info.Printf("Wrong number of arguments (have %d, want 2). You passed: %s",
-			flagSet.NArg(), prettyArgs)
-		tlog.Fatal.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]", tlog.ProgramName)
-		os.Exit(exitcodes.Usage)
+	// "-fsck"
+	if args.fsck {
+		fsck(&args)
 	}
-	doMount(&args)
-	// Don't call os.Exit to give deferred functions a chance to run
 }

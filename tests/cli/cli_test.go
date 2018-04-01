@@ -18,6 +18,18 @@ import (
 
 var testPw = []byte("test")
 
+// Extract the exit code from an error value that was returned from
+// exec.Run()
+func extractExitCode(err error) int {
+	if err == nil {
+		return 0
+	}
+	// OMG this is convoluted
+	err2 := err.(*exec.ExitError)
+	code := err2.Sys().(syscall.WaitStatus).ExitStatus()
+	return code
+}
+
 func TestMain(m *testing.M) {
 	test_helpers.ResetTmpDir(false)
 	r := m.Run()
@@ -332,8 +344,7 @@ func TestMountPasswordIncorrect(t *testing.T) {
 	cDir := test_helpers.InitFS(t) // Create filesystem with password "test"
 	pDir := cDir + ".mnt"
 	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "echo WRONG", "-wpanic=false")
-	//          vvvvvvvvvvvvvv OMG vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-	exitCode := err.(*exec.ExitError).Sys().(syscall.WaitStatus).ExitStatus()
+	exitCode := extractExitCode(err)
 	if exitCode != exitcodes.PasswordIncorrect {
 		t.Errorf("want=%d, got=%d", exitcodes.PasswordIncorrect, exitCode)
 	}
@@ -362,7 +373,7 @@ func TestPasswdPasswordIncorrect(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = cmd.Wait()
-	exitCode := err.(*exec.ExitError).Sys().(syscall.WaitStatus).ExitStatus()
+	exitCode := extractExitCode(err)
 	if exitCode != exitcodes.PasswordIncorrect {
 		t.Errorf("want=%d, got=%d", exitcodes.PasswordIncorrect, exitCode)
 	}
@@ -415,5 +426,29 @@ func TestMountBackground(t *testing.T) {
 		return
 	case <-time.After(time.Second * 5):
 		t.Fatal("timeout")
+	}
+}
+
+// Test that "gocryptfs -init -info CIPHERDIR" returns an error to the
+// user. Only one operation flag is allowed.
+func TestMultipleOperationFlags(t *testing.T) {
+	// Test all combinations
+	opFlags := []string{"-init", "-info", "-passwd", "-fsck"}
+	for _, flag1 := range opFlags {
+		var flag2 string
+		for _, flag2 = range opFlags {
+			if flag1 == flag2 {
+				continue
+			}
+			args := []string{flag1, flag2, "/tmp"}
+			//t.Logf("testing %v", args)
+			cmd := exec.Command(test_helpers.GocryptfsBinary, args...)
+			err := cmd.Run()
+			exitCode := extractExitCode(err)
+			if exitCode != exitcodes.Usage {
+				t.Fatalf("this should have failed with code %d, but returned %d",
+					exitcodes.Usage, exitCode)
+			}
+		}
 	}
 }

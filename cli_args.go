@@ -22,7 +22,7 @@ type argContainer struct {
 	plaintextnames, quiet, nosyslog, wpanic,
 	longnames, allow_other, ro, reverse, aessiv, nonempty, raw64,
 	noprealloc, speed, hkdf, serialize_reads, forcedecode, hh, info,
-	sharedstorage, devrandom bool
+	sharedstorage, devrandom, fsck bool
 	masterkey, mountpoint, cipherdir, cpuprofile, extpass,
 	memprofile, ko, passfile, ctlsock, fsname, force_owner, trace string
 	// Configuration file name override
@@ -133,6 +133,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.BoolVar(&args.info, "info", false, "Display information about CIPHERDIR")
 	flagSet.BoolVar(&args.sharedstorage, "sharedstorage", false, "Make concurrent access to a shared CIPHERDIR safer")
 	flagSet.BoolVar(&args.devrandom, "devrandom", false, "Use /dev/random for generating master key")
+	flagSet.BoolVar(&args.fsck, "fsck", false, "Run a filesystem check on CIPHERDIR")
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")
@@ -219,4 +220,22 @@ func prettyArgs() string {
 	// Get rid of "[" and "]"
 	pa = pa[1 : len(pa)-1]
 	return pa
+}
+
+// countOpFlags counts the number of operation flags we were passed.
+func countOpFlags(args *argContainer) int {
+	var count int
+	if args.info {
+		count++
+	}
+	if args.passwd {
+		count++
+	}
+	if args.init {
+		count++
+	}
+	if args.fsck {
+		count++
+	}
+	return count
 }
