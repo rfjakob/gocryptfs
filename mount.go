@@ -29,7 +29,6 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend_reverse"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
-	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -96,37 +95,9 @@ func doMount(args *argContainer) {
 	var confFile *configfile.ConfFile
 	var srv *fuse.Server
 	{
-		// Get master key (may prompt for the password)
 		var masterkey []byte
-		masterkeyFromStdin := false
-		if args.masterkey == "stdin" {
-			args.masterkey = string(readpassword.Once("", "Masterkey"))
-			masterkeyFromStdin = true
-		}
-		if args.masterkey != "" {
-			// "-masterkey"
-			masterkey = parseMasterKey(args.masterkey, masterkeyFromStdin)
-		} else if args.zerokey {
-			// "-zerokey"
-			tlog.Info.Printf("Using all-zero dummy master key.")
-			tlog.Info.Printf(tlog.ColorYellow +
-				"ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING." +
-				tlog.ColorReset)
-			masterkey = make([]byte, cryptocore.KeyLen)
-		} else {
-			// Load master key from config file
-			// Prompts the user for the password
-			masterkey, confFile, err = loadConfig(args)
-			if err != nil {
-				if args._ctlsockFd != nil {
-					// Close the socket file (which also deletes it)
-					args._ctlsockFd.Close()
-				}
-				exitcodes.Exit(err)
-			}
-			readpassword.CheckTrailingGarbage()
-			printMasterKey(masterkey)
-		}
+		// Get master key (may prompt for the password)
+		masterkey, confFile = getMasterKey(args)
 		// We cannot use JSON for pretty-printing as the fields are unexported
 		tlog.Debug.Printf("cli args: %#v", args)
 		// Initialize FUSE server

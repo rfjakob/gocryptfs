@@ -7,8 +7,10 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
+	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
+	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -64,4 +66,47 @@ func parseMasterKey(masterkey string, fromStdin bool) []byte {
 			"ONLY USE THIS MODE FOR EMERGENCIES" + tlog.ColorReset)
 	}
 	return key
+}
+
+// getMasterKey looks at "args" to determine where the master key should come
+// from (-masterkey=a-b-c-d or stdin or from the config file).
+// If it comes from the config file, the user is prompted for the password
+// and a ConfFile instance is returned.
+// Calls os.Exit on failure.
+func getMasterKey(args *argContainer) (masterkey []byte, confFile *configfile.ConfFile) {
+	masterkeyFromStdin := false
+	// "-masterkey=stdin"
+	if args.masterkey == "stdin" {
+		args.masterkey = string(readpassword.Once("", "Masterkey"))
+		masterkeyFromStdin = true
+	}
+	// "-masterkey=941a6029-3adc6a1c-..."
+	if args.masterkey != "" {
+		return parseMasterKey(args.masterkey, masterkeyFromStdin), nil
+	}
+	// "-zerokey"
+	if args.zerokey {
+		tlog.Info.Printf("Using all-zero dummy master key.")
+		tlog.Info.Printf(tlog.ColorYellow +
+			"ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING." +
+			tlog.ColorReset)
+		return make([]byte, cryptocore.KeyLen), nil
+	}
+	var err error
+	// Load master key from config file (normal operation).
+	// Prompts the user for the password.
+	masterkey, confFile, err = loadConfig(args)
+	if err != nil {
+		if args._ctlsockFd != nil {
+			// Close the socket file (which also deletes it)
+			args._ctlsockFd.Close()
+		}
+		exitcodes.Exit(err)
+	}
+	readpassword.CheckTrailingGarbage()
+	if !args.fsck {
+		// We only want to print the masterkey message on a normal mount.
+		printMasterKey(masterkey)
+	}
+	return masterkey, confFile
 }
