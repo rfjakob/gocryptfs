@@ -58,9 +58,9 @@ func doMount(args *argContainer) {
 		os.Exit(exitcodes.MountPoint)
 	}
 	if args.nonempty {
-		err = checkDir(args.mountpoint)
+		err = isDir(args.mountpoint)
 	} else {
-		err = checkDirEmpty(args.mountpoint)
+		err = isDirEmpty(args.mountpoint)
 		// OSXFuse will create the mountpoint for us ( https://github.com/rfjakob/gocryptfs/issues/194 )
 		if runtime.GOOS == "darwin" && os.IsNotExist(err) {
 			tlog.Info.Printf("Mountpoint %q does not exist, but should be created by OSXFuse",

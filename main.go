@@ -174,7 +174,7 @@ func main() {
 	}
 	// Check that CIPHERDIR exists
 	args.cipherdir, _ = filepath.Abs(flagSet.Arg(0))
-	err = checkDir(args.cipherdir)
+	err = isDir(args.cipherdir)
 	if err != nil {
 		tlog.Fatal.Printf("Invalid cipherdir: %v", err)
 		os.Exit(exitcodes.CipherDir)

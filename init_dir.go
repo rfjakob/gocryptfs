@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +13,35 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
+
+// isDirEmpty checks if "dir" exists and is an empty directory.
+// Returns an *os.PathError if Stat() on the path fails.
+func isDirEmpty(dir string) error {
+	err := isDir(dir)
+	if err != nil {
+		return err
+	}
+	entries, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+	if len(entries) == 0 {
+		return nil
+	}
+	return fmt.Errorf("directory %s not empty", dir)
+}
+
+// isDir checks if "dir" exists and is a directory.
+func isDir(dir string) error {
+	fi, err := os.Stat(dir)
+	if err != nil {
+		return err
+	}
+	if !fi.IsDir() {
+		return fmt.Errorf("%s is not a directory", dir)
+	}
+	return nil
+}
 
 // initDir prepares a directory for use as a gocryptfs storage directory.
 // In forward mode, this means creating the gocryptfs.conf and gocryptfs.diriv
@@ -26,7 +57,7 @@ func initDir(args *argContainer) {
 			os.Exit(exitcodes.Init)
 		}
 	} else {
-		err = checkDirEmpty(args.cipherdir)
+		err = isDirEmpty(args.cipherdir)
 		if err != nil {
 			tlog.Fatal.Printf("Invalid cipherdir: %v", err)
 			os.Exit(exitcodes.Init)
