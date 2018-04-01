@@ -41,5 +41,4 @@ func info(filename string) {
 	s := cf.ScryptObject
 	fmt.Printf("ScryptObject: Salt=%dB N=%d R=%d P=%d KeyLen=%d\n",
 		len(s.Salt), s.N, s.R, s.P, s.KeyLen)
-	os.Exit(0)
 }

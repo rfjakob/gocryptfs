@@ -103,7 +103,6 @@ func changePassword(args *argContainer) {
 		os.Exit(exitcodes.WriteConf)
 	}
 	tlog.Info.Printf(tlog.ColorGreen + "Password changed." + tlog.ColorReset)
-	os.Exit(0)
 }
 
 // printVersion prints a version string like this:
@@ -257,7 +256,8 @@ func main() {
 			tlog.Fatal.Printf("Usage: %s -info CIPHERDIR", tlog.ProgramName)
 			os.Exit(exitcodes.Usage)
 		}
-		info(args.config) // does not return
+		info(args.config)
+		os.Exit(0)
 	}
 	// "-init"
 	if args.init {
@@ -265,7 +265,8 @@ func main() {
 			tlog.Fatal.Printf("Usage: %s -init [OPTIONS] CIPHERDIR", tlog.ProgramName)
 			os.Exit(exitcodes.Usage)
 		}
-		initDir(&args) // does not return
+		initDir(&args)
+		os.Exit(0)
 	}
 	// "-passwd"
 	if args.passwd {
@@ -273,7 +274,8 @@ func main() {
 			tlog.Fatal.Printf("Usage: %s -passwd [OPTIONS] CIPHERDIR", tlog.ProgramName)
 			os.Exit(exitcodes.Usage)
 		}
-		changePassword(&args) // does not return
+		changePassword(&args)
+		os.Exit(0)
 	}
 	// Default operation: mount.
 	if flagSet.NArg() != 2 {
