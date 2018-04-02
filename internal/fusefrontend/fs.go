@@ -365,12 +365,13 @@ func (fs *FS) decryptSymlinkTarget(cData64 string) (string, error) {
 }
 
 // Readlink implements pathfs.Filesystem.
-func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status fuse.Status) {
-	cPath, err := fs.getBackingPath(path)
+func (fs *FS) Readlink(relPath string, context *fuse.Context) (out string, status fuse.Status) {
+	cPath, err := fs.encryptPath(relPath)
 	if err != nil {
 		return "", fuse.ToStatus(err)
 	}
-	cTarget, err := os.Readlink(cPath)
+	cAbsPath := filepath.Join(fs.args.Cipherdir, cPath)
+	cTarget, err := os.Readlink(cAbsPath)
 	if err != nil {
 		return "", fuse.ToStatus(err)
 	}
@@ -380,7 +381,7 @@ func (fs *FS) Readlink(path string, context *fuse.Context) (out string, status f
 	// Symlinks are encrypted like file contents (GCM) and base64-encoded
 	target, err := fs.decryptSymlinkTarget(cTarget)
 	if err != nil {
-		tlog.Warn.Printf("Readlink: %v", err)
+		tlog.Warn.Printf("Readlink %q: decrypting target failed: %v", cPath, err)
 		return "", fuse.EIO
 	}
 	return string(target), fuse.OK

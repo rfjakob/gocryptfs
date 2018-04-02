@@ -186,7 +186,7 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileID []b
 	plaintext, err := be.cryptoCore.AEADCipher.Open(plaintext, nonce, ciphertext, aData)
 
 	if err != nil {
-		tlog.Warn.Printf("DecryptBlock: %s, len=%d", err.Error(), len(ciphertextOrig))
+		tlog.Debug.Printf("DecryptBlock: %s, len=%d", err.Error(), len(ciphertextOrig))
 		tlog.Debug.Println(hex.Dump(ciphertextOrig))
 		if be.forceDecode && err == stupidgcm.ErrAuth {
 			return plaintext, err

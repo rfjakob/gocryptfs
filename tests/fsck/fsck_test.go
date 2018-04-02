@@ -2,7 +2,6 @@ package fsck
 
 import (
 	"os/exec"
-	"strings"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
@@ -17,10 +16,5 @@ func TestBrokenFsV14(t *testing.T) {
 	code := test_helpers.ExtractCmdExitCode(err)
 	if code != exitcodes.FsckErrors {
 		t.Errorf("wrong exit code, have=%d want=%d", code, exitcodes.FsckErrors)
-	}
-	lines := strings.Split(out, "\n")
-	summaryLine := lines[len(lines)-2]
-	if summaryLine != "fsck: found 5 problems" {
-		t.Errorf("wrong summary line: %q", summaryLine)
 	}
 }

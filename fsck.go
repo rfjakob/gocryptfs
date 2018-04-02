@@ -16,8 +16,13 @@ import (
 )
 
 type fsckObj struct {
-	fs         *fusefrontend.FS
-	errorCount int
+	fs *fusefrontend.FS
+	// List of corrupt files
+	corruptList []string
+}
+
+func (ck *fsckObj) markCorrupt(path string) {
+	ck.corruptList = append(ck.corruptList, path)
 }
 
 // Recursively check dir for corruption
@@ -25,8 +30,8 @@ func (ck *fsckObj) dir(path string) {
 	//fmt.Printf("ck.dir %q\n", path)
 	entries, status := ck.fs.OpenDir(path, nil)
 	if !status.Ok() {
+		ck.markCorrupt(path)
 		fmt.Printf("fsck: error opening dir %q: %v\n", path, status)
-		ck.errorCount++
 		return
 	}
 	// Sort alphabetically
@@ -56,8 +61,8 @@ func (ck *fsckObj) dir(path string) {
 func (ck *fsckObj) symlink(path string) {
 	_, status := ck.fs.Readlink(path, nil)
 	if !status.Ok() {
+		ck.markCorrupt(path)
 		fmt.Printf("fsck: error reading symlink %q: %v\n", path, status)
-		ck.errorCount++
 	}
 }
 
@@ -66,8 +71,8 @@ func (ck *fsckObj) file(path string) {
 	//fmt.Printf("ck.file %q\n", path)
 	f, status := ck.fs.Open(path, syscall.O_RDONLY, nil)
 	if !status.Ok() {
+		ck.markCorrupt(path)
 		fmt.Printf("fsck: error opening file %q: %v\n", path, status)
-		ck.errorCount++
 		return
 	}
 	defer f.Release()
@@ -76,8 +81,8 @@ func (ck *fsckObj) file(path string) {
 	for {
 		result, status := f.Read(buf, off)
 		if !status.Ok() {
+			ck.markCorrupt(path)
 			fmt.Printf("fsck: error reading file %q at offset %d: %v\n", path, off, status)
-			ck.errorCount++
 			return
 		}
 		// EOF
@@ -95,16 +100,21 @@ func fsck(args *argContainer) {
 	}
 	args.allow_other = false
 	pfs, wipeKeys := initFuseFrontend(args)
-	defer wipeKeys()
 	fs := pfs.(*fusefrontend.FS)
 	ck := fsckObj{
 		fs: fs,
 	}
 	ck.dir("")
-	fmt.Printf("fsck: found %d problems\n", ck.errorCount)
-	if ck.errorCount != 0 {
-		os.Exit(exitcodes.FsckErrors)
+	wipeKeys()
+	if len(ck.corruptList) == 0 {
+		fmt.Printf("fsck summary: no problems found")
+		return
 	}
+	fmt.Printf("fsck summary: found %d corrupt files:\n", len(ck.corruptList))
+	for _, path := range ck.corruptList {
+		fmt.Printf("  %q\n", path)
+	}
+	os.Exit(exitcodes.FsckErrors)
 }
 
 type sortableDirEntries []fuse.DirEntry

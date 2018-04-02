@@ -286,12 +286,13 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 			cachedIV, err = nametransform.ReadDirIV(cDirAbsPath)
 			if err != nil {
 				fs.dirIVLock.RUnlock()
-				// This can happen during normal operation when the directory has
-				// been deleted concurrently. But it can also mean that the
-				// gocryptfs.diriv is missing due to an error, so log the event
-				// at "info" level.
-				tlog.Info.Printf("OpenDir: %v", err)
-				return nil, fuse.ToStatus(err)
+				// The directory itself does not exist
+				if err == syscall.ENOENT {
+					return nil, fuse.ENOENT
+				}
+				// Any other problem warrants an error message
+				tlog.Warn.Printf("OpenDir %q: could not read gocryptfs.diriv: %v", cDirName, err)
+				return nil, fuse.EIO
 			}
 			fs.nameTransform.DirIVCache.Store(dirName, cachedIV, cDirName)
 			fs.dirIVLock.RUnlock()

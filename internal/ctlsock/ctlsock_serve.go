@@ -167,6 +167,8 @@ func sendResponse(conn *net.UnixConn, err error, result string, warnText string)
 			if se, ok := pe.Err.(syscall.Errno); ok {
 				msg.ErrNo = int32(se)
 			}
+		} else if err == syscall.ENOENT {
+			msg.ErrNo = int32(syscall.ENOENT)
 		}
 	}
 	jsonMsg, err := json.Marshal(msg)

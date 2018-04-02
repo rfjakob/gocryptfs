@@ -2,6 +2,7 @@ package nametransform
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -26,11 +27,16 @@ const (
 
 // ReadDirIV - read the "gocryptfs.diriv" file from "dir" (absolute ciphertext path)
 // This function is exported because it allows for an efficient readdir implementation.
+// If the directory itself cannot be opened, a syscall error will be returned.
+// Otherwise, a fmt.Errorf() error value is returned with the details.
 func ReadDirIV(dir string) (iv []byte, err error) {
 	fd, err := os.Open(filepath.Join(dir, DirIVFilename))
 	if err != nil {
 		// Note: getting errors here is normal because of concurrent deletes.
-		return nil, err
+		// Strip the useless annotation that os.Open has added and return
+		// the plain syscall error. The caller will log a nice message.
+		err2 := err.(*os.PathError)
+		return nil, err2.Err
 	}
 	defer fd.Close()
 	return fdReadDirIV(fd)
@@ -42,9 +48,7 @@ func ReadDirIVAt(dirfd *os.File) (iv []byte, err error) {
 	fdRaw, err := syscallcompat.Openat(int(dirfd.Fd()), DirIVFilename,
 		syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
-		tlog.Warn.Printf("ReadDirIVAt: opening %q in dir %q failed: %v",
-			DirIVFilename, dirfd.Name(), err)
-		return nil, err
+		return nil, fmt.Errorf("openat failed: %v", err)
 	}
 	fd := os.NewFile(uintptr(fdRaw), DirIVFilename)
 	defer fd.Close()
@@ -61,17 +65,14 @@ func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 	iv = make([]byte, DirIVLen+1)
 	n, err := fd.Read(iv)
 	if err != nil && err != io.EOF {
-		tlog.Warn.Printf("ReadDirIVAt: Read failed: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("read failed: %v", err)
 	}
 	iv = iv[0:n]
 	if len(iv) != DirIVLen {
-		tlog.Warn.Printf("ReadDirIVAt: wanted %d bytes, got %d. Returning EINVAL.", DirIVLen, len(iv))
-		return nil, syscall.EINVAL
+		return nil, fmt.Errorf("wanted %d bytes, got %d", DirIVLen, len(iv))
 	}
 	if bytes.Equal(iv, allZeroDirIV) {
-		tlog.Warn.Printf("ReadDirIVAt: diriv is all-zero. Returning EINVAL.")
-		return nil, syscall.EINVAL
+		return nil, fmt.Errorf("diriv is all-zero")
 	}
 	return iv, nil
 }

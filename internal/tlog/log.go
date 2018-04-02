@@ -110,6 +110,8 @@ func init() {
 	Warn = &toggledLogger{
 		Enabled: true,
 		Logger:  log.New(os.Stderr, "", 0),
+		prefix:  ColorYellow,
+		postfix: ColorReset,
 	}
 	Fatal = &toggledLogger{
 		Enabled: true,

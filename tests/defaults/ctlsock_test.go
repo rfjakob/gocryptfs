@@ -25,7 +25,7 @@ func TestCtlSock(t *testing.T) {
 	req.EncryptPath = "not-existing-dir/xyz"
 	response = test_helpers.QueryCtlSock(t, sock, req)
 	if response.ErrNo != int32(syscall.ENOENT) || response.Result != "" {
-		t.Errorf("incorrect error handling: %+v", response)
+		t.Errorf("incorrect error handling: wanted ErrNo=%d, have %+v", syscall.ENOENT, response)
 	}
 	// Strange paths should not cause a crash
 	crashers := []string{"/foo", "foo/", "/foo/", ".", "/////", "/../../."}

@@ -97,7 +97,7 @@ func (f *file) readFileID() ([]byte, error) {
 	n, err := f.fd.ReadAt(buf, 0)
 	if err != nil {
 		if err == io.EOF && n != 0 {
-			tlog.Warn.Printf("ino%d: readFileID: incomplete file, got %d instead of %d bytes",
+			tlog.Warn.Printf("readFileID %d: incomplete file, got %d instead of %d bytes",
 				f.qIno.Ino, n, readLen)
 		}
 		return nil, err
@@ -156,7 +156,8 @@ func (f *file) doRead(dst []byte, off uint64, length uint64) ([]byte, fuse.Statu
 		}
 		if err != nil {
 			f.fileTableEntry.HeaderLock.Unlock()
-			return nil, fuse.ToStatus(err)
+			tlog.Warn.Printf("doRead %d: corrupt header: %v", f.qIno.Ino, err)
+			return nil, fuse.EIO
 		}
 		f.fileTableEntry.ID = tmpID
 		// Downgrade the lock.
@@ -200,11 +201,11 @@ func (f *file) doRead(dst []byte, off uint64, length uint64) ([]byte, fuse.Statu
 		if f.fs.args.ForceDecode && err == stupidgcm.ErrAuth {
 			// We do not have the information which block was corrupt here anymore,
 			// but DecryptBlocks() has already logged it anyway.
-			tlog.Warn.Printf("ino%d: doRead off=%d len=%d: returning corrupt data due to forcedecode",
+			tlog.Warn.Printf("doRead %d: off=%d len=%d: returning corrupt data due to forcedecode",
 				f.qIno.Ino, off, length)
 		} else {
 			curruptBlockNo := firstBlockNo + f.contentEnc.PlainOffToBlockNo(uint64(len(plaintext)))
-			tlog.Warn.Printf("ino%d: doRead: corrupt block #%d: %v", f.qIno.Ino, curruptBlockNo, err)
+			tlog.Warn.Printf("doRead %d: corrupt block #%d: %v", f.qIno.Ino, curruptBlockNo, err)
 			return nil, fuse.EIO
 		}
 	}
@@ -233,29 +234,20 @@ func (f *file) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 		tlog.Warn.Printf("Read: rejecting oversized request with EMSGSIZE, len=%d", len(buf))
 		return nil, fuse.Status(syscall.EMSGSIZE)
 	}
-
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 
 	tlog.Debug.Printf("ino%d: FUSE Read: offset=%d length=%d", f.qIno.Ino, len(buf), off)
-
 	if f.fs.args.SerializeReads {
 		serialize_reads.Wait(off, len(buf))
 	}
-
 	out, status := f.doRead(buf[:0], uint64(off), uint64(len(buf)))
-
 	if f.fs.args.SerializeReads {
 		serialize_reads.Done()
-	}
-
-	if status == fuse.EIO {
-		tlog.Warn.Printf("ino%d: Read: returning EIO, offset=%d, length=%d", f.qIno.Ino, len(buf), off)
 	}
 	if status != fuse.OK {
 		return nil, status
 	}
-
 	tlog.Debug.Printf("ino%d: Read: status %v, returning %d bytes", f.qIno.Ino, status, len(out))
 	return fuse.ReadResultData(out), status
 }

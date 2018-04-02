@@ -2,6 +2,7 @@ package reverse_test
 
 import (
 	"io/ioutil"
+	"syscall"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/ctlsock"
@@ -58,12 +59,12 @@ func TestCtlSockPathOps(t *testing.T) {
 	// Check that we do not mix up information for different directories.
 	req = ctlsock.RequestStruct{DecryptPath: "gocryptfs.longname.y6rxCn6Id8hIZL2t_STpdLZpu-aE2HpprJR25xD60mk="}
 	response = test_helpers.QueryCtlSock(t, sock, req)
-	if response.ErrNo != -1 {
+	if response.ErrNo != int32(syscall.ENOENT) {
 		t.Errorf("File should not exist: ErrNo=%d ErrText=%s", response.ErrNo, response.ErrText)
 	}
 	req = ctlsock.RequestStruct{DecryptPath: "v6puXntoQOk7Mhl8zJ4Idg==/gocryptfs.longname.ZQCAoi5li3xvDZRO8McBV0L_kzJc4IcAOEzuW-2S1Y4="}
 	response = test_helpers.QueryCtlSock(t, sock, req)
-	if response.ErrNo != -1 {
+	if response.ErrNo != int32(syscall.ENOENT) {
 		t.Errorf("File should not exist: ErrNo=%d ErrText=%s", response.ErrNo, response.ErrText)
 	}
 }
