@@ -28,6 +28,7 @@ func (ck *fsckObj) markCorrupt(path string) {
 // Recursively check dir for corruption
 func (ck *fsckObj) dir(path string) {
 	//fmt.Printf("ck.dir %q\n", path)
+	ck.xattrs(path)
 	entries, status := ck.fs.OpenDir(path, nil)
 	if !status.Ok() {
 		ck.markCorrupt(path)
@@ -53,7 +54,7 @@ func (ck *fsckObj) dir(path string) {
 		case syscall.S_IFIFO, syscall.S_IFSOCK, syscall.S_IFBLK, syscall.S_IFCHR:
 			// nothing to check
 		default:
-			fmt.Printf("fsck: unhandle file type %x\n", filetype)
+			fmt.Printf("fsck: unhandled file type %x\n", filetype)
 		}
 	}
 }
@@ -69,6 +70,7 @@ func (ck *fsckObj) symlink(path string) {
 // check file for corruption
 func (ck *fsckObj) file(path string) {
 	//fmt.Printf("ck.file %q\n", path)
+	ck.xattrs(path)
 	f, status := ck.fs.Open(path, syscall.O_RDONLY, nil)
 	if !status.Ok() {
 		ck.markCorrupt(path)
@@ -90,6 +92,23 @@ func (ck *fsckObj) file(path string) {
 			return
 		}
 		off += int64(result.Size())
+	}
+}
+
+// Check xattrs on file/dir at path
+func (ck *fsckObj) xattrs(path string) {
+	attrs, status := ck.fs.ListXAttr(path, nil)
+	if !status.Ok() {
+		fmt.Printf("fsck: error listing xattrs on %q: %v\n", path, status)
+		ck.markCorrupt(path)
+		return
+	}
+	for _, a := range attrs {
+		_, status := ck.fs.GetXAttr(path, a, nil)
+		if !status.Ok() {
+			fmt.Printf("fsck: error reading xattr %q from %q: %v\n", a, path, status)
+			ck.markCorrupt(path)
+		}
 	}
 }
 
