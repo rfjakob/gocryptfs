@@ -31,6 +31,11 @@ func (fs *FS) GetXAttr(path string, attr string, context *fuse.Context) ([]byte,
 	if fs.isFiltered(path) {
 		return nil, fuse.EPERM
 	}
+	if !strings.HasPrefix(attr, xattrUserPrefix) {
+		// "ls -l" queries security.selinux, system.posix_acl_access, system.posix_acl_default
+		// and throws error messages if it gets something else than ENODATA.
+		return nil, fuse.ENODATA
+	}
 	cAttr, err := fs.encryptXattrName(attr)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
