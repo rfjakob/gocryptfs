@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -27,6 +29,8 @@ func (ck *fsckObj) dir(path string) {
 		ck.errorCount++
 		return
 	}
+	// Sort alphabetically
+	sort.Sort(sortableDirEntries(entries))
 	for _, entry := range entries {
 		if entry.Name == "." || entry.Name == ".." {
 			continue
@@ -101,4 +105,18 @@ func fsck(args *argContainer) {
 	if ck.errorCount != 0 {
 		os.Exit(exitcodes.FsckErrors)
 	}
+}
+
+type sortableDirEntries []fuse.DirEntry
+
+func (s sortableDirEntries) Len() int {
+	return len(s)
+}
+
+func (s sortableDirEntries) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s sortableDirEntries) Less(i, j int) bool {
+	return strings.Compare(s[i].Name, s[j].Name) < 0
 }
