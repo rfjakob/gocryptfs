@@ -169,7 +169,7 @@ func LoadConfFile(filename string, password []byte) ([]byte, *ConfFile, error) {
 
 `+"\033[0m")
 
-		return nil, nil, fmt.Errorf("Deprecated filesystem")
+		return nil, nil, exitcodes.NewErr("Deprecated filesystem", exitcodes.DeprecatedFS)
 	}
 	if len(password) == 0 {
 		// We have validated the config file, but without a password we cannot

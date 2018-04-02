@@ -63,6 +63,8 @@ const (
 	Profiler = 25
 	// FsckErrors - the filesystem check found errors
 	FsckErrors = 26
+	// DeprecatedFS - this filesystem is deprecated
+	DeprecatedFS = 27
 )
 
 // Err wraps an error with an associated numeric exit code
