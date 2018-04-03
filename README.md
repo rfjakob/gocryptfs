@@ -158,6 +158,8 @@ vNEXT, in progress
   ([#218](https://github.com/rfjakob/gocryptfs/issues/218))
 * Support extended attributes (xattr) in forward mode
   ([#217](https://github.com/rfjakob/gocryptfs/issues/217))
+* Add `-fsck` function
+  ([#191](https://github.com/rfjakob/gocryptfs/issues/191))
 
 v1.4.4, 2018-03-18
 * Overwrite secrets in memory with zeros as soon as possible

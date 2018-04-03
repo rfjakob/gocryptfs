@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -19,17 +20,34 @@ type fsckObj struct {
 	fs *fusefrontend.FS
 	// List of corrupt files
 	corruptList []string
+	// Protects corruptList
+	corruptListLock sync.Mutex
 }
 
 func (ck *fsckObj) markCorrupt(path string) {
+	ck.corruptListLock.Lock()
 	ck.corruptList = append(ck.corruptList, path)
+	ck.corruptListLock.Unlock()
 }
 
 // Recursively check dir for corruption
 func (ck *fsckObj) dir(path string) {
 	//fmt.Printf("ck.dir %q\n", path)
 	ck.xattrs(path)
+	done := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case item := <-ck.fs.CorruptItems:
+				fmt.Printf("fsck: corrupt entry in dir %q: %q\n", path, item)
+				ck.markCorrupt(filepath.Join(path, item))
+			case <-done:
+				return
+			}
+		}
+	}()
 	entries, status := ck.fs.OpenDir(path, nil)
+	done <- struct{}{}
 	if !status.Ok() {
 		ck.markCorrupt(path)
 		fmt.Printf("fsck: error opening dir %q: %v\n", path, status)
@@ -80,6 +98,19 @@ func (ck *fsckObj) file(path string) {
 	defer f.Release()
 	buf := make([]byte, fuse.MAX_KERNEL_WRITE)
 	var off int64
+	done := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case item := <-ck.fs.CorruptItems:
+				fmt.Printf("fsck: corrupt file %q (inode %s)\n", path, item)
+				ck.markCorrupt(path)
+			case <-done:
+				return
+			}
+		}
+	}()
+	defer func() { done <- struct{}{} }()
 	for {
 		result, status := f.Read(buf, off)
 		if !status.Ok() {
@@ -97,7 +128,20 @@ func (ck *fsckObj) file(path string) {
 
 // Check xattrs on file/dir at path
 func (ck *fsckObj) xattrs(path string) {
+	done := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case item := <-ck.fs.CorruptItems:
+				fmt.Printf("fsck: corrupt xattr name on file %q: %q\n", path, item)
+				ck.markCorrupt(path + " xattr:" + item)
+			case <-done:
+				return
+			}
+		}
+	}()
 	attrs, status := ck.fs.ListXAttr(path, nil)
+	done <- struct{}{}
 	if !status.Ok() {
 		fmt.Printf("fsck: error listing xattrs on %q: %v\n", path, status)
 		ck.markCorrupt(path)
@@ -120,19 +164,17 @@ func fsck(args *argContainer) {
 	args.allow_other = false
 	pfs, wipeKeys := initFuseFrontend(args)
 	fs := pfs.(*fusefrontend.FS)
+	fs.CorruptItems = make(chan string)
 	ck := fsckObj{
 		fs: fs,
 	}
 	ck.dir("")
 	wipeKeys()
 	if len(ck.corruptList) == 0 {
-		fmt.Printf("fsck summary: no problems found")
+		fmt.Printf("fsck summary: no problems found\n")
 		return
 	}
-	fmt.Printf("fsck summary: found %d corrupt files:\n", len(ck.corruptList))
-	for _, path := range ck.corruptList {
-		fmt.Printf("  %q\n", path)
-	}
+	fmt.Printf("fsck summary: %d corrupt files\n", len(ck.corruptList))
 	os.Exit(exitcodes.FsckErrors)
 }
 

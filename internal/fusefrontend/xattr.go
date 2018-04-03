@@ -115,6 +115,7 @@ func (fs *FS) ListXAttr(path string, context *fuse.Context) ([]string, fuse.Stat
 		name, err := fs.decryptXattrName(curName)
 		if err != nil {
 			tlog.Warn.Printf("ListXAttr: invalid xattr name %q: %v", curName, err)
+			fs.reportCorruptItem(curName)
 			continue
 		}
 		names = append(names, name)

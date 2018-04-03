@@ -19,6 +19,9 @@ SYNOPSIS
 #### Change password
 `gocryptfs -passwd [OPTIONS] CIPHERDIR`
 
+#### Check consistency
+`gocryptfs -fsck [OPTIONS] CIPHERDIR`
+
 DESCRIPTION
 ===========
 
@@ -95,6 +98,10 @@ support and implies -openssl true. Because of this, it is not compatible with -a
 that uses built-in Go crypto.
 
 Setting this option forces the filesystem to read-only and noexec.
+
+#### -fsck
+Check CIPHERDIR for consistency. If corruption is found, the
+exit code is 26.
 
 #### -fsname string
 Override the filesystem name (first column in df -T). Can also be
@@ -351,6 +358,7 @@ EXIT CODES
 22: password is empty (on "-init")  
 23: could not read gocryptfs.conf  
 24: could not write gocryptfs.conf (on "-init" or "-password")  
+26: fsck found errors  
 other: please check the error message
 
 SEE ALSO

@@ -38,6 +38,11 @@ type FS struct {
 	// This lock is used by openWriteOnlyFile() to block concurrent opens while
 	// it relaxes the permissions on a file.
 	openWriteOnlyLock sync.RWMutex
+	// CorruptItems is filled with file or xattr names that have been
+	// skipped (ignored) because they were corrupt. This is used by fsck
+	// to inform the user.
+	// Use the reportCorruptItem() function to push an item.
+	CorruptItems chan string
 }
 
 var _ pathfs.FileSystem = &FS{} // Verify that interface is implemented.
@@ -600,4 +605,17 @@ func (fs *FS) Access(path string, mode uint32, context *fuse.Context) (code fuse
 		return fuse.ToStatus(err)
 	}
 	return fuse.ToStatus(syscall.Access(cPath, mode))
+}
+
+func (fs *FS) reportCorruptItem(item string) {
+	if fs.CorruptItems == nil {
+		return
+	}
+	select {
+	case fs.CorruptItems <- item:
+	case <-time.After(1 * time.Second):
+		tlog.Warn.Printf("BUG: reportCorruptItem: timeout")
+		//debug.PrintStack()
+		return
+	}
 }

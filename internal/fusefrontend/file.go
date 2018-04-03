@@ -4,6 +4,7 @@ package fusefrontend
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -99,6 +100,7 @@ func (f *file) readFileID() ([]byte, error) {
 		if err == io.EOF && n != 0 {
 			tlog.Warn.Printf("readFileID %d: incomplete file, got %d instead of %d bytes",
 				f.qIno.Ino, n, readLen)
+			f.fs.reportCorruptItem(fmt.Sprint(f.qIno.Ino))
 		}
 		return nil, err
 	}

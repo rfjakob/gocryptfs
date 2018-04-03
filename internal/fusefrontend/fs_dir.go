@@ -326,6 +326,7 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 			if err != nil {
 				tlog.Warn.Printf("OpenDir %q: invalid entry %q: Could not read .name: %v",
 					cDirName, cName, err)
+				fs.reportCorruptItem(cName)
 				errorCount++
 				continue
 			}
@@ -338,6 +339,7 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 		if err != nil {
 			tlog.Warn.Printf("OpenDir %q: invalid entry %q: %v",
 				cDirName, cName, err)
+			fs.reportCorruptItem(cName)
 			if runtime.GOOS == "darwin" && cName == dsStoreName {
 				// MacOS creates lots of these files. Log the warning but don't
 				// increment errorCount - does not warrant returning EIO.
