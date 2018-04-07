@@ -76,9 +76,7 @@ func TestMain(m *testing.M) {
 		r := m.Run()
 		after := test_helpers.ListFds()
 		if len(before) != len(after) {
-			fmt.Printf("fd leak? before, after:\n")
-			fmt.Printf("%v\n", before)
-			fmt.Printf("%v\n", after)
+			fmt.Printf("fd leak? before, after:\n%v\n%v\n", before, after)
 			os.Exit(1)
 		}
 		test_helpers.UnmountPanic(test_helpers.DefaultPlainDir)

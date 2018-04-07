@@ -3,6 +3,7 @@ package cli
 // Test CLI operations like "-init", "-password" etc
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -20,7 +21,13 @@ var testPw = []byte("test")
 
 func TestMain(m *testing.M) {
 	test_helpers.ResetTmpDir(false)
+	before := test_helpers.ListFds()
 	r := m.Run()
+	after := test_helpers.ListFds()
+	if len(before) != len(after) {
+		fmt.Printf("fd leak? before, after:\n%v\n%v\n", before, after)
+		os.Exit(1)
+	}
 	os.Exit(r)
 }
 
@@ -404,6 +411,7 @@ func TestMountBackground(t *testing.T) {
 			// We should get io.EOF when the child closes stdout
 			// and stderr.
 			if err != nil {
+				pr.Close()
 				c1 <- struct{}{}
 				return
 			}
