@@ -178,9 +178,14 @@ func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 		if err != nil {
 			return err
 		}
+		// We can close the fd after cmd.Run() has executed
+		defer pw.Close()
 		cmd.Stderr = pw
 		cmd.Stdout = pw
-		go func() { io.Copy(os.Stdout, pr) }()
+		go func() {
+			io.Copy(os.Stdout, pr)
+			pr.Close()
+		}()
 	}
 
 	return cmd.Run()
@@ -411,4 +416,24 @@ func ExtractCmdExitCode(err error) int {
 	err2 := err.(*exec.ExitError)
 	code := err2.Sys().(syscall.WaitStatus).ExitStatus()
 	return code
+}
+
+// ListFds lists our open file descriptors.
+// We use /dev/fd because it exists on both Linux and MacOS.
+func ListFds() []string {
+	f, err := os.Open("/dev/fd")
+	if err != nil {
+		log.Panic(err)
+	}
+	defer f.Close()
+	names, err := f.Readdirnames(0)
+	if err != nil {
+		log.Panic(err)
+	}
+	for i, n := range names {
+		// Note: Readdirnames filters "." and ".."
+		target, _ := os.Readlink("/dev/fd/" + n)
+		names[i] = n + "=" + target
+	}
+	return names
 }

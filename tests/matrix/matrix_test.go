@@ -72,7 +72,15 @@ func TestMain(m *testing.M) {
 		opts = append(opts, fmt.Sprintf("-aessiv=%v", testcase.aessiv))
 		opts = append(opts, fmt.Sprintf("-raw64=%v", testcase.raw64))
 		test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, opts...)
+		before := test_helpers.ListFds()
 		r := m.Run()
+		after := test_helpers.ListFds()
+		if len(before) != len(after) {
+			fmt.Printf("fd leak? before, after:\n")
+			fmt.Printf("%v\n", before)
+			fmt.Printf("%v\n", after)
+			os.Exit(1)
+		}
 		test_helpers.UnmountPanic(test_helpers.DefaultPlainDir)
 		if r != 0 {
 			os.Exit(r)
