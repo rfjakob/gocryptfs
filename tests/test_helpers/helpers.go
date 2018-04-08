@@ -221,12 +221,28 @@ func UnmountPanic(dir string) {
 	}
 }
 
-// UnmountErr tries to unmount "dir" and returns the resulting error.
-func UnmountErr(dir string) error {
-	cmd := exec.Command(UnmountScript, "-u", dir)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+// UnmountErr tries to unmount "dir", retrying 10 times, and returns the
+// resulting error.
+func UnmountErr(dir string) (err error) {
+	max := 10
+	// When a new filesystem is mounted, Gnome tries to read files like
+	// .xdg-volume-info, autorun.inf, .Trash.
+	// If we try to unmount before Gnome is done, the unmount fails with
+	// "Device or resource busy", causing spurious test failures.
+	// Retry a few times to hide that problem.
+	for i := 1; i <= max; i++ {
+		cmd := exec.Command(UnmountScript, "-u", dir)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err = cmd.Run()
+		if err == nil {
+			return nil
+		}
+		code := ExtractCmdExitCode(err)
+		fmt.Printf("UnmountErr: got exit code %d, retrying (%d/%d)\n", code, i, max)
+		time.Sleep(100 * time.Millisecond)
+	}
+	return err
 }
 
 // Md5fn returns an md5 string for file "filename"
