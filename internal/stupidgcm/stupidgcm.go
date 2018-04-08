@@ -23,7 +23,7 @@ const (
 	tagLen = 16
 )
 
-// stupidGCM implements the cipher.AEAD interface
+// StupidGCM implements the cipher.AEAD interface
 type StupidGCM struct {
 	key         []byte
 	forceDecode bool
@@ -42,10 +42,12 @@ func New(keyIn []byte, forceDecode bool) cipher.AEAD {
 	return &StupidGCM{key: key, forceDecode: forceDecode}
 }
 
+// NonceSize returns the required size of the nonce / IV.
 func (g *StupidGCM) NonceSize() int {
 	return ivLen
 }
 
+// Overhead returns the number of bytes that are added for authentication.
 func (g *StupidGCM) Overhead() int {
 	return tagLen
 }

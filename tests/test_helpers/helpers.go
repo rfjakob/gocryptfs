@@ -422,8 +422,8 @@ func QueryCtlSock(t *testing.T, socketPath string, req ctlsock.RequestStruct) (r
 	return response
 }
 
-// Extract the exit code from an error value that was returned from
-// exec / cmd.Run()
+// ExtractCmdExitCode extracts the exit code from an error value that was
+// returned from exec / cmd.Run()
 func ExtractCmdExitCode(err error) int {
 	if err == nil {
 		return 0

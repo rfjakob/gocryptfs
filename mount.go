@@ -284,7 +284,7 @@ func initGoFuse(fs pathfs.FileSystem, args *argContainer) *fuse.Server {
 		// sync.Pool buffer pools are sized acc. to the default. Users may set
 		// the kernel constant higher, and Synology NAS kernels are known to
 		// have it >128kiB. We cannot handle more than 128kiB, so we tell
-		// the kernel to limit the size explicitely.
+		// the kernel to limit the size explicitly.
 		MaxWrite: fuse.MAX_KERNEL_WRITE,
 		Options:  []string{fmt.Sprintf("max_read=%d", fuse.MAX_KERNEL_WRITE)},
 	}

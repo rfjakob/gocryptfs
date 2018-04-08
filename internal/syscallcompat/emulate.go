@@ -78,9 +78,8 @@ func emulateUnlinkat(dirfd int, path string, flags int) (err error) {
 	}
 	if (flags & unix.AT_REMOVEDIR) != 0 {
 		return syscall.Rmdir(path)
-	} else {
-		return syscall.Unlink(path)
 	}
+	return syscall.Unlink(path)
 }
 
 // emulateMknodat emulates the syscall for platforms that don't have it
