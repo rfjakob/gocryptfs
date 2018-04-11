@@ -65,9 +65,15 @@ func redirectStdFds() {
 		return
 	}
 	tag := fmt.Sprintf("gocryptfs-%d-logger", os.Getpid())
-	cmd := exec.Command("/usr/bin/logger", "-t", tag)
-	cmd.Stdin = pr
-	err = cmd.Start()
+	// SUSE has /bin/logger, everybody else has /usr/bin/logger.
+	for _, path := range []string{"/usr/bin/logger", "/bin/logger"} {
+		cmd := exec.Command(path, "-t", tag)
+		cmd.Stdin = pr
+		err = cmd.Start()
+		if err == nil {
+			break
+		}
+	}
 	if err != nil {
 		tlog.Warn.Printf("redirectStdFds: could not start logger: %v\n", err)
 		return
