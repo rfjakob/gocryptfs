@@ -5,6 +5,7 @@ package fusefrontend
 
 import (
 	"strings"
+	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/pkg/xattr"
@@ -123,6 +124,10 @@ func (fs *FS) encryptXattrName(attr string) (cAttr string) {
 }
 
 func (fs *FS) decryptXattrName(cAttr string) (attr string, err error) {
+	// Reject anything that does not start with "user.gocryptfs."
+	if !strings.HasPrefix(cAttr, xattrStorePrefix) {
+		return "", syscall.EINVAL
+	}
 	// Strip "user.gocryptfs." prefix
 	cAttr = cAttr[len(xattrStorePrefix):]
 	attr, err = fs.nameTransform.DecryptName(cAttr, xattrNameIV)
