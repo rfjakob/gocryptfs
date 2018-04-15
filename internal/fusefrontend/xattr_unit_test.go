@@ -4,7 +4,6 @@ package fusefrontend
 // "xattr_integration_test.go" in the test/xattr package.
 
 import (
-	"syscall"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
@@ -24,18 +23,11 @@ func newTestFS() *FS {
 
 func TestEncryptDecryptXattrName(t *testing.T) {
 	fs := newTestFS()
-	_, err := fs.encryptXattrName("xxxx")
-	if err != syscall.EPERM {
-		t.Fatalf("Names that don't start with 'user.' should fail")
-	}
 	attr1 := "user.foo123456789"
-	cAttr, err := fs.encryptXattrName(attr1)
-	if err != nil {
-		t.Fatal(err)
-	}
+	cAttr := fs.encryptXattrName(attr1)
 	t.Logf("cAttr=%v", cAttr)
 	attr2, err := fs.decryptXattrName(cAttr)
-	if attr1 != attr2 {
+	if attr1 != attr2 || err != nil {
 		t.Fatalf("Decrypt mismatch: %v != %v", attr1, attr2)
 	}
 }
