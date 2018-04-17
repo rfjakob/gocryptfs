@@ -16,11 +16,6 @@ import (
 // xattr names are encrypted like file names, but with a fixed IV.
 var xattrNameIV = []byte("xattr_name_iv_xx")
 
-// Only allow the "user" namespace, block "trusted" and "security", as
-// these may be interpreted by the system, and we don't want to cause
-// trouble with our encrypted garbage.
-var xattrUserPrefix = "user."
-
 // We store encrypted xattrs under this prefix plus the base64-encoded
 // encrypted original name.
 var xattrStorePrefix = "user.gocryptfs."
@@ -31,15 +26,12 @@ func (fs *FS) GetXAttr(path string, attr string, context *fuse.Context) ([]byte,
 	if fs.isFiltered(path) {
 		return nil, fuse.EPERM
 	}
-	if !strings.HasPrefix(attr, xattrUserPrefix) {
+	if disallowedXAttrName(attr) {
 		// "ls -l" queries security.selinux, system.posix_acl_access, system.posix_acl_default
 		// and throws error messages if it gets something else than ENODATA.
 		return nil, fuse.ENODATA
 	}
-	cAttr, err := fs.encryptXattrName(attr)
-	if err != nil {
-		return nil, fuse.ToStatus(err)
-	}
+	cAttr := fs.encryptXattrName(attr)
 	cPath, err := fs.getBackingPath(path)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
@@ -65,14 +57,15 @@ func (fs *FS) SetXAttr(path string, attr string, data []byte, flags int, context
 	if flags != 0 {
 		return fuse.EPERM
 	}
+	if disallowedXAttrName(attr) {
+		return fuse.EPERM
+	}
+
 	cPath, err := fs.getBackingPath(path)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	cAttr, err := fs.encryptXattrName(attr)
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
+	cAttr := fs.encryptXattrName(attr)
 	// xattr data is encrypted like a symlink target
 	cData64 := []byte(fs.encryptSymlinkTarget(string(data)))
 	return unpackXattrErr(xattr.Set(cPath, cAttr, cData64))
@@ -83,14 +76,14 @@ func (fs *FS) RemoveXAttr(path string, attr string, context *fuse.Context) fuse.
 	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
+	if disallowedXAttrName(attr) {
+		return fuse.EPERM
+	}
 	cPath, err := fs.getBackingPath(path)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	cAttr, err := fs.encryptXattrName(attr)
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
+	cAttr := fs.encryptXattrName(attr)
 	return unpackXattrErr(xattr.Remove(cPath, cAttr))
 }
 
@@ -124,14 +117,10 @@ func (fs *FS) ListXAttr(path string, context *fuse.Context) ([]string, fuse.Stat
 }
 
 // encryptXattrName transforms "user.foo" to "user.gocryptfs.a5sAd4XAa47f5as6dAf"
-func (fs *FS) encryptXattrName(attr string) (cAttr string, err error) {
-	// Reject anything that does not start with "user."
-	if !strings.HasPrefix(attr, xattrUserPrefix) {
-		return "", syscall.EPERM
-	}
+func (fs *FS) encryptXattrName(attr string) (cAttr string) {
 	// xattr names are encrypted like file names, but with a fixed IV.
 	cAttr = xattrStorePrefix + fs.nameTransform.EncryptName(attr, xattrNameIV)
-	return cAttr, nil
+	return cAttr
 }
 
 func (fs *FS) decryptXattrName(cAttr string) (attr string, err error) {
