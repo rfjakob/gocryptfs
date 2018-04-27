@@ -294,8 +294,10 @@ func TestMkdirRmdir(t *testing.T, plainDir string) {
 		t.Error(err)
 		return
 	}
-	// Removing a non-empty dir should fail with ENOTEMPTY
-	if os.Mkdir(dir, 0777) != nil {
+	// Create a directory and put a file in it
+	// Trying to rmdir it should fail with ENOTEMPTY
+	err = os.Mkdir(dir, 0777)
+	if err != nil {
 		t.Error(err)
 		return
 	}
@@ -308,13 +310,15 @@ func TestMkdirRmdir(t *testing.T, plainDir string) {
 	err = syscall.Rmdir(dir)
 	errno := err.(syscall.Errno)
 	if errno != syscall.ENOTEMPTY {
-		t.Errorf("Should have gotten ENOTEMPTY, go %v", errno)
+		t.Errorf("Should have gotten ENOTEMPTY, got %v", errno)
 	}
-	if syscall.Unlink(dir+"/file") != nil {
+	err = syscall.Unlink(dir + "/file")
+	if err != nil {
 		t.Error(err)
 		return
 	}
-	if syscall.Rmdir(dir) != nil {
+	err = syscall.Rmdir(dir)
+	if err != nil {
 		t.Error(err)
 		return
 	}
