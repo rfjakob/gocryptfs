@@ -55,7 +55,8 @@ func (fs *FS) SetXAttr(path string, attr string, data []byte, flags int, context
 		return fuse.EPERM
 	}
 	if flags != 0 {
-		return fuse.EPERM
+		// Drop this once https://github.com/pkg/xattr/pull/26 is merged
+		return fuse.ENOSYS
 	}
 	if disallowedXAttrName(attr) {
 		return fuse.EPERM
