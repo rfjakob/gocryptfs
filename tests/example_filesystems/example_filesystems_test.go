@@ -22,6 +22,10 @@ const statusTxtContent = "It works!\n"
 
 var opensslOpt string
 
+// tmpFsPath contains a private writeable copy of the example_filesystems
+// folder.
+var tmpFsPath string
+
 func TestMain(m *testing.M) {
 	// Make "testing.Verbose()" return the correct value
 	flag.Parse()
@@ -36,6 +40,19 @@ func TestMain(m *testing.M) {
 			fmt.Printf("example_filesystems: testing with %q\n", opensslOpt)
 		}
 		test_helpers.ResetTmpDir(false)
+
+		// Create a private copy of the example filesystems that we can
+		// mess with
+		cmd := exec.Command("cp", "-a", "../example_filesystems", test_helpers.TmpDir)
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		err := cmd.Run()
+		if err != nil {
+			fmt.Printf("cp -a failed: %v\n", err)
+			os.Exit(1)
+		}
+		tmpFsPath = test_helpers.TmpDir + "/example_filesystems/"
+
 		r := m.Run()
 		if r != 0 {
 			os.Exit(r)
@@ -48,6 +65,7 @@ func TestMain(m *testing.M) {
 func TestExampleFSv04(t *testing.T) {
 	cDir := "v0.4"
 	pDir := test_helpers.TmpDir + "/" + cDir
+	cDir = tmpFsPath + cDir
 	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "echo test", opensslOpt)
 	if err == nil {
 		t.Errorf("Mounting too old FS should fail")
@@ -58,6 +76,7 @@ func TestExampleFSv04(t *testing.T) {
 func TestExampleFSv05(t *testing.T) {
 	cDir := "v0.5"
 	pDir := test_helpers.TmpDir + "/" + cDir
+	cDir = tmpFsPath + cDir
 	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "echo test", opensslOpt)
 	if err == nil {
 		t.Errorf("Mounting too old FS should fail")
@@ -68,6 +87,7 @@ func TestExampleFSv05(t *testing.T) {
 func TestExampleFSv06(t *testing.T) {
 	cDir := "v0.6"
 	pDir := test_helpers.TmpDir + "/" + cDir
+	cDir = tmpFsPath + cDir
 	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "echo test", opensslOpt)
 	if err == nil {
 		t.Errorf("Mounting too old FS should fail")
@@ -78,6 +98,7 @@ func TestExampleFSv06(t *testing.T) {
 func TestExampleFSv06PlaintextNames(t *testing.T) {
 	cDir := "v0.6-plaintextnames"
 	pDir := test_helpers.TmpDir + "/" + cDir
+	cDir = tmpFsPath + cDir
 	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "echo test", opensslOpt)
 	if err == nil {
 		t.Errorf("Mounting too old FS should fail")
@@ -90,6 +111,7 @@ func TestExampleFSv06PlaintextNames(t *testing.T) {
 func TestExampleFSv07(t *testing.T) {
 	cDir := "v0.7"
 	pDir := test_helpers.TmpDir + "/" + cDir
+	cDir = tmpFsPath + cDir
 	err := os.Mkdir(pDir, 0777)
 	if err != nil {
 		t.Fatal(err)
@@ -108,6 +130,7 @@ func TestExampleFSv07(t *testing.T) {
 func TestExampleFSv07PlaintextNames(t *testing.T) {
 	cDir := "v0.7-plaintextnames"
 	pDir := test_helpers.TmpDir + "/" + cDir + ".mnt"
+	cDir = tmpFsPath + cDir
 
 	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test", opensslOpt)
 	checkExampleFS(t, pDir, true)
@@ -127,6 +150,7 @@ func TestExampleFSv07PlaintextNames(t *testing.T) {
 func TestExampleFSv09(t *testing.T) {
 	cDir := "v0.9"
 	pDir := test_helpers.TmpDir + "/" + cDir
+	cDir = tmpFsPath + cDir
 	err := os.Mkdir(pDir, 0777)
 	if err != nil {
 		t.Fatal(err)
@@ -146,6 +170,7 @@ func TestExampleFSv09(t *testing.T) {
 func TestExampleFSv11(t *testing.T) {
 	cDir := "v1.1-aessiv"
 	pDir := test_helpers.TmpDir + "/" + cDir
+	cDir = tmpFsPath + cDir
 	err := os.Mkdir(pDir, 0777)
 	if err != nil {
 		t.Fatal(err)
@@ -174,6 +199,7 @@ func TestExampleFSv11reverse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	dirA = tmpFsPath + dirA
 	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-extpass", "echo test", opensslOpt)
 	c := dirB + "/gocryptfs.conf"
 	if !test_helpers.VerifyExistence(c) {
@@ -210,6 +236,7 @@ func TestExampleFSv11reversePlaintextnames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	dirA = tmpFsPath + dirA
 	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-extpass", "echo test", opensslOpt)
 	c := dirB + "/gocryptfs.conf"
 	if !test_helpers.VerifyExistence(c) {
@@ -237,6 +264,7 @@ func TestExampleFSv11reversePlaintextnames(t *testing.T) {
 func TestExampleFSv13(t *testing.T) {
 	cDir := "v1.3"
 	pDir := test_helpers.TmpDir + "/" + cDir
+	cDir = tmpFsPath + cDir
 	err := os.Mkdir(pDir, 0777)
 	if err != nil {
 		t.Fatal(err)
@@ -257,6 +285,7 @@ func TestExampleFSv13(t *testing.T) {
 func TestExampleFSv13MasterkeyStdin(t *testing.T) {
 	cDir := "v1.3"
 	pDir := test_helpers.TmpDir + "/TestExampleFSv13MasterkeyStdin.mnt"
+	cDir = tmpFsPath + cDir
 	err := os.Mkdir(pDir, 0777)
 	if err != nil {
 		t.Fatal(err)
@@ -304,6 +333,7 @@ func TestExampleFSv13reverse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	dirA = tmpFsPath + dirA
 	// Mount using password
 	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-extpass", "echo test", opensslOpt)
 	c := dirB + "/gocryptfs.conf"
