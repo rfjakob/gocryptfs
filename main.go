@@ -126,6 +126,11 @@ func main() {
 		// On a 2-core machine, setting maxprocs to 4 gives 10% better performance
 		runtime.GOMAXPROCS(4)
 	}
+	// mount(1) unsets PATH. Since exec.Command does not handle this case, we set
+	// PATH to a default value if it's empty or unset.
+	if os.Getenv("PATH") == "" {
+		os.Setenv("PATH", "/usr/sbin:/usr/bin:/sbin:/bin")
+	}
 	var err error
 	// Parse all command-line options (i.e. arguments starting with "-")
 	// into "args". Path arguments are parsed below.
