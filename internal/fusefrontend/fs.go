@@ -351,6 +351,11 @@ func (fs *FS) StatFs(path string) *fuse.StatfsOut {
 	return fs.FileSystem.StatFs(cPath)
 }
 
+// decryptAsFirstBlock: decrypts data as at were 0 block of the file (encrypted with GCM)
+func (fs *FS) decryptAsFirstBlock(block []byte) ([]byte, error) {
+	return fs.contentEnc.DecryptBlock(block, 0, nil)
+}
+
 // decryptSymlinkTarget: "cData64" is base64-decoded and decrypted
 // like file contents (GCM).
 // The empty string decrypts to the empty string.
@@ -362,7 +367,7 @@ func (fs *FS) decryptSymlinkTarget(cData64 string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	data, err := fs.contentEnc.DecryptBlock([]byte(cData), 0, nil)
+	data, err := fs.decryptAsFirstBlock([]byte(cData))
 	if err != nil {
 		return "", err
 	}
@@ -417,6 +422,11 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	return fuse.ToStatus(err)
 }
 
+// encryptBlock: "block" is encrypted as a first contents block (using GCM)
+func (fs *FS) encryptAsFirstBlock(block []byte) []byte {
+	return fs.contentEnc.EncryptBlock(block, 0, nil)
+}
+
 // encryptSymlinkTarget: "data" is encrypted like file contents (GCM)
 // and base64-encoded.
 // The empty string encrypts to the empty string.
@@ -424,7 +434,8 @@ func (fs *FS) encryptSymlinkTarget(data string) (cData64 string) {
 	if data == "" {
 		return ""
 	}
-	cData := fs.contentEnc.EncryptBlock([]byte(data), 0, nil)
+
+	cData := fs.encryptAsFirstBlock([]byte(data))
 	cData64 = fs.nameTransform.B64.EncodeToString(cData)
 	return cData64
 }
