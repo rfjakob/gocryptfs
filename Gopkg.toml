@@ -1,0 +1,4 @@
+
+[[constraint]]
+  name = "github.com/pkg/xattr"
+  revision = "a38d0027f85c1cccd42b493d9e25a25fce7929c8"
