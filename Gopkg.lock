@@ -4,20 +4,28 @@
 [[projects]]
   branch = "master"
   name = "github.com/hanwen/go-fuse"
-  packages = ["fuse","fuse/nodefs","fuse/pathfs","splice"]
+  packages = [
+    "fuse",
+    "fuse/nodefs",
+    "fuse/pathfs",
+    "splice"
+  ]
   revision = "a9ddcb8a4b609500fc59c89ccc9ee05f00a5fefd"
 
 [[projects]]
   branch = "master"
   name = "github.com/jacobsa/crypto"
-  packages = ["cmac","common","siv"]
+  packages = [
+    "cmac",
+    "common",
+    "siv"
+  ]
   revision = "c73681c634de898c869684602cf0c0d2ce938c4d"
 
 [[projects]]
   name = "github.com/pkg/xattr"
   packages = ["."]
-  revision = "1d7b7ffe7c46974a836eb583b7452f22de1c18cf"
-  version = "v0.2.3"
+  revision = "a38d0027f85c1cccd42b493d9e25a25fce7929c8"
 
 [[projects]]
   branch = "master"
@@ -28,7 +36,12 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["hkdf","pbkdf2","scrypt","ssh/terminal"]
+  packages = [
+    "hkdf",
+    "pbkdf2",
+    "scrypt",
+    "ssh/terminal"
+  ]
   revision = "374053ea96cb300f8671b8d3b07edeeb06e203b4"
 
 [[projects]]
@@ -40,12 +53,15 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix","windows"]
+  packages = [
+    "unix",
+    "windows"
+  ]
   revision = "01acb38716e021ed1fc03a602bdb5838e1358c5e"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e3ad06e025f86b190df0e903117eacc6b490d935c21c3716516f68ba7724bf78"
+  inputs-digest = "7bad601c504b256929c2694e6a44bb7defc171bd1ce468c00fa64b6015f036d5"
   solver-name = "gps-cdcl"
   solver-version = 1

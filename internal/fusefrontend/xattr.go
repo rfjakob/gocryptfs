@@ -54,13 +54,11 @@ func (fs *FS) SetXAttr(path string, attr string, data []byte, flags int, context
 	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
-	if flags != 0 {
-		// Drop this once https://github.com/pkg/xattr/pull/26 is merged
-		return fuse.ENOSYS
-	}
 	if disallowedXAttrName(attr) {
 		return fuse.EPERM
 	}
+
+	flags = filterXattrSetFlags(flags)
 
 	cPath, err := fs.getBackingPath(path)
 	if err != nil {
@@ -69,7 +67,7 @@ func (fs *FS) SetXAttr(path string, attr string, data []byte, flags int, context
 	cAttr := fs.encryptXattrName(attr)
 	// xattr data is encrypted like a symlink target
 	cData64 := []byte(fs.encryptSymlinkTarget(string(data)))
-	return unpackXattrErr(xattr.Set(cPath, cAttr, cData64))
+	return unpackXattrErr(xattr.SetWithFlags(cPath, cAttr, cData64, flags))
 }
 
 // RemoveXAttr implements pathfs.Filesystem.

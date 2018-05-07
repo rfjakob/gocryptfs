@@ -13,3 +13,7 @@ const xattrUserPrefix = "user."
 func disallowedXAttrName(attr string) bool {
 	return !strings.HasPrefix(attr, xattrUserPrefix)
 }
+
+func filterXattrSetFlags(flags int) int {
+	return flags
+}
