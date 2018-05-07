@@ -2,6 +2,7 @@ package defaults
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/pkg/xattr"
 
+	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
@@ -27,6 +29,14 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 	test_helpers.ResetTmpDir(true)
+	// Write deterministic diriv so encrypted filenames are deterministic.
+	os.Remove(test_helpers.DefaultCipherDir + "/gocryptfs.diriv")
+	diriv := []byte("1234567890123456")
+	err := ioutil.WriteFile(test_helpers.DefaultCipherDir+"/gocryptfs.diriv", diriv, 0400)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, "-zerokey")
 	r := m.Run()
 	test_helpers.UnmountPanic(test_helpers.DefaultPlainDir)
@@ -160,4 +170,66 @@ func xattrSupported(path string) bool {
 		return false
 	}
 	return true
+}
+
+func TestBase64XattrRead(t *testing.T) {
+	attrName := "user.test"
+	attrName2 := "user.test2"
+	encryptedAttrName := "user.gocryptfs.LB1kHHVrX1OEBdLmj3LTKw"
+	encryptedAttrName2 := "user.gocryptfs.d2yn5l7-0zUVqviADw-Oyw"
+	attrValue := fmt.Sprintf("test.%d", cryptocore.RandUint64())
+
+	fileName := "TestBase64Xattr"
+	encryptedFileName := "BaGak7jIoqAZQMlP0N5uCw"
+
+	plainFn := test_helpers.DefaultPlainDir + "/" + fileName
+	encryptedFn := test_helpers.DefaultCipherDir + "/" + encryptedFileName
+	err := ioutil.WriteFile(plainFn, nil, 0700)
+	if err != nil {
+		t.Fatalf("creating empty file failed: %v", err)
+	}
+	if _, err2 := os.Stat(encryptedFn); os.IsNotExist(err2) {
+		t.Fatalf("encrypted file does not exist: %v", err2)
+	}
+	xattr.Set(plainFn, attrName, []byte(attrValue))
+
+	encryptedAttrValue, err1 := xattr.Get(encryptedFn, encryptedAttrName)
+	if err1 != nil {
+		t.Fatal(err1)
+	}
+
+	xattr.Set(encryptedFn, encryptedAttrName2, encryptedAttrValue)
+	plainValue, err := xattr.Get(plainFn, attrName2)
+
+	if err != nil || string(plainValue) != attrValue {
+		t.Fatalf("Attribute binary value decryption error %s != %s %v", string(plainValue), attrValue, err)
+	}
+
+	encryptedAttrValue64 := base64.RawURLEncoding.EncodeToString(encryptedAttrValue)
+	xattr.Set(encryptedFn, encryptedAttrName2, []byte(encryptedAttrValue64))
+
+	plainValue, err = xattr.Get(plainFn, attrName2)
+	if err != nil || string(plainValue) != attrValue {
+		t.Fatalf("Attribute base64-encoded value decryption error %s != %s %v", string(plainValue), attrValue, err)
+	}
+
+	// Remount with -wpanic=false so gocryptfs does not panics when it sees
+	// the broken xattrs
+	test_helpers.UnmountPanic(test_helpers.DefaultPlainDir)
+	test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, "-zerokey", "-wpanic=false")
+
+	brokenVals := []string{
+		"111",
+		"raw-test-long-block123",
+		"raw-test-long-block123-xyz11111111111111111111111111111111111111",
+		"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$",
+	}
+	for _, val := range brokenVals {
+		xattr.Set(encryptedFn, encryptedAttrName2, []byte(val))
+		plainValue, err = xattr.Get(plainFn, attrName2)
+		err2, _ := err.(*xattr.Error)
+		if err == nil || err2.Err != syscall.EIO {
+			t.Fatalf("Incorrect handling of broken data %s %v", string(plainValue), err)
+		}
+	}
 }

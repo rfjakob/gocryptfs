@@ -36,17 +36,16 @@ func (fs *FS) GetXAttr(path string, attr string, context *fuse.Context) ([]byte,
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	cData64, err := xattr.Get(cPath, cAttr)
+	encryptedData, err := xattr.Get(cPath, cAttr)
 	if err != nil {
 		return nil, unpackXattrErr(err)
 	}
-	// xattr data is decrypted like a symlink target
-	data, err := fs.decryptSymlinkTarget(string(cData64))
+	data, err := fs.decryptXattrValue(encryptedData)
 	if err != nil {
 		tlog.Warn.Printf("GetXAttr: %v", err)
 		return nil, fuse.EIO
 	}
-	return []byte(data), fuse.OK
+	return data, fuse.OK
 }
 
 // SetXAttr implements pathfs.Filesystem.
@@ -65,9 +64,8 @@ func (fs *FS) SetXAttr(path string, attr string, data []byte, flags int, context
 		return fuse.ToStatus(err)
 	}
 	cAttr := fs.encryptXattrName(attr)
-	// xattr data is encrypted like a symlink target
-	cData64 := []byte(fs.encryptSymlinkTarget(string(data)))
-	return unpackXattrErr(xattr.SetWithFlags(cPath, cAttr, cData64, flags))
+	cData := fs.encryptXattrValue(data)
+	return unpackXattrErr(xattr.SetWithFlags(cPath, cAttr, cData, flags))
 }
 
 // RemoveXAttr implements pathfs.Filesystem.
@@ -134,6 +132,37 @@ func (fs *FS) decryptXattrName(cAttr string) (attr string, err error) {
 		return "", err
 	}
 	return attr, nil
+}
+
+// encryptXattrValue encrypts the xattr value "data".
+// The data is encrypted like a file content block, but without binding it to
+// a file location (block number and file id are set to zero).
+// Special case: an empty value is encrypted to an empty value.
+func (fs *FS) encryptXattrValue(data []byte) (cData []byte) {
+	if len(data) == 0 {
+		return []byte{}
+	}
+	return fs.contentEnc.EncryptBlock(data, 0, nil)
+}
+
+// decryptXattrValue decrypts the xattr value "cData".
+func (fs *FS) decryptXattrValue(cData []byte) (data []byte, err error) {
+	if len(cData) == 0 {
+		return []byte{}, nil
+	}
+	data, err1 := fs.contentEnc.DecryptBlock([]byte(cData), 0, nil)
+	if err1 == nil {
+		return data, nil
+	}
+	// This backward compatibility is needed to support old
+	// file systems having xattr values base64-encoded.
+	cData, err2 := fs.nameTransform.B64.DecodeString(string(cData))
+	if err2 != nil {
+		// Looks like the value was not base64-encoded, but just corrupt.
+		// Return the original decryption error: err1
+		return nil, err1
+	}
+	return fs.contentEnc.DecryptBlock([]byte(cData), 0, nil)
 }
 
 // unpackXattrErr unpacks an error value that we got from xattr.Get/Set/etc
