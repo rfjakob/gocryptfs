@@ -36,17 +36,23 @@ func (fs *FS) GetXAttr(path string, attr string, context *fuse.Context) ([]byte,
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	cData64, err := xattr.Get(cPath, cAttr)
+	encryptedData, err := xattr.Get(cPath, cAttr)
 	if err != nil {
 		return nil, unpackXattrErr(err)
 	}
-	// xattr data is decrypted like a symlink target
-	data, err := fs.decryptSymlinkTarget(string(cData64))
+	data, err := fs.decryptAsFirstBlock(encryptedData)
 	if err != nil {
-		tlog.Warn.Printf("GetXAttr: %v", err)
-		return nil, fuse.EIO
+		// This backward compatibility is needed to support old file systems having xattr values base64-encoded.
+		tlog.Info.Printf("GetXAttr binary data decryption failed trying base64: %v", err)
+		stringData, err := fs.decryptSymlinkTarget(string(encryptedData))
+		if err != nil {
+			tlog.Info.Printf("GetXAttr base64 decryption failed: %v", err)
+			return nil, fuse.EIO
+		}
+
+		data = []byte(stringData)
 	}
-	return []byte(data), fuse.OK
+	return data, fuse.OK
 }
 
 // SetXAttr implements pathfs.Filesystem.
@@ -65,8 +71,7 @@ func (fs *FS) SetXAttr(path string, attr string, data []byte, flags int, context
 		return fuse.ToStatus(err)
 	}
 	cAttr := fs.encryptXattrName(attr)
-	// xattr data is encrypted like a symlink target
-	cData64 := []byte(fs.encryptSymlinkTarget(string(data)))
+	cData64 := fs.encryptAsFirstBlock(data)
 	return unpackXattrErr(xattr.SetWithFlags(cPath, cAttr, cData64, flags))
 }
 

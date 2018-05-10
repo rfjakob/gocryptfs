@@ -2,12 +2,16 @@ package defaults
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/pkg/xattr"
 
@@ -27,7 +31,7 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 	test_helpers.ResetTmpDir(true)
-	test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, "-zerokey")
+	test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, "-zerokey", "-plaintextnames")
 	r := m.Run()
 	test_helpers.UnmountPanic(test_helpers.DefaultPlainDir)
 	os.RemoveAll(test_helpers.TmpDir)
@@ -160,4 +164,61 @@ func xattrSupported(path string) bool {
 		return false
 	}
 	return true
+}
+
+func TestBase64XattrRead(t *testing.T) {
+	attrName := "user.test"
+	attrName2 := "user.test2"
+	encryptedAttrName := "user.gocryptfs.LB1kHHVrX1OEBdLmj3LTKw"
+	encryptedAttrName2 := "user.gocryptfs.d2yn5l7-0zUVqviADw-Oyw"
+	rand.Seed(time.Now().UTC().UnixNano())
+	attrValue := "test" + strconv.FormatInt(rand.Int63(), 16)
+
+	fileName := "/TestBase64Xattr"
+	encrpytedFileName := fileName
+
+	plainFn := test_helpers.DefaultPlainDir + fileName
+	encrpytedFn := test_helpers.DefaultCipherDir + encrpytedFileName
+	err := ioutil.WriteFile(plainFn, nil, 0700)
+	if err != nil {
+		t.Fatalf("creating empty file failed: %v", err)
+	}
+
+	if _, err2 := os.Stat(encrpytedFn); os.IsNotExist(err2) {
+		t.Fatalf("encrypted file does not exist: %v", err2)
+	}
+
+	xattr.Set(plainFn, attrName, []byte(attrValue))
+
+	encrpytedAttrValue, err1 := xattr.Get(encrpytedFn, encryptedAttrName)
+	if err1 != nil {
+		t.Fatal(err1)
+	}
+
+	xattr.Set(encrpytedFn, encryptedAttrName2, encrpytedAttrValue)
+	plainValue, err := xattr.Get(plainFn, attrName2)
+
+	if err != nil || string(plainValue) != attrValue {
+		t.Fatalf("Attribute binary value decryption error %s != %s %v", string(plainValue), attrValue, err)
+	}
+
+	encoder := base64.RawURLEncoding
+	ebuf := make([]byte, encoder.EncodedLen(len(encrpytedAttrValue)))
+	encoder.Encode(ebuf, encrpytedAttrValue)
+	xattr.Set(encrpytedFn, encryptedAttrName2, ebuf)
+
+	plainValue, err = xattr.Get(plainFn, attrName2)
+	if err != nil || string(plainValue) != attrValue {
+		t.Fatalf("Attribute base64-encoded value decryption error %s != %s %v", string(plainValue), attrValue, err)
+	}
+
+	xattr.Set(encrpytedFn, encryptedAttrName2, []byte("raw-test-long-block123"))
+	plainValue, err = xattr.Get(plainFn, attrName2)
+	err2, _ := err.(*xattr.Error)
+	if err == nil || (err2.Err != syscall.Errno(5) && err2.Err != syscall.Errno(103)) { // syscall.Errno(103) needed for Go 1.5
+		t.Fatalf("Incorrect handling of broken data %s %v", string(plainValue), err)
+	}
+
+	xattr.Remove(plainFn, attrName)
+	xattr.Remove(plainFn, attrName2)
 }
