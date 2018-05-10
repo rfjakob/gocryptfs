@@ -10,6 +10,7 @@ import "C"
 
 import (
 	"crypto/cipher"
+	"fmt"
 	"log"
 	"unsafe"
 )
@@ -144,11 +145,11 @@ func (g *StupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
 	if len(iv) != ivLen {
 		log.Panicf("Only %d-byte IVs are supported", ivLen)
 	}
-	if len(in) <= tagLen {
-		log.Panic("Input data too short")
-	}
 	if len(g.key) != keyLen {
 		log.Panicf("Wrong key length: %d. Key has been wiped?", len(g.key))
+	}
+	if len(in) <= tagLen {
+		return nil, fmt.Errorf("stupidgcm: input data too short (%d bytes)", len(in))
 	}
 
 	// If the "dst" slice is large enough we can use it as our output buffer
