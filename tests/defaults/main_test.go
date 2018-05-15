@@ -193,3 +193,42 @@ func TestWrite0200File(t *testing.T) {
 		t.Fatal("wrong restored permissions")
 	}
 }
+
+// When xattr support was introduced, mv threw warnings like these:
+//   mv: preserving permissions for ‘b/x’: Operation not permitted
+// because we returned EPERM when it tried to set system.posix_acl_access.
+// Now we return EOPNOTSUPP and mv is happy.
+func TestMvWarnings(t *testing.T) {
+	fn := test_helpers.TmpDir + "/TestMvWarnings"
+	err := ioutil.WriteFile(fn, nil, 0600)
+	if err != nil {
+		t.Fatalf("creating file failed: %v", err)
+	}
+	cmd := exec.Command("mv", fn, test_helpers.DefaultPlainDir)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Log(string(out))
+		t.Fatal(err)
+	}
+	if len(out) != 0 {
+		t.Fatalf("Got warnings from mv:\n%s", string(out))
+	}
+}
+
+// See TestCpWarnings.
+func TestCpWarnings(t *testing.T) {
+	fn := test_helpers.TmpDir + "/TestCpWarnings"
+	err := ioutil.WriteFile(fn, []byte("foo"), 0600)
+	if err != nil {
+		t.Fatalf("creating file failed: %v", err)
+	}
+	cmd := exec.Command("cp", "-a", fn, test_helpers.DefaultPlainDir)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Log(string(out))
+		t.Fatal(err)
+	}
+	if len(out) != 0 {
+		t.Fatalf("Got warnings from cp -a:\n%s", string(out))
+	}
+}

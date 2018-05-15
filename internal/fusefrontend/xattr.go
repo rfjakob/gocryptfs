@@ -48,13 +48,15 @@ func (fs *FS) GetXAttr(path string, attr string, context *fuse.Context) ([]byte,
 	return data, fuse.OK
 }
 
+const _EOPNOTSUPP = fuse.Status(syscall.EOPNOTSUPP)
+
 // SetXAttr implements pathfs.Filesystem.
 func (fs *FS) SetXAttr(path string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
 	if disallowedXAttrName(attr) {
-		return fuse.EPERM
+		return _EOPNOTSUPP
 	}
 
 	flags = filterXattrSetFlags(flags)
@@ -74,7 +76,7 @@ func (fs *FS) RemoveXAttr(path string, attr string, context *fuse.Context) fuse.
 		return fuse.EPERM
 	}
 	if disallowedXAttrName(attr) {
-		return fuse.EPERM
+		return _EOPNOTSUPP
 	}
 	cPath, err := fs.getBackingPath(path)
 	if err != nil {
