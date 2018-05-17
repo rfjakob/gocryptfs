@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"sync"
 	"testing"
 
@@ -212,6 +213,30 @@ func TestMvWarnings(t *testing.T) {
 	}
 	if len(out) != 0 {
 		t.Fatalf("Got warnings from mv:\n%s", string(out))
+	}
+}
+
+// Check for this bug in symlink handling:
+// $ ln -s /asd/asdasd/asdasd b/foo
+// $ mv b/foo .
+// mv: listing attributes of 'b/foo': No such file or directory
+// strace shows:
+// llistxattr("b/foo", NULL, 0) = -1 ENOENT (No such file or directory)
+func TestMvWarningSymlink(t *testing.T) {
+	fn := test_helpers.DefaultPlainDir + "/TestMvWarningSymlink"
+	err := os.Symlink("/foo/bar/baz", fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command("mv", fn, test_helpers.TmpDir)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Log(string(out))
+		t.Fatal(err)
+	}
+	if len(out) != 0 {
+		t.Log(strings.TrimSpace(string(out)))
+		t.Fatal("Got warnings")
 	}
 }
 
