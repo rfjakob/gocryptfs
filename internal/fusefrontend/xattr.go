@@ -36,7 +36,7 @@ func (fs *FS) GetXAttr(path string, attr string, context *fuse.Context) ([]byte,
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	encryptedData, err := xattr.Get(cPath, cAttr)
+	encryptedData, err := xattr.LGet(cPath, cAttr)
 	if err != nil {
 		return nil, unpackXattrErr(err)
 	}
@@ -67,7 +67,7 @@ func (fs *FS) SetXAttr(path string, attr string, data []byte, flags int, context
 	}
 	cAttr := fs.encryptXattrName(attr)
 	cData := fs.encryptXattrValue(data)
-	return unpackXattrErr(xattr.SetWithFlags(cPath, cAttr, cData, flags))
+	return unpackXattrErr(xattr.LSetWithFlags(cPath, cAttr, cData, flags))
 }
 
 // RemoveXAttr implements pathfs.Filesystem.
@@ -83,7 +83,7 @@ func (fs *FS) RemoveXAttr(path string, attr string, context *fuse.Context) fuse.
 		return fuse.ToStatus(err)
 	}
 	cAttr := fs.encryptXattrName(attr)
-	return unpackXattrErr(xattr.Remove(cPath, cAttr))
+	return unpackXattrErr(xattr.LRemove(cPath, cAttr))
 }
 
 // ListXAttr implements pathfs.Filesystem.
@@ -95,7 +95,7 @@ func (fs *FS) ListXAttr(path string, context *fuse.Context) ([]string, fuse.Stat
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	cNames, err := xattr.List(cPath)
+	cNames, err := xattr.LList(cPath)
 	if err != nil {
 		return nil, unpackXattrErr(err)
 	}
@@ -167,7 +167,7 @@ func (fs *FS) decryptXattrValue(cData []byte) (data []byte, err error) {
 	return fs.contentEnc.DecryptBlock([]byte(cData), 0, nil)
 }
 
-// unpackXattrErr unpacks an error value that we got from xattr.Get/Set/etc
+// unpackXattrErr unpacks an error value that we got from xattr.LGet/LSet/etc
 // and converts it to a fuse status.
 func unpackXattrErr(err error) fuse.Status {
 	if err == nil {

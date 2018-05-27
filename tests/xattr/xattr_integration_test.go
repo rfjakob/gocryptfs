@@ -53,12 +53,12 @@ func TestXattrSetGetRm(t *testing.T) {
 	}
 	// Set
 	val1 := []byte("123456789")
-	err = xattr.Set(fn, attr, val1)
+	err = xattr.LSet(fn, attr, val1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// Read back
-	val2, err := xattr.Get(fn, attr)
+	val2, err := xattr.LGet(fn, attr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,12 +66,12 @@ func TestXattrSetGetRm(t *testing.T) {
 		t.Fatalf("wrong readback value: %v != %v", val1, val2)
 	}
 	// Remove
-	err = xattr.Remove(fn, attr)
+	err = xattr.LRemove(fn, attr)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// Read back
-	val3, err := xattr.Get(fn, attr)
+	val3, err := xattr.LGet(fn, attr)
 	if err == nil {
 		t.Fatalf("attr is still there after deletion!? val3=%v", val3)
 	}
@@ -85,17 +85,17 @@ func TestXattrSetEmpty(t *testing.T) {
 		t.Fatalf("creating empty file failed: %v", err)
 	}
 	// Make sure it does not exist already
-	_, err = xattr.Get(fn, attr)
+	_, err = xattr.LGet(fn, attr)
 	if err == nil {
 		t.Fatal("we should have got an error here")
 	}
 	// Set empty value
-	err = xattr.Set(fn, attr, nil)
+	err = xattr.LSet(fn, attr, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// Read back
-	val, err := xattr.Get(fn, attr)
+	val, err := xattr.LGet(fn, attr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,12 +104,12 @@ func TestXattrSetEmpty(t *testing.T) {
 	}
 	// Overwrite empty value with something
 	val1 := []byte("xyz123")
-	err = xattr.Set(fn, attr, val1)
+	err = xattr.LSet(fn, attr, val1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// Read back
-	val2, err := xattr.Get(fn, attr)
+	val2, err := xattr.LGet(fn, attr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,12 +117,12 @@ func TestXattrSetEmpty(t *testing.T) {
 		t.Fatalf("wrong readback value: %v != %v", val1, val2)
 	}
 	// Overwrite something with empty value
-	err = xattr.Set(fn, attr, nil)
+	err = xattr.LSet(fn, attr, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// Read back
-	val, err = xattr.Get(fn, attr)
+	val, err = xattr.LGet(fn, attr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,12 +141,12 @@ func TestXattrList(t *testing.T) {
 	num := 20
 	for i := 1; i <= num; i++ {
 		attr := fmt.Sprintf("user.TestXattrList.%02d", i)
-		err = xattr.Set(fn, attr, val)
+		err = xattr.LSet(fn, attr, val)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
-	names, err := xattr.List(fn)
+	names, err := xattr.LList(fn)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +161,7 @@ func TestXattrList(t *testing.T) {
 }
 
 func xattrSupported(path string) bool {
-	_, err := xattr.Get(path, "user.xattrSupported-dummy-value")
+	_, err := xattr.LGet(path, "user.xattrSupported-dummy-value")
 	if err == nil {
 		return true
 	}
@@ -191,24 +191,24 @@ func TestBase64XattrRead(t *testing.T) {
 	if _, err2 := os.Stat(encryptedFn); os.IsNotExist(err2) {
 		t.Fatalf("encrypted file does not exist: %v", err2)
 	}
-	xattr.Set(plainFn, attrName, []byte(attrValue))
+	xattr.LSet(plainFn, attrName, []byte(attrValue))
 
-	encryptedAttrValue, err1 := xattr.Get(encryptedFn, encryptedAttrName)
+	encryptedAttrValue, err1 := xattr.LGet(encryptedFn, encryptedAttrName)
 	if err1 != nil {
 		t.Fatal(err1)
 	}
 
-	xattr.Set(encryptedFn, encryptedAttrName2, encryptedAttrValue)
-	plainValue, err := xattr.Get(plainFn, attrName2)
+	xattr.LSet(encryptedFn, encryptedAttrName2, encryptedAttrValue)
+	plainValue, err := xattr.LGet(plainFn, attrName2)
 
 	if err != nil || string(plainValue) != attrValue {
 		t.Fatalf("Attribute binary value decryption error %s != %s %v", string(plainValue), attrValue, err)
 	}
 
 	encryptedAttrValue64 := base64.RawURLEncoding.EncodeToString(encryptedAttrValue)
-	xattr.Set(encryptedFn, encryptedAttrName2, []byte(encryptedAttrValue64))
+	xattr.LSet(encryptedFn, encryptedAttrName2, []byte(encryptedAttrValue64))
 
-	plainValue, err = xattr.Get(plainFn, attrName2)
+	plainValue, err = xattr.LGet(plainFn, attrName2)
 	if err != nil || string(plainValue) != attrValue {
 		t.Fatalf("Attribute base64-encoded value decryption error %s != %s %v", string(plainValue), attrValue, err)
 	}
@@ -225,8 +225,8 @@ func TestBase64XattrRead(t *testing.T) {
 		"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$",
 	}
 	for _, val := range brokenVals {
-		xattr.Set(encryptedFn, encryptedAttrName2, []byte(val))
-		plainValue, err = xattr.Get(plainFn, attrName2)
+		xattr.LSet(encryptedFn, encryptedAttrName2, []byte(val))
+		plainValue, err = xattr.LGet(plainFn, attrName2)
 		err2, _ := err.(*xattr.Error)
 		if err == nil || err2.Err != syscall.EIO {
 			t.Fatalf("Incorrect handling of broken data %s %v", string(plainValue), err)
