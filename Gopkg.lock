@@ -23,10 +23,10 @@
   revision = "c73681c634de898c869684602cf0c0d2ce938c4d"
 
 [[projects]]
-  branch = "master"
   name = "github.com/pkg/xattr"
   packages = ["."]
-  revision = "a38d0027f85c1cccd42b493d9e25a25fce7929c8"
+  revision = "d15dbc2bb0b5da267362b5e066e2c44c1fcff6c7"
+  version = "v0.3.0"
 
 [[projects]]
   branch = "master"
