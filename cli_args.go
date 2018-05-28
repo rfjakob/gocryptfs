@@ -155,6 +155,8 @@ func parseCliOpts() (args argContainer) {
 	flagSet.BoolVar(&dummyBool, "rw", false, ignoreText)
 	flagSet.BoolVar(&dummyBool, "nosuid", false, ignoreText)
 	flagSet.BoolVar(&dummyBool, "nodev", false, ignoreText)
+	flagSet.BoolVar(&dummyBool, "exec", false, ignoreText)
+	flagSet.BoolVar(&dummyBool, "noexec", false, ignoreText)
 	var dummyString string
 	flagSet.StringVar(&dummyString, "o", "", "For compatibility with mount(1), options can be also passed as a comma-separated list to -o on the end.")
 	// Actual parsing
