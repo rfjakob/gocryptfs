@@ -448,3 +448,15 @@ func TestMultipleOperationFlags(t *testing.T) {
 		}
 	}
 }
+
+// Test that a missing argument to "-o" triggers exit code 1.
+// See also cli_args_test.go for comprehensive tests of "-o" parsing.
+func TestMissingOArg(t *testing.T) {
+	cmd := exec.Command(test_helpers.GocryptfsBinary, "foo", "bar", "-o")
+	err := cmd.Run()
+	exitCode := test_helpers.ExtractCmdExitCode(err)
+	if exitCode != exitcodes.Usage {
+		t.Fatalf("this should have failed with code %d, but returned %d",
+			exitcodes.Usage, exitCode)
+	}
+}

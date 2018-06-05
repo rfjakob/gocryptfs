@@ -10,6 +10,8 @@ type testcase struct {
 	i []string
 	// o is the expected output
 	o []string
+	// Do we expect an error?
+	e bool
 }
 
 // TestPrefixOArgs checks that the "-o x,y,z" parsing works correctly.
@@ -61,11 +63,17 @@ func TestPrefixOArgs(t *testing.T) {
 			i: []string{"gocryptfs", "--", "-o", "a"},
 			o: []string{"gocryptfs", "--", "-o", "a"},
 		},
+		// This should error out
+		{
+			i: []string{"gocryptfs", "foo", "bar", "-o"},
+			e: true,
+		},
 	}
 	for _, tc := range testcases {
-		o := prefixOArgs(tc.i)
-		if !reflect.DeepEqual(o, tc.o) {
-			t.Errorf("\n  in=%q\nwant=%q\n got=%q", tc.i, tc.o, o)
+		o, err := prefixOArgs(tc.i)
+		e := (err != nil)
+		if !reflect.DeepEqual(o, tc.o) || e != tc.e {
+			t.Errorf("\n  in=%q\nwant=%q err=%v\n got=%q err=%v", tc.i, tc.o, tc.e, o, e)
 		}
 	}
 }
