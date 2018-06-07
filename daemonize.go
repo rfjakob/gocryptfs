@@ -29,7 +29,7 @@ func exitOnUsr1() {
 func forkChild() int {
 	name := os.Args[0]
 	// Use the full path to our executable if we can get if from /proc.
-	buf := make([]byte, syscall.PathMax)
+	buf := make([]byte, syscallcompat.PATH_MAX)
 	n, err := syscall.Readlink("/proc/self/exe", buf)
 	if err == nil {
 		name = string(buf[:n])
