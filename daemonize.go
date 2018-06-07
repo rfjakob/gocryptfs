@@ -28,6 +28,13 @@ func exitOnUsr1() {
 // This is a workaround for the missing true fork function in Go.
 func forkChild() int {
 	name := os.Args[0]
+	// Use the full path to our executable if we can get if from /proc.
+	buf := make([]byte, syscall.PathMax)
+	n, err := syscall.Readlink("/proc/self/exe", buf)
+	if err == nil {
+		name = string(buf[:n])
+		tlog.Debug.Printf("forkChild: readlink worked: %q", name)
+	}
 	newArgs := []string{"-fg", fmt.Sprintf("-notifypid=%d", os.Getpid())}
 	newArgs = append(newArgs, os.Args[1:]...)
 	c := exec.Command(name, newArgs...)
@@ -35,7 +42,7 @@ func forkChild() int {
 	c.Stderr = os.Stderr
 	c.Stdin = os.Stdin
 	exitOnUsr1()
-	err := c.Start()
+	err = c.Start()
 	if err != nil {
 		tlog.Fatal.Printf("forkChild: starting %s failed: %v", name, err)
 		return exitcodes.ForkChild
