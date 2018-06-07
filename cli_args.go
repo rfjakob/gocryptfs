@@ -20,9 +20,11 @@ import (
 type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, fg, version,
 	plaintextnames, quiet, nosyslog, wpanic,
-	longnames, allow_other, ro, reverse, aessiv, nonempty, raw64,
+	longnames, allow_other, reverse, aessiv, nonempty, raw64,
 	noprealloc, speed, hkdf, serialize_reads, forcedecode, hh, info,
 	sharedstorage, devrandom, fsck bool
+	// Mount options with opposites
+	dev, nodev, suid, nosuid, exec, noexec, rw, ro bool
 	masterkey, mountpoint, cipherdir, cpuprofile, extpass,
 	memprofile, ko, passfile, ctlsock, fsname, force_owner, trace string
 	// Configuration file name override
@@ -121,7 +123,6 @@ func parseCliOpts() (args argContainer) {
 	flagSet.BoolVar(&args.longnames, "longnames", true, "Store names longer than 176 bytes in extra files")
 	flagSet.BoolVar(&args.allow_other, "allow_other", false, "Allow other users to access the filesystem. "+
 		"Only works if user_allow_other is set in /etc/fuse.conf.")
-	flagSet.BoolVar(&args.ro, "ro", false, "Mount the filesystem read-only")
 	flagSet.BoolVar(&args.reverse, "reverse", false, "Reverse mode")
 	flagSet.BoolVar(&args.aessiv, "aessiv", false, "AES-SIV encryption")
 	flagSet.BoolVar(&args.nonempty, "nonempty", false, "Allow mounting over non-empty directories")
@@ -137,6 +138,17 @@ func parseCliOpts() (args argContainer) {
 	flagSet.BoolVar(&args.sharedstorage, "sharedstorage", false, "Make concurrent access to a shared CIPHERDIR safer")
 	flagSet.BoolVar(&args.devrandom, "devrandom", false, "Use /dev/random for generating master key")
 	flagSet.BoolVar(&args.fsck, "fsck", false, "Run a filesystem check on CIPHERDIR")
+
+	// Mount options with opposites
+	flagSet.BoolVar(&args.dev, "dev", false, "Allow device files")
+	flagSet.BoolVar(&args.nodev, "nodev", false, "Deny device files")
+	flagSet.BoolVar(&args.suid, "suid", false, "Allow suid binaries")
+	flagSet.BoolVar(&args.nosuid, "nosuid", false, "Deny suid binaries")
+	flagSet.BoolVar(&args.exec, "exec", false, "Allow executables")
+	flagSet.BoolVar(&args.noexec, "noexec", false, "Deny executables")
+	flagSet.BoolVar(&args.rw, "rw", false, "Mount the filesystem read-write")
+	flagSet.BoolVar(&args.ro, "ro", false, "Mount the filesystem read-only")
+
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")
@@ -152,12 +164,6 @@ func parseCliOpts() (args argContainer) {
 		"successful mount - used internally for daemonization")
 	flagSet.IntVar(&args.scryptn, "scryptn", configfile.ScryptDefaultLogN, "scrypt cost parameter logN. Possible values: 10-28. "+
 		"A lower value speeds up mounting and reduces its memory needs, but makes the password susceptible to brute-force attacks")
-	// Ignored otions
-	var dummyBool bool
-	ignoreText := "(ignored for compatibility)"
-	flagSet.BoolVar(&dummyBool, "rw", false, ignoreText)
-	flagSet.BoolVar(&dummyBool, "nosuid", false, ignoreText)
-	flagSet.BoolVar(&dummyBool, "nodev", false, ignoreText)
 	var dummyString string
 	flagSet.StringVar(&dummyString, "o", "", "For compatibility with mount(1), options can be also passed as a comma-separated list to -o on the end.")
 	// Actual parsing

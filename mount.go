@@ -314,17 +314,33 @@ func initGoFuse(fs pathfs.FileSystem, args *argContainer) *fuse.Server {
 	if args.reverse {
 		mOpts.Name += "-reverse"
 	}
-
 	// Add a volume name if running osxfuse. Otherwise the Finder will show it as
 	// something like "osxfuse Volume 0 (gocryptfs)".
 	if runtime.GOOS == "darwin" {
 		mOpts.Options = append(mOpts.Options, "volname="+path.Base(args.mountpoint))
 	}
-
 	// The kernel enforces read-only operation, we just have to pass "ro".
 	// Reverse mounts are always read-only.
 	if args.ro || args.reverse {
 		mOpts.Options = append(mOpts.Options, "ro")
+	} else if args.rw {
+		mOpts.Options = append(mOpts.Options, "rw")
+	}
+	// If both "nosuid" and "suid" were passed, the safer option wins.
+	if args.nosuid {
+		mOpts.Options = append(mOpts.Options, "nosuid")
+	} else if args.suid {
+		mOpts.Options = append(mOpts.Options, "suid")
+	}
+	if args.nodev {
+		mOpts.Options = append(mOpts.Options, "nodev")
+	} else if args.dev {
+		mOpts.Options = append(mOpts.Options, "dev")
+	}
+	if args.noexec {
+		mOpts.Options = append(mOpts.Options, "noexec")
+	} else if args.exec {
+		mOpts.Options = append(mOpts.Options, "exec")
 	}
 	// Add additional mount options (if any) after the stock ones, so the user has
 	// a chance to override them.

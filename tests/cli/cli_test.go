@@ -449,6 +449,30 @@ func TestMultipleOperationFlags(t *testing.T) {
 	}
 }
 
+func TestNoexec(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	mnt := dir + ".mnt"
+	err := os.Mkdir(mnt, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	test_helpers.MountOrFatal(t, dir, mnt, "-extpass=echo test", "-noexec")
+	defer test_helpers.UnmountPanic(mnt)
+	sh := mnt + "/x.sh"
+	content := `#!/bin/bash
+echo hello
+`
+	err = ioutil.WriteFile(sh, []byte(content), 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = exec.Command(sh).Run()
+	exitCode := test_helpers.ExtractCmdExitCode(err)
+	if exitCode != int(syscall.EACCES) {
+		t.Errorf("got exitcode %d instead of EPERM (%d)", exitCode, syscall.EPERM)
+	}
+}
+
 // Test that a missing argument to "-o" triggers exit code 1.
 // See also cli_args_test.go for comprehensive tests of "-o" parsing.
 func TestMissingOArg(t *testing.T) {

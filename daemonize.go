@@ -37,7 +37,7 @@ func forkChild() int {
 	exitOnUsr1()
 	err := c.Start()
 	if err != nil {
-		tlog.Fatal.Printf("forkChild: starting %s failed: %v\n", name, err)
+		tlog.Fatal.Printf("forkChild: starting %s failed: %v", name, err)
 		return exitcodes.ForkChild
 	}
 	err = c.Wait()
@@ -47,7 +47,7 @@ func forkChild() int {
 				os.Exit(waitstat.ExitStatus())
 			}
 		}
-		tlog.Fatal.Printf("forkChild: wait returned an unknown error: %v\n", err)
+		tlog.Fatal.Printf("forkChild: wait returned an unknown error: %v", err)
 		return exitcodes.ForkChild
 	}
 	// The child exited with 0 - let's do the same.

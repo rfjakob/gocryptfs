@@ -433,9 +433,14 @@ func ExtractCmdExitCode(err error) int {
 		return 0
 	}
 	// OMG this is convoluted
-	err2 := err.(*exec.ExitError)
-	code := err2.Sys().(syscall.WaitStatus).ExitStatus()
-	return code
+	if err2, ok := err.(*exec.ExitError); ok {
+		return err2.Sys().(syscall.WaitStatus).ExitStatus()
+	}
+	if err2, ok := err.(*os.PathError); ok {
+		return int(err2.Err.(syscall.Errno))
+	}
+	log.Panicf("could not decode error %#v", err)
+	return 0
 }
 
 // ListFds lists our open file descriptors.
