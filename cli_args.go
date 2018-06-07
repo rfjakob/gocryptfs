@@ -103,7 +103,7 @@ func parseCliOpts() (args argContainer) {
 	}
 
 	flagSet = flag.NewFlagSet(tlog.ProgramName, flag.ContinueOnError)
-	flagSet.Usage = helpShort
+	flagSet.Usage = func() {}
 	flagSet.BoolVar(&args.debug, "d", false, "")
 	flagSet.BoolVar(&args.debug, "debug", false, "Enable debug output")
 	flagSet.BoolVar(&args.fusedebug, "fusedebug", false, "Enable fuse library debug output")
@@ -169,11 +169,11 @@ func parseCliOpts() (args argContainer) {
 	// Actual parsing
 	err = flagSet.Parse(os.Args[1:])
 	if err == flag.ErrHelp {
+		helpShort()
 		os.Exit(0)
 	}
 	if err != nil {
-		tlog.Warn.Printf("You passed: %s", prettyArgs())
-		tlog.Fatal.Printf("%v", err)
+		tlog.Fatal.Printf("Invalid command line: %s. Try '%s -help'.", prettyArgs(), tlog.ProgramName)
 		os.Exit(exitcodes.Usage)
 	}
 	// "-openssl" needs some post-processing
@@ -225,7 +225,7 @@ func parseCliOpts() (args argContainer) {
 
 // prettyArgs pretty-prints the command-line arguments.
 func prettyArgs() string {
-	pa := fmt.Sprintf("%q", os.Args[1:])
+	pa := fmt.Sprintf("%v", os.Args)
 	// Get rid of "[" and "]"
 	pa = pa[1 : len(pa)-1]
 	return pa
