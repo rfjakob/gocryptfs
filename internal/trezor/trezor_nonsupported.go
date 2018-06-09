@@ -1,4 +1,5 @@
-// +build freebsd
+// +build !linux
+
 package trezor
 
 import (
