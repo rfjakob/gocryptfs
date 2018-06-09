@@ -8,10 +8,10 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-var testPw = []byte("test")
+var testPw = "test"
 
 func TestLoadV1(t *testing.T) {
-	_, _, err := LoadConfFile("config_test/v1.conf", testPw)
+	_, _, err := LoadConfFile("config_test/v1.conf", true, "/bin/echo "+testPw)
 	if err == nil {
 		t.Errorf("Outdated v1 config file must fail to load but it didn't")
 	} else if testing.Verbose() {
@@ -24,7 +24,7 @@ func TestLoadV1(t *testing.T) {
 func TestLoadV2(t *testing.T) {
 	t1 := time.Now()
 
-	_, _, err := LoadConfFile("config_test/v2.conf", testPw)
+	_, _, err := LoadConfFile("config_test/v2.conf", true, "/bin/echo "+testPw)
 	if err != nil {
 		t.Errorf("Could not load v2 config file: %v", err)
 	}
@@ -39,21 +39,21 @@ func TestLoadV2PwdError(t *testing.T) {
 	if !testing.Verbose() {
 		tlog.Warn.Enabled = false
 	}
-	_, _, err := LoadConfFile("config_test/v2.conf", []byte("wrongpassword"))
+	_, _, err := LoadConfFile("config_test/v2.conf", true, "/bin/echo wrongpassword")
 	if err == nil {
 		t.Errorf("Loading with wrong password must fail but it didn't")
 	}
 }
 
 func TestLoadV2Feature(t *testing.T) {
-	_, _, err := LoadConfFile("config_test/PlaintextNames.conf", testPw)
+	_, _, err := LoadConfFile("config_test/PlaintextNames.conf", true, "/bin/echo "+testPw)
 	if err != nil {
 		t.Errorf("Could not load v2 PlaintextNames config file: %v", err)
 	}
 }
 
 func TestLoadV2StrangeFeature(t *testing.T) {
-	_, _, err := LoadConfFile("config_test/StrangeFeature.conf", testPw)
+	_, _, err := LoadConfFile("config_test/StrangeFeature.conf", true, "/bin/echo "+testPw)
 	if err == nil {
 		t.Errorf("Loading unknown feature must fail but it didn't")
 	} else if testing.Verbose() {
@@ -62,11 +62,11 @@ func TestLoadV2StrangeFeature(t *testing.T) {
 }
 
 func TestCreateConfDefault(t *testing.T) {
-	err := CreateConfFile("config_test/tmp.conf", testPw, false, 10, "test", false, false)
+	err := CreateConfFile("config_test/tmp.conf", []byte(testPw), false, 10, "test", false, false, "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, c, err := LoadConfFile("config_test/tmp.conf", testPw)
+	_, c, err := LoadConfFile("config_test/tmp.conf", true, "/bin/echo "+testPw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,18 +83,18 @@ func TestCreateConfDefault(t *testing.T) {
 }
 
 func TestCreateConfDevRandom(t *testing.T) {
-	err := CreateConfFile("config_test/tmp.conf", testPw, false, 10, "test", false, true)
+	err := CreateConfFile("config_test/tmp.conf", []byte(testPw), false, 10, "test", false, false, "", true)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestCreateConfPlaintextnames(t *testing.T) {
-	err := CreateConfFile("config_test/tmp.conf", testPw, true, 10, "test", false, false)
+	err := CreateConfFile("config_test/tmp.conf", []byte(testPw), true, 10, "test", false, false, "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, c, err := LoadConfFile("config_test/tmp.conf", testPw)
+	_, c, err := LoadConfFile("config_test/tmp.conf", true, "/bin/echo "+testPw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,11 +111,11 @@ func TestCreateConfPlaintextnames(t *testing.T) {
 
 // Reverse mode uses AESSIV
 func TestCreateConfFileAESSIV(t *testing.T) {
-	err := CreateConfFile("config_test/tmp.conf", testPw, false, 10, "test", true, false)
+	err := CreateConfFile("config_test/tmp.conf", []byte(testPw), false, 10, "test", true, false, "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, c, err := LoadConfFile("config_test/tmp.conf", testPw)
+	_, c, err := LoadConfFile("config_test/tmp.conf", true, "/bin/echo "+testPw)
 	if err != nil {
 		t.Fatal(err)
 	}

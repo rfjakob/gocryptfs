@@ -225,8 +225,8 @@ func LoadConfFile(filename string, retrieveMasterKey bool, extpass string) ([]by
 
 
 func (cf *ConfFile) EncryptKeyByTrezor(key []byte) {
-	trezor := trezor.New()
-	cf.EncryptedKey = trezor.EncryptKey(key, []byte{}, cf.TrezorKeyname)
+	trezorInstance := trezor.New()
+	cf.EncryptedKey = trezorInstance.EncryptKey(key, []byte{}, cf.TrezorKeyname)
 }
 // EncryptKeyByPassword - encrypt "key" using an scrypt hash generated from "password"
 // and store it in cf.EncryptedKey.

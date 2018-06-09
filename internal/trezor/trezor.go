@@ -30,11 +30,11 @@ type trezor struct {
 
 func New() *trezor {
 	pinentryClient, _ := pinentry.NewPinentryClient()
-	trezor := trezor{
+	trezorInstance := trezor{
 		pinentry: pinentryClient,
 	}
-	trezor.Reconnect()
-	return &trezor
+	trezorInstance.Reconnect()
+	return &trezorInstance
 }
 
 type trezorCipher struct {
