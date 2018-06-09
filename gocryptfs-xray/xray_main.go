@@ -11,7 +11,6 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
-	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -60,16 +59,12 @@ func main() {
 
 func dumpMasterKey(fn string) {
 	tlog.Info.Enabled = false
-	pw := readpassword.Once("", "")
-	masterkey, _, err := configfile.LoadConfFile(fn, pw)
+	masterkey, _, err := configfile.LoadConfFile(fn, true, "")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		exitcodes.Exit(err)
 	}
 	fmt.Println(hex.EncodeToString(masterkey))
-	for i := range pw {
-		pw[i] = 0
-	}
 }
 
 func inspectCiphertext(fd *os.File) {
