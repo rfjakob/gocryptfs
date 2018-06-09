@@ -143,6 +143,7 @@ func (trezor *trezor) CheckTrezorConnection() {
 	trezor.Reconnect()
 }
 
+// See https://github.com/satoshilabs/slips/blob/master/slip-0011.md
 func (trezor *trezor) CipherKeyValue(isToEncrypt bool, keyName string, data, iv []byte, askOnEncode, askOnDecode bool) ([]byte, messages.MessageType) {
 	path := `m/71'/a6'/3'/45'/96'`
 	result, msgType := trezor.call(trezor.Client.CipherKeyValue(isToEncrypt, keyName, data, tesoro.StringToBIP32Path(path), iv, askOnEncode, askOnDecode))
