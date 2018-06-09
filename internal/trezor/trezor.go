@@ -129,7 +129,7 @@ func (trezor *trezor) DecryptKey(encryptedKey []byte, nonce []byte, trezorKeynam
 	// library "tesoro" requires hex-ed value for decryption
 	encryptedKeyhexValue := hex.EncodeToString(encryptedKey)
 	if len(encryptedKeyhexValue)%2 != 0 {
-		log.Panic("len(hexValue)%2 != 0")
+		log.Panic(`len(hexValue) is odd`)
 	}
 	for len(encryptedKeyhexValue)%32 != 0 {
 		encryptedKeyhexValue += "00"
