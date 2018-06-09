@@ -69,9 +69,13 @@ func initDir(args *argContainer) {
 	}
 	{
 		creator := tlog.ProgramName + " " + GitVersion
-		password := readpassword.Twice(args.extpass)
-		readpassword.CheckTrailingGarbage()
-		err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator, args.aessiv, args.devrandom)
+		var password []byte
+		if !args.trezorencryptmasterkey {
+			password = readpassword.Twice(args.extpass)
+			readpassword.CheckTrailingGarbage()
+		}
+		err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator,
+			args.aessiv, args.trezorencryptmasterkey, args.trezorkeyname, args.devrandom)
 		if err != nil {
 			tlog.Fatal.Println(err)
 			os.Exit(exitcodes.WriteConf)

@@ -203,11 +203,15 @@ func initFuseFrontend(args *argContainer) (pfs pathfs.FileSystem, wipeKeys func(
 		frontendArgs.PlaintextNames = confFile.IsFeatureFlagSet(configfile.FlagPlaintextNames)
 		args.raw64 = confFile.IsFeatureFlagSet(configfile.FlagRaw64)
 		args.hkdf = confFile.IsFeatureFlagSet(configfile.FlagHKDF)
+		args.trezorkeyname = confFile.TrezorKeyname
 		if confFile.IsFeatureFlagSet(configfile.FlagAESSIV) {
 			cryptoBackend = cryptocore.BackendAESSIV
 		} else if args.reverse {
 			tlog.Fatal.Printf("AES-SIV is required by reverse mode, but not enabled in the config file")
 			os.Exit(exitcodes.Usage)
+		}
+		if confFile.IsFeatureFlagSet(configfile.FlagTrezorEncryptMasterkey) {
+			args.trezorencryptmasterkey = true
 		}
 	}
 	// If allow_other is set and we run as root, try to give newly created files to

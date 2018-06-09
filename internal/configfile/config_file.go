@@ -12,7 +12,9 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
+	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
+	"github.com/rfjakob/gocryptfs/internal/trezor"
 )
 import "os"
 
@@ -40,6 +42,8 @@ type ConfFile struct {
 	ScryptObject ScryptKDF
 	// Version is the On-Disk-Format version this filesystem uses
 	Version uint16
+	// TrezorKeyname is a string that is passed to Trezor as a key name
+	TrezorKeyname string
 	// FeatureFlags is a list of feature flags this filesystem has enabled.
 	// If gocryptfs encounters a feature flag it does not support, it will refuse
 	// mounting. This mechanism is analogous to the ext4 feature flags that are
@@ -67,7 +71,7 @@ func randBytesDevRandom(n int) []byte {
 // CreateConfFile - create a new config with a random key encrypted with
 // "password" and write it to "filename".
 // Uses scrypt with cost parameter logN.
-func CreateConfFile(filename string, password []byte, plaintextNames bool, logN int, creator string, aessiv bool, devrandom bool) error {
+func CreateConfFile(filename string, password []byte, plaintextNames bool, logN int, creator string, aessiv bool, trezorEncryptMasterkey bool, trezorKeyname string, devrandom bool) error {
 	var cf ConfFile
 	cf.filename = filename
 	cf.Creator = creator
@@ -87,6 +91,11 @@ func CreateConfFile(filename string, password []byte, plaintextNames bool, logN 
 	if aessiv {
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagAESSIV])
 	}
+	if trezorEncryptMasterkey {
+		cf.TrezorKeyname = trezorKeyname
+		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagTrezorEncryptMasterkey])
+	}
+
 	{
 		// Generate new random master key
 		var key []byte
@@ -95,10 +104,15 @@ func CreateConfFile(filename string, password []byte, plaintextNames bool, logN 
 		} else {
 			key = cryptocore.RandBytes(cryptocore.KeyLen)
 		}
-		// Encrypt it using the password
-		// This sets ScryptObject and EncryptedKey
-		// Note: this looks at the FeatureFlags, so call it AFTER setting them.
-		cf.EncryptKey(key, password, logN)
+		if trezorEncryptMasterkey {
+			// Encrypt it using a Trezor device
+			cf.EncryptKeyByTrezor(key)
+		} else {
+			// Encrypt it using the password
+			// This sets ScryptObject and EncryptedKey
+			// Note: this looks at the FeatureFlags, so call it AFTER setting them.
+			cf.EncryptKeyByPassword(key, password, logN)
+		}
 		for i := range key {
 			key[i] = 0
 		}
@@ -114,7 +128,7 @@ func CreateConfFile(filename string, password []byte, plaintextNames bool, logN 
 //
 // If "password" is empty, the config file is read
 // but the key is not decrypted (returns nil in its place).
-func LoadConfFile(filename string, password []byte) ([]byte, *ConfFile, error) {
+func LoadConfFile(filename string, retrieveMasterKey bool, extpass string) ([]byte, *ConfFile, error) {
 	var cf ConfFile
 	cf.filename = filename
 
@@ -171,11 +185,25 @@ func LoadConfFile(filename string, password []byte) ([]byte, *ConfFile, error) {
 
 		return nil, nil, exitcodes.NewErr("Deprecated filesystem", exitcodes.DeprecatedFS)
 	}
-	if len(password) == 0 {
-		// We have validated the config file, but without a password we cannot
-		// decrypt the master key. Return only the parsed config.
+
+	if !retrieveMasterKey {
 		return nil, &cf, nil
 	}
+
+	if cf.IsFeatureFlagSet(FlagTrezorEncryptMasterkey) {
+		// if `-trezor_encrypt_masterkey` is enabled then the password is passed to a Trezor device
+		// directly (via pinentry) and we should ask for it here
+		trezor := trezor.New()
+		key := trezor.DecryptKey(cf.EncryptedKey, []byte{}, cf.TrezorKeyname)
+		return key, &cf, nil
+	}
+
+	password := readpassword.Once(extpass, "")
+	defer func() {
+		for i := range password {
+			password[i] = 0
+		}
+	}()
 
 	// Generate derived key from password
 	scryptHash := cf.ScryptObject.DeriveKey(password)
@@ -195,11 +223,16 @@ func LoadConfFile(filename string, password []byte) ([]byte, *ConfFile, error) {
 	return key, &cf, err
 }
 
-// EncryptKey - encrypt "key" using an scrypt hash generated from "password"
+
+func (cf *ConfFile) EncryptKeyByTrezor(key []byte) {
+	trezor := trezor.New()
+	cf.EncryptedKey = trezor.EncryptKey(key, []byte{}, cf.TrezorKeyname)
+}
+// EncryptKeyByPassword - encrypt "key" using an scrypt hash generated from "password"
 // and store it in cf.EncryptedKey.
 // Uses scrypt with cost parameter logN and stores the scrypt parameters in
 // cf.ScryptObject.
-func (cf *ConfFile) EncryptKey(key []byte, password []byte, logN int) {
+func (cf *ConfFile) EncryptKeyByPassword(key []byte, password []byte, logN int) {
 	// Generate scrypt-derived key from password
 	cf.ScryptObject = NewScryptKDF(logN)
 	scryptHash := cf.ScryptObject.DeriveKey(password)

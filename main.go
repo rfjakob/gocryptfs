@@ -44,14 +44,9 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 	// password).
 	if args.masterkey != "" {
 		masterkey = parseMasterKey(args.masterkey, false)
-		_, confFile, err = configfile.LoadConfFile(args.config, nil)
+		_, confFile, err = configfile.LoadConfFile(args.config, false, "")
 	} else {
-		pw := readpassword.Once(args.extpass, "")
-		tlog.Info.Println("Decrypting master key")
-		masterkey, confFile, err = configfile.LoadConfFile(args.config, pw)
-		for i := range pw {
-			pw[i] = 0
-		}
+		masterkey, confFile, err = configfile.LoadConfFile(args.config, true, args.extpass)
 	}
 	if err != nil {
 		tlog.Fatal.Println(err)
@@ -71,10 +66,14 @@ func changePassword(args *argContainer) {
 		if err != nil {
 			exitcodes.Exit(err)
 		}
+		if confFile.IsFeatureFlagSet(configfile.FlagTrezorEncryptMasterkey) {
+			tlog.Fatal.Printf("The master key is encrypted by a Trezor device but not by a password.")
+			os.Exit(exitcodes.PasswordIncorrect)
+		}
 		tlog.Info.Println("Please enter your new password.")
 		newPw := readpassword.Twice(args.extpass)
 		readpassword.CheckTrailingGarbage()
-		confFile.EncryptKey(masterkey, newPw, confFile.ScryptObject.LogN())
+		confFile.EncryptKeyByPassword(masterkey, newPw, confFile.ScryptObject.LogN())
 		for i := range newPw {
 			newPw[i] = 0
 		}

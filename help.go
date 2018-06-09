@@ -38,6 +38,8 @@ Common Options (use -hh to show all):
   -reverse           Enable reverse mode
   -ro                Mount read-only
   -speed             Run crypto speed test
+  -trezor_encrypt_masterkey Encrypt master key through hardware crypto device "Trezor" using AES (with -init)
+  -trezor_keyname    Set the key name for Trezor (default: "gocryptfs")
   -version           Print version information
   --                 Stop option parsing
 `)
