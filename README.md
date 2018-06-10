@@ -153,13 +153,25 @@ RM:    4.42
 Changelog
 ---------
 
-vNEXT, in progress
+v1.5, 2018-06-12
+* **Support extended attributes (xattr)** in forward mode
+  ([#217](https://github.com/rfjakob/gocryptfs/issues/217)). Older gocryptfs versions
+  will ignore the extended attributes.
+* **Add `-fsck` function**
+  ([#191](https://github.com/rfjakob/gocryptfs/issues/191))
+* Fix clobbered timestamps on MacOS High Sierra
+  ([#229](https://github.com/rfjakob/gocryptfs/issues/229))
 * Add `-masterkey=stdin` functionality
   ([#218](https://github.com/rfjakob/gocryptfs/issues/218))
-* Support extended attributes (xattr) in forward mode
-  ([#217](https://github.com/rfjakob/gocryptfs/issues/217))
-* Add `-fsck` function
-  ([#191](https://github.com/rfjakob/gocryptfs/issues/191))
+* Accept `-dev`/`-nodev`, `suid`/`nosuid`, `-exec`/`-noexec`,
+  `-ro`/`-rw` flags to make mounting via `/etc/fstab` possible.
+  Thanks @mahkoh! ([#233](https://github.com/rfjakob/gocryptfs/pull/233),
+  [commit](https://github.com/rfjakob/gocryptfs/commit/53d6a9999dd0e4c31636d16179f284fff35a35d9),
+  [commit](https://github.com/rfjakob/gocryptfs/commit/10212d791a3196c2c8705a7a3cccdeb14a8efdbe))
+* Fix a `logger` path issue on SuSE
+  [#225](https://github.com/rfjakob/gocryptfs/issues/225)
+* Stop printing the help text on a "flag provided but not defined"
+  error ([commit](https://github.com/rfjakob/gocryptfs/commit/5ad26495fc86527bbfe75ac6b46528d49a373676))
 
 v1.4.4, 2018-03-18
 * Overwrite secrets in memory with zeros as soon as possible
