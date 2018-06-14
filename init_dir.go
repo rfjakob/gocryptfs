@@ -63,14 +63,14 @@ func initDir(args *argContainer) {
 			os.Exit(exitcodes.Init)
 		}
 	}
-	// Choose password for config file
-	if args.extpass == "" {
-		tlog.Info.Printf("Choose a password for protecting your files.")
-	}
 	{
 		creator := tlog.ProgramName + " " + GitVersion
 		var password []byte
 		if !args.trezorencryptmasterkey {
+			// Choose password for config file
+			if args.extpass == "" {
+				tlog.Info.Printf("Choose a password for protecting your files.")
+			}
 			password = readpassword.Twice(args.extpass)
 			readpassword.CheckTrailingGarbage()
 		}
