@@ -54,12 +54,21 @@ be suitable.
 #### -d, -debug
 Enable debug output.
 
+#### -dev, -nodev
+Enable (`-dev`) or disable (`-nodev`) device files in a gocryptfs mount
+(default: `-nodev`). If both are specified, `-nodev` takes precedence.
+You need root permissions to use `-dev`.
+
 #### -devrandom
 Use /dev/random for generating the master key instead of the default Go
 implementation. This is especially useful on embedded systems with Go versions
 prior to 1.9, which fall back to weak random data when the getrandom syscall
 is blocking. Using this option can block indefinitely when the kernel cannot
 harvest enough entropy.
+
+#### -exec, -noexec
+Enable (`-exec`) or disable (`-noexec`) executables in a gocryptfs mount
+(default: `-exec`). If both are specified, `-noexec` takes precedence.
 
 #### -extpass string
 Use an external program (like ssh-askpass) for the password prompt.
@@ -172,6 +181,12 @@ Examples:
 Write memory profile to the specified file. This is useful when debugging
 memory usage of gocryptfs.
 
+#### -nodev
+See `-dev, -nodev`.
+
+#### -noexec
+See `-exec, -noexec`.
+
 #### -nonempty
 Allow mounting over non-empty directories. FUSE by default disallows
 this to prevent accidental shadowing of files.
@@ -196,6 +211,9 @@ https://github.com/rfjakob/gocryptfs/issues/63 .
 Diagnostic messages are normally redirected to syslog once gocryptfs
 daemonizes. This option disables the redirection and messages will
 continue be printed to stdout and stderr.
+
+#### -nosuid
+See `-suid, -nosuid`.
 
 #### -notifypid int
 Send USR1 to the specified process after successful mount. This is
@@ -222,7 +240,7 @@ built-in crypto is 4x slower unless your CPU has AES instructions and
 you are using Go 1.6+. In mode "auto", gocrypts chooses the faster
 option.
 
-#### -passfile string/
+#### -passfile string
 Read password from the specified file. This is a shortcut for
 specifying '-extpass="/bin/cat -- FILE"'.
 
@@ -253,8 +271,9 @@ mounted using gocryptfs v1.2 and higher.
 Reverse mode shows a read-only encrypted view of a plaintext
 directory. Implies "-aessiv".
 
-#### -ro
-Mount the filesystem read-only.
+#### -rw, -ro
+Mount the filesystem read-write (`-rw`, default) or read-only (`-ro`).
+If both are specified, `-ro` takes precence.
 
 #### -scryptn int
 scrypt cost parameter expressed as scryptn=log2(N). Possible values are
@@ -311,6 +330,11 @@ Run crypto speed test. Benchmark Go's built-in GCM against OpenSSL
 (if available). The library that will be selected on "-openssl=auto"
 (the default) is marked as such.
 
+#### -suid, -nosuid
+Enable (`-suid`) or disable (`-nosuid`) suid and sgid executables in a gocryptfs
+mount (default: `-nosuid`). If both are specified, `-nosuid` takes precedence.
+You need root permissions to use `-suid`.
+
 #### -trace string
 Write execution trace to file. View the trace using "go tool trace FILE".
 
@@ -363,4 +387,4 @@ other: please check the error message
 
 SEE ALSO
 ========
-fuse(8) fallocate(2)
+mount(2) fuse(8) fallocate(2)

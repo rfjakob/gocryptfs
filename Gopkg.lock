@@ -8,9 +8,10 @@
     "fuse",
     "fuse/nodefs",
     "fuse/pathfs",
+    "internal/utimens",
     "splice"
   ]
-  revision = "a9ddcb8a4b609500fc59c89ccc9ee05f00a5fefd"
+  revision = "291273cb8ce0f139636a6fd7414be3c7e2de6288"
 
 [[projects]]
   branch = "master"
@@ -43,7 +44,7 @@
     "scrypt",
     "ssh/terminal"
   ]
-  revision = "374053ea96cb300f8671b8d3b07edeeb06e203b4"
+  revision = "8ac0e0d97ce45cd83d1d7243c060cb8461dda5e9"
 
 [[projects]]
   branch = "master"
@@ -58,11 +59,11 @@
     "unix",
     "windows"
   ]
-  revision = "01acb38716e021ed1fc03a602bdb5838e1358c5e"
+  revision = "a9e25c09b96b8870693763211309e213c6ef299d"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "87707528925922b2a829b58ba182930ca2a1b0aeef89cca642ecca25259677a2"
+  inputs-digest = "d73a17c7147887cbc6607e2d95e3e4294d3b097a42ebb5ecbcf9b53f8379cb83"
   solver-name = "gps-cdcl"
   solver-version = 1

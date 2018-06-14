@@ -13,7 +13,10 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
+const _EOPNOTSUPP = fuse.Status(syscall.EOPNOTSUPP)
+
 // xattr names are encrypted like file names, but with a fixed IV.
+// Padded with "_xx" for length 16.
 var xattrNameIV = []byte("xattr_name_iv_xx")
 
 // We store encrypted xattrs under this prefix plus the base64-encoded
@@ -27,9 +30,7 @@ func (fs *FS) GetXAttr(path string, attr string, context *fuse.Context) ([]byte,
 		return nil, fuse.EPERM
 	}
 	if disallowedXAttrName(attr) {
-		// "ls -l" queries security.selinux, system.posix_acl_access, system.posix_acl_default
-		// and throws error messages if it gets something else than ENODATA.
-		return nil, fuse.ENODATA
+		return nil, _EOPNOTSUPP
 	}
 	cAttr := fs.encryptXattrName(attr)
 	cPath, err := fs.getBackingPath(path)
@@ -47,8 +48,6 @@ func (fs *FS) GetXAttr(path string, attr string, context *fuse.Context) ([]byte,
 	}
 	return data, fuse.OK
 }
-
-const _EOPNOTSUPP = fuse.Status(syscall.EOPNOTSUPP)
 
 // SetXAttr implements pathfs.Filesystem.
 func (fs *FS) SetXAttr(path string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
