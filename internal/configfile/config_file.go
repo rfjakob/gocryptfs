@@ -14,7 +14,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
-	"github.com/rfjakob/gocryptfs/internal/trezor"
+	"github.com/xaionaro-go/trezor"
 )
 import "os"
 
@@ -194,8 +194,8 @@ func LoadConfFile(filename string, retrieveMasterKey bool, extpass string) ([]by
 		// if `-trezor_encrypt_masterkey` is enabled then the password is passed to a Trezor device
 		// directly (via pinentry) and we should ask for it here
 		trezor := trezor.New()
-		key := trezor.DecryptKey(cf.EncryptedKey, []byte{}, cf.TrezorKeyname)
-		return key, &cf, nil
+		key, err := trezor.DecryptKey(cryptocore.TrezorBIPPath, cf.EncryptedKey, []byte{}, cf.TrezorKeyname)
+		return key, &cf, err
 	}
 
 	password := readpassword.Once(extpass, "")
@@ -226,7 +226,7 @@ func LoadConfFile(filename string, retrieveMasterKey bool, extpass string) ([]by
 
 func (cf *ConfFile) EncryptKeyByTrezor(key []byte) {
 	trezorInstance := trezor.New()
-	cf.EncryptedKey = trezorInstance.EncryptKey(key, []byte{}, cf.TrezorKeyname)
+	cf.EncryptedKey = trezorInstance.EncryptKey(cryptocore.TrezorBIPPath, key, []byte{}, cf.TrezorKeyname)
 }
 // EncryptKeyByPassword - encrypt "key" using an scrypt hash generated from "password"
 // and store it in cf.EncryptedKey.
