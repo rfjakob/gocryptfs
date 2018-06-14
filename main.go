@@ -66,8 +66,8 @@ func changePassword(args *argContainer) {
 		if err != nil {
 			exitcodes.Exit(err)
 		}
-		if confFile.IsFeatureFlagSet(configfile.FlagTrezorEncryptMasterkey) {
-			tlog.Fatal.Printf("The master key is encrypted by a Trezor device but not by a password.")
+		if confFile.IsFeatureFlagSet(configfile.FlagCryptowalletEncryptMasterkey) {
+			tlog.Fatal.Printf("The master key is encrypted by a cryptowallet device but not by a password.")
 			os.Exit(exitcodes.PasswordIncorrect)
 		}
 		tlog.Info.Println("Please enter your new password.")

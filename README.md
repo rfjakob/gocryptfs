@@ -157,11 +157,11 @@ gocryptfs supports openhardware cryptographic device
 [Trezor One](https://github.com/trezor/trezor-mcu)
 
 	$ mkdir cipher plain
-	$ ./gocryptfs -init -trezor_encrypt_masterkey cipher
+	$ ./gocryptfs -init -cryptowallet_encrypt_masterkey cipher
 	$ ./gocryptfs cipher plain
 
 Notes:
-* Flag `-trezor_encrypt_masterkey` encrypts/decrypts masterkey using trezor
+* Flag `-cryptowallet_encrypt_masterkey` encrypts/decrypts masterkey using trezor
   so there's a decrypted masterkey in RAM while you're working with
   the decrypted directory.
 * ATM, the only supported Trezor device is "Trezor One"
@@ -173,7 +173,7 @@ Changelog
 
 vNEXT, in progress
 * Add a support of encrypting the master key using (open)hardware device "Trezor One"
-  (`-trezor_encrypt_masterkey`)
+  (`-cryptowallet_encrypt_masterkey`)
 
 v1.5, 2018-06-12
 * **Support extended attributes (xattr)** in forward mode

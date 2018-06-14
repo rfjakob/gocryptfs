@@ -17,8 +17,8 @@ const (
 	FlagLongNames
 	// FlagAESSIV selects an AES-SIV based crypto backend.
 	FlagAESSIV
-	// FlagTrezorEncrypEncrypttMasterkey additionally encrypt master key using "Trezor"
-	FlagTrezorEncryptMasterkey
+	// FlagCryptowalletEncrypEncrypttMasterkey additionally encrypt master key using "Cryptowallet"
+	FlagCryptowalletEncryptMasterkey
 	// FlagRaw64 enables raw (unpadded) base64 encoding for file names
 	FlagRaw64
 	// FlagHKDF enables HKDF-derived keys for use with GCM, EME and SIV
@@ -31,15 +31,15 @@ const (
 
 // knownFlags stores the known feature flags and their string representation
 var knownFlags = map[flagIota]string{
-	FlagPlaintextNames:         "PlaintextNames",
-	FlagDirIV:                  "DirIV",
-	FlagEMENames:               "EMENames",
-	FlagGCMIV128:               "GCMIV128",
-	FlagLongNames:              "LongNames",
-	FlagAESSIV:                 "AESSIV",
-	FlagTrezorEncryptMasterkey: "TrezorEncryptMasterkey",
-	FlagRaw64:                  "Raw64",
-	FlagHKDF:                   "HKDF",
+	FlagPlaintextNames:               "PlaintextNames",
+	FlagDirIV:                        "DirIV",
+	FlagEMENames:                     "EMENames",
+	FlagGCMIV128:                     "GCMIV128",
+	FlagLongNames:                    "LongNames",
+	FlagAESSIV:                       "AESSIV",
+	FlagCryptowalletEncryptMasterkey: "CryptowalletEncryptMasterkey",
+	FlagRaw64:                        "Raw64",
+	FlagHKDF:                         "HKDF",
 }
 
 // Filesystems that do not have these feature flags set are deprecated.

@@ -14,7 +14,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
-	"github.com/xaionaro-go/trezor"
+	"github.com/xaionaro-go/cryptoWallet"
 )
 import "os"
 
@@ -42,8 +42,8 @@ type ConfFile struct {
 	ScryptObject ScryptKDF
 	// Version is the On-Disk-Format version this filesystem uses
 	Version uint16
-	// TrezorKeyname is a string that is passed to Trezor as a key name
-	TrezorKeyname string
+	// CryptowalletKeyname is a string that is passed to a cryptowallet device as a key name
+	CryptowalletKeyname string
 	// FeatureFlags is a list of feature flags this filesystem has enabled.
 	// If gocryptfs encounters a feature flag it does not support, it will refuse
 	// mounting. This mechanism is analogous to the ext4 feature flags that are
@@ -71,7 +71,7 @@ func randBytesDevRandom(n int) []byte {
 // CreateConfFile - create a new config with a random key encrypted with
 // "password" and write it to "filename".
 // Uses scrypt with cost parameter logN.
-func CreateConfFile(filename string, password []byte, plaintextNames bool, logN int, creator string, aessiv bool, trezorEncryptMasterkey bool, trezorKeyname string, devrandom bool) error {
+func CreateConfFile(filename string, password []byte, plaintextNames bool, logN int, creator string, aessiv bool, cryptowalletEncryptMasterkey bool, cryptowalletKeyname string, devrandom bool) error {
 	var cf ConfFile
 	cf.filename = filename
 	cf.Creator = creator
@@ -91,9 +91,9 @@ func CreateConfFile(filename string, password []byte, plaintextNames bool, logN 
 	if aessiv {
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagAESSIV])
 	}
-	if trezorEncryptMasterkey {
-		cf.TrezorKeyname = trezorKeyname
-		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagTrezorEncryptMasterkey])
+	if cryptowalletEncryptMasterkey {
+		cf.CryptowalletKeyname = cryptowalletKeyname
+		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagCryptowalletEncryptMasterkey])
 	}
 
 	{
@@ -104,9 +104,9 @@ func CreateConfFile(filename string, password []byte, plaintextNames bool, logN 
 		} else {
 			key = cryptocore.RandBytes(cryptocore.KeyLen)
 		}
-		if trezorEncryptMasterkey {
-			// Encrypt it using a Trezor device
-			cf.EncryptKeyByTrezor(key)
+		if cryptowalletEncryptMasterkey {
+			// Encrypt it using a cryptowallet device
+			cf.EncryptKeyByCryptowallet(key)
 		} else {
 			// Encrypt it using the password
 			// This sets ScryptObject and EncryptedKey
@@ -120,6 +120,10 @@ func CreateConfFile(filename string, password []byte, plaintextNames bool, logN 
 	}
 	// Write file to disk
 	return cf.WriteFile()
+}
+
+func getPin(title, description, ok, cancel string) ([]byte, error) {
+	return readpassword.Once("", title), nil
 }
 
 // LoadConfFile - read config file from disk and decrypt the
@@ -190,11 +194,12 @@ func LoadConfFile(filename string, retrieveMasterKey bool, extpass string) ([]by
 		return nil, &cf, nil
 	}
 
-	if cf.IsFeatureFlagSet(FlagTrezorEncryptMasterkey) {
-		// if `-trezor_encrypt_masterkey` is enabled then the password is passed to a Trezor device
+	if cf.IsFeatureFlagSet(FlagCryptowalletEncryptMasterkey) {
+		// if `-cryptowallet_encrypt_masterkey` is enabled then the password is passed to a cryptowallet device
 		// directly (via pinentry) and we should ask for it here
-		trezor := trezor.New()
-		key, err := trezor.DecryptKey(cryptocore.TrezorBIPPath, cf.EncryptedKey, []byte{}, cf.TrezorKeyname)
+		wallet := cryptoWallet.FindAny()
+		wallet.SetGetPinFunc(getPin)
+		key, err := wallet.DecryptKey(cryptocore.CryptowalletBIPPath, cf.EncryptedKey, []byte{}, cf.CryptowalletKeyname)
 		return key, &cf, err
 	}
 
@@ -224,10 +229,11 @@ func LoadConfFile(filename string, retrieveMasterKey bool, extpass string) ([]by
 }
 
 
-func (cf *ConfFile) EncryptKeyByTrezor(key []byte) {
+func (cf *ConfFile) EncryptKeyByCryptowallet(key []byte) {
 	var err error
-	trezorInstance := trezor.New()
-	cf.EncryptedKey, err = trezorInstance.EncryptKey(cryptocore.TrezorBIPPath, key, []byte{}, cf.TrezorKeyname)
+	wallet := cryptoWallet.FindAny()
+	wallet.SetGetPinFunc(getPin)
+	cf.EncryptedKey, err = wallet.EncryptKey(cryptocore.CryptowalletBIPPath, key, []byte{}, cf.CryptowalletKeyname)
 	if err != nil {
 		log.Fatal(err)
 	}

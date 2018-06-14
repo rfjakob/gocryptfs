@@ -22,8 +22,8 @@ const (
 	KeyLen = 32
 	// AuthTagLen is the length of a GCM auth tag in bytes.
 	AuthTagLen = 16
-	// BIP32 path for a Trezor device
-	TrezorBIPPath = `m/71'/a6'/3'/45'/96'`
+	// BIP32 path for a cryptowallet device
+	CryptowalletBIPPath = `m/71'/a6'/3'/45'/96'`
 )
 
 // AEADTypeEnum indicates the type of AEAD backend in use.

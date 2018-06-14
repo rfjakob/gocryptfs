@@ -66,7 +66,7 @@ func initDir(args *argContainer) {
 	{
 		creator := tlog.ProgramName + " " + GitVersion
 		var password []byte
-		if !args.trezorencryptmasterkey {
+		if !args.cryptowalletencryptmasterkey {
 			// Choose password for config file
 			if args.extpass == "" {
 				tlog.Info.Printf("Choose a password for protecting your files.")
@@ -75,7 +75,7 @@ func initDir(args *argContainer) {
 			readpassword.CheckTrailingGarbage()
 		}
 		err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator,
-			args.aessiv, args.trezorencryptmasterkey, args.trezorkeyname, args.devrandom)
+			args.aessiv, args.cryptowalletencryptmasterkey, args.cryptowalletkeyname, args.devrandom)
 		if err != nil {
 			tlog.Fatal.Println(err)
 			os.Exit(exitcodes.WriteConf)

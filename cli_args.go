@@ -20,12 +20,12 @@ import (
 type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, fg, version,
 	plaintextnames, quiet, nosyslog, wpanic,
-	longnames, allow_other, reverse, aessiv, trezorencryptmasterkey, nonempty, raw64,
+	longnames, allow_other, reverse, aessiv, cryptowalletencryptmasterkey, nonempty, raw64,
 	noprealloc, speed, hkdf, serialize_reads, forcedecode, hh, info,
 	sharedstorage, devrandom, fsck bool
 	// Mount options with opposites
 	dev, nodev, suid, nosuid, exec, noexec, rw, ro bool
-	masterkey, mountpoint, cipherdir, cpuprofile, extpass, trezorkeyname,
+	masterkey, mountpoint, cipherdir, cpuprofile, extpass, cryptowalletkeyname,
 	memprofile, ko, passfile, ctlsock, fsname, force_owner, trace string
 	// Configuration file name override
 	config             string
@@ -125,7 +125,7 @@ func parseCliOpts() (args argContainer) {
 		"Only works if user_allow_other is set in /etc/fuse.conf.")
 	flagSet.BoolVar(&args.reverse, "reverse", false, "Reverse mode")
 	flagSet.BoolVar(&args.aessiv, "aessiv", false, "AES-SIV encryption")
-	flagSet.BoolVar(&args.trezorencryptmasterkey, "trezor_encrypt_masterkey", false, `Encrypt master key through hardware crypto device "Trezor" using AES.`)
+	flagSet.BoolVar(&args.cryptowalletencryptmasterkey, "cryptowallet_encrypt_masterkey", false, `Encrypt master key through a hardware cryptowallet device.`)
 	flagSet.BoolVar(&args.nonempty, "nonempty", false, "Allow mounting over non-empty directories")
 	flagSet.BoolVar(&args.raw64, "raw64", true, "Use unpadded base64 for file names")
 	flagSet.BoolVar(&args.noprealloc, "noprealloc", false, "Disable preallocation before writing")
@@ -155,7 +155,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")
 	flagSet.StringVar(&args.config, "config", "", "Use specified config file instead of CIPHERDIR/gocryptfs.conf")
 	flagSet.StringVar(&args.extpass, "extpass", "", "Use external program for the password prompt")
-	flagSet.StringVar(&args.trezorkeyname, "trezor_keyname", "gocryptfs", "A name of the key for Trezor")
+	flagSet.StringVar(&args.cryptowalletkeyname, "cryptowallet_keyname", "gocryptfs", "A name of the key for a cryptowallet device")
 	flagSet.StringVar(&args.passfile, "passfile", "", "Read password from file")
 	flagSet.StringVar(&args.ko, "ko", "", "Pass additional options directly to the kernel, comma-separated list")
 	flagSet.StringVar(&args.ctlsock, "ctlsock", "", "Create control socket at specified path")
