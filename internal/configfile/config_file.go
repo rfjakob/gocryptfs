@@ -199,7 +199,8 @@ func LoadConfFile(filename string, retrieveMasterKey bool, extpass string) ([]by
 		// directly (via pinentry) and we should ask for it here
 		wallet := cryptoWallet.FindAny()
 		wallet.SetGetPinFunc(getPin)
-		key, err := wallet.DecryptKey(cryptocore.CryptowalletBIPPath, cf.EncryptedKey, []byte{}, cf.CryptowalletKeyname)
+		var key []byte
+		key, err = wallet.DecryptKey(cryptocore.CryptowalletBIPPath, cf.EncryptedKey, []byte{}, cf.CryptowalletKeyname)
 		return key, &cf, err
 	}
 
