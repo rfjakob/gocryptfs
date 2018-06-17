@@ -25,6 +25,9 @@ const (
 	// Note that this flag does not change the password hashing algorithm
 	// which always is scrypt.
 	FlagHKDF
+	// FlagTrezorKey means that "-trezorkey" was used when creating the filesystem.
+	// The masterkey is protected using a Trezor device instead of a password.
+	FlagTrezorKey
 )
 
 // knownFlags stores the known feature flags and their string representation
@@ -37,6 +40,7 @@ var knownFlags = map[flagIota]string{
 	FlagAESSIV:         "AESSIV",
 	FlagRaw64:          "Raw64",
 	FlagHKDF:           "HKDF",
+	FlagTrezorKey:      "TrezorKey",
 }
 
 // Filesystems that do not have these feature flags set are deprecated.

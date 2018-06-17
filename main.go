@@ -33,26 +33,33 @@ var raceDetector bool
 
 // loadConfig loads the config file "args.config", prompting the user for the password
 func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.ConfFile, err error) {
-	// Check if the file can be opened at all before prompting for a password
-	fd, err := os.Open(args.config)
+	// First check if the file can be read at all, and find out if a Trezor should
+	// be used instead of a password.
+	_, cf1, err := configfile.LoadConfFile(args.config, nil)
 	if err != nil {
 		tlog.Fatal.Printf("Cannot open config file: %v", err)
-		return nil, nil, exitcodes.NewErr(err.Error(), exitcodes.OpenConf)
+		return nil, nil, err
 	}
-	fd.Close()
-	// The user has passed the master key (probably because he forgot the
-	// password).
+	// The user has passed the master key on the command line (probably because
+	// he forgot the password).
 	if args.masterkey != "" {
 		masterkey = parseMasterKey(args.masterkey, false)
-		_, confFile, err = configfile.LoadConfFile(args.config, nil)
-	} else {
-		pw := readpassword.Once(args.extpass, "")
-		tlog.Info.Println("Decrypting master key")
-		masterkey, confFile, err = configfile.LoadConfFile(args.config, pw)
-		for i := range pw {
-			pw[i] = 0
-		}
+		return masterkey, cf1, nil
 	}
+	var pw []byte
+	if cf1.IsFeatureFlagSet(configfile.FlagTrezorKey) {
+		// Get binary data from from Trezor
+		pw = readpassword.Trezor()
+	} else {
+		// Normal password entry
+		pw = readpassword.Once(args.extpass, "")
+	}
+	tlog.Info.Println("Decrypting master key")
+	masterkey, confFile, err = configfile.LoadConfFile(args.config, pw)
+	for i := range pw {
+		pw[i] = 0
+	}
+
 	if err != nil {
 		tlog.Fatal.Println(err)
 		return nil, nil, err
@@ -70,6 +77,9 @@ func changePassword(args *argContainer) {
 		masterkey, confFile, err = loadConfig(args)
 		if err != nil {
 			exitcodes.Exit(err)
+		}
+		if len(masterkey) == 0 {
+			panic("empty masterkey")
 		}
 		tlog.Info.Println("Please enter your new password.")
 		newPw := readpassword.Twice(args.extpass)

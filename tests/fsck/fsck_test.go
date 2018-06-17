@@ -69,6 +69,7 @@ func TestExampleFses(t *testing.T) {
 		fsNames = append(fsNames, e.Name())
 	}
 	for _, n := range fsNames {
+		t.Logf("Checking %q", n)
 		path := "../example_filesystems/" + n
 		cmd := exec.Command(test_helpers.GocryptfsBinary, "-fsck", "-extpass", "echo test", path)
 		outBin, err := cmd.CombinedOutput()

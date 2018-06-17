@@ -62,7 +62,7 @@ func TestLoadV2StrangeFeature(t *testing.T) {
 }
 
 func TestCreateConfDefault(t *testing.T) {
-	err := CreateConfFile("config_test/tmp.conf", testPw, false, 10, "test", false, false)
+	err := CreateConfFile("config_test/tmp.conf", testPw, false, 10, "test", false, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,14 +83,14 @@ func TestCreateConfDefault(t *testing.T) {
 }
 
 func TestCreateConfDevRandom(t *testing.T) {
-	err := CreateConfFile("config_test/tmp.conf", testPw, false, 10, "test", false, true)
+	err := CreateConfFile("config_test/tmp.conf", testPw, false, 10, "test", false, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestCreateConfPlaintextnames(t *testing.T) {
-	err := CreateConfFile("config_test/tmp.conf", testPw, true, 10, "test", false, false)
+	err := CreateConfFile("config_test/tmp.conf", testPw, true, 10, "test", false, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +111,7 @@ func TestCreateConfPlaintextnames(t *testing.T) {
 
 // Reverse mode uses AESSIV
 func TestCreateConfFileAESSIV(t *testing.T) {
-	err := CreateConfFile("config_test/tmp.conf", testPw, false, 10, "test", true, false)
+	err := CreateConfFile("config_test/tmp.conf", testPw, false, 10, "test", true, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
