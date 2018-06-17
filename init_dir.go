@@ -43,11 +43,12 @@ func isDir(dir string) error {
 	return nil
 }
 
-// initDir prepares a directory for use as a gocryptfs storage directory.
+// initDir handles "gocryptfs -init". It prepares a directory for use as a
+// gocryptfs storage directory.
 // In forward mode, this means creating the gocryptfs.conf and gocryptfs.diriv
 // files in an empty directory.
 // In reverse mode, we create .gocryptfs.reverse.conf and the directory does
-// not to be empty.
+// not need to be empty.
 func initDir(args *argContainer) {
 	var err error
 	if args.reverse {
@@ -68,10 +69,18 @@ func initDir(args *argContainer) {
 		tlog.Info.Printf("Choose a password for protecting your files.")
 	}
 	{
+		var password []byte
+		if args.trezor {
+			// Get binary data from from Trezor
+			password = readpassword.Trezor()
+		} else {
+			// Normal password entry
+			password = readpassword.Twice(args.extpass)
+			readpassword.CheckTrailingGarbage()
+		}
 		creator := tlog.ProgramName + " " + GitVersion
-		password := readpassword.Twice(args.extpass)
-		readpassword.CheckTrailingGarbage()
-		err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator, args.aessiv, args.devrandom)
+		err = configfile.CreateConfFile(args.config, password, args.plaintextnames,
+			args.scryptn, creator, args.aessiv, args.devrandom, args.trezor)
 		if err != nil {
 			tlog.Fatal.Println(err)
 			os.Exit(exitcodes.WriteConf)
@@ -81,7 +90,7 @@ func initDir(args *argContainer) {
 		}
 		// password runs out of scope here
 	}
-	// Forward mode with filename encryption enabled needs a gocryptfs.diriv
+	// Forward mode with filename encryption enabled needs a gocryptfs.diriv file
 	// in the root dir
 	if !args.plaintextnames && !args.reverse {
 		err = nametransform.WriteDirIV(nil, args.cipherdir)

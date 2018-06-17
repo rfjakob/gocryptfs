@@ -103,7 +103,9 @@ func getMasterKey(args *argContainer) (masterkey []byte, confFile *configfile.Co
 		}
 		exitcodes.Exit(err)
 	}
-	readpassword.CheckTrailingGarbage()
+	if !args.trezor {
+		readpassword.CheckTrailingGarbage()
+	}
 	if !args.fsck {
 		// We only want to print the masterkey message on a normal mount.
 		printMasterKey(masterkey)
