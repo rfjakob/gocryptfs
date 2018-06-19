@@ -23,7 +23,7 @@ var xattrNameIV = []byte("xattr_name_iv_xx")
 // encrypted original name.
 var xattrStorePrefix = "user.gocryptfs."
 
-// GetXAttr: read the value of extended attribute "attr".
+// GetXAttr reads the value of extended attribute "attr".
 // Implements pathfs.Filesystem.
 func (fs *FS) GetXAttr(path string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
 	if fs.isFiltered(path) {

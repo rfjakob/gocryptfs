@@ -6,7 +6,9 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const PATH_MAX = 4096 // not defined on Darwin
+// PATH_MAX is the maximum allowed path length on Linux.
+// It is not defined on Darwin, so we use the Linux value.
+const PATH_MAX = 4096
 
 // Readlinkat exists both in Linux and in MacOS 10.10+. We may add an
 // emulated version for users on older MacOS versions if there is

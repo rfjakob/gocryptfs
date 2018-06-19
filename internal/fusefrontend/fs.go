@@ -440,7 +440,7 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 		return fuse.ToStatus(err)
 	}
 	defer dirfd.Close()
-	var cTarget string = target
+	cTarget := target
 	if !fs.args.PlaintextNames {
 		// Symlinks are encrypted like file contents (GCM) and base64-encoded
 		cTarget = fs.encryptSymlinkTarget(target)
