@@ -150,8 +150,30 @@ LS:    1.75
 RM:    4.42
 ```
 
+Secure hardware encryption
+--------------------------
+
+gocryptfs supports openhardware cryptographic device
+[Trezor One](https://github.com/trezor/trezor-mcu)
+
+	$ mkdir cipher plain
+	$ ./gocryptfs -init -cryptowallet_encrypt_masterkey cipher
+	$ ./gocryptfs cipher plain
+
+Notes:
+* Flag `-cryptowallet_encrypt_masterkey` encrypts/decrypts masterkey using trezor
+  so there's a decrypted masterkey in RAM while you're working with
+  the decrypted directory.
+* ATM, the only supported Trezor device is "Trezor One"
+* There was no security audit of the code quality (related to the Trezor
+  devices support)
+
 Changelog
 ---------
+
+vNEXT, in progress
+* Add a support of encrypting the master key using (open)hardware device "Trezor One"
+  (`-cryptowallet_encrypt_masterkey`)
 
 v1.5, 2018-06-12
 * **Support extended attributes (xattr)** in forward mode

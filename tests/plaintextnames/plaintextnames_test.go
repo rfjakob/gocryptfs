@@ -15,7 +15,7 @@ import (
 var cDir string
 var pDir string
 
-var testPw = []byte("test")
+var testPw = "test"
 
 // Create and mount "-plaintextnames" fs
 func TestMain(m *testing.M) {
@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 
 // Only the PlaintextNames feature flag should be set
 func TestFlags(t *testing.T) {
-	_, cf, err := configfile.LoadConfFile(cDir+"/gocryptfs.conf", testPw)
+	_, cf, err := configfile.LoadConfFile(cDir+"/gocryptfs.conf", true, "/bin/echo "+testPw)
 	if err != nil {
 		t.Fatal(err)
 	}

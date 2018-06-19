@@ -21,6 +21,8 @@ Common Options (use -hh to show all):
   -allow_other       Allow other users to access the mount
   -config            Custom path to config file
   -ctlsock           Create control socket at location
+  -cryptowallet_encrypt_masterkey Encrypt master key through a hardware cryptowallet device (with -init)
+  -cryptowallet_keyname Set the key name for a cryptowallet device (default: "gocryptfs")
   -extpass           Call external program to prompt for the password
   -fg                Stay in the foreground
   -fusedebug         Debug FUSE calls

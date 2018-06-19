@@ -63,15 +63,19 @@ func initDir(args *argContainer) {
 			os.Exit(exitcodes.Init)
 		}
 	}
-	// Choose password for config file
-	if args.extpass == "" {
-		tlog.Info.Printf("Choose a password for protecting your files.")
-	}
 	{
 		creator := tlog.ProgramName + " " + GitVersion
-		password := readpassword.Twice(args.extpass)
-		readpassword.CheckTrailingGarbage()
-		err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator, args.aessiv, args.devrandom)
+		var password []byte
+		if !args.cryptowalletencryptmasterkey {
+			// Choose password for config file
+			if args.extpass == "" {
+				tlog.Info.Printf("Choose a password for protecting your files.")
+			}
+			password = readpassword.Twice(args.extpass)
+			readpassword.CheckTrailingGarbage()
+		}
+		err = configfile.CreateConfFile(args.config, password, args.plaintextnames, args.scryptn, creator,
+			args.aessiv, args.cryptowalletencryptmasterkey, args.cryptowalletkeyname, args.devrandom)
 		if err != nil {
 			tlog.Fatal.Println(err)
 			os.Exit(exitcodes.WriteConf)

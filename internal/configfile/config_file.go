@@ -12,7 +12,9 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
+	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
+	"github.com/xaionaro-go/cryptoWallet"
 )
 import "os"
 
@@ -40,6 +42,8 @@ type ConfFile struct {
 	ScryptObject ScryptKDF
 	// Version is the On-Disk-Format version this filesystem uses
 	Version uint16
+	// CryptowalletKeyname is a string that is passed to a cryptowallet device as a key name
+	CryptowalletKeyname string
 	// FeatureFlags is a list of feature flags this filesystem has enabled.
 	// If gocryptfs encounters a feature flag it does not support, it will refuse
 	// mounting. This mechanism is analogous to the ext4 feature flags that are
@@ -67,7 +71,7 @@ func randBytesDevRandom(n int) []byte {
 // CreateConfFile - create a new config with a random key encrypted with
 // "password" and write it to "filename".
 // Uses scrypt with cost parameter logN.
-func CreateConfFile(filename string, password []byte, plaintextNames bool, logN int, creator string, aessiv bool, devrandom bool) error {
+func CreateConfFile(filename string, password []byte, plaintextNames bool, logN int, creator string, aessiv bool, cryptowalletEncryptMasterkey bool, cryptowalletKeyname string, devrandom bool) error {
 	var cf ConfFile
 	cf.filename = filename
 	cf.Creator = creator
@@ -87,6 +91,11 @@ func CreateConfFile(filename string, password []byte, plaintextNames bool, logN 
 	if aessiv {
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagAESSIV])
 	}
+	if cryptowalletEncryptMasterkey {
+		cf.CryptowalletKeyname = cryptowalletKeyname
+		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagCryptowalletEncryptMasterkey])
+	}
+
 	{
 		// Generate new random master key
 		var key []byte
@@ -95,10 +104,15 @@ func CreateConfFile(filename string, password []byte, plaintextNames bool, logN 
 		} else {
 			key = cryptocore.RandBytes(cryptocore.KeyLen)
 		}
-		// Encrypt it using the password
-		// This sets ScryptObject and EncryptedKey
-		// Note: this looks at the FeatureFlags, so call it AFTER setting them.
-		cf.EncryptKey(key, password, logN)
+		if cryptowalletEncryptMasterkey {
+			// Encrypt it using a cryptowallet device
+			cf.EncryptKeyByCryptowallet(key)
+		} else {
+			// Encrypt it using the password
+			// This sets ScryptObject and EncryptedKey
+			// Note: this looks at the FeatureFlags, so call it AFTER setting them.
+			cf.EncryptKeyByPassword(key, password, logN)
+		}
 		for i := range key {
 			key[i] = 0
 		}
@@ -108,13 +122,17 @@ func CreateConfFile(filename string, password []byte, plaintextNames bool, logN 
 	return cf.WriteFile()
 }
 
+func getPin(title, description, ok, cancel string) ([]byte, error) {
+	return readpassword.Once("", title), nil
+}
+
 // LoadConfFile - read config file from disk and decrypt the
 // contained key using "password".
 // Returns the decrypted key and the ConfFile object
 //
 // If "password" is empty, the config file is read
 // but the key is not decrypted (returns nil in its place).
-func LoadConfFile(filename string, password []byte) ([]byte, *ConfFile, error) {
+func LoadConfFile(filename string, retrieveMasterKey bool, extpass string) ([]byte, *ConfFile, error) {
 	var cf ConfFile
 	cf.filename = filename
 
@@ -171,11 +189,27 @@ func LoadConfFile(filename string, password []byte) ([]byte, *ConfFile, error) {
 
 		return nil, nil, exitcodes.NewErr("Deprecated filesystem", exitcodes.DeprecatedFS)
 	}
-	if len(password) == 0 {
-		// We have validated the config file, but without a password we cannot
-		// decrypt the master key. Return only the parsed config.
+
+	if !retrieveMasterKey {
 		return nil, &cf, nil
 	}
+
+	if cf.IsFeatureFlagSet(FlagCryptowalletEncryptMasterkey) {
+		// if `-cryptowallet_encrypt_masterkey` is enabled then the password is passed to a cryptowallet device
+		// directly (via pinentry) and we should ask for it here
+		wallet := cryptoWallet.FindAny()
+		wallet.SetGetPinFunc(getPin)
+		var key []byte
+		key, err = wallet.DecryptKey(cryptocore.CryptowalletBIPPath, cf.EncryptedKey, []byte{}, cf.CryptowalletKeyname)
+		return key, &cf, err
+	}
+
+	password := readpassword.Once(extpass, "")
+	defer func() {
+		for i := range password {
+			password[i] = 0
+		}
+	}()
 
 	// Generate derived key from password
 	scryptHash := cf.ScryptObject.DeriveKey(password)
@@ -195,11 +229,21 @@ func LoadConfFile(filename string, password []byte) ([]byte, *ConfFile, error) {
 	return key, &cf, err
 }
 
-// EncryptKey - encrypt "key" using an scrypt hash generated from "password"
+
+func (cf *ConfFile) EncryptKeyByCryptowallet(key []byte) {
+	var err error
+	wallet := cryptoWallet.FindAny()
+	wallet.SetGetPinFunc(getPin)
+	cf.EncryptedKey, err = wallet.EncryptKey(cryptocore.CryptowalletBIPPath, key, []byte{}, cf.CryptowalletKeyname)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+// EncryptKeyByPassword - encrypt "key" using an scrypt hash generated from "password"
 // and store it in cf.EncryptedKey.
 // Uses scrypt with cost parameter logN and stores the scrypt parameters in
 // cf.ScryptObject.
-func (cf *ConfFile) EncryptKey(key []byte, password []byte, logN int) {
+func (cf *ConfFile) EncryptKeyByPassword(key []byte, password []byte, logN int) {
 	// Generate scrypt-derived key from password
 	cf.ScryptObject = NewScryptKDF(logN)
 	scryptHash := cf.ScryptObject.DeriveKey(password)

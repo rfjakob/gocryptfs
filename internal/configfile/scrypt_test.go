@@ -23,7 +23,7 @@ ok  	github.com/rfjakob/gocryptfs/cryptfs	18.772s
 func benchmarkScryptN(n int, b *testing.B) {
 	kdf := NewScryptKDF(n)
 	for i := 0; i < b.N; i++ {
-		kdf.DeriveKey(testPw)
+		kdf.DeriveKey([]byte(testPw))
 	}
 }
 
