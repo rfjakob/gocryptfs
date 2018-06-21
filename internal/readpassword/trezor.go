@@ -20,7 +20,7 @@ const (
 	trezorDummyKey          = "gocryptfs.trezorgocryptfs.trezor"
 	trezorNonce             = "" // the "nonce" is optional and has no use in here
 	trezorKeyName           = "gocryptfs"
-	trezorKeyDerivationPath = `m/10019'/0'/0'/0'`
+	trezorKeyDerivationPath = `m/10019'/0'`
 )
 
 func trezorGetPin(title, description, ok, cancel string) ([]byte, error) {
