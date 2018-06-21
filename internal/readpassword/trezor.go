@@ -13,23 +13,14 @@ import (
 // It's required initial values to be constant to get the resulting key to
 // be deterministic (see the comment above and within function "Trezor()").
 // This values could be just a bunch of zeros, but it seems to be a little
-// degenerate case that may add risks, so random values were used.
-//
-// This values were generated using command:
-//   dd if=/dev/random of=/dev/stdout bs=48 count=1 2>/dev/null | hexdump -e '8/1 "0x%02x, " "\n"'
-var (
-	TREZOR_DUMMYKEY = []byte{
-		0xfc, 0x3b, 0xe3, 0xa6, 0xe6, 0x61, 0x32, 0xbc,
-		0x95, 0x86, 0x79, 0x06, 0x70, 0xf9, 0x7c, 0x0a,
-		0xab, 0x05, 0x3b, 0x12, 0xff, 0x4e, 0xa8, 0x8b,
-		0x5b, 0x58, 0x0a, 0x8e, 0x42, 0xcf, 0x5e, 0x20,
-	}
-	TREZOR_NONCE = []byte{
-		0xc9, 0xf1, 0x6d, 0xab, 0xba, 0x16, 0x68, 0xc9,
-		0xcc, 0xb6, 0xb2, 0xcd, 0xbc, 0x4a, 0xb6, 0xcb,
-	}
-	TREZOR_KEY_NAME            = "gocryptfs"
-	TREZOR_KEY_DERIVATION_PATH = `m/10019'/0'/0'/0'`
+// degenerate case that may add risks, so a string "gocryptfs.trezor" was
+// used. The key should be a multiple of 16 bytes, but we use 32 bytes
+// (256bits) key.
+const (
+	trezorDummyKey          = "gocryptfs.trezorgocryptfs.trezor"
+	trezorNonce             = "" // the "nonce" is optional and has no use in here
+	trezorKeyName           = "gocryptfs"
+	trezorKeyDerivationPath = `m/10019'/0'/0'/0'`
 )
 
 func trezorGetPin(title, description, ok, cancel string) ([]byte, error) {
@@ -73,7 +64,7 @@ func Trezor() []byte {
 	// retry to reconnect. Setting the handler for this case.
 	trezor.SetGetConfirmFunc(trezorGetConfirm)
 
-	// To generate a deterministic the key we trying to decrypt our
+	// To generate a deterministic key we trying to decrypt our
 	// predefined constant key using the Trezor device. The resulting key
 	// will depend on next variables:
 	// * the Trezor master key;
@@ -89,7 +80,7 @@ func Trezor() []byte {
 	// * the "encrypted" key;
 	// * the nonce;
 	// * the key name.
-	key, err := trezor.DecryptKey(TREZOR_KEY_DERIVATION_PATH, TREZOR_DUMMYKEY, TREZOR_NONCE, TREZOR_KEY_NAME)
+	key, err := trezor.DecryptKey(trezorKeyDerivationPath, []byte(trezorDummyKey), []byte(trezorNonce), trezorKeyName)
 	if err != nil {
 		tlog.Fatal.Printf("Cannot get the key from the Trezor device. Error description:\n\t%v", err.Error())
 		os.Exit(exitcodes.TrezorError)
