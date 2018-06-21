@@ -45,15 +45,25 @@ func trezorGetConfirm(title, description, ok, cancel string) (bool, error) {
 // This function either succeeds and returns 32 bytes or calls os.Exit to end
 // the application.
 func Trezor() []byte {
-	trezor := cryptoWallet.Find(cryptoWallet.Filter{
-		VendorId:   &[]uint16{vendors.GetVendorId("satoshilabs")}[0],
-		ProductIds: []uint16{1 /* Trezor One */},
+	// Find all trezor devices
+	trezors := cryptoWallet.Find(cryptoWallet.Filter{
+		VendorID:   &[]uint16{vendors.GetVendorID("satoshilabs")}[0],
+		ProductIDs: []uint16{1 /* Trezor One */},
 	})
 
-	if trezor == nil {
+	// ATM, we require to one and only one trezor device to be connected.
+	// The support of multiple trezor devices is not implemented, yet.
+	if len(trezors) == 0 {
 		tlog.Fatal.Printf("Trezor device is not found. Check the connection.")
 		os.Exit(exitcodes.TrezorError)
 	}
+	if len(trezors) > 1 {
+		tlog.Fatal.Printf("It's more than one Trezor device connected. This case is not implemented, yet. The number of currently connected devices: %v.", len(trezors))
+		os.Exit(exitcodes.TrezorError)
+	}
+
+	// Using the first found device
+	trezor := trezors[0]
 
 	// Trezor may ask for PIN or Passphrase. Setting the handler for this case.
 	trezor.SetGetPinFunc(trezorGetPin)
