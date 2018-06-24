@@ -158,7 +158,7 @@ func LoadConfFile(filename string, password []byte) ([]byte, *ConfFile, error) {
 		}
 	}
 	if deprecatedFs {
-		fmt.Fprintf(os.Stderr, "\033[33m"+`
+		fmt.Fprintf(os.Stderr, tlog.ColorYellow+`
     The filesystem was created by gocryptfs v0.6 or earlier. This version of
     gocryptfs can no longer mount the filesystem.
     Please download gocryptfs v0.11 and upgrade your filesystem,
@@ -167,7 +167,7 @@ func LoadConfFile(filename string, password []byte) ([]byte, *ConfFile, error) {
     If you have trouble upgrading, join the discussion at
     https://github.com/rfjakob/gocryptfs/issues/29 .
 
-`+"\033[0m")
+`+tlog.ColorReset)
 
 		return nil, nil, exitcodes.NewErr("Deprecated filesystem", exitcodes.DeprecatedFS)
 	}
