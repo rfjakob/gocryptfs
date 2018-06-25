@@ -64,6 +64,15 @@ func Trezor() []byte {
 	// retry to reconnect. Setting the handler for this case.
 	trezor.SetGetConfirmFunc(trezorGetConfirm)
 
+	// To reset the state of the device and check if it's initialized.
+	// If device is not initialized then trezor.Reset() will return an
+	// error.
+	err := trezor.Reset()
+	if err != nil {
+		tlog.Fatal.Printf("Cannot reset the Trezor device. Error: %v", err.Error())
+		os.Exit(exitcodes.TrezorError)
+	}
+
 	// To generate a deterministic key we trying to decrypt our
 	// predefined constant key using the Trezor device. The resulting key
 	// will depend on next variables:
