@@ -70,8 +70,18 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 // changePassword - change the password of config file "filename"
 // Does not return (calls os.Exit both on success and on error).
 func changePassword(args *argContainer) {
+	// Parse the config file, but do not unlock the master key. We only want to
+	// know if the Trezor flag is set.
+	_, cf1, err := configfile.Load(args.config, nil)
+	if err != nil {
+		tlog.Fatal.Printf("Cannot open config file: %v", err)
+		os.Exit(exitcodes.LoadConf)
+	}
+	if cf1.IsFeatureFlagSet(configfile.FlagTrezor) {
+		tlog.Fatal.Printf("Password change is not supported on Trezor-enabled filesystems.")
+		os.Exit(exitcodes.Usage)
+	}
 	var confFile *configfile.ConfFile
-	var err error
 	{
 		var masterkey []byte
 		masterkey, confFile, err = loadConfig(args)
