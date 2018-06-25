@@ -221,6 +221,10 @@ func parseCliOpts() (args argContainer) {
 		tlog.Fatal.Printf("The options -extpass and -masterkey cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
+	if args.extpass != "" && args.trezor {
+		tlog.Fatal.Printf("The options -extpass and -trezor cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
+	}
 	return args
 }
 

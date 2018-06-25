@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
+	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
@@ -40,5 +41,15 @@ func TestInitTrezor(t *testing.T) {
 	}
 	if !c.IsFeatureFlagSet(configfile.FlagTrezor) {
 		t.Error("Trezor flag should be set but is not")
+	}
+}
+
+// Test using -trezor together with -extpass. Should fail with code 1 (usage error).
+func TestTrezorExtpass(t *testing.T) {
+	cmd := exec.Command(test_helpers.GocryptfsBinary, "-init", "-trezor", "-extpass", "foo", "/tmp")
+	err := cmd.Run()
+	exitCode := test_helpers.ExtractCmdExitCode(err)
+	if exitCode != exitcodes.Usage {
+		t.Errorf("wrong exit code: want %d, have %d", exitcodes.Usage, exitCode)
 	}
 }
