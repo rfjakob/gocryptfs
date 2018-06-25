@@ -35,7 +35,7 @@ var raceDetector bool
 func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.ConfFile, err error) {
 	// First check if the file can be read at all, and find out if a Trezor should
 	// be used instead of a password.
-	_, cf1, err := configfile.LoadConfFile(args.config, nil)
+	_, cf1, err := configfile.Load(args.config, nil)
 	if err != nil {
 		tlog.Fatal.Printf("Cannot open config file: %v", err)
 		return nil, nil, err
@@ -55,7 +55,7 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 		pw = readpassword.Once(args.extpass, "")
 	}
 	tlog.Info.Println("Decrypting master key")
-	masterkey, confFile, err = configfile.LoadConfFile(args.config, pw)
+	masterkey, confFile, err = configfile.Load(args.config, pw)
 	for i := range pw {
 		pw[i] = 0
 	}

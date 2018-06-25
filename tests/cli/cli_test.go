@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 // Test -init flag
 func TestInit(t *testing.T) {
 	dir := test_helpers.InitFS(t)
-	_, c, err := configfile.LoadConfFile(dir+"/"+configfile.ConfDefaultName, testPw)
+	_, c, err := configfile.Load(dir+"/"+configfile.ConfDefaultName, testPw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestInitDevRandom(t *testing.T) {
 // Test -init with -aessiv
 func TestInitAessiv(t *testing.T) {
 	dir := test_helpers.InitFS(t, "-aessiv")
-	_, c, err := configfile.LoadConfFile(dir+"/"+configfile.ConfDefaultName, testPw)
+	_, c, err := configfile.Load(dir+"/"+configfile.ConfDefaultName, testPw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestInitAessiv(t *testing.T) {
 // Test -init with -reverse
 func TestInitReverse(t *testing.T) {
 	dir := test_helpers.InitFS(t, "-reverse")
-	_, c, err := configfile.LoadConfFile(dir+"/"+configfile.ConfReverseName, testPw)
+	_, c, err := configfile.Load(dir+"/"+configfile.ConfReverseName, testPw)
 	if err != nil {
 		t.Fatal(err)
 	}

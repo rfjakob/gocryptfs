@@ -64,10 +64,10 @@ func randBytesDevRandom(n int) []byte {
 	return b
 }
 
-// CreateConfFile - create a new config with a random key encrypted with
+// Create - create a new config with a random key encrypted with
 // "password" and write it to "filename".
 // Uses scrypt with cost parameter logN.
-func CreateConfFile(filename string, password []byte, plaintextNames bool,
+func Create(filename string, password []byte, plaintextNames bool,
 	logN int, creator string, aessiv bool, devrandom bool, trezor bool) error {
 	var cf ConfFile
 	cf.filename = filename
@@ -112,13 +112,13 @@ func CreateConfFile(filename string, password []byte, plaintextNames bool,
 	return cf.WriteFile()
 }
 
-// LoadConfFile - read config file from disk and decrypt the
+// Load - read config file from disk and decrypt the
 // contained key using "password".
 // Returns the decrypted key and the ConfFile object
 //
 // If "password" is empty, the config file is read
 // but the key is not decrypted (returns nil in its place).
-func LoadConfFile(filename string, password []byte) ([]byte, *ConfFile, error) {
+func Load(filename string, password []byte) ([]byte, *ConfFile, error) {
 	var cf ConfFile
 	cf.filename = filename
 

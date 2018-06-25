@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 
 // Only the PlaintextNames feature flag should be set
 func TestFlags(t *testing.T) {
-	_, cf, err := configfile.LoadConfFile(cDir+"/gocryptfs.conf", testPw)
+	_, cf, err := configfile.Load(cDir+"/gocryptfs.conf", testPw)
 	if err != nil {
 		t.Fatal(err)
 	}

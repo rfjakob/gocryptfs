@@ -79,7 +79,7 @@ func initDir(args *argContainer) {
 			readpassword.CheckTrailingGarbage()
 		}
 		creator := tlog.ProgramName + " " + GitVersion
-		err = configfile.CreateConfFile(args.config, password, args.plaintextnames,
+		err = configfile.Create(args.config, password, args.plaintextnames,
 			args.scryptn, creator, args.aessiv, args.devrandom, args.trezor)
 		if err != nil {
 			tlog.Fatal.Println(err)

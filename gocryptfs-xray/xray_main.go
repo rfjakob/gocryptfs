@@ -61,7 +61,7 @@ func main() {
 func dumpMasterKey(fn string) {
 	tlog.Info.Enabled = false
 	pw := readpassword.Once("", "")
-	masterkey, _, err := configfile.LoadConfFile(fn, pw)
+	masterkey, _, err := configfile.Load(fn, pw)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		exitcodes.Exit(err)
