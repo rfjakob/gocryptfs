@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -89,7 +90,7 @@ func changePassword(args *argContainer) {
 			exitcodes.Exit(err)
 		}
 		if len(masterkey) == 0 {
-			panic("empty masterkey")
+			log.Panic("empty masterkey")
 		}
 		tlog.Info.Println("Please enter your new password.")
 		newPw := readpassword.Twice(args.extpass)

@@ -64,7 +64,7 @@ else
 	rm -Rf $TESTDIR
 fi
 
-if grep -R "panic(" internal ; then
+if grep -R "panic(" *.go internal ; then
 	echo "Please use log.Panic instead of naked panic!"
 	exit 1
 fi
