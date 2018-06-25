@@ -49,7 +49,7 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 	var pw []byte
 	if cf1.IsFeatureFlagSet(configfile.FlagTrezor) {
 		// Get binary data from from Trezor
-		pw = readpassword.Trezor()
+		pw = readpassword.Trezor(cf1.TrezorPayload)
 	} else {
 		// Normal password entry
 		pw = readpassword.Once(args.extpass, "")

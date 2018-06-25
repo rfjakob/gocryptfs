@@ -42,6 +42,9 @@ func TestInitTrezor(t *testing.T) {
 	if !c.IsFeatureFlagSet(configfile.FlagTrezor) {
 		t.Error("Trezor flag should be set but is not")
 	}
+	if len(c.TrezorPayload) != 32 {
+		t.Errorf("TrezorPayload has wrong length: %d", len(c.TrezorPayload))
+	}
 }
 
 // Test using -trezor together with -extpass. Should fail with code 1 (usage error).
