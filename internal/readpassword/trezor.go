@@ -1,6 +1,8 @@
 package readpassword
 
 import (
+	"bytes"
+	"log"
 	"os"
 
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
@@ -94,6 +96,18 @@ func Trezor(payload []byte) []byte {
 	if err != nil {
 		tlog.Fatal.Printf("Cannot get the key from the Trezor device. Error description:\n\t%v", err.Error())
 		os.Exit(exitcodes.TrezorError)
+	}
+
+	// Sanity checks
+	if len(key) != TrezorPayloadLen {
+		log.Panicf("BUG: decrypted value has wrong length %d", len(key))
+	}
+	if bytes.Equal(key, payload) {
+		log.Panicf("BUG: payload and decrypted value are identical")
+	}
+	zero := make([]byte, TrezorPayloadLen)
+	if bytes.Equal(key, zero) {
+		log.Panicf("BUG: decrypted value is all-zero")
 	}
 
 	// Everything ok
