@@ -351,7 +351,7 @@ func initGoFuse(fs pathfs.FileSystem, args *argContainer) *fuse.Server {
 	}
 	srv, err := fuse.NewServer(conn.RawFS(), args.mountpoint, &mOpts)
 	if err != nil {
-		tlog.Fatal.Printf("fuse.NewServer failed: %q", err)
+		tlog.Fatal.Printf("fuse.NewServer failed: %s", strings.TrimSpace(err.Error()))
 		if runtime.GOOS == "darwin" {
 			tlog.Info.Printf("Maybe you should run: /Library/Filesystems/osxfuse.fs/Contents/Resources/load_osxfuse")
 		}
