@@ -104,6 +104,7 @@ func Create(filename string, password []byte, plaintextNames bool,
 		} else {
 			key = cryptocore.RandBytes(cryptocore.KeyLen)
 		}
+		tlog.PrintMasterkeyReminder(key)
 		// Encrypt it using the password
 		// This sets ScryptObject and EncryptedKey
 		// Note: this looks at the FeatureFlags, so call it AFTER setting them.
