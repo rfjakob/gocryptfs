@@ -171,7 +171,7 @@ func fsck(args *argContainer) {
 	ck.dir("")
 	wipeKeys()
 	if len(ck.corruptList) == 0 {
-		fmt.Printf("fsck summary: no problems found\n")
+		tlog.Info.Printf("fsck summary: no problems found\n")
 		return
 	}
 	fmt.Printf("fsck summary: %d corrupt files\n", len(ck.corruptList))
