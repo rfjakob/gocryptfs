@@ -3,6 +3,9 @@ package fusefrontend
 // Helper functions for sparse files (files with holes)
 
 import (
+	"runtime"
+	"syscall"
+
 	"github.com/hanwen/go-fuse/fuse"
 
 	"github.com/rfjakob/gocryptfs/internal/tlog"
@@ -52,4 +55,16 @@ func (f *File) zeroPad(plainSize uint64) fuse.Status {
 	tlog.Debug.Printf("zeroPad: Writing %d bytes\n", missing)
 	_, status := f.doWrite(pad, int64(plainSize))
 	return status
+}
+
+// SeekData calls the lseek syscall with SEEK_DATA. It returns the offset of the
+// next data bytes, skipping over file holes.
+func (f *File) SeekData(oldOffset int64) (int64, error) {
+	if runtime.GOOS != "linux" {
+		// Does MacOS support something like this?
+		return 0, syscall.EOPNOTSUPP
+	}
+	const SEEK_DATA = 3
+	fd := f.intFd()
+	return syscall.Seek(fd, oldOffset, SEEK_DATA)
 }
