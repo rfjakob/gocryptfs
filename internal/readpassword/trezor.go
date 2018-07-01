@@ -1,3 +1,5 @@
+// +build enable_trezor
+
 package readpassword
 
 import (
