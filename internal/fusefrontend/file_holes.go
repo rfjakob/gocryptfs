@@ -10,7 +10,7 @@ import (
 
 // Will a write to plaintext offset "targetOff" create a file hole in the
 // ciphertext? If yes, zero-pad the last ciphertext block.
-func (f *file) writePadHole(targetOff int64) fuse.Status {
+func (f *File) writePadHole(targetOff int64) fuse.Status {
 	// Get the current file size.
 	fi, err := f.fd.Stat()
 	if err != nil {
@@ -41,7 +41,7 @@ func (f *file) writePadHole(targetOff int64) fuse.Status {
 
 // Zero-pad the file of size plainSize to the next block boundary. This is a no-op
 // if the file is already block-aligned.
-func (f *file) zeroPad(plainSize uint64) fuse.Status {
+func (f *File) zeroPad(plainSize uint64) fuse.Status {
 	lastBlockLen := plainSize % f.contentEnc.PlainBS()
 	if lastBlockLen == 0 {
 		// Already block-aligned

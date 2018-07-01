@@ -36,7 +36,7 @@ var allocateWarnOnce sync.Once
 // complicated and hard to get right.
 //
 // Other modes (hole punching, zeroing) are not supported.
-func (f *file) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
+func (f *File) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
 	if mode != FALLOC_DEFAULT && mode != FALLOC_FL_KEEP_SIZE {
 		f := func() {
 			tlog.Warn.Printf("fallocate: only mode 0 (default) and 1 (keep size) are supported")
@@ -92,7 +92,7 @@ func (f *file) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
 }
 
 // Truncate - FUSE call
-func (f *file) Truncate(newSize uint64) fuse.Status {
+func (f *File) Truncate(newSize uint64) fuse.Status {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 	if f.released {
@@ -165,7 +165,7 @@ func (f *file) Truncate(newSize uint64) fuse.Status {
 }
 
 // statPlainSize stats the file and returns the plaintext size
-func (f *file) statPlainSize() (uint64, error) {
+func (f *File) statPlainSize() (uint64, error) {
 	fi, err := f.fd.Stat()
 	if err != nil {
 		tlog.Warn.Printf("ino%d fh%d: statPlainSize: %v", f.qIno.Ino, f.intFd(), err)
@@ -179,7 +179,7 @@ func (f *file) statPlainSize() (uint64, error) {
 // truncateGrowFile extends a file using seeking or ftruncate performing RMW on
 // the first and last block as necessary. New blocks in the middle become
 // file holes unless they have been fallocate()'d beforehand.
-func (f *file) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) fuse.Status {
+func (f *File) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) fuse.Status {
 	if newPlainSz <= oldPlainSz {
 		log.Panicf("BUG: newSize=%d <= oldSize=%d", newPlainSz, oldPlainSz)
 	}
