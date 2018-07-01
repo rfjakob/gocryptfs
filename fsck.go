@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -115,6 +116,7 @@ func (ck *fsckObj) file(path string) {
 		return
 	}
 	defer f.Release()
+	allZero := make([]byte, fuse.MAX_KERNEL_WRITE)
 	buf := make([]byte, fuse.MAX_KERNEL_WRITE)
 	var off int64
 	// Read() through the whole file and catch transparently mitigated corruptions
@@ -132,6 +134,15 @@ func (ck *fsckObj) file(path string) {
 			return
 		}
 		off += int64(result.Size())
+		// If we seem to be in the middle of a file hole, try to skip to the next
+		// data section.
+		if bytes.Equal(buf, allZero) {
+			f2 := f.(*fusefrontend.File)
+			nextOff, err := f2.SeekData(off)
+			if err == nil {
+				off = nextOff
+			}
+		}
 	}
 }
 
