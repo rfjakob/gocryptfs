@@ -38,7 +38,7 @@ func (ck *fsckObj) dir(path string) {
 	go func() {
 		for {
 			select {
-			case item := <-ck.fs.CorruptItems:
+			case item := <-ck.fs.MitigatedCorruptions:
 				fmt.Printf("fsck: corrupt entry in dir %q: %q\n", path, item)
 				ck.markCorrupt(filepath.Join(path, item))
 			case <-done:
@@ -102,7 +102,7 @@ func (ck *fsckObj) file(path string) {
 	go func() {
 		for {
 			select {
-			case item := <-ck.fs.CorruptItems:
+			case item := <-ck.fs.MitigatedCorruptions:
 				fmt.Printf("fsck: corrupt file %q (inode %s)\n", path, item)
 				ck.markCorrupt(path)
 			case <-done:
@@ -132,7 +132,7 @@ func (ck *fsckObj) xattrs(path string) {
 	go func() {
 		for {
 			select {
-			case item := <-ck.fs.CorruptItems:
+			case item := <-ck.fs.MitigatedCorruptions:
 				fmt.Printf("fsck: corrupt xattr name on file %q: %q\n", path, item)
 				ck.markCorrupt(path + " xattr:" + item)
 			case <-done:
@@ -164,7 +164,7 @@ func fsck(args *argContainer) {
 	args.allow_other = false
 	pfs, wipeKeys := initFuseFrontend(args)
 	fs := pfs.(*fusefrontend.FS)
-	fs.CorruptItems = make(chan string)
+	fs.MitigatedCorruptions = make(chan string)
 	ck := fsckObj{
 		fs: fs,
 	}

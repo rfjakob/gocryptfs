@@ -38,11 +38,15 @@ type FS struct {
 	// This lock is used by openWriteOnlyFile() to block concurrent opens while
 	// it relaxes the permissions on a file.
 	openWriteOnlyLock sync.RWMutex
-	// CorruptItems is filled with file or xattr names that have been
-	// skipped (ignored) because they were corrupt. This is used by fsck
-	// to inform the user.
-	// Use the reportCorruptItem() function to push an item.
-	CorruptItems chan string
+	// MitigatedCorruptions is used to report data corruption that is internally
+	// mitigated by ignoring the corrupt item. For example, when OpenDir() finds
+	// a corrupt filename, we still return the other valid filenames.
+	// The corruption is logged to syslog to inform the user,	and in addition,
+	// the corrupt filename is logged to this channel via
+	// reportMitigatedCorruption().
+	// "gocryptfs -fsck" reads from the channel to also catch these transparently-
+	// mitigated corruptions.
+	MitigatedCorruptions chan string
 }
 
 var _ pathfs.FileSystem = &FS{} // Verify that interface is implemented.
@@ -607,12 +611,16 @@ func (fs *FS) Access(path string, mode uint32, context *fuse.Context) (code fuse
 	return fuse.ToStatus(syscall.Access(cPath, mode))
 }
 
-func (fs *FS) reportCorruptItem(item string) {
-	if fs.CorruptItems == nil {
+// reportMitigatedCorruption is used to report a corruption that was transparently
+// mitigated and did not return an error to the user. Pass the name of the corrupt
+// item (filename for OpenDir(), xattr name for ListXAttr() etc).
+// See the MitigatedCorruptions channel for more info.
+func (fs *FS) reportMitigatedCorruption(item string) {
+	if fs.MitigatedCorruptions == nil {
 		return
 	}
 	select {
-	case fs.CorruptItems <- item:
+	case fs.MitigatedCorruptions <- item:
 	case <-time.After(1 * time.Second):
 		tlog.Warn.Printf("BUG: reportCorruptItem: timeout")
 		//debug.PrintStack()
