@@ -6,14 +6,13 @@
 An encrypted overlay filesystem written in Go.
 Official website: https://nuetzlich.net/gocryptfs  (Markdown [source](https://github.com/rfjakob/gocryptfs-website/tree/master/docs))
 
-gocryptfs is built on top the excellent
-[go-fuse](https://github.com/hanwen/go-fuse) FUSE library and its
-LoopbackFileSystem API.
+![Folders side-by-side animation](Documentation/folders-side-by-side.gif)
 
+gocryptfs is built on top the excellent
+[go-fuse](https://github.com/hanwen/go-fuse) FUSE library.
 This project was inspired by EncFS and strives to fix its security
 issues while providing good performance
 ([benchmarks](https://nuetzlich.net/gocryptfs/comparison/#performance)).
-
 For details on the security of gocryptfs see the
 [Security](https://nuetzlich.net/gocryptfs/security/) design document.
 
