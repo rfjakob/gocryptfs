@@ -410,6 +410,7 @@ func (f *File) Flush() fuse.Status {
 	return fuse.ToStatus(err)
 }
 
+// Fsync FUSE call
 func (f *File) Fsync(flags int) (code fuse.Status) {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
@@ -417,6 +418,7 @@ func (f *File) Fsync(flags int) (code fuse.Status) {
 	return fuse.ToStatus(syscall.Fsync(int(f.fd.Fd())))
 }
 
+// Chmod FUSE call
 func (f *File) Chmod(mode uint32) fuse.Status {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
@@ -427,6 +429,7 @@ func (f *File) Chmod(mode uint32) fuse.Status {
 	return fuse.ToStatus(err)
 }
 
+// Chown FUSE call
 func (f *File) Chown(uid uint32, gid uint32) fuse.Status {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
@@ -434,6 +437,7 @@ func (f *File) Chown(uid uint32, gid uint32) fuse.Status {
 	return fuse.ToStatus(f.fd.Chown(int(uid), int(gid)))
 }
 
+// GetAttr FUSE call (like stat)
 func (f *File) GetAttr(a *fuse.Attr) fuse.Status {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
@@ -453,6 +457,7 @@ func (f *File) GetAttr(a *fuse.Attr) fuse.Status {
 	return fuse.OK
 }
 
+// Utimens FUSE call
 func (f *File) Utimens(a *time.Time, m *time.Time) fuse.Status {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
