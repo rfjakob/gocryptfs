@@ -22,6 +22,8 @@ type fsckObj struct {
 	corruptList []string
 	// Protects corruptList
 	corruptListLock sync.Mutex
+	// stop a running watchMitigatedCorruptions thread
+	watchDone chan struct{}
 }
 
 func (ck *fsckObj) markCorrupt(path string) {
@@ -30,24 +32,28 @@ func (ck *fsckObj) markCorrupt(path string) {
 	ck.corruptListLock.Unlock()
 }
 
+// Watch for mitigated corruptions that occour during OpenDir()
+func (ck *fsckObj) watchMitigatedCorruptionsOpenDir(path string) {
+	for {
+		select {
+		case item := <-ck.fs.MitigatedCorruptions:
+			fmt.Printf("fsck: corrupt entry in dir %q: %q\n", path, item)
+			ck.markCorrupt(filepath.Join(path, item))
+		case <-ck.watchDone:
+			return
+		}
+	}
+}
+
 // Recursively check dir for corruption
 func (ck *fsckObj) dir(path string) {
 	//fmt.Printf("ck.dir %q\n", path)
 	ck.xattrs(path)
-	done := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case item := <-ck.fs.MitigatedCorruptions:
-				fmt.Printf("fsck: corrupt entry in dir %q: %q\n", path, item)
-				ck.markCorrupt(filepath.Join(path, item))
-			case <-done:
-				return
-			}
-		}
-	}()
+	// Run OpenDir and catch transparently mitigated corruptions
+	go ck.watchMitigatedCorruptionsOpenDir(path)
 	entries, status := ck.fs.OpenDir(path, nil)
-	done <- struct{}{}
+	ck.watchDone <- struct{}{}
+	// Also catch non-mitigated corruptions
 	if !status.Ok() {
 		ck.markCorrupt(path)
 		fmt.Printf("fsck: error opening dir %q: %v\n", path, status)
@@ -85,7 +91,20 @@ func (ck *fsckObj) symlink(path string) {
 	}
 }
 
-// check file for corruption
+// Watch for mitigated corruptions that occour during Read()
+func (ck *fsckObj) watchMitigatedCorruptionsRead(path string) {
+	for {
+		select {
+		case item := <-ck.fs.MitigatedCorruptions:
+			fmt.Printf("fsck: corrupt file %q (inode %s)\n", path, item)
+			ck.markCorrupt(path)
+		case <-ck.watchDone:
+			return
+		}
+	}
+}
+
+// Check file for corruption
 func (ck *fsckObj) file(path string) {
 	//fmt.Printf("ck.file %q\n", path)
 	ck.xattrs(path)
@@ -98,19 +117,9 @@ func (ck *fsckObj) file(path string) {
 	defer f.Release()
 	buf := make([]byte, fuse.MAX_KERNEL_WRITE)
 	var off int64
-	done := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case item := <-ck.fs.MitigatedCorruptions:
-				fmt.Printf("fsck: corrupt file %q (inode %s)\n", path, item)
-				ck.markCorrupt(path)
-			case <-done:
-				return
-			}
-		}
-	}()
-	defer func() { done <- struct{}{} }()
+	// Read() through the whole file and catch transparently mitigated corruptions
+	go ck.watchMitigatedCorruptionsRead(path)
+	defer func() { ck.watchDone <- struct{}{} }()
 	for {
 		result, status := f.Read(buf, off)
 		if !status.Ok() {
@@ -126,22 +135,26 @@ func (ck *fsckObj) file(path string) {
 	}
 }
 
+// Watch for mitigated corruptions that occour during ListXAttr()
+func (ck *fsckObj) watchMitigatedCorruptionsListXAttr(path string) {
+	for {
+		select {
+		case item := <-ck.fs.MitigatedCorruptions:
+			fmt.Printf("fsck: corrupt xattr name on file %q: %q\n", path, item)
+			ck.markCorrupt(path + " xattr:" + item)
+		case <-ck.watchDone:
+			return
+		}
+	}
+}
+
 // Check xattrs on file/dir at path
 func (ck *fsckObj) xattrs(path string) {
-	done := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case item := <-ck.fs.MitigatedCorruptions:
-				fmt.Printf("fsck: corrupt xattr name on file %q: %q\n", path, item)
-				ck.markCorrupt(path + " xattr:" + item)
-			case <-done:
-				return
-			}
-		}
-	}()
+	// Run ListXAttr() and catch transparently mitigated corruptions
+	go ck.watchMitigatedCorruptionsListXAttr(path)
 	attrs, status := ck.fs.ListXAttr(path, nil)
-	done <- struct{}{}
+	ck.watchDone <- struct{}{}
+	// Also catch non-mitigated corruptions
 	if !status.Ok() {
 		fmt.Printf("fsck: error listing xattrs on %q: %v\n", path, status)
 		ck.markCorrupt(path)
@@ -166,7 +179,8 @@ func fsck(args *argContainer) {
 	fs := pfs.(*fusefrontend.FS)
 	fs.MitigatedCorruptions = make(chan string)
 	ck := fsckObj{
-		fs: fs,
+		fs:        fs,
+		watchDone: make(chan struct{}),
 	}
 	ck.dir("")
 	wipeKeys()
