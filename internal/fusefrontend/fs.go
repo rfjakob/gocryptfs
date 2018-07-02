@@ -101,6 +101,11 @@ func (fs *FS) mangleOpenFlags(flags uint32) (newFlags int) {
 	}
 	// We also cannot open the file in append mode, we need to seek back for RMW
 	newFlags = newFlags &^ os.O_APPEND
+	// O_DIRECT accesses must be aligned in both offset and length. Due to our
+	// crypto header, alignment will be off, even if userspace makes aligned
+	// accesses. Running xfstests generic/013 on ext4 used to trigger lots of
+	// EINVAL errors due to missing alignment. Just fall back to buffered IO.
+	newFlags = newFlags &^ syscall.O_DIRECT
 
 	return newFlags
 }
