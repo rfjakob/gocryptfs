@@ -152,6 +152,10 @@ RM:    4.42
 Changelog
 ---------
 
+vNEXT, in progress
+* Fall back to buffered IO even when passed `O_DIRECT`
+  ([commit](https://github.com/rfjakob/gocryptfs/commit/893e41149ed353f355047003b89eeff456990e76))
+
 v1.5, 2018-06-12
 * **Support extended attributes (xattr)** in forward mode
   ([#217](https://github.com/rfjakob/gocryptfs/issues/217)). Older gocryptfs versions
