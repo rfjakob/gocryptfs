@@ -105,7 +105,7 @@ func (fs *FS) mangleOpenFlags(flags uint32) (newFlags int) {
 	// crypto header, alignment will be off, even if userspace makes aligned
 	// accesses. Running xfstests generic/013 on ext4 used to trigger lots of
 	// EINVAL errors due to missing alignment. Just fall back to buffered IO.
-	newFlags = newFlags &^ syscall.O_DIRECT
+	newFlags = newFlags &^ syscallcompat.O_DIRECT
 
 	return newFlags
 }

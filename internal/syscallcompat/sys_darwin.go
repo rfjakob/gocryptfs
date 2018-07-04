@@ -9,6 +9,10 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
+// O_DIRECT means oncached I/O on Linux. No direct equivalent on MacOS and defined
+// to zero there.
+const O_DIRECT = 0
+
 // Sorry, fallocate is not available on OSX at all and
 // fcntl F_PREALLOCATE is not accessible from Go.
 // See https://github.com/rfjakob/gocryptfs/issues/18 if you want to help.

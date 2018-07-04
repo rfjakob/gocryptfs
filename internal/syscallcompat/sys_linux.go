@@ -14,6 +14,10 @@ import (
 
 const _FALLOC_FL_KEEP_SIZE = 0x01
 
+// O_DIRECT means oncached I/O on Linux. No direct equivalent on MacOS and defined
+// to zero there.
+const O_DIRECT = syscall.O_DIRECT
+
 var preallocWarn sync.Once
 
 // EnospcPrealloc preallocates ciphertext space without changing the file
