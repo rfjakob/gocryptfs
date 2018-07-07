@@ -25,6 +25,16 @@ SYNOPSIS
 DESCRIPTION
 ===========
 
+gocryptfs is an encrypted overlay filesystem written in Go.
+Encrypted files are stored in CIPHERDIR, and a plain-text
+view can be presented by mounting the filesystem at MOUNTPOINT.
+
+gocryptfs was inspired by encfs(1) and strives to fix its
+security issues while providing good performance.
+
+OPTIONS
+=======
+
 Available options are listed below.
 
 #### -aessiv
@@ -387,4 +397,4 @@ other: please check the error message
 
 SEE ALSO
 ========
-mount(2) fuse(8) fallocate(2)
+mount(2) fuse(8) fallocate(2) encfs(1)
