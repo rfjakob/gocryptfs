@@ -1,5 +1,9 @@
 language: go
 
+# fuse on travis
+sudo: required
+dist: trusty
+
 git:
   depth: 100
 
@@ -14,8 +18,16 @@ go:
   - 1.10.x
   - stable
 
+before_install:
+  - sudo apt-get install -qq fuse
+  - sudo modprobe fuse
+  - sudo chmod 666 /dev/fuse
+  - sudo chown root:$USER /etc/fuse.conf
+
 install:
-  - go get .
+  - go get -v .
+  - wget https://github.com/golang/dep/releases/download/v0.3.2/dep-linux-amd64 -O dep
+  - chmod +x dep
 
 script:
   - openssl version
@@ -26,16 +38,7 @@ script:
   - ./test.bash
   - ./crossbuild.bash
   - echo "rebuild with locked dependencies"
-  - wget https://github.com/golang/dep/releases/download/v0.3.2/dep-linux-amd64 -O dep
-  - chmod +x dep
-  - ./dep ensure
+  - echo travis_fold:start:dep
+  - ./dep ensure -v
+  - echo travis_fold:end:dep
   - ./build.bash
-
-# fuse on travis
-sudo: required
-dist: trusty
-before_install:
-  - sudo apt-get install -qq fuse
-  - sudo modprobe fuse
-  - sudo chmod 666 /dev/fuse
-  - sudo chown root:$USER /etc/fuse.conf
