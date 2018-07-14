@@ -122,7 +122,9 @@ func (f *File) createHeader() (fileID []byte, err error) {
 	if !f.fs.args.NoPrealloc {
 		err = syscallcompat.EnospcPrealloc(int(f.fd.Fd()), 0, contentenc.HeaderLen)
 		if err != nil {
-			tlog.Warn.Printf("ino%d: createHeader: prealloc failed: %s\n", f.qIno.Ino, err.Error())
+			// If the underlying filesystem is full, it is normal get ENOSPC here.
+			// Log at Info level instead of Warning.
+			tlog.Info.Printf("ino%d: createHeader: prealloc failed: %s\n", f.qIno.Ino, err.Error())
 			return nil, err
 		}
 	}
@@ -317,7 +319,9 @@ func (f *File) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 	if !f.fs.args.NoPrealloc {
 		err = syscallcompat.EnospcPrealloc(int(f.fd.Fd()), cOff, int64(len(ciphertext)))
 		if err != nil {
-			tlog.Warn.Printf("ino%d fh%d: doWrite: prealloc failed: %s", f.qIno.Ino, f.intFd(), err.Error())
+			// If the underlying filesystem is full, it is normal get ENOSPC here.
+			// Log at Info level instead of Warning.
+			tlog.Info.Printf("ino%d fh%d: doWrite: prealloc failed: %s", f.qIno.Ino, f.intFd(), err.Error())
 			return 0, fuse.ToStatus(err)
 		}
 	}
