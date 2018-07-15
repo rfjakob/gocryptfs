@@ -48,7 +48,7 @@ func (ck *fsckObj) watchMitigatedCorruptionsOpenDir(path string) {
 
 // Recursively check dir for corruption
 func (ck *fsckObj) dir(path string) {
-	//fmt.Printf("ck.dir %q\n", path)
+	tlog.Debug.Printf("ck.dir %q\n", path)
 	ck.xattrs(path)
 	// Run OpenDir and catch transparently mitigated corruptions
 	go ck.watchMitigatedCorruptionsOpenDir(path)
@@ -107,7 +107,7 @@ func (ck *fsckObj) watchMitigatedCorruptionsRead(path string) {
 
 // Check file for corruption
 func (ck *fsckObj) file(path string) {
-	//fmt.Printf("ck.file %q\n", path)
+	tlog.Debug.Printf("ck.file %q\n", path)
 	ck.xattrs(path)
 	f, status := ck.fs.Open(path, syscall.O_RDONLY, nil)
 	if !status.Ok() {
@@ -123,6 +123,7 @@ func (ck *fsckObj) file(path string) {
 	go ck.watchMitigatedCorruptionsRead(path)
 	defer func() { ck.watchDone <- struct{}{} }()
 	for {
+		tlog.Debug.Printf("ck.file: read %d bytes from offset %d\n", len(buf), off)
 		result, status := f.Read(buf, off)
 		if !status.Ok() {
 			ck.markCorrupt(path)
@@ -137,6 +138,7 @@ func (ck *fsckObj) file(path string) {
 		// If we seem to be in the middle of a file hole, try to skip to the next
 		// data section.
 		if bytes.Equal(buf, allZero) {
+			tlog.Debug.Printf("ck.file: trying to skip file hole\n")
 			f2 := f.(*fusefrontend.File)
 			nextOff, err := f2.SeekData(off)
 			if err == nil {
