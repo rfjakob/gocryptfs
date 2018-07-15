@@ -12,6 +12,7 @@ Data block
 	1-4096 bytes encrypted data
 	16 bytes GHASH
 
+Full block overhead = 32/4096 = 1/128 = 0.78125 %
 
 Example: 1-byte file
 --------------------
