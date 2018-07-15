@@ -99,12 +99,17 @@ func WriteDirIV(dirfd *os.File, dir string) error {
 	fd := os.NewFile(uintptr(fdRaw), file)
 	_, err = fd.Write(iv)
 	if err != nil {
+		fd.Close()
 		tlog.Warn.Printf("WriteDirIV: Write: %v", err)
+		// Delete incomplete gocryptfs.diriv file
+		syscallcompat.Unlinkat(int(dirfd.Fd()), file, 0)
 		return err
 	}
 	err = fd.Close()
 	if err != nil {
 		tlog.Warn.Printf("WriteDirIV: Close: %v", err)
+		// Delete incomplete gocryptfs.diriv file
+		syscallcompat.Unlinkat(int(dirfd.Fd()), file, 0)
 		return err
 	}
 	return nil
