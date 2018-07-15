@@ -100,7 +100,10 @@ func WriteDirIV(dirfd *os.File, dir string) error {
 	_, err = fd.Write(iv)
 	if err != nil {
 		fd.Close()
-		tlog.Warn.Printf("WriteDirIV: Write: %v", err)
+		// It is normal to get ENOSPC here
+		if !syscallcompat.IsENOSPC(err) {
+			tlog.Warn.Printf("WriteDirIV: Write: %v", err)
+		}
 		// Delete incomplete gocryptfs.diriv file
 		syscallcompat.Unlinkat(int(dirfd.Fd()), file, 0)
 		return err

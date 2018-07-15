@@ -36,7 +36,6 @@ func (f *File) writePadHole(targetOff int64) fuse.Status {
 	// will contain a file hole in the ciphertext.
 	status := f.zeroPad(plainSize)
 	if status != fuse.OK {
-		tlog.Warn.Printf("zeroPad returned error %v", status)
 		return status
 	}
 	return fuse.OK

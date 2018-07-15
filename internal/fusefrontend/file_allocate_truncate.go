@@ -144,7 +144,7 @@ func (f *File) Truncate(newSize uint64) fuse.Status {
 	var data []byte
 	if lastBlockLen > 0 {
 		var status fuse.Status
-		data, status = f.doRead(nil, plainOff, lastBlockLen)
+		data, status = f.doRead(nil, plainOff, lastBlockLen, false)
 		if status != fuse.OK {
 			tlog.Warn.Printf("Truncate: shrink doRead returned error: %v", err)
 			return status
