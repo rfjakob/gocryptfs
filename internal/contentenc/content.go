@@ -71,15 +71,17 @@ type ContentEnc struct {
 
 // New returns an initialized ContentEnc instance.
 func New(cc *cryptocore.CryptoCore, plainBS uint64, forceDecode bool) *ContentEnc {
-	cipherBS := plainBS + uint64(cc.IVLen) + cryptocore.AuthTagLen
-	// Take IV and GHASH overhead into account.
-	cReqSize := int(fuse.MAX_KERNEL_WRITE / plainBS * cipherBS)
-	// An unaligned read (could happen with O_DIRECT?) may touch one
-	// additional ciphertext block. Reserve space for it.
-	cReqSize += int(cipherBS)
 	if fuse.MAX_KERNEL_WRITE%plainBS != 0 {
 		log.Panicf("unaligned MAX_KERNEL_WRITE=%d", fuse.MAX_KERNEL_WRITE)
 	}
+	cipherBS := plainBS + uint64(cc.IVLen) + cryptocore.AuthTagLen
+	// Take IV and GHASH overhead into account.
+	cReqSize := int(fuse.MAX_KERNEL_WRITE / plainBS * cipherBS)
+	// Unaligned reads (happens during fsck, could also happen with O_DIRECT?)
+	// touch one additional ciphertext and plaintext block. Reserve space for the
+	// extra block.
+	cReqSize += int(cipherBS)
+	pReqSize := fuse.MAX_KERNEL_WRITE + int(plainBS)
 	c := &ContentEnc{
 		cryptoCore:   cc,
 		plainBS:      plainBS,
@@ -90,7 +92,7 @@ func New(cc *cryptocore.CryptoCore, plainBS uint64, forceDecode bool) *ContentEn
 		cBlockPool:   newBPool(int(cipherBS)),
 		CReqPool:     newBPool(cReqSize),
 		pBlockPool:   newBPool(int(plainBS)),
-		PReqPool:     newBPool(fuse.MAX_KERNEL_WRITE),
+		PReqPool:     newBPool(pReqSize),
 	}
 	return c
 }
