@@ -266,13 +266,13 @@ func (f *File) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 //
 // Empty writes do nothing and are allowed.
 func (f *File) doWrite(data []byte, off int64) (uint32, fuse.Status) {
-	// Read header from disk, create a new one if the file is empty
-	f.fileTableEntry.HeaderLock.RLock()
+	// If the file ID is not cached, read it from disk
 	if f.fileTableEntry.ID == nil {
-		f.fileTableEntry.HeaderLock.RUnlock()
-		// Somebody else may write the header here, but this would do no harm.
+		// Block other readers while we mess with the file header. Other writers
+		// are blocked by ContentLock already.
 		f.fileTableEntry.HeaderLock.Lock()
 		tmpID, err := f.readFileID()
+		// Write a new file header if the file is empty
 		if err == io.EOF {
 			tmpID, err = f.createHeader()
 		}
@@ -282,11 +282,7 @@ func (f *File) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 		}
 		f.fileTableEntry.ID = tmpID
 		f.fileTableEntry.HeaderLock.Unlock()
-		// The file ID may change in here. This does no harm because we
-		// re-read it after the RLock().
-		f.fileTableEntry.HeaderLock.RLock()
 	}
-	defer f.fileTableEntry.HeaderLock.RUnlock()
 	// Handle payload data
 	dataBuf := bytes.NewBuffer(data)
 	blocks := f.contentEnc.ExplodePlainRange(uint64(off), uint64(len(data)))
