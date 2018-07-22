@@ -57,18 +57,16 @@ type table struct {
 
 // Entry is an entry in the open file table
 type Entry struct {
-	// Reference count
+	// Reference count. Protected by the table lock.
 	refCount int
-	// ContentLock guards the file content from concurrent writes. Every writer
+	// ContentLock protects on-disk content from concurrent writes. Every writer
 	// must take this lock before modifying the file content.
 	ContentLock countingMutex
-	// HeaderLock guards the file ID (in this struct) and the file header (on
-	// disk). Take HeaderLock.RLock() to make sure the file ID does not change
-	// behind your back. If you modify the file ID, you must take
-	// HeaderLock.Lock().
-	HeaderLock sync.RWMutex
 	// ID is the file ID in the file header.
 	ID []byte
+	// IDLock must be taken before reading or writing the ID field in this struct,
+	// unless you have an exclusive lock on ContentLock.
+	IDLock sync.Mutex
 }
 
 // Register creates an open file table entry for "qi" (or incrementes the
@@ -101,15 +99,15 @@ func Unregister(qi QIno) {
 
 // countingMutex incrementes t.writeLockCount on each Lock() call.
 type countingMutex struct {
-	sync.Mutex
+	sync.RWMutex
 }
 
 func (c *countingMutex) Lock() {
-	c.Mutex.Lock()
+	c.RWMutex.Lock()
 	atomic.AddUint64(&t.writeOpCount, 1)
 }
 
-// WriteOpCount returns the write lock counter value. This value is encremented
+// WriteOpCount returns the write lock counter value. This value is incremented
 // each time writeLock.Lock() on a file table entry is called.
 func WriteOpCount() uint64 {
 	return atomic.LoadUint64(&t.writeOpCount)

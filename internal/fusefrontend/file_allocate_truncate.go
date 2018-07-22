@@ -111,9 +111,7 @@ func (f *File) Truncate(newSize uint64) fuse.Status {
 			return fuse.ToStatus(err)
 		}
 		// Truncate to zero kills the file header
-		f.fileTableEntry.HeaderLock.Lock()
 		f.fileTableEntry.ID = nil
-		f.fileTableEntry.HeaderLock.Unlock()
 		return fuse.OK
 	}
 	// We need the old file size to determine if we are growing or shrinking
@@ -144,7 +142,7 @@ func (f *File) Truncate(newSize uint64) fuse.Status {
 	var data []byte
 	if lastBlockLen > 0 {
 		var status fuse.Status
-		data, status = f.doRead(nil, plainOff, lastBlockLen, false)
+		data, status = f.doRead(nil, plainOff, lastBlockLen)
 		if status != fuse.OK {
 			tlog.Warn.Printf("Truncate: shrink doRead returned error: %v", err)
 			return status
@@ -206,8 +204,6 @@ func (f *File) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) fuse.Statu
 	if newPlainSz%f.contentEnc.PlainBS() == 0 {
 		// The file was empty, so it did not have a header. Create one.
 		if oldPlainSz == 0 {
-			f.fileTableEntry.HeaderLock.Lock()
-			defer f.fileTableEntry.HeaderLock.Unlock()
 			id, err := f.createHeader()
 			if err != nil {
 				return fuse.ToStatus(err)
