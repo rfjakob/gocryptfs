@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
@@ -127,7 +128,7 @@ func (ck *fsckObj) file(path string) {
 		result, status := f.Read(buf, off)
 		if !status.Ok() {
 			ck.markCorrupt(path)
-			fmt.Printf("fsck: error reading file %q at offset %d: %v\n", path, off, status)
+			fmt.Printf("fsck: error reading file %q (inum %d) at offset %d: %v\n", path, inum(f), off, status)
 			return
 		}
 		// EOF
@@ -217,4 +218,10 @@ func (s sortableDirEntries) Swap(i, j int) {
 
 func (s sortableDirEntries) Less(i, j int) bool {
 	return strings.Compare(s[i].Name, s[j].Name) < 0
+}
+
+func inum(f nodefs.File) uint64 {
+	var a fuse.Attr
+	f.GetAttr(&a)
+	return a.Ino
 }
