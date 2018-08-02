@@ -7,11 +7,9 @@ dist: trusty
 git:
   depth: 100
 
-# Build with the lastest versions of Go 1.5 and later
+# Build with the lastest versions of Go 1.7 and later
 # See https://golang.org/dl/
 go:
-  - 1.5.x
-  - 1.6.x
   - 1.7.x
   - 1.8.x
   - 1.9.x
