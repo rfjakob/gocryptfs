@@ -155,7 +155,12 @@ Changelog
 vNEXT, in progress
 * Fall back to buffered IO even when passed `O_DIRECT`
   ([commit](https://github.com/rfjakob/gocryptfs/commit/893e41149ed353f355047003b89eeff456990e76))
+* Only print master key once, on init
+  ([#76](https://github.com/rfjakob/gocryptfs/issues/76),
+  [commit](https://github.com/rfjakob/gocryptfs/commit/6d64dfe8f7acd8e9ca4a659d26318e442c2db85a))
 * Add `-exclude` option for reverse mode
+  ([#235](https://github.com/rfjakob/gocryptfs/issues/235),
+  [commit](https://github.com/rfjakob/gocryptfs/commit/ec2fdc19cf9358ae7ba09c528a5807b6b0760f9b))
 
 v1.5, 2018-06-12
 * **Support extended attributes (xattr)** in forward mode
