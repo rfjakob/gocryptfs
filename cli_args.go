@@ -39,6 +39,18 @@ type argContainer struct {
 	_forceOwner *fuse.Owner
 }
 
+type multipleStrings []string
+
+func (s *multipleStrings) String() string {
+	s2 := []string(*s)
+	return fmt.Sprint(s2)
+}
+
+func (s *multipleStrings) Set(val string) error {
+	*s = append(*s, val)
+	return nil
+}
+
 var flagSet *flag.FlagSet
 
 // prefixOArgs transform options passed via "-o foo,bar" into regular options
