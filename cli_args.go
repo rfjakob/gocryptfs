@@ -27,6 +27,8 @@ type argContainer struct {
 	dev, nodev, suid, nosuid, exec, noexec, rw, ro bool
 	masterkey, mountpoint, cipherdir, cpuprofile, extpass,
 	memprofile, ko, passfile, ctlsock, fsname, force_owner, trace string
+	// For reverse mode, --exclude is available. It can be specified multiple times.
+	exclude multipleStrings
 	// Configuration file name override
 	config             string
 	notifypid, scryptn int
@@ -173,6 +175,9 @@ func parseCliOpts() (args argContainer) {
 	flagSet.StringVar(&args.fsname, "fsname", "", "Override the filesystem name")
 	flagSet.StringVar(&args.force_owner, "force_owner", "", "uid:gid pair to coerce ownership")
 	flagSet.StringVar(&args.trace, "trace", "", "Write execution trace to file")
+
+	flagSet.Var(&args.exclude, "exclude", "Exclude relative path from reverse view")
+
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")
 	flagSet.IntVar(&args.scryptn, "scryptn", configfile.ScryptDefaultLogN, "scrypt cost parameter logN. Possible values: 10-28. "+

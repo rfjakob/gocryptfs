@@ -56,6 +56,9 @@ func NewFS(args Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) 
 	if args.SerializeReads {
 		serialize_reads.InitSerializer()
 	}
+	if len(args.Exclude) > 0 {
+		tlog.Warn.Printf("Forward mode does not support -exclude")
+	}
 	return &FS{
 		FileSystem:    pathfs.NewLoopbackFileSystem(args.Cipherdir),
 		args:          args,

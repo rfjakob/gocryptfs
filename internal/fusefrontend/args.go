@@ -30,4 +30,6 @@ type Args struct {
 	SerializeReads bool
 	// Force decode even if integrity check fails (openSSL only)
 	ForceDecode bool
+	// Exclude is a list of paths to make inaccessible
+	Exclude []string
 }

@@ -484,3 +484,14 @@ func TestMissingOArg(t *testing.T) {
 			exitcodes.Usage, exitCode)
 	}
 }
+
+// -exclude must return an error in forward mode
+func TestExcludeForward(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	mnt := dir + ".mnt"
+	err := test_helpers.Mount(dir, mnt, false, "-extpass", "echo test", "-exclude", "foo")
+	if err == nil {
+		t.Errorf("-exclude in forward mode should fail")
+	}
+	t.Log(err)
+}

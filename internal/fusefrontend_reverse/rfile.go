@@ -36,6 +36,12 @@ var inodeTable syncmap.Map
 // newFile decrypts and opens the path "relPath" and returns a reverseFile
 // object. The backing file descriptor is always read-only.
 func (rfs *ReverseFS) newFile(relPath string) (*reverseFile, fuse.Status) {
+	if rfs.isExcluded(relPath) {
+		// Excluded paths should have been filtered out beforehand. Better safe
+		// than sorry.
+		tlog.Warn.Printf("BUG: newFile: received excluded path %q. This should not happen.", relPath)
+		return nil, fuse.ENOENT
+	}
 	pRelPath, err := rfs.decryptPath(relPath)
 	if err != nil {
 		return nil, fuse.ToStatus(err)

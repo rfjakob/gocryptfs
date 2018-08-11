@@ -196,6 +196,7 @@ func initFuseFrontend(args *argContainer) (pfs pathfs.FileSystem, wipeKeys func(
 		SerializeReads: args.serialize_reads,
 		ForceDecode:    args.forcedecode,
 		ForceOwner:     args._forceOwner,
+		Exclude:        args.exclude,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {

@@ -68,6 +68,8 @@ const (
 	// TrezorError - an error was encountered while interacting with a Trezor
 	// device
 	TrezorError = 28
+	// ExcludeError - an error occoured while processing "-exclude"
+	ExcludeError = 29
 )
 
 // Err wraps an error with an associated numeric exit code

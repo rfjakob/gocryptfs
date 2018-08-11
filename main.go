@@ -212,6 +212,11 @@ func main() {
 	// "-reverse" implies "-aessiv"
 	if args.reverse {
 		args.aessiv = true
+	} else {
+		if args.exclude != nil {
+			tlog.Fatal.Printf("-exclude only works in reverse mode")
+			os.Exit(exitcodes.ExcludeError)
+		}
 	}
 	// "-config"
 	if args.config != "" {

@@ -70,11 +70,17 @@ Enable (`-dev`) or disable (`-nodev`) device files in a gocryptfs mount
 You need root permissions to use `-dev`.
 
 #### -devrandom
-Use /dev/random for generating the master key instead of the default Go
+Use `/dev/random` for generating the master key instead of the default Go
 implementation. This is especially useful on embedded systems with Go versions
 prior to 1.9, which fall back to weak random data when the getrandom syscall
 is blocking. Using this option can block indefinitely when the kernel cannot
 harvest enough entropy.
+
+#### -exclude PATH
+Only for reverse mode: exclude relative plaintext path from the encrypted
+view. Can be passed multiple times. Example:
+
+    gocryptfs -reverse -exclude Music -exclude Movies /home/user /mnt/user.encrypted
 
 #### -exec, -noexec
 Enable (`-exec`) or disable (`-noexec`) executables in a gocryptfs mount
