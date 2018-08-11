@@ -356,34 +356,41 @@ func TestRename(t *testing.T, plainDir string) {
 }
 
 // VerifyExistence checks in 3 ways that "path" exists:
-// stat, open, readdir
+// stat, open, readdir. Returns true if the path exists, false otherwise.
+// Panics if the result is inconsistent.
 func VerifyExistence(path string) bool {
 	// Check that file can be stated
+	stat := true
 	_, err := os.Stat(path)
 	if err != nil {
 		//t.Log(err)
-		return false
+		stat = false
 	}
 	// Check that file can be opened
+	open := true
 	fd, err := os.Open(path)
 	if err != nil {
 		//t.Log(err)
-		return false
+		open = false
 	}
 	fd.Close()
 	// Check that file shows up in directory listing
+	readdir := false
 	dir := filepath.Dir(path)
 	name := filepath.Base(path)
 	fi, err := ioutil.ReadDir(dir)
-	if err != nil {
-		//t.Log(err)
-		return false
-	}
-	for _, i := range fi {
-		if i.Name() == name {
-			return true
+	if err == nil {
+		for _, i := range fi {
+			if i.Name() == name {
+				readdir = true
+			}
 		}
 	}
+	// If the result is consistent, return it.
+	if stat == open && open == readdir {
+		return stat
+	}
+	log.Panicf("inconsistent result: stat=%v open=%v readdir=%v", stat, open, readdir)
 	return false
 }
 
