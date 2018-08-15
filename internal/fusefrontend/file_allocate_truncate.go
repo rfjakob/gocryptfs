@@ -198,7 +198,10 @@ func (f *File) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) fuse.Statu
 	//
 	// Make sure the old last block is padded to the block boundary. This call
 	// is a no-op if it is already block-aligned.
-	f.zeroPad(oldPlainSz)
+	status := f.zeroPad(oldPlainSz)
+	if !status.Ok() {
+		return status
+	}
 	// The new size is block-aligned. In this case we can do everything ourselves
 	// and avoid the call to doWrite.
 	if newPlainSz%f.contentEnc.PlainBS() == 0 {
@@ -220,6 +223,6 @@ func (f *File) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) fuse.Statu
 	// The new size is NOT aligned, so we need to write a partial block.
 	// Write a single zero to the last byte and let doWrite figure it out.
 	buf := make([]byte, 1)
-	_, status := f.doWrite(buf, int64(newEOFOffset))
+	_, status = f.doWrite(buf, int64(newEOFOffset))
 	return status
 }
