@@ -129,16 +129,23 @@ func changePassword(args *argContainer) {
 // printVersion prints a version string like this:
 // gocryptfs v0.12-36-ge021b9d-dirty; go-fuse a4c968c; 2016-07-03 go1.6.2
 func printVersion() {
-	buildFlags := ""
+	var tagsSlice []string
 	if stupidgcm.BuiltWithoutOpenssl {
-		buildFlags = " without_openssl"
+		tagsSlice = append(tagsSlice, "without_openssl")
+	}
+	if readpassword.TrezorSupport {
+		tagsSlice = append(tagsSlice, "enable_trezor")
+	}
+	tags := ""
+	if tagsSlice != nil {
+		tags = " " + strings.Join(tagsSlice, " ")
 	}
 	built := fmt.Sprintf("%s %s", BuildDate, runtime.Version())
 	if raceDetector {
 		built += " -race"
 	}
 	fmt.Printf("%s %s%s; go-fuse %s; %s\n",
-		tlog.ProgramName, GitVersion, buildFlags, GitVersionFuse, built)
+		tlog.ProgramName, GitVersion, tags, GitVersionFuse, built)
 }
 
 func main() {

@@ -12,6 +12,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/prefer_openssl"
+	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -152,7 +153,9 @@ func parseCliOpts() (args argContainer) {
 	flagSet.BoolVar(&args.sharedstorage, "sharedstorage", false, "Make concurrent access to a shared CIPHERDIR safer")
 	flagSet.BoolVar(&args.devrandom, "devrandom", false, "Use /dev/random for generating master key")
 	flagSet.BoolVar(&args.fsck, "fsck", false, "Run a filesystem check on CIPHERDIR")
-	flagSet.BoolVar(&args.trezor, "trezor", false, "Protect the masterkey using a SatoshiLabs Trezor instead of a password")
+	if readpassword.TrezorSupport {
+		flagSet.BoolVar(&args.trezor, "trezor", false, "Protect the masterkey using a SatoshiLabs Trezor instead of a password")
+	}
 
 	// Mount options with opposites
 	flagSet.BoolVar(&args.dev, "dev", false, "Allow device files")

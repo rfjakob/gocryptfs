@@ -21,6 +21,8 @@ const (
 	trezorNonce             = "" // the "nonce" is optional and has no use in here
 	trezorKeyName           = "gocryptfs"
 	trezorKeyDerivationPath = `m/10019'/0'`
+	// TrezorSupport is true when gocryptfs has been compile with -tags enable_trezor
+	TrezorSupport = true
 )
 
 func trezorGetPin(title, description, ok, cancel string) ([]byte, error) {
