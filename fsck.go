@@ -26,6 +26,8 @@ type fsckObj struct {
 	corruptListLock sync.Mutex
 	// stop a running watchMitigatedCorruptions thread
 	watchDone chan struct{}
+	// Inode numbers of hard-linked files (Nlink > 1) that we have already checked
+	seenInodes map[uint64]struct{}
 }
 
 func (ck *fsckObj) markCorrupt(path string) {
@@ -109,6 +111,20 @@ func (ck *fsckObj) watchMitigatedCorruptionsRead(path string) {
 // Check file for corruption
 func (ck *fsckObj) file(path string) {
 	tlog.Debug.Printf("ck.file %q\n", path)
+	attr, status := ck.fs.GetAttr(path, nil)
+	if !status.Ok() {
+		ck.markCorrupt(path)
+		fmt.Printf("fsck: error stating file %q: %v\n", path, status)
+		return
+	}
+	if attr.Nlink > 1 {
+		// Due to hard links, we may have already checked this file.
+		if _, ok := ck.seenInodes[attr.Ino]; ok {
+			tlog.Debug.Printf("ck.file : skipping %q (inode number %d already seen)\n", path, attr.Ino)
+			return
+		}
+		ck.seenInodes[attr.Ino] = struct{}{}
+	}
 	ck.xattrs(path)
 	f, status := ck.fs.Open(path, syscall.O_RDONLY, nil)
 	if !status.Ok() {
@@ -193,8 +209,9 @@ func fsck(args *argContainer) {
 	fs := pfs.(*fusefrontend.FS)
 	fs.MitigatedCorruptions = make(chan string)
 	ck := fsckObj{
-		fs:        fs,
-		watchDone: make(chan struct{}),
+		fs:         fs,
+		watchDone:  make(chan struct{}),
+		seenInodes: make(map[uint64]struct{}),
 	}
 	ck.dir("")
 	wipeKeys()
