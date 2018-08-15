@@ -128,7 +128,7 @@ func (ck *fsckObj) file(path string) {
 		result, status := f.Read(buf, off)
 		if !status.Ok() {
 			ck.markCorrupt(path)
-			fmt.Printf("fsck: error reading file %q (inum %d) at offset %d: %v\n", path, inum(f), off, status)
+			fmt.Printf("fsck: error reading file %q (inum %d): %v\n", path, inum(f), status)
 			return
 		}
 		// EOF
