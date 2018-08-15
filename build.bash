@@ -58,9 +58,9 @@ if [[ -z ${BUILDDATE:-} ]] ; then
 fi
 
 LDFLAGS="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildDate=$BUILDDATE"
-go build "-ldflags=$LDFLAGS" $@
+go build "-ldflags=$LDFLAGS" "$@"
 
-(cd gocryptfs-xray; go build $@)
+(cd gocryptfs-xray; go build "$@")
 
 ./gocryptfs -version
 
