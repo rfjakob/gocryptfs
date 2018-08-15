@@ -63,6 +63,10 @@ func NewFS(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransform.Na
 			if clean != dirty {
 				tlog.Warn.Printf("-exclude: non-canonical path %q has been interpreted as %q", dirty, clean)
 			}
+			if clean == "" {
+				tlog.Fatal.Printf("-exclude: excluding the root dir %q makes no sense", clean)
+				os.Exit(exitcodes.ExcludeError)
+			}
 			cPath, err := fs.EncryptPath(clean)
 			if err != nil {
 				tlog.Fatal.Printf("-exclude: EncryptPath %q failed: %v", clean, err)
@@ -90,6 +94,11 @@ func relDir(path string) string {
 // (used when -exclude is passed by the user)
 func (rfs *ReverseFS) isExcluded(relPath string) bool {
 	for _, e := range rfs.cExclude {
+		// If the root dir is excluded, everything is excluded.
+		if e == "" {
+			return true
+		}
+		// This exact path is excluded
 		if e == relPath {
 			return true
 		}
