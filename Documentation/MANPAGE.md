@@ -76,7 +76,7 @@ prior to 1.9, which fall back to weak random data when the getrandom syscall
 is blocking. Using this option can block indefinitely when the kernel cannot
 harvest enough entropy.
 
-#### -exclude PATH
+#### -e PATH, -exclude PATH
 Only for reverse mode: exclude relative plaintext path from the encrypted
 view. Can be passed multiple times. Example:
 

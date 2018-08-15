@@ -44,7 +44,7 @@ func ctlsockEncryptPath(t *testing.T, sock string, path string) string {
 	return response.Result
 }
 
-func TestExclude(t *testing.T) {
+func testExclude(t *testing.T, flag string) {
 	pOk := []string{
 		"file2",
 		"dir1/file1",
@@ -74,7 +74,7 @@ func TestExclude(t *testing.T) {
 	sock := mnt + ".sock"
 	cliArgs := []string{"-reverse", "-extpass", "echo test", "-ctlsock", sock}
 	for _, v := range pExclude {
-		cliArgs = append(cliArgs, "-exclude", v)
+		cliArgs = append(cliArgs, flag, v)
 	}
 	if plaintextnames {
 		cliArgs = append(cliArgs, "-config", "exclude_test_fs/.gocryptfs.reverse.conf.plaintextnames")
@@ -101,4 +101,9 @@ func TestExclude(t *testing.T) {
 			t.Errorf("File %q / %q is hidden, but should be visible", pOk[i], v)
 		}
 	}
+}
+
+func TestExclude(t *testing.T) {
+	testExclude(t, "-exclude")
+	testExclude(t, "-e")
 }

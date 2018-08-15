@@ -158,7 +158,7 @@ vNEXT, in progress
 * Only print master key once, on init
   ([#76](https://github.com/rfjakob/gocryptfs/issues/76),
   [commit](https://github.com/rfjakob/gocryptfs/commit/6d64dfe8f7acd8e9ca4a659d26318e442c2db85a))
-* Add `-exclude` option for reverse mode
+* Add `-e` / `-exclude` option for reverse mode
   ([#235](https://github.com/rfjakob/gocryptfs/issues/235),
   [commit](https://github.com/rfjakob/gocryptfs/commit/ec2fdc19cf9358ae7ba09c528a5807b6b0760f9b))
 

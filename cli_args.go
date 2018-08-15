@@ -176,6 +176,8 @@ func parseCliOpts() (args argContainer) {
 	flagSet.StringVar(&args.force_owner, "force_owner", "", "uid:gid pair to coerce ownership")
 	flagSet.StringVar(&args.trace, "trace", "", "Write execution trace to file")
 
+	// -e, --exclude
+	flagSet.Var(&args.exclude, "e", "Alias for -exclude")
 	flagSet.Var(&args.exclude, "exclude", "Exclude relative path from reverse view")
 
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
