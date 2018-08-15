@@ -3,6 +3,30 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/conejoninja/hid"
+  packages = ["."]
+  revision = "3a959b87ebefc18767a31fa567eea402eb37239e"
+
+[[projects]]
+  branch = "modelT"
+  name = "github.com/conejoninja/tesoro"
+  packages = [
+    ".",
+    "pb/google/protobuf",
+    "pb/messages",
+    "pb/types",
+    "transport"
+  ]
+  revision = "e0e839b6a6f14bce56d1bfac9a86311a1646a6a3"
+
+[[projects]]
+  name = "github.com/golang/protobuf"
+  packages = ["proto"]
+  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
+  version = "v1.1.0"
+
+[[projects]]
+  branch = "master"
   name = "github.com/hanwen/go-fuse"
   packages = [
     "fuse",
@@ -11,7 +35,7 @@
     "internal/utimens",
     "splice"
   ]
-  revision = "291273cb8ce0f139636a6fd7414be3c7e2de6288"
+  revision = "95c6370914ac7822973d1893680e878e156f8d70"
 
 [[projects]]
   branch = "master"
@@ -24,16 +48,45 @@
   revision = "c73681c634de898c869684602cf0c0d2ce938c4d"
 
 [[projects]]
+  branch = "master"
   name = "github.com/pkg/xattr"
   packages = ["."]
-  revision = "d15dbc2bb0b5da267362b5e066e2c44c1fcff6c7"
-  version = "v0.3.0"
+  revision = "f5b647e257e19d63831e7c7adb95dfb79d9ff4d9"
 
 [[projects]]
   branch = "master"
   name = "github.com/rfjakob/eme"
   packages = ["."]
   revision = "2222dbd4ba467ab3fc7e8af41562fcfe69c0d770"
+
+[[projects]]
+  name = "github.com/trezor/trezord-go"
+  packages = ["usb/lowlevel"]
+  revision = "bae9c40e5d71c459bde056d42d4b19ab318c90c2"
+  version = "v2.0.20"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/xaionaro-go/cryptoWallet"
+  packages = [
+    ".",
+    "interfaces",
+    "internal/errors",
+    "internal/routines",
+    "internal/wallets",
+    "internal/wallets/satoshilabs",
+    "internal/wallets/satoshilabs/trezor",
+    "internal/wallets/satoshilabs/trezor/models/1",
+    "internal/wallets/satoshilabs/trezor/models/t",
+    "vendors"
+  ]
+  revision = "47f9f6877e4324a8bc47fc5661c32d2fe6d29586"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/zserge/hid"
+  packages = ["."]
+  revision = "c86e7adeabafd6fcb3371ad64d6ed366b04d55db"
 
 [[projects]]
   branch = "master"
@@ -44,7 +97,7 @@
     "scrypt",
     "ssh/terminal"
   ]
-  revision = "8ac0e0d97ce45cd83d1d7243c060cb8461dda5e9"
+  revision = "de0752318171da717af4ce24d0a2e8626afaeb11"
 
 [[projects]]
   branch = "master"
@@ -59,11 +112,24 @@
     "unix",
     "windows"
   ]
-  revision = "a9e25c09b96b8870693763211309e213c6ef299d"
+  revision = "14742f9018cd6651ec7364dc6ee08af0baaa1031"
+
+[[projects]]
+  name = "golang.org/x/text"
+  packages = [
+    "internal/gen",
+    "internal/triegen",
+    "internal/ucd",
+    "transform",
+    "unicode/cldr",
+    "unicode/norm"
+  ]
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d73a17c7147887cbc6607e2d95e3e4294d3b097a42ebb5ecbcf9b53f8379cb83"
+  inputs-digest = "e12369bfb63fd78ad5b21b6bb8d0e68ed7bb5d66fd2c01e122b7a89dfb99eec4"
   solver-name = "gps-cdcl"
   solver-version = 1
