@@ -2,7 +2,9 @@ Results from benchmark-reverse.bash
 
 VERSION      LS     CAT    ENV
 -------      ---    ----   ---
-v1.3         2.1    19.9   Go 1.9.2
+v1.3         2.1    19.9   go1.9.2
 v1.4         2.1    18.2
+v1.5         3.4    19.6   go1.10.3, Linux 4.17.12
+v1.6         3.6    19.9   go1.10.3, Linux 4.17.12
 
 (seconds)
