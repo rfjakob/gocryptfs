@@ -67,7 +67,7 @@ as well as in the go-fuse library.
 Compile
 -------
 
-With [go 1.5 or higher](.travis.yml#L8):
+With [go 1.7 or higher](.travis.yml#L12):
 
 	$ go get -d github.com/rfjakob/gocryptfs
 	$ cd $(go env GOPATH)/src/github.com/rfjakob/gocryptfs
@@ -140,13 +140,14 @@ tarball, recursively listing and finally deleting it. The output will
 look like this:
 
 ```
-$ ./benchmark.bash
-linux-3.0.tar.gz       100%[==========================>]  92,20M  2,96MB/s    in 35s
-2016-05-04 19:29:20 URL:https://www.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz
-WRITE: 131072000 bytes (131 MB) copied, 1,43137 s, 91,6 MB/s
-UNTAR: 23.25
-LS:    1.75
-RM:    4.42
+$ ./benchmark.bash 
+Testing gocryptfs at /tmp/benchmark.bash.DwL: gocryptfs v1.6; go-fuse v20170619-45-g95c6370; 2018-08-18 go1.10.3
+WRITE: 262144000 bytes (262 MB, 250 MiB) copied, 1.1033 s, 238 MB/s
+READ:  262144000 bytes (262 MB, 250 MiB) copied, 0.945291 s, 277 MB/s
+UNTAR: 17.768
+MD5:   8.459
+LS:    1.460
+RM:    3.379
 ```
 
 Changelog
