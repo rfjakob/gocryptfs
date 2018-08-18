@@ -152,7 +152,7 @@ RM:    4.42
 Changelog
 ---------
 
-vNEXT, in progress
+v1.6, 2018-08-18
 * **Add `-e` / `-exclude` option** for reverse mode
   ([#235](https://github.com/rfjakob/gocryptfs/issues/235),
   [commit](https://github.com/rfjakob/gocryptfs/commit/ec2fdc19cf9358ae7ba09c528a5807b6b0760f9b))
