@@ -84,12 +84,12 @@ func Dup3(oldfd int, newfd int, flags int) (err error) {
 
 // Fchmodat syscall.
 func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
-	// Why would we ever want to call this without AT_SYMLINK_NOFOLLOW?
-	if flags&unix.AT_SYMLINK_NOFOLLOW == 0 {
-		tlog.Warn.Printf("Fchmodat: adding missing AT_SYMLINK_NOFOLLOW flag")
-		flags |= unix.AT_SYMLINK_NOFOLLOW
-	}
-	return syscall.Fchmodat(dirfd, path, mode, flags)
+	// Linux does not support passing flags to fchmodat! From the man page:
+	// AT_SYMLINK_NOFOLLOW ... This flag is not currently implemented.
+	// Linux ignores any flags, but Go stdlib rejects them with EOPNOTSUPP starting
+	// with Go 1.11. See https://github.com/golang/go/issues/20130 for more info.
+	// TODO: Use fchmodat2 once available on Linux.
+	return syscall.Fchmodat(dirfd, path, mode, 0)
 }
 
 // Fchownat syscall.
