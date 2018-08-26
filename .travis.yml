@@ -29,6 +29,7 @@ install:
 
 script:
   - openssl version
+  - df -Th / /tmp
   - go build
   - ./build-without-openssl.bash
   - ./build.bash
