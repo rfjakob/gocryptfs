@@ -133,6 +133,9 @@ func Load(filename string, password []byte) ([]byte, *ConfFile, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	if len(js) == 0 {
+		return nil, nil, fmt.Errorf("Config file is empty")
+	}
 
 	// Unmarshal
 	err = json.Unmarshal(js, &cf)
