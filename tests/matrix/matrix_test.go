@@ -883,3 +883,25 @@ func TestMagicNames(t *testing.T) {
 		}
 	}
 }
+
+// Test that chmod works correctly
+func TestChmod(t *testing.T) {
+	path := test_helpers.DefaultPlainDir + "/" + t.Name()
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file.Close()
+	modes := []os.FileMode{0777, 0707, 0606, 0666, 0444, 0000, 0111, 0123, 0321}
+	for _, modeWant := range modes {
+		os.Chmod(path, modeWant)
+		fi, err := os.Stat(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		modeHave := fi.Mode()
+		if modeHave != modeWant {
+			t.Errorf("modeHave %#o != modeWant %#o", modeHave, modeWant)
+		}
+	}
+}
