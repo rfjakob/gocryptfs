@@ -699,7 +699,7 @@ func TestLchown(t *testing.T) {
 }
 
 // Set nanoseconds by path, symlink
-func Symlink(t *testing.T) {
+func TestUtimesNanoSymlink(t *testing.T) {
 	if runtime.GOOS == "darwin" {
 		t.Skipf("MacOS \"touch\" does not support \"--no-dereference\"")
 	}
