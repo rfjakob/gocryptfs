@@ -250,7 +250,7 @@ func (fs *FS) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.
 	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
-	dirfd, cName, err := fs.openBackingPath(path)
+	dirfd, cName, err := fs.openBackingDir(path)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
@@ -266,7 +266,7 @@ func (fs *FS) Chown(path string, uid uint32, gid uint32, context *fuse.Context) 
 	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
-	dirfd, cName, err := fs.openBackingPath(path)
+	dirfd, cName, err := fs.openBackingDir(path)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
@@ -291,7 +291,7 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
-	dirfd, cName, err := fs.openBackingPath(path)
+	dirfd, cName, err := fs.openBackingDir(path)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
@@ -409,7 +409,7 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
-	dirfd, cName, err := fs.openBackingPath(path)
+	dirfd, cName, err := fs.openBackingDir(path)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
@@ -447,7 +447,7 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	if fs.isFiltered(linkName) {
 		return fuse.EPERM
 	}
-	dirfd, cName, err := fs.openBackingPath(linkName)
+	dirfd, cName, err := fs.openBackingDir(linkName)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
@@ -579,12 +579,12 @@ func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code 
 	if fs.isFiltered(newPath) {
 		return fuse.EPERM
 	}
-	oldDirFd, cOldName, err := fs.openBackingPath(oldPath)
+	oldDirFd, cOldName, err := fs.openBackingDir(oldPath)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
 	defer oldDirFd.Close()
-	newDirFd, cNewName, err := fs.openBackingPath(newPath)
+	newDirFd, cNewName, err := fs.openBackingDir(newPath)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}

@@ -210,7 +210,7 @@ func TestTooLongSymlink(t *testing.T) {
 
 // Test that we can traverse a directory with 0100 permissions
 // (execute but no read). This used to be a problem as OpenDirNofollow opened
-// all directory in the path with O_RDONLY. Now it uses O_PATH, which only needs
+// all directories in the path with O_RDONLY. Now it uses O_PATH, which only needs
 // the executable bit.
 func Test0100Dir(t *testing.T) {
 	// Note: t.Name() is not available before in Go 1.8

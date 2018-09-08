@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -40,18 +41,21 @@ func (fs *FS) getBackingPath(relPath string) (string, error) {
 	return cAbsPath, nil
 }
 
-// openBackingPath - get the absolute encrypted path of the backing file
-// and open the corresponding directory
-func (fs *FS) openBackingPath(relPath string) (*os.File, string, error) {
-	cPath, err := fs.getBackingPath(relPath)
+// openBackingDir opens the parent ciphertext directory of plaintext path
+// "relPath" and returns the dirfd and the encrypted basename.
+// The caller should then use Openat(dirfd, cName, ...) and friends.
+// openBackingDir is secure against symlink races.
+func (fs *FS) openBackingDir(relPath string) (*os.File, string, error) {
+	cRelPath, err := fs.encryptPath(relPath)
 	if err != nil {
 		return nil, "", err
 	}
-	dirfd, err := os.Open(filepath.Dir(cPath))
+	// Open parent dir
+	dirfd, err := syscallcompat.OpenDirNofollow(fs.args.Cipherdir, filepath.Dir(cRelPath))
 	if err != nil {
 		return nil, "", err
 	}
-	return dirfd, filepath.Base(cPath), nil
+	return os.NewFile(uintptr(dirfd), cRelPath), filepath.Base(cRelPath), nil
 }
 
 // encryptPath - encrypt relative plaintext path

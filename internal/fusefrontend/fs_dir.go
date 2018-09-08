@@ -54,7 +54,7 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 	if fs.isFiltered(newPath) {
 		return fuse.EPERM
 	}
-	dirfd, cName, err := fs.openBackingPath(newPath)
+	dirfd, cName, err := fs.openBackingDir(newPath)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
