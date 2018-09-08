@@ -189,6 +189,17 @@ func Load(filename string, password []byte) ([]byte, *ConfFile, error) {
 		return nil, &cf, nil
 	}
 
+	key, err := cf.DecryptMasterKey(password)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return key, &cf, err
+}
+
+// DecryptMasterKey decrypts the masterkey stored in cf.EncryptedKey using
+// password.
+func (cf *ConfFile) DecryptMasterKey(password []byte) (masterkey []byte, err error) {
 	// Generate derived key from password
 	scryptHash := cf.ScryptObject.DeriveKey(password)
 
@@ -197,14 +208,13 @@ func Load(filename string, password []byte) ([]byte, *ConfFile, error) {
 	ce := getKeyEncrypter(scryptHash, useHKDF)
 
 	tlog.Warn.Enabled = false // Silence DecryptBlock() error messages on incorrect password
-	key, err := ce.DecryptBlock(cf.EncryptedKey, 0, nil)
+	masterkey, err = ce.DecryptBlock(cf.EncryptedKey, 0, nil)
 	tlog.Warn.Enabled = true
 	if err != nil {
 		tlog.Warn.Printf("failed to unlock master key: %s", err.Error())
-		return nil, nil, exitcodes.NewErr("Password incorrect.", exitcodes.PasswordIncorrect)
+		return nil, exitcodes.NewErr("Password incorrect.", exitcodes.PasswordIncorrect)
 	}
-
-	return key, &cf, err
+	return masterkey, nil
 }
 
 // EncryptKey - encrypt "key" using an scrypt hash generated from "password"
