@@ -305,7 +305,7 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 		return nil, fuse.ToStatus(err)
 	}
 	// Read plaintext dir
-	fd, err := syscallcompat.OpenNofollow(rfs.args.Cipherdir, relPath, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
+	fd, err := syscallcompat.OpenDirNofollow(rfs.args.Cipherdir, relPath)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}

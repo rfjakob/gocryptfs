@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"path/filepath"
 	"syscall"
 
 	// In newer Go versions, this has moved to just "sync/syncmap".
@@ -46,7 +47,13 @@ func (rfs *ReverseFS) newFile(relPath string) (*reverseFile, fuse.Status) {
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	fd, err := syscallcompat.OpenNofollow(rfs.args.Cipherdir, pRelPath, syscall.O_RDONLY, 0)
+	dir := filepath.Dir(pRelPath)
+	dirfd, err := syscallcompat.OpenDirNofollow(rfs.args.Cipherdir, dir)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	fd, err := syscallcompat.Openat(dirfd, filepath.Base(pRelPath), syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
+	syscall.Close(dirfd)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}

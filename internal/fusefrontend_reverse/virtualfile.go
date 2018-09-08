@@ -91,7 +91,7 @@ func (f *virtualFile) Read(buf []byte, off int64) (resultData fuse.ReadResult, s
 // GetAttr - FUSE call
 func (f *virtualFile) GetAttr(a *fuse.Attr) fuse.Status {
 	dir := filepath.Dir(f.parentFile)
-	dirfd, err := syscallcompat.OpenNofollow(f.cipherdir, dir, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
+	dirfd, err := syscallcompat.OpenDirNofollow(f.cipherdir, dir)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}

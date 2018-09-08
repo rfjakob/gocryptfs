@@ -8,18 +8,18 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-// OpenNofollow opens the file/dir at "relPath" in a way that is secure against
+// OpenDirNofollow opens the dir at "relPath" in a way that is secure against
 // symlink attacks. Symlinks that are part of "relPath" are never followed.
 // This function is implemented by walking the directory tree, starting at
 // "baseDir", using the Openat syscall with the O_NOFOLLOW flag.
 // Symlinks that are part of the "baseDir" path are followed.
-func OpenNofollow(baseDir string, relPath string, flags int, mode uint32) (fd int, err error) {
+func OpenDirNofollow(baseDir string, relPath string) (fd int, err error) {
 	if !filepath.IsAbs(baseDir) {
-		tlog.Warn.Printf("BUG: OpenNofollow called with relative baseDir=%q", baseDir)
+		tlog.Warn.Printf("BUG: OpenDirNofollow called with relative baseDir=%q", baseDir)
 		return -1, syscall.EINVAL
 	}
 	if filepath.IsAbs(relPath) {
-		tlog.Warn.Printf("BUG: OpenNofollow called with absolute relPath=%q", relPath)
+		tlog.Warn.Printf("BUG: OpenDirNofollow called with absolute relPath=%q", relPath)
 		return -1, syscall.EINVAL
 	}
 	// Open the base dir (following symlinks)
@@ -31,14 +31,11 @@ func OpenNofollow(baseDir string, relPath string, flags int, mode uint32) (fd in
 	if relPath == "" {
 		return dirfd, nil
 	}
-	// Split the path into components and separate intermediate directories
-	// and the final basename
+	// Split the path into components
 	parts := strings.Split(relPath, "/")
-	dirs := parts[:len(parts)-1]
-	final := parts[len(parts)-1]
-	// Walk intermediate directories
+	// Walk the directory tree
 	var dirfd2 int
-	for _, name := range dirs {
+	for _, name := range parts {
 		dirfd2, err = Openat(dirfd, name, syscall.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_DIRECTORY, 0)
 		syscall.Close(dirfd)
 		if err != nil {
@@ -46,8 +43,6 @@ func OpenNofollow(baseDir string, relPath string, flags int, mode uint32) (fd in
 		}
 		dirfd = dirfd2
 	}
-	defer syscall.Close(dirfd)
-	// Open the final component with the flags and permissions requested by
-	// the user plus forced NOFOLLOW.
-	return Openat(dirfd, final, flags|syscall.O_NOFOLLOW, mode)
+	// Return fd to final directory
+	return dirfd, nil
 }

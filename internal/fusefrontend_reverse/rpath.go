@@ -108,7 +108,7 @@ func (rfs *ReverseFS) openBackingDir(cRelPath string) (dirfd int, pName string, 
 	}
 	// Open directory, safe against symlink races
 	pDir := filepath.Dir(pRelPath)
-	dirfd, err = syscallcompat.OpenNofollow(rfs.args.Cipherdir, pDir, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
+	dirfd, err = syscallcompat.OpenDirNofollow(rfs.args.Cipherdir, pDir)
 	if err != nil {
 		return -1, "", err
 	}
