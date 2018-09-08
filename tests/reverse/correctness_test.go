@@ -213,7 +213,9 @@ func TestTooLongSymlink(t *testing.T) {
 // all directory in the path with O_RDONLY. Now it uses O_PATH, which only needs
 // the executable bit.
 func Test0100Dir(t *testing.T) {
-	dir := dirA + "/" + t.Name()
+	// Note: t.Name() is not available before in Go 1.8
+	tName := "Test0100Dir"
+	dir := dirA + "/" + tName
 	err := os.Mkdir(dir, 0700)
 	if err != nil {
 		t.Fatal(err)
@@ -228,7 +230,7 @@ func Test0100Dir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fileReverse := dirC + "/" + t.Name() + "/hello"
+	fileReverse := dirC + "/" + tName + "/hello"
 	fd, err := os.Open(fileReverse)
 	// Make sure the dir can be removed after the test is done
 	os.Chmod(dir, 0700)

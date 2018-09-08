@@ -886,7 +886,9 @@ func TestMagicNames(t *testing.T) {
 
 // Test that chmod works correctly
 func TestChmod(t *testing.T) {
-	path := test_helpers.DefaultPlainDir + "/" + t.Name()
+	// Note: t.Name() is not available before in Go 1.8
+	tName := "TestChmod"
+	path := test_helpers.DefaultPlainDir + "/" + tName
 	file, err := os.Create(path)
 	if err != nil {
 		t.Fatal(err)
