@@ -207,3 +207,33 @@ func TestTooLongSymlink(t *testing.T) {
 			err2.Err)
 	}
 }
+
+// Test that we can traverse a directory with 0100 permissions
+// (execute but no read). This used to be a problem as OpenDirNofollow opened
+// all directory in the path with O_RDONLY. Now it uses O_PATH, which only needs
+// the executable bit.
+func Test0100Dir(t *testing.T) {
+	dir := dirA + "/" + t.Name()
+	err := os.Mkdir(dir, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := dir + "/hello"
+	err = ioutil.WriteFile(file, []byte("hello"), 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Chmod(dir, 0100)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fileReverse := dirC + "/" + t.Name() + "/hello"
+	fd, err := os.Open(fileReverse)
+	// Make sure the dir can be removed after the test is done
+	os.Chmod(dir, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fd.Close()
+}

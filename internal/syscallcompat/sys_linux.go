@@ -12,11 +12,16 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-const _FALLOC_FL_KEEP_SIZE = 0x01
+const (
+	_FALLOC_FL_KEEP_SIZE = 0x01
 
-// O_DIRECT means oncached I/O on Linux. No direct equivalent on MacOS and defined
-// to zero there.
-const O_DIRECT = syscall.O_DIRECT
+	// O_DIRECT means oncached I/O on Linux. No direct equivalent on MacOS and defined
+	// to zero there.
+	O_DIRECT = syscall.O_DIRECT
+
+	// O_PATH is only defined on Linux
+	O_PATH = unix.O_PATH
+)
 
 var preallocWarn sync.Once
 

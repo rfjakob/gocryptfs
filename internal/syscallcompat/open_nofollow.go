@@ -36,7 +36,7 @@ func OpenDirNofollow(baseDir string, relPath string) (fd int, err error) {
 	// Walk the directory tree
 	var dirfd2 int
 	for _, name := range parts {
-		dirfd2, err = Openat(dirfd, name, syscall.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_DIRECTORY, 0)
+		dirfd2, err = Openat(dirfd, name, syscall.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_DIRECTORY|O_PATH, 0)
 		syscall.Close(dirfd)
 		if err != nil {
 			return -1, err

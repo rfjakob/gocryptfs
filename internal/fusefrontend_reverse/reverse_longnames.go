@@ -63,9 +63,15 @@ func (rfs *ReverseFS) findLongnameParent(dir string, dirIV []byte, longname stri
 	if hit != "" {
 		return hit, nil
 	}
-	fd, err := syscallcompat.OpenDirNofollow(rfs.args.Cipherdir, dir)
+	dirfd, err := syscallcompat.OpenDirNofollow(rfs.args.Cipherdir, filepath.Dir(dir))
 	if err != nil {
-		tlog.Warn.Printf("findLongnameParent: opendir failed: %v\n", err)
+		tlog.Warn.Printf("findLongnameParent: OpenDirNofollow failed: %v\n", err)
+		return "", err
+	}
+	fd, err := syscallcompat.Openat(dirfd, filepath.Base(dir), syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
+	syscall.Close(dirfd)
+	if err != nil {
+		tlog.Warn.Printf("findLongnameParent: Openat failed: %v\n", err)
 		return "", err
 	}
 	dirEntries, err := syscallcompat.Getdents(fd)
