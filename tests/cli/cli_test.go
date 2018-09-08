@@ -495,3 +495,26 @@ func TestExcludeForward(t *testing.T) {
 	}
 	t.Log(err)
 }
+
+// Check that the config file can be read from a named pipe.
+// Make sure bug https://github.com/rfjakob/gocryptfs/issues/258 does not come
+// back.
+func TestConfigPipe(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	mnt := dir + ".mnt"
+	err := os.Mkdir(mnt, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bashLine := fmt.Sprintf("%s -q -extpass \"echo test\" -config <(cat %s/gocryptfs.conf) %s %s", test_helpers.GocryptfsBinary, dir, dir, mnt)
+	cmd := exec.Command("bash", "-c", bashLine)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stdout
+	err = cmd.Run()
+	exitCode := test_helpers.ExtractCmdExitCode(err)
+	if exitCode != 0 {
+		t.Errorf("bash command\n%q\nresulted in exit code %d", bashLine, exitCode)
+		return
+	}
+	test_helpers.UnmountPanic(mnt)
+}

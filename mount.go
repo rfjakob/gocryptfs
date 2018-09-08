@@ -94,7 +94,7 @@ func doMount(args *argContainer) {
 	}
 	// We cannot use JSON for pretty-printing as the fields are unexported
 	tlog.Debug.Printf("cli args: %#v", args)
-	// Initialize gocryptfs
+	// Initialize gocryptfs (read config file, ask for password, ...)
 	fs, wipeKeys := initFuseFrontend(args)
 	// Initialize go-fuse FUSE server
 	srv := initGoFuse(fs, args)

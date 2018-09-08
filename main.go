@@ -33,10 +33,10 @@ var BuildDate = "0000-00-00"
 var raceDetector bool
 
 // loadConfig loads the config file "args.config", prompting the user for the password
-func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.ConfFile, err error) {
+func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, err error) {
 	// First check if the file can be read at all, and find out if a Trezor should
 	// be used instead of a password.
-	cf1, err := configfile.Load(args.config)
+	cf, err = configfile.Load(args.config)
 	if err != nil {
 		tlog.Fatal.Printf("Cannot open config file: %v", err)
 		return nil, nil, err
@@ -45,18 +45,18 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 	// he forgot the password).
 	if args.masterkey != "" {
 		masterkey = parseMasterKey(args.masterkey, false)
-		return masterkey, cf1, nil
+		return masterkey, cf, nil
 	}
 	var pw []byte
-	if cf1.IsFeatureFlagSet(configfile.FlagTrezor) {
+	if cf.IsFeatureFlagSet(configfile.FlagTrezor) {
 		// Get binary data from from Trezor
-		pw = readpassword.Trezor(cf1.TrezorPayload)
+		pw = readpassword.Trezor(cf.TrezorPayload)
 	} else {
 		// Normal password entry
 		pw = readpassword.Once(args.extpass, "")
 	}
 	tlog.Info.Println("Decrypting master key")
-	masterkey, confFile, err = configfile.LoadAndDecrypt(args.config, pw)
+	masterkey, err = cf.DecryptMasterKey(pw)
 	for i := range pw {
 		pw[i] = 0
 	}
@@ -65,7 +65,7 @@ func loadConfig(args *argContainer) (masterkey []byte, confFile *configfile.Conf
 		tlog.Fatal.Println(err)
 		return nil, nil, err
 	}
-	return masterkey, confFile, nil
+	return masterkey, cf, nil
 }
 
 // changePassword - change the password of config file "filename"
