@@ -118,40 +118,63 @@ func Create(filename string, password []byte, plaintextNames bool,
 	return cf.WriteFile()
 }
 
-// Load - read config file from disk and decrypt the
+// LoadAndDecrypt - read config file from disk and decrypt the
 // contained key using "password".
 // Returns the decrypted key and the ConfFile object
 //
 // If "password" is empty, the config file is read
 // but the key is not decrypted (returns nil in its place).
-func Load(filename string, password []byte) ([]byte, *ConfFile, error) {
+func LoadAndDecrypt(filename string, password []byte) ([]byte, *ConfFile, error) {
+	cf, err := Load(filename)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(password) == 0 {
+		// We have validated the config file, but without a password we cannot
+		// decrypt the master key. Return only the parsed config.
+		return nil, cf, nil
+		// TODO: Make this an error in gocryptfs v1.7. All code should now call
+		// Load() instead of calling LoadAndDecrypt() with an empty password.
+	}
+
+	// Decrypt the masterkey using the password
+	key, err := cf.DecryptMasterKey(password)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return key, cf, err
+}
+
+// Load loads and parses the config file at "filename".
+func Load(filename string) (*ConfFile, error) {
 	var cf ConfFile
 	cf.filename = filename
 
 	// Read from disk
 	js, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if len(js) == 0 {
-		return nil, nil, fmt.Errorf("Config file is empty")
+		return nil, fmt.Errorf("Config file is empty")
 	}
 
 	// Unmarshal
 	err = json.Unmarshal(js, &cf)
 	if err != nil {
 		tlog.Warn.Printf("Failed to unmarshal config file")
-		return nil, nil, err
+		return nil, err
 	}
 
 	if cf.Version != contentenc.CurrentVersion {
-		return nil, nil, fmt.Errorf("Unsupported on-disk format %d", cf.Version)
+		return nil, fmt.Errorf("Unsupported on-disk format %d", cf.Version)
 	}
 
 	// Check that all set feature flags are known
 	for _, flag := range cf.FeatureFlags {
 		if !cf.isFeatureFlagKnown(flag) {
-			return nil, nil, fmt.Errorf("Unsupported feature flag %q", flag)
+			return nil, fmt.Errorf("Unsupported feature flag %q", flag)
 		}
 	}
 
@@ -181,20 +204,11 @@ func Load(filename string, password []byte) ([]byte, *ConfFile, error) {
 
 `+tlog.ColorReset)
 
-		return nil, nil, exitcodes.NewErr("Deprecated filesystem", exitcodes.DeprecatedFS)
-	}
-	if len(password) == 0 {
-		// We have validated the config file, but without a password we cannot
-		// decrypt the master key. Return only the parsed config.
-		return nil, &cf, nil
+		return nil, exitcodes.NewErr("Deprecated filesystem", exitcodes.DeprecatedFS)
 	}
 
-	key, err := cf.DecryptMasterKey(password)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return key, &cf, err
+	// All good
+	return &cf, nil
 }
 
 // DecryptMasterKey decrypts the masterkey stored in cf.EncryptedKey using

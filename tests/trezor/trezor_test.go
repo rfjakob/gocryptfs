@@ -35,7 +35,7 @@ func TestInitTrezor(t *testing.T) {
 	//                                        vvvvvvvvvvvvv disable -extpass
 	dir := test_helpers.InitFS(t, "-trezor", "-extpass", "")
 	// The freshly created config file should have the Trezor feature flag set.
-	_, c, err := configfile.Load(dir+"/"+configfile.ConfDefaultName, nil)
+	c, err := configfile.Load(dir + "/" + configfile.ConfDefaultName)
 	if err != nil {
 		t.Fatal(err)
 	}
