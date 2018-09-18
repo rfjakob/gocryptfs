@@ -518,3 +518,20 @@ func TestConfigPipe(t *testing.T) {
 	}
 	test_helpers.UnmountPanic(mnt)
 }
+
+// Ciphertext dir and mountpoint contains a comma
+// https://github.com/rfjakob/gocryptfs/issues/262
+func TestComma(t *testing.T) {
+	dir0 := test_helpers.InitFS(t)
+	dir := dir0 + ",foo,bar"
+	err := os.Rename(dir0, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mnt := dir + ".mnt"
+	err = test_helpers.Mount(dir, mnt, false, "-extpass", "echo test", "-wpanic=0")
+	if err != nil {
+		t.Fatalf("Failed to mount %q on %q: %v", dir, mnt, err)
+	}
+	test_helpers.UnmountPanic(mnt)
+}

@@ -309,6 +309,11 @@ func initGoFuse(fs pathfs.FileSystem, args *argContainer) *fuse.Server {
 	if args.fsname != "" {
 		fsname = args.fsname
 	}
+	fsname2 := strings.Replace(fsname, ",", "_", -1)
+	if fsname2 != fsname {
+		tlog.Warn.Printf("Warning: %q will be displayed as %q in \"df -T\"", fsname, fsname2)
+		fsname = fsname2
+	}
 	mOpts.Options = append(mOpts.Options, "fsname="+fsname)
 	// Second column, "Type", will be shown as "fuse." + Name
 	mOpts.Name = "gocryptfs"
