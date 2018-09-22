@@ -96,6 +96,7 @@ func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Stat
 
 // mangleOpenFlags is used by Create() and Open() to convert the open flags the user
 // wants to the flags we internally use to open the backing file.
+// The returned flags always contain O_NOFOLLOW.
 func (fs *FS) mangleOpenFlags(flags uint32) (newFlags int) {
 	newFlags = int(flags)
 	// Convert WRONLY to RDWR. We always need read access to do read-modify-write cycles.
@@ -109,7 +110,8 @@ func (fs *FS) mangleOpenFlags(flags uint32) (newFlags int) {
 	// accesses. Running xfstests generic/013 on ext4 used to trigger lots of
 	// EINVAL errors due to missing alignment. Just fall back to buffered IO.
 	newFlags = newFlags &^ syscallcompat.O_DIRECT
-
+	// We always want O_NOFOLLOW to be safe against symlink races
+	newFlags |= syscall.O_NOFOLLOW
 	return newFlags
 }
 
@@ -118,30 +120,29 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 	if fs.isFiltered(path) {
 		return nil, fuse.EPERM
 	}
+	newFlags := fs.mangleOpenFlags(flags)
 	// Taking this lock makes sure we don't race openWriteOnlyFile()
 	fs.openWriteOnlyLock.RLock()
 	defer fs.openWriteOnlyLock.RUnlock()
-
-	newFlags := fs.mangleOpenFlags(flags)
-	cPath, err := fs.getBackingPath(path)
+	// Symlink-safe open
+	dirfd, cName, err := fs.openBackingDir(path)
 	if err != nil {
-		tlog.Debug.Printf("Open: getBackingPath: %v", err)
 		return nil, fuse.ToStatus(err)
 	}
-	tlog.Debug.Printf("Open: %s", cPath)
-	f, err := os.OpenFile(cPath, newFlags, 0)
+	fd, err := syscallcompat.Openat(int(dirfd.Fd()), cName, newFlags, 0)
+	// Handle a few specific errors
 	if err != nil {
-		sysErr := err.(*os.PathError).Err
-		if sysErr == syscall.EMFILE {
+		if err == syscall.EMFILE {
 			var lim syscall.Rlimit
 			syscall.Getrlimit(syscall.RLIMIT_NOFILE, &lim)
-			tlog.Warn.Printf("Open %q: too many open files. Current \"ulimit -n\": %d", cPath, lim.Cur)
+			tlog.Warn.Printf("Open %q: too many open files. Current \"ulimit -n\": %d", cName, lim.Cur)
 		}
-		if sysErr == syscall.EACCES && (int(flags)&os.O_WRONLY > 0) {
-			return fs.openWriteOnlyFile(cPath, newFlags)
+		if err == syscall.EACCES && (int(flags)&os.O_WRONLY > 0) {
+			return fs.openWriteOnlyFile(dirfd, cName, newFlags)
 		}
 		return nil, fuse.ToStatus(err)
 	}
+	f := os.NewFile(uintptr(fd), cName)
 	return NewFile(f, fs)
 }
 
@@ -149,17 +150,18 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 // problem if the file permissions do not allow reading (i.e. 0200 permissions).
 // This function works around that problem by chmod'ing the file, obtaining a fd,
 // and chmod'ing it back.
-func (fs *FS) openWriteOnlyFile(cPath string, newFlags int) (fuseFile nodefs.File, status fuse.Status) {
-	woFd, err := os.OpenFile(cPath, os.O_WRONLY, 0)
+func (fs *FS) openWriteOnlyFile(dirfd *os.File, cName string, newFlags int) (fuseFile nodefs.File, status fuse.Status) {
+	woFd, err := syscallcompat.Openat(int(dirfd.Fd()), cName, syscall.O_WRONLY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	defer woFd.Close()
-	fi, err := woFd.Stat()
+	defer syscall.Close(woFd)
+	var st syscall.Stat_t
+	err = syscall.Fstat(woFd, &st)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	perms := fi.Mode().Perm()
+	perms := st.Mode & 0777
 	// Verify that we don't have read permissions
 	if perms&0400 != 0 {
 		tlog.Warn.Printf("openWriteOnlyFile: unexpected permissions %#o, returning EPERM", perms)
@@ -173,22 +175,23 @@ func (fs *FS) openWriteOnlyFile(cPath string, newFlags int) (fuseFile nodefs.Fil
 		fs.openWriteOnlyLock.RLock()
 	}()
 	// Relax permissions and revert on return
-	err = woFd.Chmod(perms | 0400)
+	syscall.Fchmod(woFd, perms|0400)
 	if err != nil {
 		tlog.Warn.Printf("openWriteOnlyFile: changing permissions failed: %v", err)
 		return nil, fuse.ToStatus(err)
 	}
 	defer func() {
-		err2 := woFd.Chmod(perms)
+		err2 := syscall.Fchmod(woFd, perms)
 		if err2 != nil {
 			tlog.Warn.Printf("openWriteOnlyFile: reverting permissions failed: %v", err2)
 		}
 	}()
-	rwFd, err := os.OpenFile(cPath, newFlags, 0)
+	rwFd, err := syscallcompat.Openat(int(dirfd.Fd()), cName, newFlags, 0)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	return NewFile(rwFd, fs)
+	f := os.NewFile(uintptr(rwFd), cName)
+	return NewFile(f, fs)
 }
 
 // Create implements pathfs.Filesystem.
