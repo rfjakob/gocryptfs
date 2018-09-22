@@ -196,57 +196,47 @@ func (fs *FS) openWriteOnlyFile(dirfd int, cName string, newFlags int) (fuseFile
 }
 
 // Create implements pathfs.Filesystem.
-func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Context) (fuseFile nodefs.File, code fuse.Status) {
+func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Context) (nodefs.File, fuse.Status) {
 	if fs.isFiltered(path) {
 		return nil, fuse.EPERM
 	}
 	newFlags := fs.mangleOpenFlags(flags)
-	cPath, err := fs.getBackingPath(path)
+	dirfd, cName, err := fs.openBackingDir(path)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-
-	var fd *os.File
-	cName := filepath.Base(cPath)
-
+	defer syscall.Close(dirfd)
+	fd := -1
 	// Handle long file name
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
-		var dirfd int
-		dirfd, err = syscall.Open(filepath.Dir(cPath), syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
-		if err != nil {
-			return nil, fuse.ToStatus(err)
-		}
-		defer syscall.Close(dirfd)
-
 		// Create ".name"
 		err = fs.nameTransform.WriteLongName(dirfd, cName, path)
 		if err != nil {
 			return nil, fuse.ToStatus(err)
 		}
-
 		// Create content
-		var fdRaw int
-		fdRaw, err = syscallcompat.Openat(dirfd, cName, newFlags|os.O_CREATE|os.O_EXCL, mode)
+		fd, err = syscallcompat.Openat(dirfd, cName, newFlags|os.O_CREATE|os.O_EXCL, mode)
 		if err != nil {
 			nametransform.DeleteLongName(dirfd, cName)
 			return nil, fuse.ToStatus(err)
 		}
-		fd = os.NewFile(uintptr(fdRaw), cName)
+
 	} else {
-		// Normal (short) file name
-		fd, err = os.OpenFile(cPath, newFlags|os.O_CREATE|os.O_EXCL, os.FileMode(mode))
+		// Create content, normal (short) file name
+		fd, err = syscallcompat.Openat(dirfd, cName, newFlags|syscall.O_CREAT|syscall.O_EXCL, mode)
 		if err != nil {
 			return nil, fuse.ToStatus(err)
 		}
 	}
 	// Set owner
 	if fs.args.PreserveOwner {
-		err = fd.Chown(int(context.Owner.Uid), int(context.Owner.Gid))
+		err = syscall.Fchown(fd, int(context.Owner.Uid), int(context.Owner.Gid))
 		if err != nil {
-			tlog.Warn.Printf("Create: fd.Chown failed: %v", err)
+			tlog.Warn.Printf("Create: Fchown() failed: %v", err)
 		}
 	}
-	return NewFile(fd, fs)
+	f := os.NewFile(uintptr(fd), cName)
+	return NewFile(f, fs)
 }
 
 // Chmod implements pathfs.Filesystem.
