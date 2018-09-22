@@ -485,65 +485,39 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 	if fs.isFiltered(newPath) {
 		return fuse.EPERM
 	}
-	cOldPath, err := fs.getBackingPath(oldPath)
+	oldDirfd, oldCName, err := fs.openBackingDir(oldPath)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	cNewPath, err := fs.getBackingPath(newPath)
+	defer syscall.Close(oldDirfd)
+	newDirfd, newCName, err := fs.openBackingDir(newPath)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
+	defer syscall.Close(newDirfd)
 	// The Rename may cause a directory to take the place of another directory.
 	// That directory may still be in the DirIV cache, clear it.
 	fs.nameTransform.DirIVCache.Clear()
 	// Easy case.
 	if fs.args.PlaintextNames {
-		return fuse.ToStatus(syscall.Rename(cOldPath, cNewPath))
+		return fuse.ToStatus(syscallcompat.Renameat(oldDirfd, oldCName, newDirfd, newCName))
 	}
-	// Handle long source file name
-	oldDirFd := -1
-	finalOldDirFd := -1
-	var finalOldPath = cOldPath
-	cOldName := filepath.Base(cOldPath)
-	if nametransform.IsLongContent(cOldName) {
-		oldDirFd, err = syscall.Open(filepath.Dir(cOldPath), syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
-		if err != nil {
-			return fuse.ToStatus(err)
-		}
-		defer syscall.Close(oldDirFd)
-		finalOldDirFd = oldDirFd
-		// Use relative path
-		finalOldPath = cOldName
-	}
-	// Handle long destination file name
-	newDirFd := -1
-	finalNewDirFd := -1
-	finalNewPath := cNewPath
-	cNewName := filepath.Base(cNewPath)
-	if nametransform.IsLongContent(cNewName) {
-		newDirFd, err = syscall.Open(filepath.Dir(cNewPath), syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
-		if err != nil {
-			return fuse.ToStatus(err)
-		}
-		defer syscall.Close(newDirFd)
-		finalNewDirFd = newDirFd
-		// Use relative path
-		finalNewPath = cNewName
-		// Create destination .name file
-		err = fs.nameTransform.WriteLongName(newDirFd, cNewName, newPath)
+	// Long destination file name: create .name file
+	nameFileAlreadyThere := false
+	if nametransform.IsLongContent(newCName) {
+		err = fs.nameTransform.WriteLongName(newDirfd, newCName, newPath)
 		// Failure to write the .name file is expected when the target path already
 		// exists. Since hashes are pretty unique, there is no need to modify the
-		// file anyway. We still set newDirFd to nil to ensure that we do not delete
-		// the file on error.
+		// .name file in this case, and we ignore the error.
 		if err == syscall.EEXIST {
-			newDirFd = -1
+			nameFileAlreadyThere = true
 		} else if err != nil {
 			return fuse.ToStatus(err)
 		}
 	}
 	// Actual rename
-	tlog.Debug.Printf("Renameat oldfd=%d oldpath=%s newfd=%d newpath=%s\n", finalOldDirFd, finalOldPath, finalNewDirFd, finalNewPath)
-	err = syscallcompat.Renameat(finalOldDirFd, finalOldPath, finalNewDirFd, finalNewPath)
+	tlog.Debug.Printf("Renameat %d/%s -> %d/%s\n", oldDirfd, oldCName, newDirfd, newCName)
+	err = syscallcompat.Renameat(oldDirfd, oldCName, newDirfd, newCName)
 	if err == syscall.ENOTEMPTY || err == syscall.EEXIST {
 		// If an empty directory is overwritten we will always get an error as
 		// the "empty" directory will still contain gocryptfs.diriv.
@@ -552,18 +526,18 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 		// again.
 		tlog.Debug.Printf("Rename: Handling ENOTEMPTY")
 		if fs.Rmdir(newPath, context) == fuse.OK {
-			err = syscallcompat.Renameat(finalOldDirFd, finalOldPath, finalNewDirFd, finalNewPath)
+			err = syscallcompat.Renameat(oldDirfd, oldCName, newDirfd, newCName)
 		}
 	}
 	if err != nil {
-		if newDirFd >= 0 {
-			// Roll back .name creation
-			nametransform.DeleteLongName(newDirFd, cNewName)
+		if nametransform.IsLongContent(newCName) && nameFileAlreadyThere == false {
+			// Roll back .name creation unless the .name file was already there
+			nametransform.DeleteLongName(newDirfd, newCName)
 		}
 		return fuse.ToStatus(err)
 	}
-	if oldDirFd >= 0 {
-		nametransform.DeleteLongName(oldDirFd, cOldName)
+	if nametransform.IsLongContent(oldCName) {
+		nametransform.DeleteLongName(oldDirfd, oldCName)
 	}
 	return fuse.OK
 }
