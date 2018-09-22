@@ -58,10 +58,18 @@ func Fallocate(fd int, mode uint32, off int64, len int64) (err error) {
 
 // Openat wraps the Openat syscall.
 func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) {
-	// Why would we ever want to call this without O_NOFOLLOW and O_EXCL?
-	if !(flags&syscall.O_CREAT != 0 && flags&syscall.O_EXCL != 0) && flags&syscall.O_NOFOLLOW == 0 {
-		tlog.Warn.Printf("Openat: adding missing O_NOFOLLOW flag")
-		flags |= syscall.O_NOFOLLOW
+	if flags&syscall.O_CREAT != 0 {
+		// O_CREAT should be used with O_EXCL. O_NOFOLLOW has no effect with O_EXCL.
+		if flags&syscall.O_EXCL == 0 {
+			tlog.Warn.Printf("Openat: O_CREAT without O_EXCL: flags = %#x", flags)
+			flags |= syscall.O_EXCL
+		}
+	} else {
+		// If O_CREAT is not used, we should use O_NOFOLLOW
+		if flags&syscall.O_NOFOLLOW == 0 {
+			tlog.Warn.Printf("Openat: O_NOFOLLOW missing: flags = %#x", flags)
+			flags |= syscall.O_NOFOLLOW
+		}
 	}
 	return syscall.Openat(dirfd, path, flags, mode)
 }
