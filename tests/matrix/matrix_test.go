@@ -896,8 +896,16 @@ func TestChmod(t *testing.T) {
 	file.Close()
 	modes := []os.FileMode{0777, 0707, 0606, 0666, 0444, 0000, 0111, 0123, 0321}
 	for _, modeWant := range modes {
-		os.Chmod(path, modeWant)
 		fi, err := os.Stat(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = syscall.Chmod(path, uint32(modeWant))
+		if err != nil {
+			t.Errorf("chmod %03o -> %03o failed: %v", fi.Mode(), modeWant, err)
+			continue
+		}
+		fi, err = os.Stat(path)
 		if err != nil {
 			t.Fatal(err)
 		}
