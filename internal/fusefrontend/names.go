@@ -44,17 +44,18 @@ func (fs *FS) getBackingPath(relPath string) (string, error) {
 // "relPath" and returns the dirfd and the encrypted basename.
 // The caller should then use Openat(dirfd, cName, ...) and friends.
 // openBackingDir is secure against symlink races.
-func (fs *FS) openBackingDir(relPath string) (int, string, error) {
+func (fs *FS) openBackingDir(relPath string) (dirfd int, cName string, err error) {
 	cRelPath, err := fs.encryptPath(relPath)
 	if err != nil {
 		return -1, "", err
 	}
 	// Open parent dir
-	dirfd, err := syscallcompat.OpenDirNofollow(fs.args.Cipherdir, filepath.Dir(cRelPath))
+	dirfd, err = syscallcompat.OpenDirNofollow(fs.args.Cipherdir, filepath.Dir(cRelPath))
 	if err != nil {
 		return -1, "", err
 	}
-	return dirfd, filepath.Base(cRelPath), nil
+	cName = filepath.Base(cRelPath)
+	return dirfd, cName, nil
 }
 
 // encryptPath - encrypt relative plaintext path
