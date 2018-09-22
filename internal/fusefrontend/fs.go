@@ -129,6 +129,7 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
+	defer syscall.Close(dirfd)
 	fd, err := syscallcompat.Openat(dirfd, cName, newFlags, 0)
 	// Handle a few specific errors
 	if err != nil {
