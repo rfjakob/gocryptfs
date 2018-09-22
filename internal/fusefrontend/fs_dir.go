@@ -26,7 +26,7 @@ const dsStoreName = ".DS_Store"
 // mkdirWithIv - create a new directory and corresponding diriv file. dirfd
 // should be a handle to the parent directory, cName is the name of the new
 // directory and mode specifies the access permissions to use.
-func (fs *FS) mkdirWithIv(dirfd *os.File, cName string, mode uint32) error {
+func (fs *FS) mkdirWithIv(dirfd int, cName string, mode uint32) error {
 	// Between the creation of the directory and the creation of gocryptfs.diriv
 	// the directory is inconsistent. Take the lock to prevent other readers
 	// from seeing it.
@@ -34,14 +34,14 @@ func (fs *FS) mkdirWithIv(dirfd *os.File, cName string, mode uint32) error {
 	// The new directory may take the place of an older one that is still in the cache
 	fs.nameTransform.DirIVCache.Clear()
 	defer fs.dirIVLock.Unlock()
-	err := syscallcompat.Mkdirat(int(dirfd.Fd()), cName, mode)
+	err := syscallcompat.Mkdirat(dirfd, cName, mode)
 	if err != nil {
 		return err
 	}
 	// Create gocryptfs.diriv
 	err = nametransform.WriteDirIV(dirfd, cName)
 	if err != nil {
-		err2 := syscallcompat.Unlinkat(int(dirfd.Fd()), cName, unix.AT_REMOVEDIR)
+		err2 := syscallcompat.Unlinkat(dirfd, cName, unix.AT_REMOVEDIR)
 		if err2 != nil {
 			tlog.Warn.Printf("mkdirWithIv: rollback failed: %v", err2)
 		}
@@ -58,12 +58,12 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	defer dirfd.Close()
+	defer syscall.Close(dirfd)
 	if fs.args.PlaintextNames {
-		err = syscallcompat.Mkdirat(int(dirfd.Fd()), cName, mode)
+		err = syscallcompat.Mkdirat(dirfd, cName, mode)
 		// Set owner
 		if fs.args.PreserveOwner {
-			err = syscallcompat.Fchownat(int(dirfd.Fd()), cName, int(context.Owner.Uid),
+			err = syscallcompat.Fchownat(dirfd, cName, int(context.Owner.Uid),
 				int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
 			if err != nil {
 				tlog.Warn.Printf("Mkdir: Fchownat failed: %v", err)
@@ -98,19 +98,19 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 	}
 	// Set permissions back to what the user wanted
 	if origMode != mode {
-		err = syscallcompat.Fchmodat(int(dirfd.Fd()), cName, origMode, unix.AT_SYMLINK_NOFOLLOW)
+		err = syscallcompat.Fchmodat(dirfd, cName, origMode, unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
 			tlog.Warn.Printf("Mkdir: Fchmodat failed: %v", err)
 		}
 	}
 	// Set owner
 	if fs.args.PreserveOwner {
-		err = syscallcompat.Fchownat(int(dirfd.Fd()), cName, int(context.Owner.Uid),
+		err = syscallcompat.Fchownat(dirfd, cName, int(context.Owner.Uid),
 			int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
 			tlog.Warn.Printf("Mkdir: Fchownat 1 failed: %v", err)
 		}
-		err = syscallcompat.Fchownat(int(dirfd.Fd()), filepath.Join(cName, nametransform.DirIVFilename),
+		err = syscallcompat.Fchownat(dirfd, filepath.Join(cName, nametransform.DirIVFilename),
 			int(context.Owner.Uid), int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
 			tlog.Warn.Printf("Mkdir: Fchownat 2 failed: %v", err)
@@ -120,9 +120,9 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 }
 
 // haveDsstore return true if one of the entries in "names" is ".DS_Store".
-func haveDsstore(names []string) bool {
-	for _, n := range names {
-		if n == dsStoreName {
+func haveDsstore(entries []fuse.DirEntry) bool {
+	for _, e := range entries {
+		if e.Name == dsStoreName {
 			return true
 		}
 	}
@@ -140,14 +140,14 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 		return fuse.ToStatus(err)
 	}
 	parentDir := filepath.Dir(cPath)
-	parentDirFd, err := os.Open(parentDir)
+	parentDirFd, err := syscall.Open(parentDir, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	defer parentDirFd.Close()
+	defer syscall.Close(parentDirFd)
 
 	cName := filepath.Base(cPath)
-	dirfdRaw, err := syscallcompat.Openat(int(parentDirFd.Fd()), cName,
+	dirfd, err := syscallcompat.Openat(parentDirFd, cName,
 		syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
 	if err == syscall.EACCES {
 		// We need permission to read and modify the directory
@@ -169,7 +169,7 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 		// Retry open
 		var st syscall.Stat_t
 		syscall.Lstat(cPath, &st)
-		dirfdRaw, err = syscallcompat.Openat(int(parentDirFd.Fd()), cName,
+		dirfd, err = syscallcompat.Openat(parentDirFd, cName,
 			syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
 		// Undo the chmod if removing the directory failed
 		defer func() {
@@ -185,11 +185,10 @@ func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 		tlog.Debug.Printf("Rmdir: Open: %v", err)
 		return fuse.ToStatus(err)
 	}
-	dirfd := os.NewFile(uintptr(dirfdRaw), cName)
-	defer dirfd.Close()
+	defer syscall.Close(dirfd)
 retry:
 	// Check directory contents
-	children, err := dirfd.Readdirnames(10)
+	children, err := syscallcompat.Getdents(dirfd)
 	if err == io.EOF {
 		// The directory is empty
 		tlog.Warn.Printf("Rmdir: %q: gocryptfs.diriv is missing", cPath)
@@ -223,27 +222,27 @@ retry:
 	// Protect against concurrent readers.
 	fs.dirIVLock.Lock()
 	defer fs.dirIVLock.Unlock()
-	err = syscallcompat.Renameat(int(dirfd.Fd()), nametransform.DirIVFilename,
-		int(parentDirFd.Fd()), tmpName)
+	err = syscallcompat.Renameat(dirfd, nametransform.DirIVFilename,
+		parentDirFd, tmpName)
 	if err != nil {
 		tlog.Warn.Printf("Rmdir: Renaming %s to %s failed: %v",
 			nametransform.DirIVFilename, tmpName, err)
 		return fuse.ToStatus(err)
 	}
 	// Actual Rmdir
-	err = syscallcompat.Unlinkat(int(parentDirFd.Fd()), cName, unix.AT_REMOVEDIR)
+	err = syscallcompat.Unlinkat(parentDirFd, cName, unix.AT_REMOVEDIR)
 	if err != nil {
 		// This can happen if another file in the directory was created in the
 		// meantime, undo the rename
-		err2 := syscallcompat.Renameat(int(parentDirFd.Fd()), tmpName,
-			int(dirfd.Fd()), nametransform.DirIVFilename)
+		err2 := syscallcompat.Renameat(parentDirFd, tmpName,
+			dirfd, nametransform.DirIVFilename)
 		if err != nil {
 			tlog.Warn.Printf("Rmdir: Rename rollback failed: %v", err2)
 		}
 		return fuse.ToStatus(err)
 	}
 	// Delete "gocryptfs.diriv.rmdir.XYZ"
-	err = syscallcompat.Unlinkat(int(parentDirFd.Fd()), tmpName, 0)
+	err = syscallcompat.Unlinkat(parentDirFd, tmpName, 0)
 	if err != nil {
 		tlog.Warn.Printf("Rmdir: Could not clean up %s: %v", tmpName, err)
 	}

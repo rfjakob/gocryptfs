@@ -44,8 +44,8 @@ func ReadDirIV(dir string) (iv []byte, err error) {
 
 // ReadDirIVAt reads "gocryptfs.diriv" from the directory that is opened as "dirfd".
 // Using the dirfd makes it immune to concurrent renames of the directory.
-func ReadDirIVAt(dirfd *os.File) (iv []byte, err error) {
-	fdRaw, err := syscallcompat.Openat(int(dirfd.Fd()), DirIVFilename,
+func ReadDirIVAt(dirfd int) (iv []byte, err error) {
+	fdRaw, err := syscallcompat.Openat(dirfd, DirIVFilename,
 		syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		return nil, fmt.Errorf("openat failed: %v", err)
@@ -82,16 +82,16 @@ func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 // "dir" should be a path (without slashes) relative to the directory
 // described by "dirfd". This function is exported because it is used from
 // pathfs_frontend, main, and also the automated tests.
-func WriteDirIV(dirfd *os.File, dir string) error {
+func WriteDirIV(dirfd int, dir string) error {
 	// For relative paths we do not expect that "dir" contains slashes
-	if dirfd != nil && strings.Contains(dir, "/") {
+	if dirfd >= 0 && strings.Contains(dir, "/") {
 		log.Panicf("WriteDirIV: Relative path should not contain slashes: %v", dir)
 	}
 	iv := cryptocore.RandBytes(DirIVLen)
 	file := filepath.Join(dir, DirIVFilename)
 	// 0400 permissions: gocryptfs.diriv should never be modified after creation.
 	// Don't use "ioutil.WriteFile", it causes trouble on NFS: https://github.com/rfjakob/gocryptfs/issues/105
-	fdRaw, err := syscallcompat.Openat(int(dirfd.Fd()), file, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0400)
+	fdRaw, err := syscallcompat.Openat(dirfd, file, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0400)
 	if err != nil {
 		tlog.Warn.Printf("WriteDirIV: Openat: %v", err)
 		return err
@@ -105,14 +105,14 @@ func WriteDirIV(dirfd *os.File, dir string) error {
 			tlog.Warn.Printf("WriteDirIV: Write: %v", err)
 		}
 		// Delete incomplete gocryptfs.diriv file
-		syscallcompat.Unlinkat(int(dirfd.Fd()), file, 0)
+		syscallcompat.Unlinkat(dirfd, file, 0)
 		return err
 	}
 	err = fd.Close()
 	if err != nil {
 		tlog.Warn.Printf("WriteDirIV: Close: %v", err)
 		// Delete incomplete gocryptfs.diriv file
-		syscallcompat.Unlinkat(int(dirfd.Fd()), file, 0)
+		syscallcompat.Unlinkat(dirfd, file, 0)
 		return err
 	}
 	return nil

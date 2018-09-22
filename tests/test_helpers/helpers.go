@@ -110,7 +110,7 @@ func ResetTmpDir(createDirIV bool) {
 		panic(err)
 	}
 	if createDirIV {
-		err = nametransform.WriteDirIV(nil, DefaultCipherDir)
+		err = nametransform.WriteDirIV(-1, DefaultCipherDir)
 		if err != nil {
 			panic(err)
 		}

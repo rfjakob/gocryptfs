@@ -3,7 +3,6 @@ package fusefrontend
 // This file forwards file encryption operations to cryptfs
 
 import (
-	"os"
 	"path/filepath"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
@@ -45,17 +44,17 @@ func (fs *FS) getBackingPath(relPath string) (string, error) {
 // "relPath" and returns the dirfd and the encrypted basename.
 // The caller should then use Openat(dirfd, cName, ...) and friends.
 // openBackingDir is secure against symlink races.
-func (fs *FS) openBackingDir(relPath string) (*os.File, string, error) {
+func (fs *FS) openBackingDir(relPath string) (int, string, error) {
 	cRelPath, err := fs.encryptPath(relPath)
 	if err != nil {
-		return nil, "", err
+		return -1, "", err
 	}
 	// Open parent dir
 	dirfd, err := syscallcompat.OpenDirNofollow(fs.args.Cipherdir, filepath.Dir(cRelPath))
 	if err != nil {
-		return nil, "", err
+		return -1, "", err
 	}
-	return os.NewFile(uintptr(dirfd), cRelPath), filepath.Base(cRelPath), nil
+	return dirfd, filepath.Base(cRelPath), nil
 }
 
 // encryptPath - encrypt relative plaintext path

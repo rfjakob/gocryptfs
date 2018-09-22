@@ -129,7 +129,7 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	fd, err := syscallcompat.Openat(int(dirfd.Fd()), cName, newFlags, 0)
+	fd, err := syscallcompat.Openat(dirfd, cName, newFlags, 0)
 	// Handle a few specific errors
 	if err != nil {
 		if err == syscall.EMFILE {
@@ -150,8 +150,8 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 // problem if the file permissions do not allow reading (i.e. 0200 permissions).
 // This function works around that problem by chmod'ing the file, obtaining a fd,
 // and chmod'ing it back.
-func (fs *FS) openWriteOnlyFile(dirfd *os.File, cName string, newFlags int) (fuseFile nodefs.File, status fuse.Status) {
-	woFd, err := syscallcompat.Openat(int(dirfd.Fd()), cName, syscall.O_WRONLY|syscall.O_NOFOLLOW, 0)
+func (fs *FS) openWriteOnlyFile(dirfd int, cName string, newFlags int) (fuseFile nodefs.File, status fuse.Status) {
+	woFd, err := syscallcompat.Openat(dirfd, cName, syscall.O_WRONLY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
@@ -186,7 +186,7 @@ func (fs *FS) openWriteOnlyFile(dirfd *os.File, cName string, newFlags int) (fus
 			tlog.Warn.Printf("openWriteOnlyFile: reverting permissions failed: %v", err2)
 		}
 	}()
-	rwFd, err := syscallcompat.Openat(int(dirfd.Fd()), cName, newFlags, 0)
+	rwFd, err := syscallcompat.Openat(dirfd, cName, newFlags, 0)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
@@ -210,12 +210,12 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 
 	// Handle long file name
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
-		var dirfd *os.File
-		dirfd, err = os.Open(filepath.Dir(cPath))
+		var dirfd int
+		dirfd, err = syscall.Open(filepath.Dir(cPath), syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
 		if err != nil {
 			return nil, fuse.ToStatus(err)
 		}
-		defer dirfd.Close()
+		defer syscall.Close(dirfd)
 
 		// Create ".name"
 		err = fs.nameTransform.WriteLongName(dirfd, cName, path)
@@ -225,7 +225,7 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 
 		// Create content
 		var fdRaw int
-		fdRaw, err = syscallcompat.Openat(int(dirfd.Fd()), cName, newFlags|os.O_CREATE|os.O_EXCL, mode)
+		fdRaw, err = syscallcompat.Openat(dirfd, cName, newFlags|os.O_CREATE|os.O_EXCL, mode)
 		if err != nil {
 			nametransform.DeleteLongName(dirfd, cName)
 			return nil, fuse.ToStatus(err)
@@ -257,10 +257,10 @@ func (fs *FS) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	defer dirfd.Close()
+	defer syscall.Close(dirfd)
 	// os.Chmod goes through the "syscallMode" translation function that messes
 	// up the suid and sgid bits. So use a syscall directly.
-	err = syscallcompat.Fchmodat(int(dirfd.Fd()), cName, mode, unix.AT_SYMLINK_NOFOLLOW)
+	err = syscallcompat.Fchmodat(dirfd, cName, mode, unix.AT_SYMLINK_NOFOLLOW)
 	return fuse.ToStatus(err)
 }
 
@@ -273,8 +273,8 @@ func (fs *FS) Chown(path string, uid uint32, gid uint32, context *fuse.Context) 
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	defer dirfd.Close()
-	code = fuse.ToStatus(syscallcompat.Fchownat(int(dirfd.Fd()), cName, int(uid), int(gid), unix.AT_SYMLINK_NOFOLLOW))
+	defer syscall.Close(dirfd)
+	code = fuse.ToStatus(syscallcompat.Fchownat(dirfd, cName, int(uid), int(gid), unix.AT_SYMLINK_NOFOLLOW))
 	if !code.Ok() {
 		return code
 	}
@@ -284,7 +284,7 @@ func (fs *FS) Chown(path string, uid uint32, gid uint32, context *fuse.Context) 
 		// Instead of checking if "cName" is a directory, we just blindly
 		// execute the chown on "cName/gocryptfs.diriv" and ignore errors.
 		dirIVPath := filepath.Join(cName, nametransform.DirIVFilename)
-		syscallcompat.Fchownat(int(dirfd.Fd()), dirIVPath, int(uid), int(gid), unix.AT_SYMLINK_NOFOLLOW)
+		syscallcompat.Fchownat(dirfd, dirIVPath, int(uid), int(gid), unix.AT_SYMLINK_NOFOLLOW)
 	}
 	return fuse.OK
 }
@@ -298,7 +298,7 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	defer dirfd.Close()
+	defer syscall.Close(dirfd)
 	// Create ".name" file to store long file name (except in PlaintextNames mode)
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
 		err = fs.nameTransform.WriteLongName(dirfd, cName, path)
@@ -306,20 +306,20 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 			return fuse.ToStatus(err)
 		}
 		// Create "gocryptfs.longfile." device node
-		err = syscallcompat.Mknodat(int(dirfd.Fd()), cName, mode, int(dev))
+		err = syscallcompat.Mknodat(dirfd, cName, mode, int(dev))
 		if err != nil {
 			nametransform.DeleteLongName(dirfd, cName)
 		}
 	} else {
 		// Create regular device node
-		err = syscallcompat.Mknodat(int(dirfd.Fd()), cName, mode, int(dev))
+		err = syscallcompat.Mknodat(dirfd, cName, mode, int(dev))
 	}
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
 	// Set owner
 	if fs.args.PreserveOwner {
-		err = syscallcompat.Fchownat(int(dirfd.Fd()), cName, int(context.Owner.Uid),
+		err = syscallcompat.Fchownat(dirfd, cName, int(context.Owner.Uid),
 			int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
 			tlog.Warn.Printf("Mknod: Fchownat failed: %v", err)
@@ -416,9 +416,9 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	defer dirfd.Close()
+	defer syscall.Close(dirfd)
 	// Delete content
-	err = syscallcompat.Unlinkat(int(dirfd.Fd()), cName, 0)
+	err = syscallcompat.Unlinkat(dirfd, cName, 0)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
@@ -454,7 +454,7 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	defer dirfd.Close()
+	defer syscall.Close(dirfd)
 	cTarget := target
 	if !fs.args.PlaintextNames {
 		// Symlinks are encrypted like file contents (GCM) and base64-encoded
@@ -467,20 +467,20 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 			return fuse.ToStatus(err)
 		}
 		// Create "gocryptfs.longfile." symlink
-		err = syscallcompat.Symlinkat(cTarget, int(dirfd.Fd()), cName)
+		err = syscallcompat.Symlinkat(cTarget, dirfd, cName)
 		if err != nil {
 			nametransform.DeleteLongName(dirfd, cName)
 		}
 	} else {
 		// Create symlink
-		err = syscallcompat.Symlinkat(cTarget, int(dirfd.Fd()), cName)
+		err = syscallcompat.Symlinkat(cTarget, dirfd, cName)
 	}
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
 	// Set owner
 	if fs.args.PreserveOwner {
-		err = syscallcompat.Fchownat(int(dirfd.Fd()), cName, int(context.Owner.Uid),
+		err = syscallcompat.Fchownat(dirfd, cName, int(context.Owner.Uid),
 			int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
 			tlog.Warn.Printf("Symlink: Fchownat failed: %v", err)
@@ -510,32 +510,32 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 		return fuse.ToStatus(syscall.Rename(cOldPath, cNewPath))
 	}
 	// Handle long source file name
-	var oldDirFd *os.File
-	var finalOldDirFd int
+	oldDirFd := -1
+	finalOldDirFd := -1
 	var finalOldPath = cOldPath
 	cOldName := filepath.Base(cOldPath)
 	if nametransform.IsLongContent(cOldName) {
-		oldDirFd, err = os.Open(filepath.Dir(cOldPath))
+		oldDirFd, err = syscall.Open(filepath.Dir(cOldPath), syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
 		if err != nil {
 			return fuse.ToStatus(err)
 		}
-		defer oldDirFd.Close()
-		finalOldDirFd = int(oldDirFd.Fd())
+		defer syscall.Close(oldDirFd)
+		finalOldDirFd = oldDirFd
 		// Use relative path
 		finalOldPath = cOldName
 	}
 	// Handle long destination file name
-	var newDirFd *os.File
-	var finalNewDirFd int
-	var finalNewPath = cNewPath
+	newDirFd := -1
+	finalNewDirFd := -1
+	finalNewPath := cNewPath
 	cNewName := filepath.Base(cNewPath)
 	if nametransform.IsLongContent(cNewName) {
-		newDirFd, err = os.Open(filepath.Dir(cNewPath))
+		newDirFd, err = syscall.Open(filepath.Dir(cNewPath), syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
 		if err != nil {
 			return fuse.ToStatus(err)
 		}
-		defer newDirFd.Close()
-		finalNewDirFd = int(newDirFd.Fd())
+		defer syscall.Close(newDirFd)
+		finalNewDirFd = newDirFd
 		// Use relative path
 		finalNewPath = cNewName
 		// Create destination .name file
@@ -545,7 +545,7 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 		// file anyway. We still set newDirFd to nil to ensure that we do not delete
 		// the file on error.
 		if err == syscall.EEXIST {
-			newDirFd = nil
+			newDirFd = -1
 		} else if err != nil {
 			return fuse.ToStatus(err)
 		}
@@ -565,13 +565,13 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 		}
 	}
 	if err != nil {
-		if newDirFd != nil {
+		if newDirFd >= 0 {
 			// Roll back .name creation
 			nametransform.DeleteLongName(newDirFd, cNewName)
 		}
 		return fuse.ToStatus(err)
 	}
-	if oldDirFd != nil {
+	if oldDirFd >= 0 {
 		nametransform.DeleteLongName(oldDirFd, cOldName)
 	}
 	return fuse.OK
@@ -586,12 +586,12 @@ func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code 
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	defer oldDirFd.Close()
+	defer syscall.Close(oldDirFd)
 	newDirFd, cNewName, err := fs.openBackingDir(newPath)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	defer newDirFd.Close()
+	defer syscall.Close(newDirFd)
 	// Handle long file name (except in PlaintextNames mode)
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cNewName) {
 		err = fs.nameTransform.WriteLongName(newDirFd, cNewName, newPath)
@@ -599,13 +599,13 @@ func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code 
 			return fuse.ToStatus(err)
 		}
 		// Create "gocryptfs.longfile." link
-		err = syscallcompat.Linkat(int(oldDirFd.Fd()), cOldName, int(newDirFd.Fd()), cNewName, 0)
+		err = syscallcompat.Linkat(oldDirFd, cOldName, newDirFd, cNewName, 0)
 		if err != nil {
 			nametransform.DeleteLongName(newDirFd, cNewName)
 		}
 	} else {
 		// Create regular link
-		err = syscallcompat.Linkat(int(oldDirFd.Fd()), cOldName, int(newDirFd.Fd()), cNewName, 0)
+		err = syscallcompat.Linkat(oldDirFd, cOldName, newDirFd, cNewName, 0)
 	}
 	return fuse.ToStatus(err)
 }

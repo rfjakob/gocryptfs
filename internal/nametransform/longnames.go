@@ -89,8 +89,8 @@ func ReadLongName(path string) (string, error) {
 }
 
 // DeleteLongName deletes "hashName.name".
-func DeleteLongName(dirfd *os.File, hashName string) error {
-	err := syscallcompat.Unlinkat(int(dirfd.Fd()), hashName+LongNameSuffix, 0)
+func DeleteLongName(dirfd int, hashName string) error {
+	err := syscallcompat.Unlinkat(dirfd, hashName+LongNameSuffix, 0)
 	if err != nil {
 		tlog.Warn.Printf("DeleteLongName: %v", err)
 	}
@@ -100,7 +100,7 @@ func DeleteLongName(dirfd *os.File, hashName string) error {
 // WriteLongName encrypts plainName and writes it into "hashName.name".
 // For the convenience of the caller, plainName may also be a path and will be
 // converted internally.
-func (n *NameTransform) WriteLongName(dirfd *os.File, hashName string, plainName string) (err error) {
+func (n *NameTransform) WriteLongName(dirfd int, hashName string, plainName string) (err error) {
 	plainName = filepath.Base(plainName)
 
 	// Encrypt the basename
@@ -111,7 +111,7 @@ func (n *NameTransform) WriteLongName(dirfd *os.File, hashName string, plainName
 	cName := n.EncryptName(plainName, dirIV)
 
 	// Write the encrypted name into hashName.name
-	fdRaw, err := syscallcompat.Openat(int(dirfd.Fd()), hashName+LongNameSuffix,
+	fdRaw, err := syscallcompat.Openat(dirfd, hashName+LongNameSuffix,
 		syscall.O_WRONLY|syscall.O_CREAT|syscall.O_EXCL, 0600)
 	if err != nil {
 		// Don't warn if the file already exists - this is allowed for renames
