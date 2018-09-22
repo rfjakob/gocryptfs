@@ -162,7 +162,8 @@ func (fs *FS) openWriteOnlyFile(dirfd int, cName string, newFlags int) (fuseFile
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	perms := st.Mode & 0777
+	// The cast to uint32 fixes a build failure on Darwin, where st.Mode is uint16.
+	perms := uint32(st.Mode & 0777)
 	// Verify that we don't have read permissions
 	if perms&0400 != 0 {
 		tlog.Warn.Printf("openWriteOnlyFile: unexpected permissions %#o, returning EPERM", perms)
