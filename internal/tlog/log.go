@@ -57,22 +57,35 @@ type toggledLogger struct {
 	Logger *log.Logger
 }
 
+// trimNewline removes one trailing newline from "msg"
+func trimNewline(msg string) string {
+	if len(msg) == 0 {
+		return msg
+	}
+	if msg[len(msg)-1] == '\n' {
+		return msg[:len(msg)-1]
+	}
+	return msg
+}
+
 func (l *toggledLogger) Printf(format string, v ...interface{}) {
 	if !l.Enabled {
 		return
 	}
-	l.Logger.Printf(l.prefix + fmt.Sprintf(format, v...) + l.postfix)
+	msg := trimNewline(fmt.Sprintf(format, v...))
+	l.Logger.Printf(l.prefix + msg + l.postfix)
 	if l.Wpanic {
-		l.Logger.Panic(wpanicMsg + fmt.Sprintf(format, v...))
+		l.Logger.Panic(wpanicMsg + msg)
 	}
 }
 func (l *toggledLogger) Println(v ...interface{}) {
 	if !l.Enabled {
 		return
 	}
-	l.Logger.Println(l.prefix + fmt.Sprint(v...) + l.postfix)
+	msg := trimNewline(fmt.Sprint(v...))
+	l.Logger.Println(l.prefix + msg + l.postfix)
 	if l.Wpanic {
-		l.Logger.Panic(wpanicMsg + fmt.Sprint(v...))
+		l.Logger.Panic(wpanicMsg + msg)
 	}
 }
 
