@@ -581,16 +581,20 @@ func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code 
 	return fuse.ToStatus(err)
 }
 
-// Access implements pathfs.Filesystem.
-func (fs *FS) Access(path string, mode uint32, context *fuse.Context) (code fuse.Status) {
-	if fs.isFiltered(path) {
+// Access - FUSE call. Check if a file can be accessed in the specified mode(s)
+// (read, write, execute).
+//
+// Symlink-safe through use of faccessat.
+func (fs *FS) Access(relPath string, mode uint32, context *fuse.Context) (code fuse.Status) {
+	if fs.isFiltered(relPath) {
 		return fuse.EPERM
 	}
-	cPath, err := fs.getBackingPath(path)
+	dirfd, cName, err := fs.openBackingDir(relPath)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	return fuse.ToStatus(syscall.Access(cPath, mode))
+	err = unix.Faccessat(dirfd, cName, mode, unix.AT_SYMLINK_NOFOLLOW)
+	return fuse.ToStatus(err)
 }
 
 // reportMitigatedCorruption is used to report a corruption that was transparently

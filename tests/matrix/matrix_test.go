@@ -23,6 +23,8 @@ import (
 	"syscall"
 	"testing"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
@@ -913,5 +915,30 @@ func TestChmod(t *testing.T) {
 		if modeHave != modeWant {
 			t.Errorf("modeHave %#o != modeWant %#o", modeHave, modeWant)
 		}
+	}
+}
+
+// Test that access(2) works correctly
+func TestAccess(t *testing.T) {
+	// Note: t.Name() is not available before in Go 1.8
+	tName := "TestAccess"
+	path := test_helpers.DefaultPlainDir + "/" + tName
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	err = unix.Access(path, unix.F_OK)
+	if err != nil {
+		t.Error(err)
+	}
+	err = unix.Access(path, unix.R_OK)
+	if err != nil {
+		t.Error(err)
+	}
+	err = unix.Access(path, unix.X_OK)
+	if err == nil {
+		t.Error("X_OK should have failed")
 	}
 }
