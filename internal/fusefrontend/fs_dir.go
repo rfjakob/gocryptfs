@@ -324,7 +324,7 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 			isLong = nametransform.NameType(cName)
 		}
 		if isLong == nametransform.LongNameContent {
-			cNameLong, err := nametransform.ReadLongName(filepath.Join(cDirAbsPath, cName))
+			cNameLong, err := nametransform.ReadLongNameAt(fd, cName)
 			if err != nil {
 				tlog.Warn.Printf("OpenDir %q: invalid entry %q: Could not read .name: %v",
 					cDirName, cName, err)

@@ -64,18 +64,18 @@ func IsLongContent(cName string) bool {
 }
 
 // ReadLongName - read "$path.name"
-func ReadLongName(path string) (string, error) {
-	path += LongNameSuffix
-	fd, err := os.Open(path)
+func ReadLongNameAt(dirfd int, cName string) (string, error) {
+	cName += LongNameSuffix
+	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		return "", err
 	}
-	defer fd.Close()
+	defer syscall.Close(fd)
 	// 256 (=255 padded to 16) bytes base64-encoded take 344 bytes: "AAAAAAA...AAA=="
 	lim := 344
 	// Allocate a bigger buffer so we see whether the file is too big
 	buf := make([]byte, lim+1)
-	n, err := fd.ReadAt(buf, 0)
+	n, err := syscall.Pread(fd, buf, 0)
 	if err != nil && err != io.EOF {
 		return "", err
 	}
@@ -88,7 +88,9 @@ func ReadLongName(path string) (string, error) {
 	return string(buf[0:n]), nil
 }
 
-// DeleteLongName deletes "hashName.name".
+// DeleteLongName deletes "hashName.name" in the directory openend at "dirfd".
+//
+// This function is symlink-safe through the use of Unlinkat().
 func DeleteLongName(dirfd int, hashName string) error {
 	err := syscallcompat.Unlinkat(dirfd, hashName+LongNameSuffix, 0)
 	if err != nil {
@@ -99,7 +101,9 @@ func DeleteLongName(dirfd int, hashName string) error {
 
 // WriteLongName encrypts plainName and writes it into "hashName.name".
 // For the convenience of the caller, plainName may also be a path and will be
-// converted internally.
+// Base()named internally.
+//
+// This function is symlink-safe through the use of Openat().
 func (n *NameTransform) WriteLongName(dirfd int, hashName string, plainName string) (err error) {
 	plainName = filepath.Base(plainName)
 
