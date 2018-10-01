@@ -49,7 +49,9 @@ func (fs *FS) mkdirWithIv(dirfd int, cName string, mode uint32) error {
 	return err
 }
 
-// Mkdir implements pathfs.FileSystem
+// Mkdir - FUSE call. Create a directory at "newPath" with permissions "mode".
+//
+// Symlink-safe through use of Mkdirat().
 func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(newPath) {
 		return fuse.EPERM

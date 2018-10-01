@@ -23,8 +23,8 @@ var xattrNameIV = []byte("xattr_name_iv_xx")
 // encrypted original name.
 var xattrStorePrefix = "user.gocryptfs."
 
-// GetXAttr reads the value of extended attribute "attr".
-// Implements pathfs.Filesystem.
+// GetXAttr - FUSE call. Reads the value of extended attribute "attr".
+// TODO: Make symlink-safe. Blocker: package xattr does not provide fgetxattr(2).
 func (fs *FS) GetXAttr(path string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
 	if fs.isFiltered(path) {
 		return nil, fuse.EPERM
@@ -85,7 +85,9 @@ func (fs *FS) RemoveXAttr(path string, attr string, context *fuse.Context) fuse.
 	return unpackXattrErr(xattr.LRemove(cPath, cAttr))
 }
 
-// ListXAttr implements pathfs.Filesystem.
+// ListXAttr - FUSE call. Lists extended attributes on the file at "path".
+// TODO: Make symlink-safe. Blocker: package xattr does not provide
+// flistxattr(2).
 func (fs *FS) ListXAttr(path string, context *fuse.Context) ([]string, fuse.Status) {
 	if fs.isFiltered(path) {
 		return nil, fuse.EPERM

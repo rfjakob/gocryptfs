@@ -120,7 +120,9 @@ func (fs *FS) mangleOpenFlags(flags uint32) (newFlags int) {
 	return newFlags
 }
 
-// Open implements pathfs.Filesystem.
+// Open - FUSE call. Open already-existing file.
+//
+// Symlink-safe through Openat().
 func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
 	if fs.isFiltered(path) {
 		return nil, fuse.EPERM
@@ -201,7 +203,9 @@ func (fs *FS) openWriteOnlyFile(dirfd int, cName string, newFlags int) (fuseFile
 	return NewFile(f, fs)
 }
 
-// Create implements pathfs.Filesystem.
+// Create - FUSE call. Creates a new file.
+//
+// Symlink-safe through the use of Openat().
 func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Context) (nodefs.File, fuse.Status) {
 	if fs.isFiltered(path) {
 		return nil, fuse.EPERM
@@ -245,7 +249,9 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 	return NewFile(f, fs)
 }
 
-// Chmod implements pathfs.Filesystem.
+// Chmod - FUSE call. Change permissons on "path".
+//
+// Symlink-safe through use of Fchmodat().
 func (fs *FS) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
@@ -261,7 +267,9 @@ func (fs *FS) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.
 	return fuse.ToStatus(err)
 }
 
-// Chown implements pathfs.Filesystem.
+// Chown - FUSE call. Change the owner of "path".
+//
+// Symlink-safe through use of Fchownat().
 func (fs *FS) Chown(path string, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
@@ -286,7 +294,9 @@ func (fs *FS) Chown(path string, uid uint32, gid uint32, context *fuse.Context) 
 	return fuse.OK
 }
 
-// Mknod implements pathfs.Filesystem.
+// Mknod - FUSE call. Create a device file.
+//
+// Symlink-safe through use of Mknodat().
 func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
@@ -339,7 +349,7 @@ func (fs *FS) Truncate(path string, offset uint64, context *fuse.Context) (code 
 	return code
 }
 
-// Utimens implements pathfs.Filesystem.
+// Utimens - FUSE call. Set the timestamps on file "path".
 func (fs *FS) Utimens(path string, a *time.Time, m *time.Time, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
@@ -351,16 +361,11 @@ func (fs *FS) Utimens(path string, a *time.Time, m *time.Time, context *fuse.Con
 	return fs.FileSystem.Utimens(cPath, a, m, context)
 }
 
-// StatFs implements pathfs.Filesystem.
+// StatFs - FUSE call. Returns information about the filesystem.
+//
+// Symlink-safe because the passed path is ignored.
 func (fs *FS) StatFs(path string) *fuse.StatfsOut {
-	if fs.isFiltered(path) {
-		return nil
-	}
-	cPath, err := fs.encryptPath(path)
-	if err != nil {
-		return nil
-	}
-	return fs.FileSystem.StatFs(cPath)
+	return fs.FileSystem.StatFs("")
 }
 
 // decryptSymlinkTarget: "cData64" is base64-decoded and decrypted
@@ -548,7 +553,10 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 	return fuse.OK
 }
 
-// Link implements pathfs.Filesystem.
+// Link - FUSE call. Creates a hard link at "newPath" pointing to file
+// "oldPath".
+//
+// Symlink-safe through use of Linkat().
 func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(newPath) {
 		return fuse.EPERM
