@@ -47,6 +47,11 @@ type FS struct {
 	// "gocryptfs -fsck" reads from the channel to also catch these transparently-
 	// mitigated corruptions.
 	MitigatedCorruptions chan string
+	// Track accesses to the filesystem so that we can know when to autounmount.
+	// An access is considered to have happened on every call to encryptPath,
+	// which is called as part of every filesystem operation.
+	// (This flag uses a uint32 so that it can be reset with CompareAndSwapUint32.)
+	AccessedSinceLastCheck uint32
 }
 
 var _ pathfs.FileSystem = &FS{} // Verify that interface is implemented.

@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/rfjakob/gocryptfs/internal/configfile"
@@ -33,6 +34,8 @@ type argContainer struct {
 	// Configuration file name override
 	config             string
 	notifypid, scryptn int
+	// Idle time before autounmount
+	idle time.Duration
 	// Helper variables that are NOT cli options all start with an underscore
 	// _configCustom is true when the user sets a custom config file name.
 	_configCustom bool
@@ -187,6 +190,11 @@ func parseCliOpts() (args argContainer) {
 		"successful mount - used internally for daemonization")
 	flagSet.IntVar(&args.scryptn, "scryptn", configfile.ScryptDefaultLogN, "scrypt cost parameter logN. Possible values: 10-28. "+
 		"A lower value speeds up mounting and reduces its memory needs, but makes the password susceptible to brute-force attacks")
+
+	flagSet.DurationVar(&args.idle, "i", 0, "Alias for -idle")
+	flagSet.DurationVar(&args.idle, "idle", 0, "Auto-unmount after specified idle duration (ignored in reverse mode). "+
+		"Durations are specified like \"500s\" or \"2h45m\". 0 means stay mounted indefinitely.")
+
 	var dummyString string
 	flagSet.StringVar(&dummyString, "o", "", "For compatibility with mount(1), options can be also passed as a comma-separated list to -o on the end.")
 	// Actual parsing
@@ -245,6 +253,10 @@ func parseCliOpts() (args argContainer) {
 	}
 	if args.extpass != "" && args.trezor {
 		tlog.Fatal.Printf("The options -extpass and -trezor cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
+	}
+	if args.idle < 0 {
+		tlog.Fatal.Printf("Idle timeout cannot be less than 0")
 		os.Exit(exitcodes.Usage)
 	}
 	return args

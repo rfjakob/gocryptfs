@@ -19,6 +19,7 @@ func helpShort() {
 Common Options (use -hh to show all):
   -aessiv            Use AES-SIV encryption (with -init)
   -allow_other       Allow other users to access the mount
+  -i, -idle          Unmount automatically after specified idle duration
   -config            Custom path to config file
   -ctlsock           Create control socket at location
   -extpass           Call external program to prompt for the password
