@@ -47,6 +47,15 @@ type FS struct {
 	// "gocryptfs -fsck" reads from the channel to also catch these transparently-
 	// mitigated corruptions.
 	MitigatedCorruptions chan string
+	// Track accesses to the filesystem so that we can know when to autounmount.
+	// An access is considered to have happened on every call to encryptPath,
+	// which is called as part of every filesystem operation.
+	// (This variable shouldn't need a lock, as all that ever happens to it is that
+	// it gets set by an accessing thread or read and reset by the monitor thread.
+	// Races may result in a read of false while another thread is recording an access,
+	// but it's equally reasonable under those circumstances to let the read win
+	// and autounmount as it is to reset the idle monitor.)
+	AccessedSinceLastCheck bool
 }
 
 var _ pathfs.FileSystem = &FS{} // Verify that interface is implemented.
@@ -60,10 +69,11 @@ func NewFS(args Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) 
 		tlog.Warn.Printf("Forward mode does not support -exclude")
 	}
 	return &FS{
-		FileSystem:    pathfs.NewLoopbackFileSystem(args.Cipherdir),
-		args:          args,
-		nameTransform: n,
-		contentEnc:    c,
+		FileSystem:             pathfs.NewLoopbackFileSystem(args.Cipherdir),
+		args:                   args,
+		nameTransform:          n,
+		contentEnc:             c,
+		AccessedSinceLastCheck: false,
 	}
 }
 

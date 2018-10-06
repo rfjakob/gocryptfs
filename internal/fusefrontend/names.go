@@ -60,9 +60,15 @@ func (fs *FS) openBackingDir(relPath string) (dirfd int, cName string, err error
 
 // encryptPath - encrypt relative plaintext path
 func (fs *FS) encryptPath(plainPath string) (string, error) {
+	if plainPath != "" {  // Empty path gets encrypted all the time without actual file accesses.
+		fs.AccessedSinceLastCheck = true
+	} else {  // Empty string gets encrypted as empty string
+		return plainPath, nil
+	}
 	if fs.args.PlaintextNames {
 		return plainPath, nil
 	}
+
 	fs.dirIVLock.RLock()
 	cPath, err := fs.nameTransform.EncryptPathDirIV(plainPath, fs.args.Cipherdir)
 	tlog.Debug.Printf("encryptPath '%s' -> '%s' (err: %v)", plainPath, cPath, err)

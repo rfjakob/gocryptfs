@@ -29,6 +29,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend_reverse"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
+	"github.com/rfjakob/gocryptfs/internal/openfiletable"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -98,7 +99,7 @@ func doMount(args *argContainer) {
 	fs, wipeKeys := initFuseFrontend(args)
 	// Initialize go-fuse FUSE server
 	srv := initGoFuse(fs, args)
-	// Try to wipe secrect keys from memory after unmount
+	// Try to wipe secret keys from memory after unmount
 	defer wipeKeys()
 
 	tlog.Info.Println(tlog.ColorGreen + "Filesystem mounted and ready." + tlog.ColorReset)
@@ -137,8 +138,47 @@ func doMount(args *argContainer) {
 	// Return memory that was allocated for scrypt (64M by default!) and other
 	// stuff that is no longer needed to the OS
 	debug.FreeOSMemory()
+	// Set up autounmount, if requested.
+	if args.autounmount > 0 && !args.reverse {
+		// Not being in reverse mode means we always have a forward file system.
+		fwdFs := fs.(*fusefrontend.FS)
+		go idleMonitor(args.autounmount, fwdFs, srv, args.mountpoint)
+	}
 	// Jump into server loop. Returns when it gets an umount request from the kernel.
 	srv.Serve()
+}
+
+// Based on the EncFS idle monitor:
+// https://github.com/vgough/encfs/blob/1974b417af189a41ffae4c6feb011d2a0498e437/encfs/main.cpp#L851
+const ActivityCheckIntervalSeconds = 10
+// idleMonitor is a function to be run as a thread that checks for
+// filesystem idleness and unmounts if we've been idle for long enough.
+func idleMonitor(idleTimeout int, fs *fusefrontend.FS, srv *fuse.Server, mountpoint string) {
+	timeoutCycles := 60 * idleTimeout / ActivityCheckIntervalSeconds
+	idleCount := 0
+	for true {
+		recentAccess := fs.AccessedSinceLastCheck
+		// Don't worry about flag being set here by another thread...
+		// on the scale of minutes, it might as well have happened
+		// just before we checked.
+		fs.AccessedSinceLastCheck = false
+		// Any form of current or recent access resets the idle counter.
+		openFileCount := openfiletable.CountOpenFiles()
+		if recentAccess || openFileCount > 0 {
+			idleCount = 0
+		} else {
+			idleCount++
+		}
+		tlog.Debug.Printf(
+			"Checking for idle (recentAccess = %t, open = %d): %s",
+			recentAccess, openFileCount, time.Now().String())
+		if (idleCount > 0 && idleCount % timeoutCycles == 0) {
+			tlog.Info.Printf("Filesystem idle; unmounting: %s", mountpoint)
+			unmount(srv, mountpoint)
+			os.Exit(exitcodes.IdleTimeout)
+		}
+		time.Sleep(ActivityCheckIntervalSeconds * time.Second)
+	}
 }
 
 // setOpenFileLimit tries to increase the open file limit to 4096 (the default hard
@@ -379,18 +419,22 @@ func handleSigint(srv *fuse.Server, mountpoint string) {
 	signal.Notify(ch, syscall.SIGTERM)
 	go func() {
 		<-ch
-		err := srv.Unmount()
-		if err != nil {
-			tlog.Warn.Printf("handleSigint: srv.Unmount returned %v", err)
-			if runtime.GOOS == "linux" {
-				// MacOSX does not support lazy unmount
-				tlog.Info.Printf("Trying lazy unmount")
-				cmd := exec.Command("fusermount", "-u", "-z", mountpoint)
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				cmd.Run()
-			}
-		}
+		unmount(srv, mountpoint)
 		os.Exit(exitcodes.SigInt)
 	}()
+}
+
+func unmount(srv *fuse.Server, mountpoint string) {
+	err := srv.Unmount()
+	if err != nil {
+		tlog.Warn.Printf("handleSigint: srv.Unmount returned %v", err)
+		if runtime.GOOS == "linux" {
+			// MacOSX does not support lazy unmount
+			tlog.Info.Printf("Trying lazy unmount")
+			cmd := exec.Command("fusermount", "-u", "-z", mountpoint)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Run()
+		}
+	}
 }

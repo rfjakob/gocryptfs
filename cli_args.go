@@ -33,6 +33,8 @@ type argContainer struct {
 	// Configuration file name override
 	config             string
 	notifypid, scryptn int
+	// Autounmount
+	autounmount int
 	// Helper variables that are NOT cli options all start with an underscore
 	// _configCustom is true when the user sets a custom config file name.
 	_configCustom bool
@@ -187,6 +189,9 @@ func parseCliOpts() (args argContainer) {
 		"successful mount - used internally for daemonization")
 	flagSet.IntVar(&args.scryptn, "scryptn", configfile.ScryptDefaultLogN, "scrypt cost parameter logN. Possible values: 10-28. "+
 		"A lower value speeds up mounting and reduces its memory needs, but makes the password susceptible to brute-force attacks")
+
+	flagSet.IntVar(&args.autounmount, "autounmount", 0, "Idle time in minutes before autounmount (forward mode only). 0 means stay mounted indefinitely.")
+
 	var dummyString string
 	flagSet.StringVar(&dummyString, "o", "", "For compatibility with mount(1), options can be also passed as a comma-separated list to -o on the end.")
 	// Actual parsing
