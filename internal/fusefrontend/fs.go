@@ -69,11 +69,10 @@ func NewFS(args Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) 
 		tlog.Warn.Printf("Forward mode does not support -exclude")
 	}
 	return &FS{
-		FileSystem:             pathfs.NewLoopbackFileSystem(args.Cipherdir),
-		args:                   args,
-		nameTransform:          n,
-		contentEnc:             c,
-		AccessedSinceLastCheck: false,
+		FileSystem:    pathfs.NewLoopbackFileSystem(args.Cipherdir),
+		args:          args,
+		nameTransform: n,
+		contentEnc:    c,
 	}
 }
 

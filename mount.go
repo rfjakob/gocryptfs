@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"log/syslog"
+	"math"
 	"net"
 	"os"
 	"os/exec"
@@ -139,10 +140,10 @@ func doMount(args *argContainer) {
 	// stuff that is no longer needed to the OS
 	debug.FreeOSMemory()
 	// Set up autounmount, if requested.
-	if args.autounmount > 0 && !args.reverse {
+	if args.idle > 0 && !args.reverse {
 		// Not being in reverse mode means we always have a forward file system.
 		fwdFs := fs.(*fusefrontend.FS)
-		go idleMonitor(args.autounmount, fwdFs, srv, args.mountpoint)
+		go idleMonitor(args.idle, fwdFs, srv, args.mountpoint)
 	}
 	// Jump into server loop. Returns when it gets an umount request from the kernel.
 	srv.Serve()
@@ -150,16 +151,19 @@ func doMount(args *argContainer) {
 
 // Based on the EncFS idle monitor:
 // https://github.com/vgough/encfs/blob/1974b417af189a41ffae4c6feb011d2a0498e437/encfs/main.cpp#L851
-const ActivityCheckIntervalSeconds = 10
 // idleMonitor is a function to be run as a thread that checks for
 // filesystem idleness and unmounts if we've been idle for long enough.
-func idleMonitor(idleTimeout int, fs *fusefrontend.FS, srv *fuse.Server, mountpoint string) {
-	timeoutCycles := 60 * idleTimeout / ActivityCheckIntervalSeconds
+const timeoutFractionBetweenChecks = 1 / 4.0
+func idleMonitor(idleTimeout time.Duration, fs *fusefrontend.FS, srv *fuse.Server, mountpoint string) {
+	sleepTimeBetweenChecks := contentenc.MinUint64(
+		uint64(math.Ceil(float64(idleTimeout) * timeoutFractionBetweenChecks)),
+		uint64(2 * time.Minute))
+	timeoutCycles := int(math.Ceil(float64(idleTimeout) / float64(sleepTimeBetweenChecks)))
 	idleCount := 0
-	for true {
+	for {
 		recentAccess := fs.AccessedSinceLastCheck
 		// Don't worry about flag being set here by another thread...
-		// on the scale of minutes, it might as well have happened
+		// on the scale of check intervals, it might as well have happened
 		// just before we checked.
 		fs.AccessedSinceLastCheck = false
 		// Any form of current or recent access resets the idle counter.
@@ -177,7 +181,7 @@ func idleMonitor(idleTimeout int, fs *fusefrontend.FS, srv *fuse.Server, mountpo
 			unmount(srv, mountpoint)
 			os.Exit(exitcodes.IdleTimeout)
 		}
-		time.Sleep(ActivityCheckIntervalSeconds * time.Second)
+		time.Sleep(time.Duration(sleepTimeBetweenChecks))
 	}
 }
 
