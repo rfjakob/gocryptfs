@@ -154,10 +154,10 @@ func doMount(args *argContainer) {
 // https://github.com/vgough/encfs/blob/1974b417af189a41ffae4c6feb011d2a0498e437/encfs/main.cpp#L851
 // idleMonitor is a function to be run as a thread that checks for
 // filesystem idleness and unmounts if we've been idle for long enough.
-const timeoutFractionBetweenChecks = 1 / 4.0
+const checksDuringTimeoutPeriod = 4
 func idleMonitor(idleTimeout time.Duration, fs *fusefrontend.FS, srv *fuse.Server, mountpoint string) {
 	sleepTimeBetweenChecks := contentenc.MinUint64(
-		uint64(math.Ceil(float64(idleTimeout) * timeoutFractionBetweenChecks)),
+		uint64(idleTimeout / checksDuringTimeoutPeriod),
 		uint64(2 * time.Minute))
 	timeoutCycles := int(math.Ceil(float64(idleTimeout) / float64(sleepTimeBetweenChecks)))
 	idleCount := 0
