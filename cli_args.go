@@ -192,7 +192,8 @@ func parseCliOpts() (args argContainer) {
 		"A lower value speeds up mounting and reduces its memory needs, but makes the password susceptible to brute-force attacks")
 
 	flagSet.DurationVar(&args.idle, "i", 0, "Alias for -idle")
-	flagSet.DurationVar(&args.idle, "idle", 0, "Auto-unmount after specified idle duration (forward mode only). Example durations: \"300ms\", \"2h45m\". 0 means stay mounted indefinitely.")
+	flagSet.DurationVar(&args.idle, "idle", 0, "Auto-unmount after specified idle duration (ignored in reverse mode). "+
+		"Example durations: \"300ms\", \"2h45m\". 0 means stay mounted indefinitely.")
 
 	var dummyString string
 	flagSet.StringVar(&dummyString, "o", "", "For compatibility with mount(1), options can be also passed as a comma-separated list to -o on the end.")
@@ -252,6 +253,10 @@ func parseCliOpts() (args argContainer) {
 	}
 	if args.extpass != "" && args.trezor {
 		tlog.Fatal.Printf("The options -extpass and -trezor cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
+	}
+	if args.idle < 0 {
+		tlog.Fatal.Printf("Idle timeout cannot be less than 0")
 		os.Exit(exitcodes.Usage)
 	}
 	return args
