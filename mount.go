@@ -15,6 +15,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -161,11 +162,8 @@ func idleMonitor(idleTimeout time.Duration, fs *fusefrontend.FS, srv *fuse.Serve
 	timeoutCycles := int(math.Ceil(float64(idleTimeout) / float64(sleepTimeBetweenChecks)))
 	idleCount := 0
 	for {
-		recentAccess := fs.AccessedSinceLastCheck
-		// Don't worry about flag being set here by another thread...
-		// on the scale of check intervals, it might as well have happened
-		// just before we checked.
-		fs.AccessedSinceLastCheck = false
+		// Atomically check whether the access flag is set and reset it to 0 if so.
+		recentAccess := atomic.CompareAndSwapUint32(&fs.AccessedSinceLastCheck, 1, 0)
 		// Any form of current or recent access resets the idle counter.
 		openFileCount := openfiletable.CountOpenFiles()
 		if recentAccess || openFileCount > 0 {
