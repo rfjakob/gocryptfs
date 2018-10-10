@@ -193,7 +193,7 @@ func parseCliOpts() (args argContainer) {
 
 	flagSet.DurationVar(&args.idle, "i", 0, "Alias for -idle")
 	flagSet.DurationVar(&args.idle, "idle", 0, "Auto-unmount after specified idle duration (ignored in reverse mode). "+
-		"Example durations: \"300ms\", \"2h45m\". 0 means stay mounted indefinitely.")
+		"Durations are specified like \"500s\" or \"2h45m\". 0 means stay mounted indefinitely.")
 
 	var dummyString string
 	flagSet.StringVar(&dummyString, "o", "", "For compatibility with mount(1), options can be also passed as a comma-separated list to -o on the end.")
