@@ -1,10 +1,16 @@
 #!/bin/bash
 
+if [[ -z $TMPDIR ]]; then
+	TMPDIR=/tmp
+else
+	echo "Using TMPDIR=$TMPDIR"
+fi
+
 set -eu
 
 cd "$(dirname "$0")"
 MYNAME=$(basename "$0")
-TESTDIR=/tmp/gocryptfs-test-parent
+TESTDIR=$TMPDIR/gocryptfs-test-parent
 mkdir -p $TESTDIR
 LOCKFILE=$TESTDIR/$MYNAME.lock
 

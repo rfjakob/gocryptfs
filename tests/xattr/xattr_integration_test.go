@@ -16,16 +16,15 @@ import (
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
-// On modern Linux distributions, /tmp may be on tmpfs,
-// which does not support user xattrs. Try /var/tmp instead.
-var alternateTestParentDir = "/var/tmp/gocryptfs-xattr-test-parent"
-
 func TestMain(m *testing.M) {
-	if !xattrSupported(test_helpers.TmpDir) {
-		test_helpers.SwitchTestParentDir(alternateTestParentDir)
+	// On modern Linux distributions, /tmp may be on tmpfs,
+	// which does not support user xattrs. Try /var/tmp instead
+	if !xattrSupported(test_helpers.TmpDir) && os.TempDir() == "/tmp" {
+		fmt.Printf("Switching from /tmp to /var/tmp for xattr tests\n")
+		test_helpers.SwitchTMPDIR("/var/tmp")
 	}
 	if !xattrSupported(test_helpers.TmpDir) {
-		fmt.Printf("xattrs not supported on %q", test_helpers.TmpDir)
+		fmt.Printf("xattrs not supported on %q\n", test_helpers.TmpDir)
 		os.Exit(1)
 	}
 	test_helpers.ResetTmpDir(true)

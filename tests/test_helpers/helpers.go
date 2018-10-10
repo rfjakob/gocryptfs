@@ -21,8 +21,9 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 )
 
-// TmpDir will be created inside this directory
-var testParentDir = "/tmp/gocryptfs-test-parent"
+// TmpDir will be created inside this directory, set in init() to
+// $TMPDIR/gocryptfs-test-parent .
+var testParentDir = ""
 
 // GocryptfsBinary is the assumed path to the gocryptfs build.
 const GocryptfsBinary = "../../gocryptfs"
@@ -43,11 +44,11 @@ var DefaultPlainDir string
 // DefaultCipherDir is TmpDir + "/default-cipher"
 var DefaultCipherDir string
 
-// SwitchTestParentDir changes testParentDir. This is used when you want
-// to perform tests on a special filesystem. For example, the xattr tests
-// cannot run on tmpfs and use /var/tmp instead of /tmp.
-func SwitchTestParentDir(newDir string) {
-	testParentDir = newDir
+// SwitchTMPDIR changes TMPDIR and hence the directory the test are performed in.
+// This is used when you want to perform tests on a special filesystem. The
+// xattr tests cannot run on tmpfs and use /var/tmp instead of /tmp.
+func SwitchTMPDIR(newDir string) {
+	os.Setenv("TMPDIR", newDir)
 	doInit()
 }
 
@@ -58,6 +59,7 @@ func init() {
 func doInit() {
 	X255 = string(bytes.Repeat([]byte("X"), 255))
 
+	testParentDir := os.TempDir() + "/gocryptfs-test-parent"
 	os.MkdirAll(testParentDir, 0700)
 	var err error
 	TmpDir, err = ioutil.TempDir(testParentDir, "")
