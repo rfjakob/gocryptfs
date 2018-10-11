@@ -535,3 +535,30 @@ func TestComma(t *testing.T) {
 	}
 	test_helpers.UnmountPanic(mnt)
 }
+
+// Mount with idle timeout 10ms and check that the process exits by itself
+// within 5 seconds.
+func TestIdle(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	mnt := dir + ".mnt"
+	err := os.Mkdir(mnt, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(test_helpers.GocryptfsBinary,
+		"-q", "-nosyslog", "-fg", "-extpass", "echo test", "-i", "10ms", dir, mnt)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	timer := time.AfterFunc(5*time.Second, func() {
+		t.Error("timeout waiting for umount")
+		cmd.Process.Kill()
+	})
+	err = cmd.Wait()
+	timer.Stop()
+	if err != nil {
+		t.Error(err)
+	}
+}
