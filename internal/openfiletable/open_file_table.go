@@ -112,3 +112,11 @@ func (c *countingMutex) Lock() {
 func WriteOpCount() uint64 {
 	return atomic.LoadUint64(&t.writeOpCount)
 }
+
+// CountOpenFiles returns how many entries are currently in the table
+// in a threadsafe manner.
+func CountOpenFiles() int {
+	t.Lock()
+	defer t.Unlock()
+	return len(t.entries)
+}

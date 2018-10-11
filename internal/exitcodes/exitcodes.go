@@ -70,6 +70,8 @@ const (
 	TrezorError = 28
 	// ExcludeError - an error occoured while processing "-exclude"
 	ExcludeError = 29
+	// IdleTimeout means the filesystem was idle for long enough to autounmount
+	IdleTimeout = 30
 )
 
 // Err wraps an error with an associated numeric exit code
