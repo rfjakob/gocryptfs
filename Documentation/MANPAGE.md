@@ -146,6 +146,11 @@ Long help text, shows all available options.
 Use HKDF to derive separate keys for content and name encryption from
 the master key.
 
+#### -i duration, -idle duration
+Only for forward mode: automatically unmount the filesystem if it has been idle
+for the specified duration. Durations can be specified like "500s" or "2h45m".
+0 (the default) means stay mounted indefinitely.
+
 #### -info
 Pretty-print the contents of the config file for human consumption,
 stripping out sensitive data.
