@@ -549,7 +549,8 @@ func TestIdle(t *testing.T) {
 		"-q", "-nosyslog", "-fg", "-extpass", "echo test", "-i", "10ms", dir, mnt)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	if err := cmd.Start(); err != nil {
+	err = cmd.Start()
+	if err != nil {
 		t.Fatal(err)
 	}
 	timer := time.AfterFunc(5*time.Second, func() {
