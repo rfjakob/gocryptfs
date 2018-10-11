@@ -2,8 +2,6 @@ package syscallcompat
 
 import (
 	"bytes"
-	"os"
-	"runtime"
 	"syscall"
 	"testing"
 )
@@ -11,14 +9,15 @@ import (
 func TestReadlinkat(t *testing.T) {
 	for _, targetLen := range []int{100, 500, 4000} {
 		target := string(bytes.Repeat([]byte("x"), targetLen))
-		err := os.Symlink(target, tmpDir+"/readlinkat")
+		err := syscall.Symlink(target, tmpDir+"/readlinkat")
 		if err != nil {
-			if targetLen > 1000 && runtime.GOOS == "darwin" {
+			if targetLen > 1000 {
 				// Symlinks longer than 1024 (?) bytes are not supported on
-				// MacOS
+				// MacOS and XFS
+				t.Logf("skipping targetLen=%d: %v", targetLen, err)
 				continue
 			}
-			t.Fatal(err)
+			t.Fatalf("targetLen=%d: %v", targetLen, err)
 		}
 		target2, err := Readlinkat(tmpDirFd, "readlinkat")
 		if err != nil {
