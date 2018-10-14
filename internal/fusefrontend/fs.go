@@ -73,30 +73,36 @@ func NewFS(args Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) 
 }
 
 // GetAttr implements pathfs.Filesystem.
-func (fs *FS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
-	tlog.Debug.Printf("FS.GetAttr('%s')", name)
-	if fs.isFiltered(name) {
+//
+// GetAttr is symlink-safe through use of openBackingDir() and Fstatat().
+func (fs *FS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
+	tlog.Debug.Printf("FS.GetAttr(%q)", relPath)
+	if fs.isFiltered(relPath) {
 		return nil, fuse.EPERM
 	}
-	cName, err := fs.encryptPath(name)
+	dirfd, cName, err := fs.openBackingDir(relPath)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	a, status := fs.FileSystem.GetAttr(cName, context)
-	if a == nil {
-		tlog.Debug.Printf("FS.GetAttr failed: %s", status.String())
-		return a, status
+	var st unix.Stat_t
+	err = syscallcompat.Fstatat(dirfd, cName, &st, unix.AT_SYMLINK_NOFOLLOW)
+	syscall.Close(dirfd)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
 	}
+	a := &fuse.Attr{}
+	st2 := syscallcompat.Unix2syscall(st)
+	a.FromStat(&st2)
 	if a.IsRegular() {
 		a.Size = fs.contentEnc.CipherSizeToPlainSize(a.Size)
 	} else if a.IsSymlink() {
-		target, _ := fs.Readlink(name, context)
+		target, _ := fs.Readlink(relPath, context)
 		a.Size = uint64(len(target))
 	}
 	if fs.args.ForceOwner != nil {
 		a.Owner = *fs.args.ForceOwner
 	}
-	return a, status
+	return a, fuse.OK
 }
 
 // mangleOpenFlags is used by Create() and Open() to convert the open flags the user
