@@ -11,18 +11,17 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 )
 
-func newTestFS() *FS {
+func newTestFS(args Args) *FS {
 	// Init crypto backend
 	key := make([]byte, cryptocore.KeyLen)
 	cCore := cryptocore.New(key, cryptocore.BackendGoGCM, contentenc.DefaultIVBits, true, false)
 	cEnc := contentenc.New(cCore, contentenc.DefaultBS, false)
 	nameTransform := nametransform.New(cCore.EMECipher, true, true)
-	args := Args{}
 	return NewFS(args, cEnc, nameTransform)
 }
 
 func TestEncryptDecryptXattrName(t *testing.T) {
-	fs := newTestFS()
+	fs := newTestFS(Args{})
 	attr1 := "user.foo123456789"
 	cAttr := fs.encryptXattrName(attr1)
 	t.Logf("cAttr=%v", cAttr)

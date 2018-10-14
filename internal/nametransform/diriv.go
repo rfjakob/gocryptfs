@@ -121,7 +121,7 @@ func WriteDirIV(dirfd int, dir string) error {
 
 // encryptAndHashName encrypts "name" and hashes it to a longname if it is
 // too long.
-func (be *NameTransform) encryptAndHashName(name string, iv []byte) string {
+func (be *NameTransform) EncryptAndHashName(name string, iv []byte) string {
 	cName := be.EncryptName(name, iv)
 	if be.longNames && len(cName) > unix.NAME_MAX {
 		return be.HashLongName(cName)
@@ -132,6 +132,9 @@ func (be *NameTransform) encryptAndHashName(name string, iv []byte) string {
 // EncryptPathDirIV - encrypt relative plaintext path "plainPath" using EME with
 // DirIV. "rootDir" is the backing storage root directory.
 // Components that are longer than 255 bytes are hashed if be.longnames == true.
+//
+// TODO: EncryptPathDirIV is NOT SAFE against symlink races. This function
+// should eventually be deleted.
 func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (string, error) {
 	var err error
 	// Empty string means root directory
@@ -148,7 +151,7 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (str
 	// in the tar extract benchmark.
 	parentDir := Dir(plainPath)
 	if iv, cParentDir := be.DirIVCache.Lookup(parentDir); iv != nil {
-		cBaseName := be.encryptAndHashName(baseName, iv)
+		cBaseName := be.EncryptAndHashName(baseName, iv)
 		return filepath.Join(cParentDir, cBaseName), nil
 	}
 	// We have to walk the directory tree, starting at the root directory.
@@ -166,7 +169,7 @@ func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (str
 			}
 			be.DirIVCache.Store(plainWD, iv, cipherWD)
 		}
-		cipherName := be.encryptAndHashName(plainName, iv)
+		cipherName := be.EncryptAndHashName(plainName, iv)
 		cipherWD = filepath.Join(cipherWD, cipherName)
 		plainWD = filepath.Join(plainWD, plainName)
 	}
