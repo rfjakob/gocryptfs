@@ -342,7 +342,8 @@ func (f *File) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 	// Return memory to CReqPool
 	f.fs.contentEnc.CReqPool.Put(ciphertext)
 	if err != nil {
-		tlog.Warn.Printf("doWrite: Write failed: %s", err.Error())
+		tlog.Warn.Printf("ino%d fh%d: doWrite: WriteAt off=%d len=%d failed: %v",
+			f.qIno.Ino, f.intFd(), cOff, len(ciphertext), err)
 		return 0, fuse.ToStatus(err)
 	}
 	return uint32(len(data)), fuse.OK
