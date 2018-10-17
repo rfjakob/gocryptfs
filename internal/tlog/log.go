@@ -142,6 +142,9 @@ func (l *toggledLogger) SwitchToSyslog(p syslog.Priority) {
 		Warn.Printf("SwitchToSyslog: %v", err)
 	} else {
 		l.Logger.SetOutput(w)
+		// Disable colors
+		l.prefix = ""
+		l.postfix = ""
 	}
 }
 
