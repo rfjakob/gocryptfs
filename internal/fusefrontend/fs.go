@@ -226,14 +226,14 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 	// Handle long file name
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
 		// Create ".name"
-		err = fs.nameTransform.WriteLongName(dirfd, cName, path)
+		err = fs.nameTransform.WriteLongNameAt(dirfd, cName, path)
 		if err != nil {
 			return nil, fuse.ToStatus(err)
 		}
 		// Create content
 		fd, err = syscallcompat.Openat(dirfd, cName, newFlags|os.O_CREATE|os.O_EXCL, mode)
 		if err != nil {
-			nametransform.DeleteLongName(dirfd, cName)
+			nametransform.DeleteLongNameAt(dirfd, cName)
 			return nil, fuse.ToStatus(err)
 		}
 
@@ -314,14 +314,14 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 	defer syscall.Close(dirfd)
 	// Create ".name" file to store long file name (except in PlaintextNames mode)
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
-		err = fs.nameTransform.WriteLongName(dirfd, cName, path)
+		err = fs.nameTransform.WriteLongNameAt(dirfd, cName, path)
 		if err != nil {
 			return fuse.ToStatus(err)
 		}
 		// Create "gocryptfs.longfile." device node
 		err = syscallcompat.Mknodat(dirfd, cName, mode, int(dev))
 		if err != nil {
-			nametransform.DeleteLongName(dirfd, cName)
+			nametransform.DeleteLongNameAt(dirfd, cName)
 		}
 	} else {
 		// Create regular device node
@@ -436,7 +436,7 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	}
 	// Delete ".name" file
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
-		err = nametransform.DeleteLongName(dirfd, cName)
+		err = nametransform.DeleteLongNameAt(dirfd, cName)
 		if err != nil {
 			tlog.Warn.Printf("Unlink: could not delete .name file: %v", err)
 		}
@@ -474,14 +474,14 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	}
 	// Create ".name" file to store long file name (except in PlaintextNames mode)
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
-		err = fs.nameTransform.WriteLongName(dirfd, cName, linkName)
+		err = fs.nameTransform.WriteLongNameAt(dirfd, cName, linkName)
 		if err != nil {
 			return fuse.ToStatus(err)
 		}
 		// Create "gocryptfs.longfile." symlink
 		err = syscallcompat.Symlinkat(cTarget, dirfd, cName)
 		if err != nil {
-			nametransform.DeleteLongName(dirfd, cName)
+			nametransform.DeleteLongNameAt(dirfd, cName)
 		}
 	} else {
 		// Create symlink
@@ -501,7 +501,7 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 	return fuse.OK
 }
 
-// Rename implements pathfs.Filesystem.
+// Rename - FUSE call.
 func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(newPath) {
 		return fuse.EPERM
@@ -526,7 +526,7 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 	// Long destination file name: create .name file
 	nameFileAlreadyThere := false
 	if nametransform.IsLongContent(newCName) {
-		err = fs.nameTransform.WriteLongName(newDirfd, newCName, newPath)
+		err = fs.nameTransform.WriteLongNameAt(newDirfd, newCName, newPath)
 		// Failure to write the .name file is expected when the target path already
 		// exists. Since hashes are pretty unique, there is no need to modify the
 		// .name file in this case, and we ignore the error.
@@ -553,12 +553,12 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 	if err != nil {
 		if nametransform.IsLongContent(newCName) && nameFileAlreadyThere == false {
 			// Roll back .name creation unless the .name file was already there
-			nametransform.DeleteLongName(newDirfd, newCName)
+			nametransform.DeleteLongNameAt(newDirfd, newCName)
 		}
 		return fuse.ToStatus(err)
 	}
 	if nametransform.IsLongContent(oldCName) {
-		nametransform.DeleteLongName(oldDirfd, oldCName)
+		nametransform.DeleteLongNameAt(oldDirfd, oldCName)
 	}
 	return fuse.OK
 }
@@ -583,14 +583,14 @@ func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code 
 	defer syscall.Close(newDirFd)
 	// Handle long file name (except in PlaintextNames mode)
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cNewName) {
-		err = fs.nameTransform.WriteLongName(newDirFd, cNewName, newPath)
+		err = fs.nameTransform.WriteLongNameAt(newDirFd, cNewName, newPath)
 		if err != nil {
 			return fuse.ToStatus(err)
 		}
 		// Create "gocryptfs.longfile." link
 		err = syscallcompat.Linkat(oldDirFd, cOldName, newDirFd, cNewName, 0)
 		if err != nil {
-			nametransform.DeleteLongName(newDirFd, cNewName)
+			nametransform.DeleteLongNameAt(newDirFd, cNewName)
 		}
 	} else {
 		// Create regular link

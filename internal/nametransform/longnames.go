@@ -99,7 +99,7 @@ func ReadLongNameAt(dirfd int, cName string) (string, error) {
 // DeleteLongName deletes "hashName.name" in the directory openend at "dirfd".
 //
 // This function is symlink-safe through the use of Unlinkat().
-func DeleteLongName(dirfd int, hashName string) error {
+func DeleteLongNameAt(dirfd int, hashName string) error {
 	err := syscallcompat.Unlinkat(dirfd, hashName+LongNameSuffix, 0)
 	if err != nil {
 		tlog.Warn.Printf("DeleteLongName: %v", err)
@@ -112,7 +112,7 @@ func DeleteLongName(dirfd int, hashName string) error {
 // Base()named internally.
 //
 // This function is symlink-safe through the use of Openat().
-func (n *NameTransform) WriteLongName(dirfd int, hashName string, plainName string) (err error) {
+func (n *NameTransform) WriteLongNameAt(dirfd int, hashName string, plainName string) (err error) {
 	plainName = filepath.Base(plainName)
 
 	// Encrypt the basename

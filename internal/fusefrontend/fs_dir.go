@@ -84,7 +84,7 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 	// Handle long file name
 	if nametransform.IsLongContent(cName) {
 		// Create ".name"
-		err = fs.nameTransform.WriteLongName(dirfd, cName, newPath)
+		err = fs.nameTransform.WriteLongNameAt(dirfd, cName, newPath)
 		if err != nil {
 			return fuse.ToStatus(err)
 		}
@@ -92,7 +92,7 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 		// Create directory
 		err = fs.mkdirWithIv(dirfd, cName, mode)
 		if err != nil {
-			nametransform.DeleteLongName(dirfd, cName)
+			nametransform.DeleteLongNameAt(dirfd, cName)
 			return fuse.ToStatus(err)
 		}
 	} else {
@@ -253,7 +253,7 @@ retry:
 	}
 	// Delete .name file
 	if nametransform.IsLongContent(cName) {
-		nametransform.DeleteLongName(parentDirFd, cName)
+		nametransform.DeleteLongNameAt(parentDirFd, cName)
 	}
 	// The now-deleted directory may have been in the DirIV cache. Clear it.
 	fs.nameTransform.DirIVCache.Clear()

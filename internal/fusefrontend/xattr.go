@@ -70,7 +70,10 @@ func (fs *FS) SetXAttr(path string, attr string, data []byte, flags int, context
 	return unpackXattrErr(xattr.LSetWithFlags(cPath, cAttr, cData, flags))
 }
 
-// RemoveXAttr implements pathfs.Filesystem.
+// RemoveXAttr - FUSE call.
+//
+// TODO: Make symlink-safe. Blocker: package xattr does not provide
+// fremovexattr(2).
 func (fs *FS) RemoveXAttr(path string, attr string, context *fuse.Context) fuse.Status {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
