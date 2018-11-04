@@ -377,6 +377,8 @@ func (fs *FS) StatFs(path string) *fuse.StatfsOut {
 // decryptSymlinkTarget: "cData64" is base64-decoded and decrypted
 // like file contents (GCM).
 // The empty string decrypts to the empty string.
+//
+// This function does not do any I/O and is hence symlink-safe.
 func (fs *FS) decryptSymlinkTarget(cData64 string) (string, error) {
 	if cData64 == "" {
 		return "", nil
@@ -392,14 +394,16 @@ func (fs *FS) decryptSymlinkTarget(cData64 string) (string, error) {
 	return string(data), nil
 }
 
-// Readlink implements pathfs.Filesystem.
+// Readlink - FUSE call.
+//
+// Symlink-safe through openBackingDir() + Readlinkat().
 func (fs *FS) Readlink(relPath string, context *fuse.Context) (out string, status fuse.Status) {
-	cPath, err := fs.encryptPath(relPath)
+	dirfd, cName, err := fs.openBackingDir(relPath)
 	if err != nil {
 		return "", fuse.ToStatus(err)
 	}
-	cAbsPath := filepath.Join(fs.args.Cipherdir, cPath)
-	cTarget, err := os.Readlink(cAbsPath)
+	defer syscall.Close(dirfd)
+	cTarget, err := syscallcompat.Readlinkat(dirfd, cName)
 	if err != nil {
 		return "", fuse.ToStatus(err)
 	}
@@ -409,7 +413,7 @@ func (fs *FS) Readlink(relPath string, context *fuse.Context) (out string, statu
 	// Symlinks are encrypted like file contents (GCM) and base64-encoded
 	target, err := fs.decryptSymlinkTarget(cTarget)
 	if err != nil {
-		tlog.Warn.Printf("Readlink %q: decrypting target failed: %v", cPath, err)
+		tlog.Warn.Printf("Readlink %q: decrypting target failed: %v", cName, err)
 		return "", fuse.EIO
 	}
 	return string(target), fuse.OK

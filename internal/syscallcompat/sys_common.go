@@ -10,10 +10,8 @@ import (
 // It is not defined on Darwin, so we use the Linux value.
 const PATH_MAX = 4096
 
-// Readlinkat exists both in Linux and in MacOS 10.10+. We may add an
-// emulated version for users on older MacOS versions if there is
-// demand.
-// Buffer allocation is handled internally, unlike the bare unix.Readlinkat.
+// Readlinkat is a convenience wrapper around unix.Readlinkat() that takes
+// care of buffer sizing. Implemented like os.Readlink().
 func Readlinkat(dirfd int, path string) (string, error) {
 	// Allocate the buffer exponentially like os.Readlink does.
 	for bufsz := 128; ; bufsz *= 2 {
