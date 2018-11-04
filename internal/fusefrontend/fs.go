@@ -502,6 +502,8 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 }
 
 // Rename - FUSE call.
+//
+// Symlink-safe through Renameat().
 func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(newPath) {
 		return fuse.EPERM

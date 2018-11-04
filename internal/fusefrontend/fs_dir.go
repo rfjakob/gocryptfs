@@ -5,7 +5,6 @@ package fusefrontend
 import (
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"runtime"
 	"syscall"
@@ -134,52 +133,44 @@ func haveDsstore(entries []fuse.DirEntry) bool {
 	return false
 }
 
-// Rmdir implements pathfs.FileSystem
-func (fs *FS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
-	cPath, err := fs.getBackingPath(path)
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
-	if fs.args.PlaintextNames {
-		err = syscall.Rmdir(cPath)
-		return fuse.ToStatus(err)
-	}
-	parentDir := filepath.Dir(cPath)
-	parentDirFd, err := syscall.Open(parentDir, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
+// Rmdir - FUSE call.
+//
+// Symlink-safe through Unlinkat() + AT_REMOVEDIR.
+func (fs *FS) Rmdir(relPath string, context *fuse.Context) (code fuse.Status) {
+	parentDirFd, cName, err := fs.openBackingDir(relPath)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
 	defer syscall.Close(parentDirFd)
-
-	cName := filepath.Base(cPath)
+	if fs.args.PlaintextNames {
+		// Unlinkat with AT_REMOVEDIR is equivalent to Rmdir
+		err = unix.Unlinkat(parentDirFd, cName, unix.AT_REMOVEDIR)
+		return fuse.ToStatus(err)
+	}
 	dirfd, err := syscallcompat.Openat(parentDirFd, cName,
 		syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
 	if err == syscall.EACCES {
 		// We need permission to read and modify the directory
 		tlog.Debug.Printf("Rmdir: handling EACCESS")
-		// TODO use syscall.Fstatat once it is available in Go
-		var fi os.FileInfo
-		fi, err = os.Lstat(cPath)
+		var st unix.Stat_t
+		err = syscallcompat.Fstatat(parentDirFd, cName, &st, unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
 			tlog.Debug.Printf("Rmdir: Stat: %v", err)
 			return fuse.ToStatus(err)
 		}
-		origMode := fi.Mode()
-		// TODO use syscall.Chmodat once it is available in Go
-		err = os.Chmod(cPath, origMode|0700)
+		origMode := st.Mode & 0777
+		err = syscallcompat.Fchmodat(parentDirFd, cName, origMode|0700, unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
-			tlog.Debug.Printf("Rmdir: Chmod failed: %v", err)
+			tlog.Debug.Printf("Rmdir: Fchmodat failed: %v", err)
 			return fuse.ToStatus(err)
 		}
 		// Retry open
-		var st syscall.Stat_t
-		syscall.Lstat(cPath, &st)
 		dirfd, err = syscallcompat.Openat(parentDirFd, cName,
 			syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
 		// Undo the chmod if removing the directory failed
 		defer func() {
 			if code != fuse.OK {
-				err = os.Chmod(cPath, origMode)
+				err = syscallcompat.Fchmodat(parentDirFd, cName, origMode, unix.AT_SYMLINK_NOFOLLOW)
 				if err != nil {
 					tlog.Warn.Printf("Rmdir: Chmod rollback failed: %v", err)
 				}
@@ -196,8 +187,9 @@ retry:
 	children, err := syscallcompat.Getdents(dirfd)
 	if err == io.EOF {
 		// The directory is empty
-		tlog.Warn.Printf("Rmdir: %q: gocryptfs.diriv is missing", cPath)
-		return fuse.ToStatus(syscall.Rmdir(cPath))
+		tlog.Warn.Printf("Rmdir: %q: gocryptfs.diriv is missing", cName)
+		err = unix.Unlinkat(parentDirFd, cName, unix.AT_REMOVEDIR)
+		return fuse.ToStatus(err)
 	}
 	if err != nil {
 		tlog.Warn.Printf("Rmdir: Readdirnames: %v", err)
@@ -206,13 +198,12 @@ retry:
 	// MacOS sprinkles .DS_Store files everywhere. This is hard to avoid for
 	// users, so handle it transparently here.
 	if runtime.GOOS == "darwin" && len(children) <= 2 && haveDsstore(children) {
-		ds := filepath.Join(cPath, dsStoreName)
-		err = syscall.Unlink(ds)
+		err = unix.Unlinkat(dirfd, dsStoreName, 0)
 		if err != nil {
-			tlog.Warn.Printf("Rmdir: failed to delete blocking file %q: %v", ds, err)
+			tlog.Warn.Printf("Rmdir: failed to delete blocking file %q: %v", dsStoreName, err)
 			return fuse.ToStatus(err)
 		}
-		tlog.Warn.Printf("Rmdir: had to delete blocking file %q", ds)
+		tlog.Warn.Printf("Rmdir: had to delete blocking file %q", dsStoreName)
 		goto retry
 	}
 	// If the directory is not empty besides gocryptfs.diriv, do not even
