@@ -14,13 +14,18 @@ import (
 var _ ctlsock.Interface = &FS{} // Verify that interface is implemented.
 
 // EncryptPath implements ctlsock.Backend
+//
+// TODO: this function is NOT symlink-safe.
 func (fs *FS) EncryptPath(plainPath string) (string, error) {
 	return fs.encryptPath(plainPath)
 }
 
 // DecryptPath implements ctlsock.Backend
+//
+// DecryptPath is symlink-safe because openBackingDir() and decryptPathAt()
+// are symlink-safe.
 func (fs *FS) DecryptPath(cipherPath string) (plainPath string, err error) {
-	dirfd, err := syscall.Open(fs.args.Cipherdir, syscall.O_RDONLY, 0)
+	dirfd, _, err := fs.openBackingDir("")
 	if err != nil {
 		return "", err
 	}
@@ -29,6 +34,8 @@ func (fs *FS) DecryptPath(cipherPath string) (plainPath string, err error) {
 }
 
 // decryptPathAt decrypts a ciphertext path relative to dirfd.
+//
+// Symlink-safe through ReadDirIVAt() and ReadLongNameAt().
 func (fs *FS) decryptPathAt(dirfd int, cipherPath string) (plainPath string, err error) {
 	if fs.args.PlaintextNames || cipherPath == "" {
 		return cipherPath, nil
