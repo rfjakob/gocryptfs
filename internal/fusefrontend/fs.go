@@ -359,15 +359,22 @@ func (fs *FS) Truncate(path string, offset uint64, context *fuse.Context) (code 
 }
 
 // Utimens - FUSE call. Set the timestamps on file "path".
+//
+// Symlink-safe through UtimesNanoAt.
 func (fs *FS) Utimens(path string, a *time.Time, m *time.Time, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
 	}
-	cPath, err := fs.encryptPath(path)
+	dirfd, cName, err := fs.openBackingDir(path)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	return fs.FileSystem.Utimens(cPath, a, m, context)
+	defer syscall.Close(dirfd)
+	ts := make([]unix.Timespec, 2)
+	ts[0] = unix.Timespec(fuse.UtimeToTimespec(a))
+	ts[1] = unix.Timespec(fuse.UtimeToTimespec(m))
+	err = unix.UtimesNanoAt(dirfd, cName, ts, unix.AT_SYMLINK_NOFOLLOW)
+	return fuse.ToStatus(err)
 }
 
 // StatFs - FUSE call. Returns information about the filesystem.
