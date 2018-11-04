@@ -24,6 +24,8 @@ const (
 
 // HashLongName - take the hash of a long string "name" and return
 // "gocryptfs.longname.[sha256]"
+//
+// This function does not do any I/O.
 func (n *NameTransform) HashLongName(name string) string {
 	hashBin := sha256.Sum256([]byte(name))
 	hashBase64 := n.B64.EncodeToString(hashBin[:])
@@ -47,6 +49,8 @@ const (
 // gocryptfs.longname.[sha256]  ........ LongNameContent (content of a long name file)
 // gocryptfs.longname.[sha256].name .... LongNameFilename (full file name of a long name file)
 // else ................................ LongNameNone (normal file)
+//
+// This function does not do any I/O.
 func NameType(cName string) int {
 	if !strings.HasPrefix(cName, longNamePrefix) {
 		return LongNameNone
@@ -59,11 +63,15 @@ func NameType(cName string) int {
 
 // IsLongContent returns true if "cName" is the content store of a long name
 // file (looks like "gocryptfs.longname.[sha256]").
+//
+// This function does not do any I/O.
 func IsLongContent(cName string) bool {
 	return NameType(cName) == LongNameContent
 }
 
-// ReadLongName - read "$path.name"
+// ReadLongName - read cName + ".name" from the directory opened as dirfd.
+//
+// Symlink-safe through Openat().
 func ReadLongNameAt(dirfd int, cName string) (string, error) {
 	cName += LongNameSuffix
 	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_NOFOLLOW, 0)

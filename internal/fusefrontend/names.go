@@ -33,6 +33,8 @@ func (fs *FS) isFiltered(path string) bool {
 
 // GetBackingPath - get the absolute encrypted path of the backing file
 // from the relative plaintext path "relPath"
+//
+// TODO: this function is NOT symlink-safe.
 func (fs *FS) getBackingPath(relPath string) (string, error) {
 	cPath, err := fs.encryptPath(relPath)
 	if err != nil {
@@ -96,6 +98,9 @@ func (fs *FS) openBackingDir(relPath string) (dirfd int, cName string, err error
 }
 
 // encryptPath - encrypt relative plaintext path
+//
+// TODO: this function is NOT symlink-safe because EncryptPathDirIV is not
+// symlink-safe.
 func (fs *FS) encryptPath(plainPath string) (string, error) {
 	if plainPath != "" { // Empty path gets encrypted all the time without actual file accesses.
 		fs.AccessedSinceLastCheck = 1
