@@ -29,6 +29,9 @@ const (
 // This function is exported because it allows for an efficient readdir implementation.
 // If the directory itself cannot be opened, a syscall error will be returned.
 // Otherwise, a fmt.Errorf() error value is returned with the details.
+//
+// TODO: this function is not symlink-safe and should be deleted once the only
+// remaining user, EncryptPathDirIV(), is gone.
 func ReadDirIV(dir string) (iv []byte, err error) {
 	fd, err := os.Open(filepath.Join(dir, DirIVFilename))
 	if err != nil {

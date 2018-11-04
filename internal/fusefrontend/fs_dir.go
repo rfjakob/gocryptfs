@@ -260,18 +260,21 @@ retry:
 	return fuse.OK
 }
 
-// OpenDir implements pathfs.FileSystem
+// OpenDir - FUSE call
+//
+// This function is symlink-safe through use of openBackingDir() and
+// ReadDirIVAt().
 func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
 	tlog.Debug.Printf("OpenDir(%s)", dirName)
-	cDirName, err := fs.encryptPath(dirName)
+	parentDirFd, cDirName, err := fs.openBackingDir(dirName)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
+	defer syscall.Close(parentDirFd)
 	// Read ciphertext directory
-	cDirAbsPath := filepath.Join(fs.args.Cipherdir, cDirName)
 	var cipherEntries []fuse.DirEntry
 	var status fuse.Status
-	fd, err := syscall.Open(cDirAbsPath, syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
+	fd, err := syscallcompat.Openat(parentDirFd, cDirName, syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
@@ -283,23 +286,16 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 	// Get DirIV (stays nil if PlaintextNames is used)
 	var cachedIV []byte
 	if !fs.args.PlaintextNames {
-		cachedIV, _ = fs.nameTransform.DirIVCache.Lookup(dirName)
-		if cachedIV == nil {
-			// Read the DirIV from disk and store it in the cache
-			fs.dirIVLock.RLock()
-			cachedIV, err = nametransform.ReadDirIV(cDirAbsPath)
-			if err != nil {
-				fs.dirIVLock.RUnlock()
-				// The directory itself does not exist
-				if err == syscall.ENOENT {
-					return nil, fuse.ENOENT
-				}
-				// Any other problem warrants an error message
-				tlog.Warn.Printf("OpenDir %q: could not read gocryptfs.diriv: %v", cDirName, err)
-				return nil, fuse.EIO
+		// Read the DirIV from disk
+		cachedIV, err = nametransform.ReadDirIVAt(fd)
+		if err != nil {
+			// The directory itself does not exist
+			if err == syscall.ENOENT {
+				return nil, fuse.ENOENT
 			}
-			fs.nameTransform.DirIVCache.Store(dirName, cachedIV, cDirName)
-			fs.dirIVLock.RUnlock()
+			// Any other problem warrants an error message
+			tlog.Warn.Printf("OpenDir %q: could not read gocryptfs.diriv: %v", cDirName, err)
+			return nil, fuse.EIO
 		}
 	}
 	// Decrypted directory entries
