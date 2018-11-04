@@ -341,10 +341,13 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 	return fuse.OK
 }
 
-// Truncate implements pathfs.Filesystem.
+// Truncate - FUSE call. Truncates a file.
+//
 // Support truncate(2) by opening the file and calling ftruncate(2)
 // While the glibc "truncate" wrapper seems to always use ftruncate, fsstress from
 // xfstests uses this a lot by calling "truncate64" directly.
+//
+// Symlink-safe by letting file.Truncate() do all the work.
 func (fs *FS) Truncate(path string, offset uint64, context *fuse.Context) (code fuse.Status) {
 	file, code := fs.Open(path, uint32(os.O_RDWR), context)
 	if code != fuse.OK {
@@ -419,7 +422,9 @@ func (fs *FS) Readlink(relPath string, context *fuse.Context) (out string, statu
 	return string(target), fuse.OK
 }
 
-// Unlink implements pathfs.Filesystem.
+// Unlink - FUSE call. Delete a file.
+//
+// Symlink-safe through use of Unlinkat().
 func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
@@ -447,6 +452,8 @@ func (fs *FS) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 // encryptSymlinkTarget: "data" is encrypted like file contents (GCM)
 // and base64-encoded.
 // The empty string encrypts to the empty string.
+//
+// Symlink-safe because it does not do any I/O.
 func (fs *FS) encryptSymlinkTarget(data string) (cData64 string) {
 	if data == "" {
 		return ""
@@ -456,7 +463,9 @@ func (fs *FS) encryptSymlinkTarget(data string) (cData64 string) {
 	return cData64
 }
 
-// Symlink implements pathfs.Filesystem.
+// Symlink - FUSE call. Create a symlink.
+//
+// Symlink-safe through use of Symlinkat.
 func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (code fuse.Status) {
 	tlog.Debug.Printf("Symlink(\"%s\", \"%s\")", target, linkName)
 	if fs.isFiltered(linkName) {

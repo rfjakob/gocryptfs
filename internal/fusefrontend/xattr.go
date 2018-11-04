@@ -50,7 +50,10 @@ func (fs *FS) GetXAttr(path string, attr string, context *fuse.Context) ([]byte,
 	return data, fuse.OK
 }
 
-// SetXAttr implements pathfs.Filesystem.
+// SetXAttr - FUSE call.
+//
+// TODO: Make symlink-safe. Currently blocked because the xattr package does
+// not provide fsetxattr.
 func (fs *FS) SetXAttr(path string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
 	if fs.isFiltered(path) {
 		return fuse.EPERM
