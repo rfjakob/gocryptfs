@@ -26,8 +26,8 @@ var xattrStorePrefix = "user.gocryptfs."
 // GetXAttr - FUSE call. Reads the value of extended attribute "attr".
 //
 // This function is symlink-safe on Linux.
-// Darwin does not have fgetxattr(2) nor /proc. How to implement this on Darwin
-// in a symlink-safe way?
+// Darwin does not have fgetxattr(2) nor /proc/self/fd. How to implement this
+// on Darwin in a symlink-safe way?
 func (fs *FS) GetXAttr(relPath string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
 	if fs.isFiltered(relPath) {
 		return nil, fuse.EPERM
@@ -48,27 +48,22 @@ func (fs *FS) GetXAttr(relPath string, attr string, context *fuse.Context) ([]by
 	return data, fuse.OK
 }
 
-// SetXAttr - FUSE call.
+// SetXAttr - FUSE call. Set extended attribute.
 //
-// TODO: Make symlink-safe. Currently blocked because the xattr package does
-// not provide fsetxattr.
-func (fs *FS) SetXAttr(path string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
-	if fs.isFiltered(path) {
+// This function is symlink-safe on Linux.
+// Darwin does not have fsetxattr(2) nor /proc/self/fd. How to implement this
+// on Darwin in a symlink-safe way?
+func (fs *FS) SetXAttr(relPath string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
+	if fs.isFiltered(relPath) {
 		return fuse.EPERM
 	}
 	if disallowedXAttrName(attr) {
 		return _EOPNOTSUPP
 	}
-
 	flags = filterXattrSetFlags(flags)
-
-	cPath, err := fs.getBackingPath(path)
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
 	cAttr := fs.encryptXattrName(attr)
 	cData := fs.encryptXattrValue(data)
-	return unpackXattrErr(xattr.LSetWithFlags(cPath, cAttr, cData, flags))
+	return fs.setXattr(relPath, cAttr, cData, flags, context)
 }
 
 // RemoveXAttr - FUSE call.
@@ -175,7 +170,7 @@ func (fs *FS) decryptXattrValue(cData []byte) (data []byte, err error) {
 }
 
 // unpackXattrErr unpacks an error value that we got from xattr.LGet/LSet/etc
-// and converts it to a fuse status.
+// and converts it to a fuse status. If err == nil, it returns fuse.OK.
 func unpackXattrErr(err error) fuse.Status {
 	if err == nil {
 		return fuse.OK

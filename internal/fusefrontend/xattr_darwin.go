@@ -30,3 +30,12 @@ func (fs *FS) getXattr(relPath string, cAttr string, context *fuse.Context) ([]b
 	}
 	return cData, fuse.OK
 }
+
+func (fs *FS) setXattr(relPath string, cAttr string, cData []byte, flags int, context *fuse.Context) fuse.Status {
+	cPath, err := fs.getBackingPath(relPath)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	err = xattr.LSetWithFlags(cPath, cAttr, cData, flags)
+	return unpackXattrErr(err)
+}

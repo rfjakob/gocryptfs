@@ -28,6 +28,7 @@ func filterXattrSetFlags(flags int) int {
 	return flags
 }
 
+// procFd returns the path to file descriptor "fd" in /proc/self/fd.
 func procFd(fd int) string {
 	return fmt.Sprintf("/proc/self/fd/%d", fd)
 }
@@ -51,10 +52,10 @@ func (fs *FS) getFileFd(relPath string, context *fuse.Context) (*File, int, fuse
 	return file, file.intFd(), fuse.OK
 }
 
-// getXattr - read encrypted xattr name "cAttr" from the file at relative
+// getXattr - read encrypted xattr name "cAttr" from relative
 // plaintext path "relPath". Returns the encrypted xattr value.
 //
-// This function is symlink-safe.
+// This function is symlink-safe by using /proc/self/fd.
 func (fs *FS) getXattr(relPath string, cAttr string, context *fuse.Context) ([]byte, fuse.Status) {
 	file, fd, status := fs.getFileFd(relPath, context)
 	if !status.Ok() {
@@ -67,4 +68,19 @@ func (fs *FS) getXattr(relPath string, cAttr string, context *fuse.Context) ([]b
 		return nil, unpackXattrErr(err)
 	}
 	return cData, fuse.OK
+}
+
+// setXattr - set encrypted xattr name "cAttr" to value "cData" on plaintext
+// path "relPath".
+//
+// This function is symlink-safe by using /proc/self/fd.
+func (fs *FS) setXattr(relPath string, cAttr string, cData []byte, flags int, context *fuse.Context) fuse.Status {
+	file, fd, status := fs.getFileFd(relPath, context)
+	if !status.Ok() {
+		return status
+	}
+	defer file.Release()
+
+	err := xattr.SetWithFlags(procFd(fd), cAttr, cData, flags)
+	return unpackXattrErr(err)
 }
