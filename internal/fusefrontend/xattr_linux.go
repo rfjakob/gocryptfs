@@ -84,3 +84,18 @@ func (fs *FS) setXattr(relPath string, cAttr string, cData []byte, flags int, co
 	err := xattr.SetWithFlags(procFd(fd), cAttr, cData, flags)
 	return unpackXattrErr(err)
 }
+
+// removeXAttr - remove encrypted xattr name "cAttr" from
+// plaintext path "relPath".
+//
+// This function is symlink-safe on Linux by using /proc/self/fd.
+func (fs *FS) removeXAttr(relPath string, cAttr string, context *fuse.Context) fuse.Status {
+	file, fd, status := fs.getFileFd(relPath, context)
+	if !status.Ok() {
+		return status
+	}
+	defer file.Release()
+
+	err := xattr.Remove(procFd(fd), cAttr)
+	return unpackXattrErr(err)
+}

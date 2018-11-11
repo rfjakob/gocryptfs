@@ -18,7 +18,8 @@ func filterXattrSetFlags(flags int) int {
 	return flags &^ xattr.XATTR_NOSECURITY
 }
 
-// This function is NOT symlink-safe because Darwin lacks fgetxattr().
+// This function is NOT symlink-safe because Darwin lacks
+// both fgetxattr() and /proc/self/fd.
 func (fs *FS) getXattr(relPath string, cAttr string, context *fuse.Context) ([]byte, fuse.Status) {
 	cPath, err := fs.getBackingPath(relPath)
 	if err != nil {
@@ -31,11 +32,24 @@ func (fs *FS) getXattr(relPath string, cAttr string, context *fuse.Context) ([]b
 	return cData, fuse.OK
 }
 
+// This function is NOT symlink-safe because Darwin lacks
+// both fsetxattr() and /proc/self/fd.
 func (fs *FS) setXattr(relPath string, cAttr string, cData []byte, flags int, context *fuse.Context) fuse.Status {
 	cPath, err := fs.getBackingPath(relPath)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
 	err = xattr.LSetWithFlags(cPath, cAttr, cData, flags)
+	return unpackXattrErr(err)
+}
+
+// This function is NOT symlink-safe because Darwin lacks
+// both fremovexattr() and /proc/self/fd.
+func (fs *FS) removeXAttr(relPath string, cAttr string, context *fuse.Context) fuse.Status {
+	cPath, err := fs.getBackingPath(relPath)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	err = xattr.LRemove(cPath, cAttr)
 	return unpackXattrErr(err)
 }

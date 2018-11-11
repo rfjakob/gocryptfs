@@ -68,21 +68,18 @@ func (fs *FS) SetXAttr(relPath string, attr string, data []byte, flags int, cont
 
 // RemoveXAttr - FUSE call.
 //
-// TODO: Make symlink-safe. Blocker: package xattr does not provide
-// fremovexattr(2).
-func (fs *FS) RemoveXAttr(path string, attr string, context *fuse.Context) fuse.Status {
-	if fs.isFiltered(path) {
+// This function is symlink-safe on Linux.
+// Darwin does not have fremovexattr(2) nor /proc/self/fd. How to implement this
+// on Darwin in a symlink-safe way?
+func (fs *FS) RemoveXAttr(relPath string, attr string, context *fuse.Context) fuse.Status {
+	if fs.isFiltered(relPath) {
 		return fuse.EPERM
 	}
 	if disallowedXAttrName(attr) {
 		return _EOPNOTSUPP
 	}
-	cPath, err := fs.getBackingPath(path)
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
 	cAttr := fs.encryptXattrName(attr)
-	return unpackXattrErr(xattr.LRemove(cPath, cAttr))
+	return fs.removeXAttr(relPath, cAttr, context)
 }
 
 // ListXAttr - FUSE call. Lists extended attributes on the file at "path".
