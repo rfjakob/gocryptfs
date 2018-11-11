@@ -99,3 +99,27 @@ func (fs *FS) removeXAttr(relPath string, cAttr string, context *fuse.Context) f
 	err := xattr.Remove(procFd(fd), cAttr)
 	return unpackXattrErr(err)
 }
+
+// listXAttr - list encrypted xattr names on plaintext path "relPath".
+//
+// This function is symlink-safe on Linux by using /proc/self/fd.
+func (fs *FS) listXAttr(relPath string, context *fuse.Context) ([]string, fuse.Status) {
+	file, fd, status := fs.getFileFd(relPath, context)
+	if !status.Ok() {
+		// If relPath is a symlink, getFileFd fails with ELOOP. As setXattr()
+		// also fails with ELOOP, there is no way to set xattrs on symlinks,
+		// and we can assume that the file does not have any.
+		if status == fuse.Status(syscall.ELOOP) {
+			return nil, fuse.OK
+		}
+		return nil, status
+	}
+	defer file.Release()
+
+	cNames, err := xattr.List(procFd(fd))
+	if err != nil {
+		status := unpackXattrErr(err)
+		return nil, status
+	}
+	return cNames, fuse.OK
+}

@@ -82,21 +82,18 @@ func (fs *FS) RemoveXAttr(relPath string, attr string, context *fuse.Context) fu
 	return fs.removeXAttr(relPath, cAttr, context)
 }
 
-// ListXAttr - FUSE call. Lists extended attributes on the file at "path".
+// ListXAttr - FUSE call. Lists extended attributes on the file at "relPath".
 //
-// TODO: Make symlink-safe. Blocker: package xattr does not provide
-// flistxattr(2).
-func (fs *FS) ListXAttr(path string, context *fuse.Context) ([]string, fuse.Status) {
-	if fs.isFiltered(path) {
+// This function is symlink-safe on Linux.
+// Darwin does not have flistxattr(2) nor /proc/self/fd. How to implement this
+// on Darwin in a symlink-safe way?
+func (fs *FS) ListXAttr(relPath string, context *fuse.Context) ([]string, fuse.Status) {
+	if fs.isFiltered(relPath) {
 		return nil, fuse.EPERM
 	}
-	cPath, err := fs.getBackingPath(path)
-	if err != nil {
-		return nil, fuse.ToStatus(err)
-	}
-	cNames, err := xattr.LList(cPath)
-	if err != nil {
-		return nil, unpackXattrErr(err)
+	cNames, status := fs.listXAttr(relPath, context)
+	if !status.Ok() {
+		return nil, status
 	}
 	names := make([]string, 0, len(cNames))
 	for _, curName := range cNames {

@@ -53,3 +53,17 @@ func (fs *FS) removeXAttr(relPath string, cAttr string, context *fuse.Context) f
 	err = xattr.LRemove(cPath, cAttr)
 	return unpackXattrErr(err)
 }
+
+// This function is NOT symlink-safe because Darwin lacks
+// both flistxattr() and /proc/self/fd.
+func (fs *FS) listXAttr(relPath string, context *fuse.Context) ([]string, fuse.Status) {
+	cPath, err := fs.getBackingPath(relPath)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	cNames, err := xattr.LList(cPath)
+	if err != nil {
+		return nil, unpackXattrErr(err)
+	}
+	return cNames, fuse.OK
+}
