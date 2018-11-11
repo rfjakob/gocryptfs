@@ -31,21 +31,6 @@ func (fs *FS) isFiltered(path string) bool {
 	return false
 }
 
-// GetBackingPath - get the absolute encrypted path of the backing file
-// from the relative plaintext path "relPath"
-//
-// TODO: this function is NOT symlink-safe.
-// TODO: Move to xattr_darwin.go.
-func (fs *FS) getBackingPath(relPath string) (string, error) {
-	cPath, err := fs.encryptPath(relPath)
-	if err != nil {
-		return "", err
-	}
-	cAbsPath := filepath.Join(fs.args.Cipherdir, cPath)
-	tlog.Debug.Printf("getBackingPath: %s + %s -> %s", fs.args.Cipherdir, relPath, cAbsPath)
-	return cAbsPath, nil
-}
-
 // openBackingDir opens the parent ciphertext directory of plaintext path
 // "relPath" and returns the dirfd and the encrypted basename.
 //

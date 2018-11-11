@@ -4,9 +4,13 @@
 package fusefrontend
 
 import (
+	"path/filepath"
+
 	"github.com/pkg/xattr"
 
 	"github.com/hanwen/go-fuse/fuse"
+
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 func disallowedXAttrName(attr string) bool {
@@ -66,4 +70,19 @@ func (fs *FS) listXAttr(relPath string, context *fuse.Context) ([]string, fuse.S
 		return nil, unpackXattrErr(err)
 	}
 	return cNames, fuse.OK
+}
+
+// getBackingPath - get the absolute encrypted path of the backing file
+// from the relative plaintext path "relPath"
+//
+// This function is NOT symlink-safe. Darwin needs it because it lacks
+// fgetxattr(2) and friends.
+func (fs *FS) getBackingPath(relPath string) (string, error) {
+	cPath, err := fs.encryptPath(relPath)
+	if err != nil {
+		return "", err
+	}
+	cAbsPath := filepath.Join(fs.args.Cipherdir, cPath)
+	tlog.Debug.Printf("getBackingPath: %s + %s -> %s", fs.args.Cipherdir, relPath, cAbsPath)
+	return cAbsPath, nil
 }
