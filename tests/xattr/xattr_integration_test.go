@@ -1,4 +1,10 @@
-package defaults
+package xattr_tests
+
+// xattr integration tests.
+//
+// These tests are not integrated into the "matrix" tests because of the need
+// to switch TMPDIR to /var/tmp.
+// TODO: check if it actually causes trouble in the "matrix" tests.
 
 import (
 	"bytes"
