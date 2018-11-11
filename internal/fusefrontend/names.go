@@ -35,6 +35,7 @@ func (fs *FS) isFiltered(path string) bool {
 // from the relative plaintext path "relPath"
 //
 // TODO: this function is NOT symlink-safe.
+// TODO: Move to xattr_darwin.go.
 func (fs *FS) getBackingPath(relPath string) (string, error) {
 	cPath, err := fs.encryptPath(relPath)
 	if err != nil {

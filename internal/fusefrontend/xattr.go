@@ -25,24 +25,22 @@ var xattrStorePrefix = "user.gocryptfs."
 
 // GetXAttr - FUSE call. Reads the value of extended attribute "attr".
 //
-// TODO: Make symlink-safe. Blocker: package xattr does not provide fgetxattr(2).
-func (fs *FS) GetXAttr(path string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
-	if fs.isFiltered(path) {
+// This function is symlink-safe on Linux.
+// Darwin does not have fgetxattr(2) nor /proc. How to implement this on Darwin
+// in a symlink-safe way?
+func (fs *FS) GetXAttr(relPath string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
+	if fs.isFiltered(relPath) {
 		return nil, fuse.EPERM
 	}
 	if disallowedXAttrName(attr) {
 		return nil, _EOPNOTSUPP
 	}
 	cAttr := fs.encryptXattrName(attr)
-	cPath, err := fs.getBackingPath(path)
-	if err != nil {
-		return nil, fuse.ToStatus(err)
+	cData, status := fs.getXattr(relPath, cAttr, context)
+	if !status.Ok() {
+		return nil, status
 	}
-	encryptedData, err := xattr.LGet(cPath, cAttr)
-	if err != nil {
-		return nil, unpackXattrErr(err)
-	}
-	data, err := fs.decryptXattrValue(encryptedData)
+	data, err := fs.decryptXattrValue(cData)
 	if err != nil {
 		tlog.Warn.Printf("GetXAttr: %v", err)
 		return nil, fuse.EIO

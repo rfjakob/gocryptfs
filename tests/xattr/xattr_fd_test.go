@@ -34,6 +34,9 @@ func TestFdXattr(t *testing.T) {
 	val1 := []byte("123456789")
 	unix.Fsetxattr(fd, attr, val1, 0)
 	sz, err = unix.Flistxattr(fd, buf)
+	if err != nil {
+		t.Fatal(err)
+	}
 	// Length of "user.attr" + terminating null byte
 	expectedSz := len(attr) + 1
 	if sz != expectedSz {
@@ -45,6 +48,9 @@ func TestFdXattr(t *testing.T) {
 	}
 	// Check content
 	sz, err = unix.Fgetxattr(fd, attr, buf)
+	if err != nil {
+		t.Fatal(err)
+	}
 	str = string(buf[:sz])
 	if str != string(val1) {
 		t.Errorf("expected val %q, got %q", val1, str)
