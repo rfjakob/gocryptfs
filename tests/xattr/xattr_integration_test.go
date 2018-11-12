@@ -49,37 +49,75 @@ func TestMain(m *testing.M) {
 	os.Exit(r)
 }
 
-func TestXattrSetGetRm(t *testing.T) {
-	attr := "user.foo"
-	fn := test_helpers.DefaultPlainDir + "/TestXattrSetGetRm"
-	err := ioutil.WriteFile(fn, nil, 0700)
+func setGetRmList(fn string) error {
+	// List
+	list, err := xattr.LList(fn)
 	if err != nil {
-		t.Fatalf("creating empty file failed: %v", err)
+		return err
 	}
+	if len(list) > 0 {
+		return fmt.Errorf("Should have gotten empty result, got %v", list)
+	}
+	attr := "user.foo"
 	// Set
 	val1 := []byte("123456789")
 	err = xattr.LSet(fn, attr, val1)
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
 	// Read back
 	val2, err := xattr.LGet(fn, attr)
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
 	if !bytes.Equal(val1, val2) {
-		t.Fatalf("wrong readback value: %v != %v", val1, val2)
+		return fmt.Errorf("wrong readback value: %v != %v", val1, val2)
 	}
 	// Remove
 	err = xattr.LRemove(fn, attr)
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
 	// Read back
 	val3, err := xattr.LGet(fn, attr)
 	if err == nil {
-		t.Fatalf("attr is still there after deletion!? val3=%v", val3)
+		return fmt.Errorf("attr is still there after deletion!? val3=%v", val3)
 	}
+	// List
+	list, err = xattr.LList(fn)
+	if err != nil {
+		return err
+	}
+	if len(list) > 0 {
+		return fmt.Errorf("Should have gotten empty result, got %v", list)
+	}
+	return nil
+}
+
+// Test xattr set, get, rm on a regular file.
+func TestSetGetRmRegularFile(t *testing.T) {
+	fn := test_helpers.DefaultPlainDir + "/TestSetGetRmRegularFile"
+	err := ioutil.WriteFile(fn, nil, 0700)
+	if err != nil {
+		t.Fatalf("creating empty file failed: %v", err)
+	}
+	err = setGetRmList(fn)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+// Test xattr set, get, rm on a fifo. This should not hang.
+func TestSetGetRmFifo(t *testing.T) {
+	fn := test_helpers.DefaultPlainDir + "/TestSetGetRmFifo"
+	err := syscall.Mkfifo(fn, 0700)
+	if err != nil {
+		t.Fatalf("creating fifo failed: %v", err)
+	}
+	// We expect to get EPERM, but we should not hang:
+	// $ setfattr -n user.foo -v XXXXX fifo
+	// setfattr: fifo: Operation not permitted
+	setGetRmList(fn)
 }
 
 func TestXattrSetEmpty(t *testing.T) {

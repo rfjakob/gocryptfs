@@ -35,11 +35,12 @@ func procFd(fd int) string {
 
 // getFileFd calls fs.Open() on relative plaintext path "relPath" and returns
 // the resulting fusefrontend.*File along with the underlying fd. The caller
-// MUST call file.Release() when done with the file.
+// MUST call file.Release() when done with the file. The O_NONBLOCK flag is
+// used to not block on FIFOs.
 //
 // Used by xattrGet() and friends.
 func (fs *FS) getFileFd(relPath string, context *fuse.Context) (*File, int, fuse.Status) {
-	fuseFile, status := fs.Open(relPath, syscall.O_RDONLY, context)
+	fuseFile, status := fs.Open(relPath, syscall.O_RDONLY|syscall.O_NONBLOCK, context)
 	if !status.Ok() {
 		return nil, -1, status
 	}
