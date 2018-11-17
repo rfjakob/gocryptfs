@@ -123,6 +123,21 @@ func getdentsName(s unix.Dirent) (string, error) {
 
 var dtUnknownWarnOnce sync.Once
 
+func dtUnknownWarn(dirfd int) {
+	const XFS_SUPER_MAGIC = 0x58465342 // From man 2 statfs
+	var buf syscall.Statfs_t
+	err := syscall.Fstatfs(dirfd, &buf)
+	if err == nil && buf.Type == XFS_SUPER_MAGIC {
+		// Old XFS filesystems always return DT_UNKNOWN. Downgrade the message
+		// to "info" level if we are on XFS.
+		// https://github.com/rfjakob/gocryptfs/issues/267
+		tlog.Info.Printf("Getdents: convertDType: received DT_UNKNOWN, fstype=xfs, falling back to stat")
+	} else {
+		tlog.Warn.Printf("Getdents: convertDType: received DT_UNKNOWN, fstype=%#x, falling back to stat",
+			buf.Type)
+	}
+}
+
 // convertDType converts a Dirent.Type to at Stat_t.Mode value.
 func convertDType(dirfd int, name string, dtype uint8) (uint32, error) {
 	if dtype != syscall.DT_UNKNOWN {
@@ -130,9 +145,7 @@ func convertDType(dirfd int, name string, dtype uint8) (uint32, error) {
 		return uint32(dtype) << 12, nil
 	}
 	// DT_UNKNOWN: we have to call stat()
-	dtUnknownWarnOnce.Do(func() {
-		tlog.Warn.Printf("Getdents: convertDType: received DT_UNKNOWN, falling back to stat")
-	})
+	dtUnknownWarnOnce.Do(func() { dtUnknownWarn(dirfd) })
 	var st unix.Stat_t
 	err := Fstatat(dirfd, name, &st, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
