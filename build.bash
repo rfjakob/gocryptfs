@@ -57,8 +57,10 @@ if [[ -z ${BUILDDATE:-} ]] ; then
 	BUILDDATE=$(date +%Y-%m-%d)
 fi
 
-LDFLAGS="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildDate=$BUILDDATE"
-go build "-ldflags=$LDFLAGS" "$@"
+GO_GCFLAGS="all=-trimpath=$PWD"
+GO_ASMFLAGS="all=-trimpath=$PWD"
+GO_LDFLAGS="-extldflags=$LDFLAGS -X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildDate=$BUILDDATE"
+go build -ldflags "$GO_LDFLAGS" -gcflags "$GO_GCFLAGS" -asmflags "$GO_ASMFLAGS" "$@"
 
 (cd gocryptfs-xray; go build "$@")
 
