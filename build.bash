@@ -36,6 +36,8 @@ fi
 # go-fuse version, if available
 if [[ -d vendor/github.com/hanwen/go-fuse ]] ; then
 	GITVERSIONFUSE="[vendored]"
+	GO_GCFLAGS="all=-trimpath=$PWD"
+	GO_ASMFLAGS="all=-trimpath=$PWD"
 else
 	# go-fuse version according to git
 	# Note: git in CentOS 7 does not have "git -C" yet, so we use plain "cd".
@@ -50,15 +52,13 @@ else
 		GITVERSIONFUSE="[unknown]"
 	fi
 	cd "$MYDIR"
+	GO_GCFLAGS="all=-trimpath=$GOPATH1"
+	GO_ASMFLAGS="all=-trimpath=$GOPATH1"
 fi
 
 # Build date, something like "2017-09-06"
-if [[ -z ${BUILDDATE:-} ]] ; then
-	BUILDDATE=$(date +%Y-%m-%d)
-fi
-
-GO_GCFLAGS="all=-trimpath=$PWD"
-GO_ASMFLAGS="all=-trimpath=$PWD"
+BUILDDATE="$(date --utc --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y-%m-%d)"
+LDFLAGS="${LDFLAGS:-}"
 GO_LDFLAGS="-extldflags=$LDFLAGS -X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildDate=$BUILDDATE"
 go build -ldflags "$GO_LDFLAGS" -gcflags "$GO_GCFLAGS" -asmflags "$GO_ASMFLAGS" "$@"
 
