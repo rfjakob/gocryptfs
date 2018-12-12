@@ -153,6 +153,10 @@ RM:    3.379
 Changelog
 ---------
 
+v1.6.1, 2018-12-12
+* Fix "Operation not supported" chmod errors on Go 1.11
+  ([#271](https://github.com/rfjakob/gocryptfs/issues/271))
+
 v1.6, 2018-08-18
 * **Add `-e` / `-exclude` option** for reverse mode
   ([#235](https://github.com/rfjakob/gocryptfs/issues/235),
