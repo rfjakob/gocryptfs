@@ -262,8 +262,13 @@ you are using Go 1.6+. In mode "auto", gocrypts chooses the faster
 option.
 
 #### -passfile string
-Read password from the specified file. This is a shortcut for
-specifying '-extpass="/bin/cat -- FILE"'.
+Read password from the specified file. A warning will be printed if there
+is more than one line, and only the first line will be used. A single
+trailing newline is allowed and does not cause a warning.
+
+Before gocryptfs v1.7, using `-passfile` was equivant to writing
+`-extpass="/bin/cat -- FILE"`.
+gocryptfs v1.7 and later directly read the file without invoking `cat`.
 
 #### -passwd
 Change the password. Will ask for the old password, check if it is

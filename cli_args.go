@@ -243,9 +243,13 @@ func parseCliOpts() (args argContainer) {
 		args.allow_other = false
 		args.ko = "noexec"
 	}
-	// '-passfile FILE' is a shortcut for -extpass='/bin/cat -- FILE'
-	if args.passfile != "" {
-		args.extpass = "/bin/cat -- " + args.passfile
+	if args.extpass != "" && args.passfile != "" {
+		tlog.Fatal.Printf("The options -extpass and -passfile cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
+	}
+	if args.passfile != "" && args.masterkey != "" {
+		tlog.Fatal.Printf("The options -passfile and -masterkey cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
 	}
 	if args.extpass != "" && args.masterkey != "" {
 		tlog.Fatal.Printf("The options -extpass and -masterkey cannot be used at the same time")

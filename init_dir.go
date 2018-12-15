@@ -78,7 +78,7 @@ func initDir(args *argContainer) {
 			password = readpassword.Trezor(trezorPayload)
 		} else {
 			// Normal password entry
-			password = readpassword.Twice(args.extpass)
+			password = readpassword.Twice(args.extpass, args.passfile)
 			readpassword.CheckTrailingGarbage()
 		}
 		creator := tlog.ProgramName + " " + GitVersion

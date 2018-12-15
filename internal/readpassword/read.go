@@ -24,7 +24,10 @@ const (
 
 // Once tries to get a password from the user, either from the terminal, extpass
 // or stdin. Leave "prompt" empty to use the default "Password: " prompt.
-func Once(extpass string, prompt string) []byte {
+func Once(extpass string, passfile string, prompt string) []byte {
+	if passfile != "" {
+		return readPassFile(passfile)
+	}
 	if extpass != "" {
 		return readPasswordExtpass(extpass)
 	}
@@ -39,7 +42,10 @@ func Once(extpass string, prompt string) []byte {
 
 // Twice is the same as Once but will prompt twice if we get the password from
 // the terminal.
-func Twice(extpass string) []byte {
+func Twice(extpass string, passfile string) []byte {
+	if passfile != "" {
+		return readPassFile(passfile)
+	}
 	if extpass != "" {
 		return readPasswordExtpass(extpass)
 	}
@@ -95,16 +101,7 @@ func readPasswordStdin(prompt string) []byte {
 // Exits on read error or empty result.
 func readPasswordExtpass(extpass string) []byte {
 	tlog.Info.Println("Reading password from extpass program")
-	var parts []string
-	// The option "-passfile=FILE" gets transformed to
-	// "-extpass="/bin/cat -- FILE". We don't want to split FILE on spaces,
-	// so let's handle it manually.
-	passfileCat := "/bin/cat -- "
-	if strings.HasPrefix(extpass, passfileCat) {
-		parts = []string{"/bin/cat", "--", extpass[len(passfileCat):]}
-	} else {
-		parts = strings.Split(extpass, " ")
-	}
+	parts := strings.Split(extpass, " ")
 	cmd := exec.Command(parts[0], parts[1:]...)
 	cmd.Stderr = os.Stderr
 	pipe, err := cmd.StdoutPipe()

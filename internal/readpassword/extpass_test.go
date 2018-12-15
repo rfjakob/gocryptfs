@@ -26,7 +26,7 @@ func TestExtpass(t *testing.T) {
 
 func TestOnceExtpass(t *testing.T) {
 	p1 := "lkadsf0923rdfi48rqwhdsf"
-	p2 := string(Once("echo "+p1, ""))
+	p2 := string(Once("echo "+p1, "", ""))
 	if p1 != p2 {
 		t.Errorf("p1=%q != p2=%q", p1, p2)
 	}
@@ -34,14 +34,16 @@ func TestOnceExtpass(t *testing.T) {
 
 func TestTwiceExtpass(t *testing.T) {
 	p1 := "w5w44t3wfe45srz434"
-	p2 := string(Once("echo "+p1, ""))
+	p2 := string(Once("echo "+p1, "", ""))
 	if p1 != p2 {
 		t.Errorf("p1=%q != p2=%q", p1, p2)
 	}
 }
 
 // When extpass returns an empty string, we should crash.
-// https://talks.golang.org/2014/testing.slide#23
+//
+// The TEST_SLAVE magic is explained at
+// https://talks.golang.org/2014/testing.slide#23 .
 func TestExtpassEmpty(t *testing.T) {
 	if os.Getenv("TEST_SLAVE") == "1" {
 		readPasswordExtpass("echo")
