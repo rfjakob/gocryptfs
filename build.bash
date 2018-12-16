@@ -5,7 +5,10 @@
 #
 # If you want to fake a build date to reproduce a specific build,
 # you can use:
-# BUILDDATE=2017-02-03 ./build.bash
+#  BUILDDATE=2017-02-03 ./build.bash
+# or
+#  SOURCE_DATE_EPOCH=1544192417 ./build.bash
+# .
 
 cd "$(dirname "$0")"
 MYDIR=$PWD
@@ -77,9 +80,15 @@ else
 	TRIM="all=-trimpath=${GOPATH1}/src"
 fi
 
-LDFLAGS="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildDate=$BUILDDATE"
+GO_LDFLAGS="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildDate=$BUILDDATE"
 
-go build "-ldflags=$LDFLAGS" "-gcflags=$TRIM" "-asmflags=$TRIM" "$@"
+# If LDFLAGS is set, add it as "-extldflags".
+if [[ -n ${LDFLAGS:-} ]] ; then
+	GO_LDFLAGS="-extldflags=$LDFLAGS $GO_LDFLAGS"
+fi
+
+# Actual "go build" call
+go build "-ldflags=$GO_LDFLAGS" "-gcflags=$TRIM" "-asmflags=$TRIM" "$@"
 
 (cd gocryptfs-xray; go build "-gcflags=$TRIM" "-asmflags=$TRIM" "$@")
 
