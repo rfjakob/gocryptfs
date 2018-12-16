@@ -51,7 +51,7 @@ func TestPassfileNewline(t *testing.T) {
 		readPassFile("passfile_test_files/newline.txt")
 		return
 	}
-	cmd := exec.Command(os.Args[0], "-test.run=TestPassfileEmpty$")
+	cmd := exec.Command(os.Args[0], "-test.run=TestPassfileNewline$")
 	cmd.Env = append(os.Environ(), "TEST_SLAVE=1")
 	err := cmd.Run()
 	if err != nil {
