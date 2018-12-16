@@ -129,12 +129,20 @@ Since version 0.7.2, gocryptfs is as fast as EncFS in the default mode,
 and significantly faster than EncFS' "paranoia" mode that provides
 a security level comparable to gocryptfs.
 
-gocryptfs uses OpenSSL through a thin wrapper called `stupidgcm`.
+On CPUs without AES-NI, gocryptfs uses OpenSSL through a thin wrapper called `stupidgcm`.
 This provides a 4x speedup compared to Go's builtin AES-GCM
-implementation - see [openssl-gcm.md](Documentation/openssl-gcm.md)
-for details. The use of openssl can disabled on the command-line.
+implementation. See [CPU-Benchmarks](https://github.com/rfjakob/gocryptfs/wiki/CPU-Benchmarks)
+for details, or run `gocryptfs -speed` to see the encryption performance of your CPU.
+Example for a CPU without AES-NI:
 
-Run `./benchmark.bash` to run gocryptfs' canonical set of
+```
+$ ./gocryptfs -speed
+AES-GCM-256-OpenSSL    165.67 MB/s  (selected in auto mode)
+AES-GCM-256-Go          49.62 MB/s  
+AES-SIV-512-Go          39.98 MB/s  
+```
+
+You can run `./benchmark.bash` to run gocryptfs' canonical set of
 benchmarks that include streaming write, extracting a linux kernel
 tarball, recursively listing and finally deleting it. The output will
 look like this:
