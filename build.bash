@@ -52,12 +52,20 @@ else
 	cd "$MYDIR"
 fi
 
-# Build date, something like "2017-09-06"
+# Build date, something like "2017-09-06". Don't override BUILDDATE
+# if it is already set. This may be done for reproducible builds.
 if [[ -z ${BUILDDATE:-} ]] ; then
 	BUILDDATE=$(date +%Y-%m-%d)
 fi
 
+# If SOURCE_DATE_EPOCH is set, it overrides BUILDDATE. This is the
+# standard environment variable for faking the date in reproducible builds.
+if [[ -n ${SOURCE_DATE_EPOCH:-} ]] ; then
+	BUILDDATE=$(date --utc --date="@${SOURCE_DATE_EPOCH}" +%Y-%m-%d)
+fi
+
 LDFLAGS="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildDate=$BUILDDATE"
+
 go build "-ldflags=$LDFLAGS" "$@"
 
 (cd gocryptfs-xray; go build "$@")
