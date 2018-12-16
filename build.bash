@@ -64,11 +64,24 @@ if [[ -n ${SOURCE_DATE_EPOCH:-} ]] ; then
 	BUILDDATE=$(date --utc --date="@${SOURCE_DATE_EPOCH}" +%Y-%m-%d)
 fi
 
+# For reproducible builds, we get rid of $HOME references in the binary
+# using "-trimpath".
+# Note: we have to set both -gcflags and -asmflags because otherwise
+# "$HOME/go/src/golang.org/x/sys/unix/asm_linux_amd64.s" stays in the binary.
+GV=$(go version)
+if [[ $GV == *"1.7"* ]] || [[ $GV == *"1.8"* ]] || [[ $GV == *"1.9"* ]] ; then
+	TRIM="-trimpath=${GOPATH1}/src"
+else
+	# Go 1.10 changed the syntax. You now have to prefix "all=" to affect
+	# all compiled packages.
+	TRIM="all=-trimpath=${GOPATH1}/src"
+fi
+
 LDFLAGS="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildDate=$BUILDDATE"
 
-go build "-ldflags=$LDFLAGS" "$@"
+go build "-ldflags=$LDFLAGS" "-gcflags=$TRIM" "-asmflags=$TRIM" "$@"
 
-(cd gocryptfs-xray; go build "$@")
+(cd gocryptfs-xray; go build "-gcflags=$TRIM" "-asmflags=$TRIM" "$@")
 
 ./gocryptfs -version
 
