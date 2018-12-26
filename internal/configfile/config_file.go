@@ -224,6 +224,15 @@ func (cf *ConfFile) DecryptMasterKey(password []byte) (masterkey []byte, err err
 	tlog.Warn.Enabled = false // Silence DecryptBlock() error messages on incorrect password
 	masterkey, err = ce.DecryptBlock(cf.EncryptedKey, 0, nil)
 	tlog.Warn.Enabled = true
+
+	// Purge scrypt-derived key
+	for i := range scryptHash {
+		scryptHash[i] = 0
+	}
+	scryptHash = nil
+	ce.Wipe()
+	ce = nil
+
 	if err != nil {
 		tlog.Warn.Printf("failed to unlock master key: %s", err.Error())
 		return nil, exitcodes.NewErr("Password incorrect.", exitcodes.PasswordIncorrect)
@@ -239,14 +248,19 @@ func (cf *ConfFile) EncryptKey(key []byte, password []byte, logN int) {
 	// Generate scrypt-derived key from password
 	cf.ScryptObject = NewScryptKDF(logN)
 	scryptHash := cf.ScryptObject.DeriveKey(password)
+
 	// Lock master key using password-based key
 	useHKDF := cf.IsFeatureFlagSet(FlagHKDF)
 	ce := getKeyEncrypter(scryptHash, useHKDF)
 	cf.EncryptedKey = ce.EncryptBlock(key, 0, nil)
+
 	// Purge scrypt-derived key
 	for i := range scryptHash {
 		scryptHash[i] = 0
 	}
+	scryptHash = nil
+	ce.Wipe()
+	ce = nil
 }
 
 // WriteFile - write out config in JSON format to file "filename.tmp"
