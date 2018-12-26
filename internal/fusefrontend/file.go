@@ -162,10 +162,8 @@ func (f *File) doRead(dst []byte, off uint64, length uint64) ([]byte, fuse.Statu
 				// Empty file
 				return nil, fuse.OK
 			}
-			if err != nil {
-				tlog.Warn.Printf("doRead %d: corrupt header: %v", f.qIno.Ino, err)
-				return nil, fuse.EIO
-			}
+			tlog.Warn.Printf("doRead %d: corrupt header: %v", f.qIno.Ino, err)
+			return nil, fuse.EIO
 		}
 		// Save into the file table
 		f.fileTableEntry.ID = fileID
