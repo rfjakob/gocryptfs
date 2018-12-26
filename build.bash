@@ -84,7 +84,7 @@ GO_LDFLAGS="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUS
 
 # If LDFLAGS is set, add it as "-extldflags".
 if [[ -n ${LDFLAGS:-} ]] ; then
-	GO_LDFLAGS="-extldflags=$LDFLAGS $GO_LDFLAGS"
+	GO_LDFLAGS="$GO_LDFLAGS \"-extldflags=$LDFLAGS\""
 fi
 
 # Actual "go build" call
