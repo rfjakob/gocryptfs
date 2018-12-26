@@ -324,3 +324,10 @@ func (be *ContentEnc) MergeBlocks(oldData []byte, newData []byte, offset int) []
 	}
 	return out[0:outLen]
 }
+
+// Wipe tries to wipe secret keys from memory by overwriting them with zeros
+// and/or setting references to nil.
+func (be *ContentEnc) Wipe() {
+	be.cryptoCore.Wipe()
+	be.cryptoCore = nil
+}
