@@ -236,7 +236,7 @@ retry:
 		// meantime, undo the rename
 		err2 := syscallcompat.Renameat(parentDirFd, tmpName,
 			dirfd, nametransform.DirIVFilename)
-		if err != nil {
+		if err2 != nil {
 			tlog.Warn.Printf("Rmdir: Rename rollback failed: %v", err2)
 		}
 		return fuse.ToStatus(err)
