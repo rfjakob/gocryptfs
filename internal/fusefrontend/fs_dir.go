@@ -61,6 +61,9 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 	defer syscall.Close(dirfd)
 	if fs.args.PlaintextNames {
 		err = syscallcompat.Mkdirat(dirfd, cName, mode)
+		if err != nil {
+			return fuse.ToStatus(err)
+		}
 		// Set owner
 		if fs.args.PreserveOwner {
 			err = syscallcompat.Fchownat(dirfd, cName, int(context.Owner.Uid),
@@ -69,7 +72,7 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 				tlog.Warn.Printf("Mkdir: Fchownat failed: %v", err)
 			}
 		}
-		return fuse.ToStatus(err)
+		return fuse.OK
 	}
 
 	// We need write and execute permissions to create gocryptfs.diriv
