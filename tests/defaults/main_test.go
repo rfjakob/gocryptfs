@@ -47,7 +47,7 @@ func Test1980Tar(t *testing.T) {
 // The sequence below caused an I/O error to be returned.
 func TestOpenTruncateRead(t *testing.T) {
 	fn := test_helpers.DefaultPlainDir + "/TestTruncateWrite"
-	// First FD is used for write and trucate.
+	// First FD is used for write and truncate.
 	writeFd, err := os.Create(fn)
 	if err != nil {
 		t.Fatal(err)

@@ -5,12 +5,12 @@ type IntraBlock struct {
 	// BlockNo is the block number in the file
 	BlockNo uint64
 	// Skip is an offset into the block payload
-	// In forwared mode: block plaintext
+	// In forward mode: block plaintext
 	// In reverse mode: offset into block ciphertext. Takes the header into
 	// account.
 	Skip uint64
 	// Length of payload data in this block
-	// In forwared mode: length of the plaintext
+	// In forward mode: length of the plaintext
 	// In reverse mode: length of the ciphertext. Takes header and trailer into
 	// account.
 	Length uint64

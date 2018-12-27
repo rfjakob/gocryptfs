@@ -13,8 +13,8 @@ What the extractloop stress test does is (top comment in `extractloop.bash`):
 # huge numbers of files.
 ```
 
-Memory usage stabilises at 119MiB, we do not run of fds,
-and the interation time is stable at 37 seconds. The test
+Memory usage stabilises at 119MiB, we do not run out of fds,
+and the iteration time is stable at 37 seconds. The test
 runs slower in the beginning due to xfstests running in
 parallel on the test machine.
 

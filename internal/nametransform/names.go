@@ -18,7 +18,7 @@ type NameTransform struct {
 	emeCipher  *eme.EMECipher
 	longNames  bool
 	DirIVCache dirivcache.DirIVCache
-	// B64 = either base64.URLEncoding or base64.RawURLEncoding, depeding
+	// B64 = either base64.URLEncoding or base64.RawURLEncoding, depending
 	// on the Raw64 feature flag
 	B64 *base64.Encoding
 }

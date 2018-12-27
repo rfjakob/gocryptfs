@@ -98,5 +98,5 @@ Content of "change.txt":
 Further Reading
 ---------------
 
-Additional exit codes that are unlikely to occour are defined in
+Additional exit codes that are unlikely to occur are defined in
 [exitcodes.go](../internal/exitcodes/exitcodes.go).

@@ -36,7 +36,7 @@ func (ck *fsckObj) markCorrupt(path string) {
 	ck.corruptListLock.Unlock()
 }
 
-// Watch for mitigated corruptions that occour during OpenDir()
+// Watch for mitigated corruptions that occur during OpenDir()
 func (ck *fsckObj) watchMitigatedCorruptionsOpenDir(path string) {
 	for {
 		select {
@@ -95,7 +95,7 @@ func (ck *fsckObj) symlink(path string) {
 	}
 }
 
-// Watch for mitigated corruptions that occour during Read()
+// Watch for mitigated corruptions that occur during Read()
 func (ck *fsckObj) watchMitigatedCorruptionsRead(path string) {
 	for {
 		select {
@@ -165,7 +165,7 @@ func (ck *fsckObj) file(path string) {
 	}
 }
 
-// Watch for mitigated corruptions that occour during ListXAttr()
+// Watch for mitigated corruptions that occur during ListXAttr()
 func (ck *fsckObj) watchMitigatedCorruptionsListXAttr(path string) {
 	for {
 		select {

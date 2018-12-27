@@ -58,7 +58,7 @@ const (
 	OpenConf = 23
 	// WriteConf - could not write the gocryptfs.conf
 	WriteConf = 24
-	// Profiler - error occoured when trying to write cpu or memory profile or
+	// Profiler - error occurred when trying to write cpu or memory profile or
 	// execution trace
 	Profiler = 25
 	// FsckErrors - the filesystem check found errors
@@ -68,7 +68,7 @@ const (
 	// TrezorError - an error was encountered while interacting with a Trezor
 	// device
 	TrezorError = 28
-	// ExcludeError - an error occoured while processing "-exclude"
+	// ExcludeError - an error occurred while processing "-exclude"
 	ExcludeError = 29
 )
 
