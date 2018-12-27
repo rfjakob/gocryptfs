@@ -31,9 +31,9 @@ type DirIVCache struct {
 	rootDirIV []byte
 
 	// expiry is the time when the whole cache expires.
-	// The cached entry my become out-of-date if the ciphertext directory is
-	// modifed behind the back of gocryptfs. Having an expiry time limits the
-	// inconstency to one second, like attr_timeout does for the kernel
+	// The cached entry might become out-of-date if the ciphertext directory is
+	// modified behind the back of gocryptfs. Having an expiry time limits the
+	// inconstancy to one second, like attr_timeout does for the kernel
 	// getattr cache.
 	expiry time.Time
 

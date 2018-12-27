@@ -18,5 +18,5 @@ gocryptfs.1
 /vendor
 /_vendor-*
 
-# Source tarball version. Should never be commited to git.
+# Source tarball version. Should never be committed to git.
 /VERSION

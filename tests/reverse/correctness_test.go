@@ -171,7 +171,7 @@ func TestAccess(t *testing.T) {
 	}
 }
 
-// Opening a nonexistant file name should return ENOENT
+// Opening a nonexistent file name should return ENOENT
 // and not EBADMSG or EIO or anything else.
 func TestEnoent(t *testing.T) {
 	fn := dirB + "/TestEnoent"

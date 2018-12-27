@@ -151,7 +151,7 @@ func concatAD(blockNo uint64, fileID []byte) (aData []byte) {
 // DecryptBlock - Verify and decrypt GCM block
 //
 // Corner case: A full-sized block of all-zero ciphertext bytes is translated
-// to an all-zero plaintext block, i.e. file hole passtrough.
+// to an all-zero plaintext block, i.e. file hole passthrough.
 func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileID []byte) ([]byte, error) {
 
 	// Empty block?

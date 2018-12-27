@@ -454,7 +454,7 @@ v0.7.2, 2016-01-19
 
 v0.7.1, 2016-01-09
 * Make the `build.bash` script compatible with Go 1.3
-* Disable fallocate on OSX (system call not availabe)
+* Disable fallocate on OSX (system call not available)
 * Introduce pre-built binaries for Fedora 23 and Debian 8
 
 v0.7, 2015-12-20
@@ -502,7 +502,7 @@ v0.4, 2015-11-15
   * `-plaintextnames`: disables filename encryption, added on user request
   * `-extpass`: calls an external program for prompting for the password
   * `-config`: allows to specify a custom gocryptfs.conf path
-* Add `FeatureFlags` gocryptfs.conf paramter
+* Add `FeatureFlags` gocryptfs.conf parameter
   * This is a config format change, hence the on-disk format is incremented
   * Used for ext4-style filesystem feature flags. This should help avoid future
     format changes. The first user is `-plaintextnames`.

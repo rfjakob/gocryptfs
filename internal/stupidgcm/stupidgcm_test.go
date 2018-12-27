@@ -26,7 +26,7 @@ func randBytes(n int) []byte {
 }
 
 // TestEncryptDecrypt encrypts and decrypts using both stupidgcm and Go's built-in
-// GCM implemenatation and verifies that the results are identical.
+// GCM implementation and verifies that the results are identical.
 func TestEncryptDecrypt(t *testing.T) {
 	key := randBytes(32)
 	sGCM := New(key, false)

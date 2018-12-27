@@ -1,6 +1,6 @@
 #!/bin/bash -eu
 #
-# Compatability wrapper around "fusermount" on Linux and "umount" on
+# Compatibility wrapper around "fusermount" on Linux and "umount" on
 # Mac OS X and friends.
 #
 # This script can be sourced or executed directly.
