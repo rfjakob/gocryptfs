@@ -100,7 +100,7 @@ func (s *ScryptKDF) validateParams() {
 		os.Exit(exitcodes.ScryptParams)
 	}
 	if s.KeyLen < cryptocore.KeyLen {
-		tlog.Fatal.Printf("Fatal: scrypt parameter KeyLen below minimum: value=%d, min=%d", len(s.Salt), cryptocore.KeyLen)
+		tlog.Fatal.Printf("Fatal: scrypt parameter KeyLen below minimum: value=%d, min=%d", s.KeyLen, cryptocore.KeyLen)
 		os.Exit(exitcodes.ScryptParams)
 	}
 }
