@@ -122,10 +122,20 @@ func (n *NameTransform) WriteLongName(dirfd int, hashName string, plainName stri
 		return err
 	}
 	fd := os.NewFile(uintptr(fdRaw), hashName+LongNameSuffix)
-	defer fd.Close()
 	_, err = fd.Write([]byte(cName))
 	if err != nil {
+		fd.Close()
 		tlog.Warn.Printf("WriteLongName: Write: %v", err)
+		// Delete incomplete longname file
+		syscallcompat.Unlinkat(dirfd, hashName+LongNameSuffix, 0)
+		return err
 	}
-	return err
+	err = fd.Close()
+	if err != nil {
+		tlog.Warn.Printf("WriteLongName: Close: %v", err)
+		// Delete incomplete longname file
+		syscallcompat.Unlinkat(dirfd, hashName+LongNameSuffix, 0)
+		return err
+	}
+	return nil
 }
