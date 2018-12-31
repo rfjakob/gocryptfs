@@ -308,7 +308,7 @@ func (f *File) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 			tlog.Debug.Printf("len(oldData)=%d len(blockData)=%d", len(oldData), len(blockData))
 		}
 		tlog.Debug.Printf("ino%d: Writing %d bytes to block #%d",
-			f.qIno.Ino, uint64(len(blockData))-f.contentEnc.BlockOverhead(), b.BlockNo)
+			f.qIno.Ino, len(blockData), b.BlockNo)
 		// Write into the to-encrypt list
 		toEncrypt[i] = blockData
 	}
