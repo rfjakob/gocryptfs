@@ -243,7 +243,7 @@ func (f *File) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fus
 	f.fileTableEntry.ContentLock.RLock()
 	defer f.fileTableEntry.ContentLock.RUnlock()
 
-	tlog.Debug.Printf("ino%d: FUSE Read: offset=%d length=%d", f.qIno.Ino, len(buf), off)
+	tlog.Debug.Printf("ino%d: FUSE Read: offset=%d length=%d", f.qIno.Ino, off, len(buf))
 	if f.fs.args.SerializeReads {
 		serialize_reads.Wait(off, len(buf))
 	}
