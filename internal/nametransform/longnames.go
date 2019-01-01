@@ -74,16 +74,21 @@ func IsLongContent(cName string) bool {
 // Symlink-safe through Openat().
 func ReadLongNameAt(dirfd int, cName string) (string, error) {
 	cName += LongNameSuffix
-	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_NOFOLLOW, 0)
-	if err != nil {
-		return "", err
+	var f *os.File
+	{
+		fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_NOFOLLOW, 0)
+		if err != nil {
+			return "", err
+		}
+		f = os.NewFile(uintptr(fd), "")
+		// fd runs out of scope here
 	}
-	defer syscall.Close(fd)
+	defer f.Close()
 	// 256 (=255 padded to 16) bytes base64-encoded take 344 bytes: "AAAAAAA...AAA=="
 	lim := 344
 	// Allocate a bigger buffer so we see whether the file is too big
 	buf := make([]byte, lim+1)
-	n, err := syscall.Pread(fd, buf, 0)
+	n, err := f.ReadAt(buf, 0)
 	if err != nil && err != io.EOF {
 		return "", err
 	}
