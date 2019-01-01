@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"runtime"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -182,6 +183,7 @@ func ListFds(pid int) []string {
 		log.Panic(err)
 	}
 	var out []string
+	hidden := 0
 	for _, n := range names {
 		fdPath := dir + "/" + n
 		fi, err := os.Lstat(fdPath)
@@ -200,7 +202,16 @@ func ListFds(pid int) []string {
 			// fd was closed in the meantime
 			continue
 		}
+		if strings.HasPrefix(target, "pipe:") || strings.HasPrefix(target, "anon_inode:[eventpoll]") {
+			// The Go runtime creates pipes on demand for splice(), which
+			// creates spurious test failures. Ignore all pipes.
+			// Also get rid of the "eventpoll" fd that is always there and not
+			// interesting.
+			hidden++
+			continue
+		}
 		out = append(out, n+"="+target)
 	}
+	out = append(out, fmt.Sprintf("(hidden:%d)", hidden))
 	return out
 }
