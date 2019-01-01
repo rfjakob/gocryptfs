@@ -65,6 +65,7 @@ func (fs *FS) openBackingDir(relPath string) (dirfd int, cName string, err error
 	for i, name := range parts {
 		iv, err := nametransform.ReadDirIVAt(dirfd)
 		if err != nil {
+			syscall.Close(dirfd)
 			return -1, "", err
 		}
 		cName = fs.nameTransform.EncryptAndHashName(name, iv)
