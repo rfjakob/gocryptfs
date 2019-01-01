@@ -4,6 +4,7 @@ import (
 	"os"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/rfjakob/gocryptfs/internal/ctlsock"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
@@ -37,6 +38,9 @@ func TestCtlSock(t *testing.T) {
 			t.Errorf("We should get a warning about non-canonical paths here")
 		}
 	}
+	// Give the running gocryptfs process a little bit of time to close lingering
+	// sockets. Avoid triggering the FD leak detector.
+	time.Sleep(1 * time.Millisecond)
 }
 
 func TestCtlSockDecrypt(t *testing.T) {
@@ -87,6 +91,9 @@ func TestCtlSockDecrypt(t *testing.T) {
 			t.Errorf("want=%q got=%q", p, response.Result)
 		}
 	}
+	// Give the running gocryptfs process a little bit of time to close lingering
+	// sockets. Avoid triggering the FD leak detector.
+	time.Sleep(1 * time.Millisecond)
 }
 
 func TestCtlSockDecryptCrash(t *testing.T) {

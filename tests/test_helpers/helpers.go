@@ -46,8 +46,15 @@ var DefaultPlainDir string
 // DefaultCipherDir is TmpDir + "/default-cipher"
 var DefaultCipherDir string
 
-// PID of the running gocryptfs process. Set by Mount().
-var MountPID int
+type mountInfo struct {
+	// PID of the running gocryptfs process. Set by Mount().
+	pid int
+	// List of open FDs of the running gocrypts process. Set by Mount().
+	fds []string
+}
+
+// Indexed by mountpoint
+var MountInfo map[string]mountInfo
 
 // SwitchTMPDIR changes TMPDIR and hence the directory the test are performed in.
 // This is used when you want to perform tests on a special filesystem. The
@@ -63,6 +70,7 @@ func init() {
 
 func doInit() {
 	X255 = string(bytes.Repeat([]byte("X"), 255))
+	MountInfo = make(map[string]mountInfo)
 
 	testParentDir := os.TempDir() + "/gocryptfs-test-parent"
 	os.MkdirAll(testParentDir, 0700)
@@ -205,7 +213,7 @@ func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 	if err != nil {
 		return err
 	}
-	MountPID = cmd.Process.Pid
+	pid := cmd.Process.Pid
 
 	// Wait for exit or usr1
 	go func() {
@@ -215,11 +223,13 @@ func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 	case err := <-chanExit:
 		return err
 	case <-chanUsr1:
-		return nil
+		// noop
 	case <-time.After(1 * time.Second):
-		log.Panicf("Timeout waiting for process %d", MountPID)
+		log.Panicf("Timeout waiting for process %d", pid)
 	}
 
+	// Save PID and open FDs
+	MountInfo[p] = mountInfo{pid, ListFds(pid)}
 	return nil
 }
 
@@ -256,6 +266,13 @@ func UnmountPanic(dir string) {
 // UnmountErr tries to unmount "dir", retrying 10 times, and returns the
 // resulting error.
 func UnmountErr(dir string) (err error) {
+	var fdsNow []string
+	pid := MountInfo[dir].pid
+	fds := MountInfo[dir].fds
+	if pid <= 0 {
+		fmt.Printf("UnmountErr: %q was not found in MountInfo, cannot check for FD leaks\n", dir)
+	}
+
 	max := 10
 	// When a new filesystem is mounted, Gnome tries to read files like
 	// .xdg-volume-info, autorun.inf, .Trash.
@@ -263,11 +280,17 @@ func UnmountErr(dir string) (err error) {
 	// "Device or resource busy", causing spurious test failures.
 	// Retry a few times to hide that problem.
 	for i := 1; i <= max; i++ {
+		if pid > 0 {
+			fdsNow = ListFds(pid)
+		}
 		cmd := exec.Command(UnmountScript, "-u", dir)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err = cmd.Run()
 		if err == nil {
+			if pid > 0 && len(fdsNow) > len(fds) {
+				fmt.Printf("FD leak? Details:\nold=%v \nnew=%v\n", fds, fdsNow)
+			}
 			return nil
 		}
 		code := ExtractCmdExitCode(err)
