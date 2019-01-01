@@ -3,6 +3,7 @@ package reverse_test
 import (
 	"io/ioutil"
 	"testing"
+	"time"
 
 	"github.com/rfjakob/gocryptfs/internal/ctlsock"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
@@ -101,6 +102,9 @@ func testExclude(t *testing.T, flag string) {
 			t.Errorf("File %q / %q is hidden, but should be visible", pOk[i], v)
 		}
 	}
+	// Give the running gocryptfs process a little bit of time to close lingering
+	// sockets. Avoid triggering the FD leak detector.
+	time.Sleep(1 * time.Millisecond)
 }
 
 func TestExclude(t *testing.T) {

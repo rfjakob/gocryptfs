@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/rfjakob/gocryptfs/internal/ctlsock"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
@@ -67,6 +68,9 @@ func TestCtlSockPathOps(t *testing.T) {
 	if response.ErrNo != int32(syscall.ENOENT) {
 		t.Errorf("File should not exist: ErrNo=%d ErrText=%s", response.ErrNo, response.ErrText)
 	}
+	// Give the running gocryptfs process a little bit of time to close lingering
+	// sockets. Avoid triggering the FD leak detector.
+	time.Sleep(1 * time.Millisecond)
 }
 
 // We should not panic when somebody feeds requests that make no sense
@@ -85,4 +89,7 @@ func TestCtlSockCrash(t *testing.T) {
 	// Try to crash it
 	req := ctlsock.RequestStruct{DecryptPath: "gocryptfs.longname.XXX_TestCtlSockCrash_XXX.name"}
 	test_helpers.QueryCtlSock(t, sock, req)
+	// Give the running gocryptfs process a little bit of time to close lingering
+	// sockets. Avoid triggering the FD leak detector.
+	time.Sleep(1 * time.Millisecond)
 }
