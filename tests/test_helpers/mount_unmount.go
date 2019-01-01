@@ -18,9 +18,9 @@ var MountInfo map[string]mountInfo
 
 type mountInfo struct {
 	// PID of the running gocryptfs process. Set by Mount().
-	pid int
+	Pid int
 	// List of open FDs of the running gocrypts process. Set by Mount().
-	fds []string
+	Fds []string
 }
 
 // Mount CIPHERDIR "c" on PLAINDIR "p"
@@ -125,8 +125,8 @@ func UnmountPanic(dir string) {
 // resulting error.
 func UnmountErr(dir string) (err error) {
 	var fdsNow []string
-	pid := MountInfo[dir].pid
-	fds := MountInfo[dir].fds
+	pid := MountInfo[dir].Pid
+	fds := MountInfo[dir].Fds
 	if pid <= 0 {
 		fmt.Printf("UnmountErr: %q was not found in MountInfo, cannot check for FD leaks\n", dir)
 	}
