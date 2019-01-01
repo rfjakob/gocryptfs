@@ -176,14 +176,31 @@ func ListFds(pid int) []string {
 		log.Panic(err)
 	}
 	defer f.Close()
+	// Note: Readdirnames filters "." and ".."
 	names, err := f.Readdirnames(0)
 	if err != nil {
 		log.Panic(err)
 	}
-	for i, n := range names {
-		// Note: Readdirnames filters "." and ".."
-		target, _ := os.Readlink(dir + "/" + n)
-		names[i] = n + "=" + target
+	var out []string
+	for _, n := range names {
+		fdPath := dir + "/" + n
+		fi, err := os.Lstat(fdPath)
+		if err != nil {
+			// fd was closed in the meantime
+			continue
+		}
+		if fi.Mode()&0400 > 0 {
+			n += "r"
+		}
+		if fi.Mode()&0200 > 0 {
+			n += "w"
+		}
+		target, err := os.Readlink(fdPath)
+		if err != nil {
+			// fd was closed in the meantime
+			continue
+		}
+		out = append(out, n+"="+target)
 	}
-	return names
+	return out
 }
