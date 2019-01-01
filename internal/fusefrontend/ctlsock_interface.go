@@ -67,16 +67,15 @@ func (fs *FS) decryptPathAt(dirfd int, cipherPath string) (plainPath string, err
 			break
 		}
 		// Descend into next directory
-		oldWd := wd
 		wd, err = syscallcompat.Openat(wd, part, syscall.O_NOFOLLOW, 0)
 		if err != nil {
 			return "", err
 		}
-		// Unless we are in the first iteration, where dirfd is our wd, close
-		// the old working directory.
-		if i > 0 {
-			syscall.Close(oldWd)
-		}
+		// Yes this is somewhat wasteful in terms of used file descriptors:
+		// we keep them all open until the function returns. But it is simple
+		// and reliable.
+		defer syscall.Close(wd)
 	}
+
 	return plainPath, nil
 }
