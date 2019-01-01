@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"syscall"
 	"testing"
 	"time"
@@ -481,10 +482,20 @@ func ExtractCmdExitCode(err error) int {
 	return 0
 }
 
-// ListFds lists our open file descriptors.
-// We use /dev/fd because it exists on both Linux and MacOS.
-func ListFds() []string {
-	f, err := os.Open("/dev/fd")
+// ListFds lists the open file descriptors for process "pid". Pass pid=0 for
+// ourselves.
+func ListFds(pid int) []string {
+	// We need /proc to get the list of fds for other processes. Only exists
+	// on Linux.
+	if runtime.GOOS != "linux" && pid > 0 {
+		return nil
+	}
+	// Both Linux and MacOS have /dev/fd
+	dir := "/dev/fd"
+	if pid > 0 {
+		dir = fmt.Sprintf("/proc/%d/fd", pid)
+	}
+	f, err := os.Open(dir)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -495,7 +506,7 @@ func ListFds() []string {
 	}
 	for i, n := range names {
 		// Note: Readdirnames filters "." and ".."
-		target, _ := os.Readlink("/dev/fd/" + n)
+		target, _ := os.Readlink(dir + "/" + n)
 		names[i] = n + "=" + target
 	}
 	return names

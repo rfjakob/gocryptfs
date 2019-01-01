@@ -21,9 +21,9 @@ var testPw = []byte("test")
 
 func TestMain(m *testing.M) {
 	test_helpers.ResetTmpDir(false)
-	before := test_helpers.ListFds()
+	before := test_helpers.ListFds(0)
 	r := m.Run()
-	after := test_helpers.ListFds()
+	after := test_helpers.ListFds(0)
 	if len(before) != len(after) {
 		fmt.Printf("fd leak? before, after:\n%v\n%v\n", before, after)
 		os.Exit(1)
