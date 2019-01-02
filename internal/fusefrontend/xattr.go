@@ -132,7 +132,7 @@ func (fs *FS) ListXAttr(relPath string, context *fuse.Context) ([]string, fuse.S
 		cNames, err = syscallcompat.Llistxattr(procPath)
 	} else {
 		// O_NONBLOCK to not block on FIFOs.
-		fd, err2 := fs.openBackingFile(relPath, syscall.O_WRONLY|syscall.O_NONBLOCK)
+		fd, err2 := fs.openBackingFile(relPath, syscall.O_RDONLY|syscall.O_NONBLOCK)
 		// On a symlink, openBackingFile fails with ELOOP. Let's pretend there
 		// can be no xattrs on symlinks, and always return an empty result.
 		if err2 == syscall.ELOOP {
