@@ -64,7 +64,7 @@ func Fgetxattr(fd int, attr string) (val []byte, err error) {
 	// only happen on MacOS).
 	//
 	// See https://github.com/pkg/xattr for a smarter solution.
-	// TODO: be smarter?
+	// TODO: smarter buffer sizing?
 	buf := make([]byte, XATTR_BUFSZ)
 	sz, err := unix.Fgetxattr(fd, attr, buf)
 	if err == syscall.ERANGE {
@@ -84,11 +84,11 @@ func Fgetxattr(fd int, attr string) (val []byte, err error) {
 	return val, nil
 }
 
-// Flistxattr is a wrapper unix.Flistxattr that handles buffer sizing and
+// Flistxattr is a wrapper for unix.Flistxattr that handles buffer sizing and
 // parsing the returned blob to a string slice.
 func Flistxattr(fd int) (attrs []string, err error) {
 	// See the buffer sizing comments in Fgetxattr.
-	// TODO: be smarter?
+	// TODO: smarter buffer sizing?
 	buf := make([]byte, XATTR_BUFSZ)
 	sz, err := unix.Flistxattr(fd, buf)
 	if err == syscall.ERANGE {
@@ -101,7 +101,31 @@ func Flistxattr(fd int) (attrs []string, err error) {
 	if sz >= XATTR_SIZE_MAX {
 		return nil, syscall.EOVERFLOW
 	}
-	buf = buf[:sz]
+	attrs = parseListxattrBlob(buf[:sz])
+	return attrs, nil
+}
+
+// Llistxattr is a wrapper for unix.Llistxattr that handles buffer sizing and
+// parsing the returned blob to a string slice.
+func Llistxattr(path string) (attrs []string, err error) {
+	// TODO: smarter buffer sizing?
+	buf := make([]byte, XATTR_BUFSZ)
+	sz, err := unix.Llistxattr(path, buf)
+	if err == syscall.ERANGE {
+		// Do NOT return ERANGE - the user might retry ad inifinitum!
+		return nil, syscall.EOVERFLOW
+	}
+	if err != nil {
+		return nil, err
+	}
+	if sz >= XATTR_SIZE_MAX {
+		return nil, syscall.EOVERFLOW
+	}
+	attrs = parseListxattrBlob(buf[:sz])
+	return attrs, nil
+}
+
+func parseListxattrBlob(buf []byte) (attrs []string) {
 	parts := bytes.Split(buf, []byte{0})
 	for _, part := range parts {
 		if len(part) == 0 {
@@ -110,5 +134,5 @@ func Flistxattr(fd int) (attrs []string, err error) {
 		}
 		attrs = append(attrs, string(part))
 	}
-	return attrs, nil
+	return attrs
 }

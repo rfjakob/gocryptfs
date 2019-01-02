@@ -2,6 +2,8 @@
 package fusefrontend
 
 import (
+	"fmt"
+	"runtime"
 	"strings"
 	"syscall"
 
@@ -34,11 +36,12 @@ func (fs *FS) GetXAttr(relPath string, attr string, context *fuse.Context) ([]by
 		return nil, _EOPNOTSUPP
 	}
 
-	file, fd, status := fs.getFileFd(relPath, context)
-	if !status.Ok() {
-		return nil, status
+	// O_NONBLOCK to not block on FIFOs.
+	fd, err := fs.openBackingFile(relPath, syscall.O_RDONLY|syscall.O_NONBLOCK)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
 	}
-	defer file.Release()
+	defer syscall.Close(fd)
 
 	cAttr := fs.encryptXattrName(attr)
 
@@ -66,17 +69,18 @@ func (fs *FS) SetXAttr(relPath string, attr string, data []byte, flags int, cont
 		return _EOPNOTSUPP
 	}
 
-	file, fd, status := fs.getFileFd(relPath, context)
-	if !status.Ok() {
-		return status
+	// O_NONBLOCK to not block on FIFOs.
+	fd, err := fs.openBackingFile(relPath, syscall.O_WRONLY|syscall.O_NONBLOCK)
+	if err != nil {
+		return fuse.ToStatus(err)
 	}
-	defer file.Release()
+	defer syscall.Close(fd)
 
 	flags = filterXattrSetFlags(flags)
 	cAttr := fs.encryptXattrName(attr)
 	cData := fs.encryptXattrValue(data)
 
-	err := unix.Fsetxattr(fd, cAttr, cData, flags)
+	err = unix.Fsetxattr(fd, cAttr, cData, flags)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
@@ -94,14 +98,15 @@ func (fs *FS) RemoveXAttr(relPath string, attr string, context *fuse.Context) fu
 		return _EOPNOTSUPP
 	}
 
-	file, fd, status := fs.getFileFd(relPath, context)
-	if !status.Ok() {
-		return status
+	// O_NONBLOCK to not block on FIFOs.
+	fd, err := fs.openBackingFile(relPath, syscall.O_WRONLY|syscall.O_NONBLOCK)
+	if err != nil {
+		return fuse.ToStatus(err)
 	}
-	defer file.Release()
+	defer syscall.Close(fd)
 
 	cAttr := fs.encryptXattrName(attr)
-	err := unix.Fremovexattr(fd, cAttr)
+	err = unix.Fremovexattr(fd, cAttr)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
@@ -115,19 +120,30 @@ func (fs *FS) ListXAttr(relPath string, context *fuse.Context) ([]string, fuse.S
 	if fs.isFiltered(relPath) {
 		return nil, fuse.EPERM
 	}
-
-	file, fd, status := fs.getFileFd(relPath, context)
-	// On a symlink, getFileFd fails with ELOOP. Let's pretend there
-	// can be no xattrs on symlinks, and always return an empty result.
-	if status == fuse.Status(syscall.ELOOP) {
-		return nil, fuse.OK
+	var cNames []string
+	var err error
+	if runtime.GOOS == "linux" {
+		dirfd, cName, err2 := fs.openBackingDir(relPath)
+		if err2 != nil {
+			return nil, fuse.ToStatus(err2)
+		}
+		defer syscall.Close(dirfd)
+		procPath := fmt.Sprintf("/proc/self/fd/%d/%s", dirfd, cName)
+		cNames, err = syscallcompat.Llistxattr(procPath)
+	} else {
+		// O_NONBLOCK to not block on FIFOs.
+		fd, err2 := fs.openBackingFile(relPath, syscall.O_WRONLY|syscall.O_NONBLOCK)
+		// On a symlink, openBackingFile fails with ELOOP. Let's pretend there
+		// can be no xattrs on symlinks, and always return an empty result.
+		if err2 == syscall.ELOOP {
+			return nil, fuse.OK
+		}
+		if err2 != nil {
+			return nil, fuse.ToStatus(err2)
+		}
+		defer syscall.Close(fd)
+		cNames, err = syscallcompat.Flistxattr(fd)
 	}
-	if !status.Ok() {
-		return nil, status
-	}
-	defer file.Release()
-
-	cNames, err := syscallcompat.Flistxattr(fd)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
@@ -198,24 +214,4 @@ func (fs *FS) decryptXattrValue(cData []byte) (data []byte, err error) {
 		return nil, err1
 	}
 	return fs.contentEnc.DecryptBlock([]byte(cData), 0, nil)
-}
-
-// getFileFd calls fs.Open() on relative plaintext path "relPath" and returns
-// the resulting fusefrontend.*File along with the underlying fd. The caller
-// MUST call file.Release() when done with the file. The O_NONBLOCK flag is
-// used to not block on FIFOs.
-//
-// Used by xattrGet() and friends.
-func (fs *FS) getFileFd(relPath string, context *fuse.Context) (*File, int, fuse.Status) {
-	fuseFile, status := fs.Open(relPath, syscall.O_RDONLY|syscall.O_NONBLOCK, context)
-	if !status.Ok() {
-		return nil, -1, status
-	}
-	file, ok := fuseFile.(*File)
-	if !ok {
-		tlog.Warn.Printf("BUG: xattrGet: cast to *File failed")
-		fuseFile.Release()
-		return nil, -1, fuse.EIO
-	}
-	return file, file.intFd(), fuse.OK
 }

@@ -160,6 +160,17 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 	return NewFile(f, fs)
 }
 
+// openBackingFile opens the ciphertext file that backs relative plaintext
+// path "relPath". Always adds O_NOFOLLOW to the flags.
+func (fs *FS) openBackingFile(relPath string, flags int) (fd int, err error) {
+	dirfd, cName, err := fs.openBackingDir(relPath)
+	if err != nil {
+		return -1, err
+	}
+	defer syscall.Close(dirfd)
+	return syscallcompat.Openat(dirfd, cName, flags|syscall.O_NOFOLLOW, 0)
+}
+
 // Due to RMW, we always need read permissions on the backing file. This is a
 // problem if the file permissions do not allow reading (i.e. 0200 permissions).
 // This function works around that problem by chmod'ing the file, obtaining a fd,
