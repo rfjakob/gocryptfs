@@ -16,6 +16,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 
+	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/serialize_reads"
@@ -660,4 +661,22 @@ func (fs *FS) reportMitigatedCorruption(item string) {
 		//debug.PrintStack()
 		return
 	}
+}
+
+// isFiltered - check if plaintext "path" should be forbidden
+//
+// Prevents name clashes with internal files when file names are not encrypted
+func (fs *FS) isFiltered(path string) bool {
+	if !fs.args.PlaintextNames {
+		return false
+	}
+	// gocryptfs.conf in the root directory is forbidden
+	if path == configfile.ConfDefaultName {
+		tlog.Info.Printf("The name /%s is reserved when -plaintextnames is used\n",
+			configfile.ConfDefaultName)
+		return true
+	}
+	// Note: gocryptfs.diriv is NOT forbidden because diriv and plaintextnames
+	// are exclusive
+	return false
 }

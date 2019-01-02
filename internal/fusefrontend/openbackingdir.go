@@ -1,35 +1,13 @@
 package fusefrontend
 
-// This file forwards file encryption operations to cryptfs
-
 import (
 	"path/filepath"
 	"strings"
 	"syscall"
 
-	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
-	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
-
-// isFiltered - check if plaintext "path" should be forbidden
-//
-// Prevents name clashes with internal files when file names are not encrypted
-func (fs *FS) isFiltered(path string) bool {
-	if !fs.args.PlaintextNames {
-		return false
-	}
-	// gocryptfs.conf in the root directory is forbidden
-	if path == configfile.ConfDefaultName {
-		tlog.Info.Printf("The name /%s is reserved when -plaintextnames is used\n",
-			configfile.ConfDefaultName)
-		return true
-	}
-	// Note: gocryptfs.diriv is NOT forbidden because diriv and plaintextnames
-	// are exclusive
-	return false
-}
 
 // openBackingDir opens the parent ciphertext directory of plaintext path
 // "relPath" and returns the dirfd and the encrypted basename.
