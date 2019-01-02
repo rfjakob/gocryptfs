@@ -1,15 +1,15 @@
 // Package fusefrontend interfaces directly with the go-fuse library.
 package fusefrontend
 
-// FUSE operations on paths
-
 import (
 	"strings"
 	"syscall"
 
-	"github.com/hanwen/go-fuse/fuse"
-	"github.com/pkg/xattr"
+	"golang.org/x/sys/unix"
 
+	"github.com/hanwen/go-fuse/fuse"
+
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -25,9 +25,7 @@ var xattrStorePrefix = "user.gocryptfs."
 
 // GetXAttr - FUSE call. Reads the value of extended attribute "attr".
 //
-// This function is symlink-safe on Linux.
-// Darwin does not have fgetxattr(2) nor /proc/self/fd. How to implement this
-// on Darwin in a symlink-safe way?
+// This function is symlink-safe through Fgetxattr.
 func (fs *FS) GetXAttr(relPath string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
 	if fs.isFiltered(relPath) {
 		return nil, fuse.EPERM
@@ -35,11 +33,20 @@ func (fs *FS) GetXAttr(relPath string, attr string, context *fuse.Context) ([]by
 	if disallowedXAttrName(attr) {
 		return nil, _EOPNOTSUPP
 	}
-	cAttr := fs.encryptXattrName(attr)
-	cData, status := fs.getXattr(relPath, cAttr, context)
+
+	file, fd, status := fs.getFileFd(relPath, context)
 	if !status.Ok() {
 		return nil, status
 	}
+	defer file.Release()
+
+	cAttr := fs.encryptXattrName(attr)
+
+	cData, err := syscallcompat.Fgetxattr(fd, cAttr)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+
 	data, err := fs.decryptXattrValue(cData)
 	if err != nil {
 		tlog.Warn.Printf("GetXAttr: %v", err)
@@ -50,9 +57,7 @@ func (fs *FS) GetXAttr(relPath string, attr string, context *fuse.Context) ([]by
 
 // SetXAttr - FUSE call. Set extended attribute.
 //
-// This function is symlink-safe on Linux.
-// Darwin does not have fsetxattr(2) nor /proc/self/fd. How to implement this
-// on Darwin in a symlink-safe way?
+// This function is symlink-safe through Fsetxattr.
 func (fs *FS) SetXAttr(relPath string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
 	if fs.isFiltered(relPath) {
 		return fuse.EPERM
@@ -60,17 +65,27 @@ func (fs *FS) SetXAttr(relPath string, attr string, data []byte, flags int, cont
 	if disallowedXAttrName(attr) {
 		return _EOPNOTSUPP
 	}
+
+	file, fd, status := fs.getFileFd(relPath, context)
+	if !status.Ok() {
+		return status
+	}
+	defer file.Release()
+
 	flags = filterXattrSetFlags(flags)
 	cAttr := fs.encryptXattrName(attr)
 	cData := fs.encryptXattrValue(data)
-	return fs.setXattr(relPath, cAttr, cData, flags, context)
+
+	err := unix.Fsetxattr(fd, cAttr, cData, flags)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	return fuse.OK
 }
 
 // RemoveXAttr - FUSE call.
 //
-// This function is symlink-safe on Linux.
-// Darwin does not have fremovexattr(2) nor /proc/self/fd. How to implement this
-// on Darwin in a symlink-safe way?
+// This function is symlink-safe through Fremovexattr.
 func (fs *FS) RemoveXAttr(relPath string, attr string, context *fuse.Context) fuse.Status {
 	if fs.isFiltered(relPath) {
 		return fuse.EPERM
@@ -78,23 +93,45 @@ func (fs *FS) RemoveXAttr(relPath string, attr string, context *fuse.Context) fu
 	if disallowedXAttrName(attr) {
 		return _EOPNOTSUPP
 	}
+
+	file, fd, status := fs.getFileFd(relPath, context)
+	if !status.Ok() {
+		return status
+	}
+	defer file.Release()
+
 	cAttr := fs.encryptXattrName(attr)
-	return fs.removeXAttr(relPath, cAttr, context)
+	err := unix.Fremovexattr(fd, cAttr)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	return fuse.OK
 }
 
 // ListXAttr - FUSE call. Lists extended attributes on the file at "relPath".
 //
-// This function is symlink-safe on Linux.
-// Darwin does not have flistxattr(2) nor /proc/self/fd. How to implement this
-// on Darwin in a symlink-safe way?
+// This function is symlink-safe through Flistxattr.
 func (fs *FS) ListXAttr(relPath string, context *fuse.Context) ([]string, fuse.Status) {
 	if fs.isFiltered(relPath) {
 		return nil, fuse.EPERM
 	}
-	cNames, status := fs.listXAttr(relPath, context)
+
+	file, fd, status := fs.getFileFd(relPath, context)
+	// On a symlink, getFileFd fails with ELOOP. Let's pretend there
+	// can be no xattrs on symlinks, and always return an empty result.
+	if status == fuse.Status(syscall.ELOOP) {
+		return nil, fuse.OK
+	}
 	if !status.Ok() {
 		return nil, status
 	}
+	defer file.Release()
+
+	cNames, err := syscallcompat.Flistxattr(fd)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+
 	names := make([]string, 0, len(cNames))
 	for _, curName := range cNames {
 		if !strings.HasPrefix(curName, xattrStorePrefix) {
@@ -163,16 +200,22 @@ func (fs *FS) decryptXattrValue(cData []byte) (data []byte, err error) {
 	return fs.contentEnc.DecryptBlock([]byte(cData), 0, nil)
 }
 
-// unpackXattrErr unpacks an error value that we got from xattr.LGet/LSet/etc
-// and converts it to a fuse status. If err == nil, it returns fuse.OK.
-func unpackXattrErr(err error) fuse.Status {
-	if err == nil {
-		return fuse.OK
+// getFileFd calls fs.Open() on relative plaintext path "relPath" and returns
+// the resulting fusefrontend.*File along with the underlying fd. The caller
+// MUST call file.Release() when done with the file. The O_NONBLOCK flag is
+// used to not block on FIFOs.
+//
+// Used by xattrGet() and friends.
+func (fs *FS) getFileFd(relPath string, context *fuse.Context) (*File, int, fuse.Status) {
+	fuseFile, status := fs.Open(relPath, syscall.O_RDONLY|syscall.O_NONBLOCK, context)
+	if !status.Ok() {
+		return nil, -1, status
 	}
-	err2, ok := err.(*xattr.Error)
+	file, ok := fuseFile.(*File)
 	if !ok {
-		tlog.Warn.Printf("unpackXattrErr: cannot unpack err=%v", err)
-		return fuse.EIO
+		tlog.Warn.Printf("BUG: xattrGet: cast to *File failed")
+		fuseFile.Release()
+		return nil, -1, fuse.EIO
 	}
-	return fuse.ToStatus(err2.Err)
+	return file, file.intFd(), fuse.OK
 }
