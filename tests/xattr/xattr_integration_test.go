@@ -245,7 +245,7 @@ func TestBase64XattrRead(t *testing.T) {
 	plainValue, err := xattr.LGet(plainFn, attrName2)
 
 	if err != nil || string(plainValue) != attrValue {
-		t.Fatalf("Attribute binary value decryption error %s != %s %v", string(plainValue), attrValue, err)
+		t.Fatalf("Attribute binary value decryption error: have=%q want=%q err=%v", string(plainValue), attrValue, err)
 	}
 
 	encryptedAttrValue64 := base64.RawURLEncoding.EncodeToString(encryptedAttrValue)
