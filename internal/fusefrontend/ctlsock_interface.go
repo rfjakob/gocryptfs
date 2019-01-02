@@ -3,21 +3,45 @@ package fusefrontend
 import (
 	"fmt"
 	"path"
+	"path/filepath"
 	"strings"
 	"syscall"
 
 	"github.com/rfjakob/gocryptfs/internal/ctlsock"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 var _ ctlsock.Interface = &FS{} // Verify that interface is implemented.
 
 // EncryptPath implements ctlsock.Backend
 //
-// TODO: this function is NOT symlink-safe.
+// Symlink-safe through openBackingDir().
 func (fs *FS) EncryptPath(plainPath string) (string, error) {
-	return fs.encryptPath(plainPath)
+	if plainPath == "" {
+		// Empty string gets encrypted as empty string
+		return plainPath, nil
+	}
+	if fs.args.PlaintextNames {
+		return plainPath, nil
+	}
+	// Encrypt path level by level using openBackingDir. Pretty inefficient,
+	// but does not matter here.
+	parts := strings.Split(plainPath, "/")
+	wd := ""
+	cPath := ""
+	for _, part := range parts {
+		wd = filepath.Join(wd, part)
+		dirfd, cName, err := fs.openBackingDir(wd)
+		if err != nil {
+			return "", err
+		}
+		syscall.Close(dirfd)
+		cPath = filepath.Join(cPath, cName)
+	}
+	tlog.Debug.Printf("encryptPath '%s' -> '%s'", plainPath, cPath)
+	return cPath, nil
 }
 
 // DecryptPath implements ctlsock.Backend

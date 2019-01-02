@@ -74,11 +74,10 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 }
 
 // EncryptName encrypts "plainName", returns a base64-encoded "cipherName64".
-// Used internally by EncryptPathDirIV().
 // The encryption is either CBC or EME, depending on "useEME".
 //
-// This function is exported because fusefrontend needs access to the full (not hashed)
-// name if longname is used. Otherwise you should use EncryptPathDirIV()
+// This function is exported because in some cases, fusefrontend needs access
+// to the full (not hashed) name if longname is used.
 func (n *NameTransform) EncryptName(plainName string, iv []byte) (cipherName64 string) {
 	bin := []byte(plainName)
 	bin = pad16(bin)

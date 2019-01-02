@@ -25,26 +25,6 @@ const (
 	DirIVFilename = "gocryptfs.diriv"
 )
 
-// ReadDirIV - read the "gocryptfs.diriv" file from "dir" (absolute ciphertext path)
-// This function is exported because it allows for an efficient readdir implementation.
-// If the directory itself cannot be opened, a syscall error will be returned.
-// Otherwise, a fmt.Errorf() error value is returned with the details.
-//
-// TODO: this function is not symlink-safe and should be deleted once the only
-// remaining user, EncryptPathDirIV(), is gone.
-func ReadDirIV(dir string) (iv []byte, err error) {
-	fd, err := os.Open(filepath.Join(dir, DirIVFilename))
-	if err != nil {
-		// Note: getting errors here is normal because of concurrent deletes.
-		// Strip the useless annotation that os.Open has added and return
-		// the plain syscall error. The caller will log a nice message.
-		err2 := err.(*os.PathError)
-		return nil, err2.Err
-	}
-	defer fd.Close()
-	return fdReadDirIV(fd)
-}
-
 // ReadDirIVAt reads "gocryptfs.diriv" from the directory that is opened as "dirfd".
 // Using the dirfd makes it immune to concurrent renames of the directory.
 func ReadDirIVAt(dirfd int) (iv []byte, err error) {
@@ -130,53 +110,6 @@ func (be *NameTransform) EncryptAndHashName(name string, iv []byte) string {
 		return be.HashLongName(cName)
 	}
 	return cName
-}
-
-// EncryptPathDirIV - encrypt relative plaintext path "plainPath" using EME with
-// DirIV. "rootDir" is the backing storage root directory.
-// Components that are longer than 255 bytes are hashed if be.longnames == true.
-//
-// TODO: EncryptPathDirIV is NOT SAFE against symlink races. This function
-// should eventually be deleted.
-func (be *NameTransform) EncryptPathDirIV(plainPath string, rootDir string) (string, error) {
-	var err error
-	// Empty string means root directory
-	if plainPath == "" {
-		return plainPath, nil
-	}
-	// Reject names longer than 255 bytes.
-	baseName := filepath.Base(plainPath)
-	if len(baseName) > unix.NAME_MAX {
-		return "", syscall.ENAMETOOLONG
-	}
-	// If we have the iv and the encrypted directory name in the cache, we
-	// can skip the directory walk. This optimization yields a 10% improvement
-	// in the tar extract benchmark.
-	parentDir := Dir(plainPath)
-	if iv, cParentDir := be.DirIVCache.Lookup(parentDir); iv != nil {
-		cBaseName := be.EncryptAndHashName(baseName, iv)
-		return filepath.Join(cParentDir, cBaseName), nil
-	}
-	// We have to walk the directory tree, starting at the root directory.
-	// ciphertext working directory (relative path)
-	cipherWD := ""
-	// plaintext working directory (relative path)
-	plainWD := ""
-	plainNames := strings.Split(plainPath, "/")
-	for _, plainName := range plainNames {
-		iv, _ := be.DirIVCache.Lookup(plainWD)
-		if iv == nil {
-			iv, err = ReadDirIV(filepath.Join(rootDir, cipherWD))
-			if err != nil {
-				return "", err
-			}
-			be.DirIVCache.Store(plainWD, iv, cipherWD)
-		}
-		cipherName := be.EncryptAndHashName(plainName, iv)
-		cipherWD = filepath.Join(cipherWD, cipherName)
-		plainWD = filepath.Join(plainWD, plainName)
-	}
-	return cipherWD, nil
 }
 
 // Dir is like filepath.Dir but returns "" instead of ".".

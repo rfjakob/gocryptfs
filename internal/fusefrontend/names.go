@@ -83,24 +83,3 @@ func (fs *FS) openBackingDir(relPath string) (dirfd int, cName string, err error
 	}
 	return dirfd, cName, nil
 }
-
-// encryptPath - encrypt relative plaintext path
-//
-// TODO: this function is NOT symlink-safe because EncryptPathDirIV is not
-// symlink-safe.
-func (fs *FS) encryptPath(plainPath string) (string, error) {
-	if plainPath != "" { // Empty path gets encrypted all the time without actual file accesses.
-		fs.AccessedSinceLastCheck = 1
-	} else { // Empty string gets encrypted as empty string
-		return plainPath, nil
-	}
-	if fs.args.PlaintextNames {
-		return plainPath, nil
-	}
-
-	fs.dirIVLock.RLock()
-	cPath, err := fs.nameTransform.EncryptPathDirIV(plainPath, fs.args.Cipherdir)
-	tlog.Debug.Printf("encryptPath '%s' -> '%s' (err: %v)", plainPath, cPath, err)
-	fs.dirIVLock.RUnlock()
-	return cPath, err
-}
