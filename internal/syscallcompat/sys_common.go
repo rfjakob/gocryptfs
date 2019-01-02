@@ -1,6 +1,7 @@
 package syscallcompat
 
 import (
+	"bytes"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -44,4 +45,70 @@ func Faccessat(dirfd int, path string, mode uint32) error {
 // Linkat exists both in Linux and in MacOS 10.10+.
 func Linkat(olddirfd int, oldpath string, newdirfd int, newpath string, flags int) (err error) {
 	return unix.Linkat(olddirfd, oldpath, newdirfd, newpath, flags)
+}
+
+const XATTR_SIZE_MAX = 65536
+
+// Make the buffer 1kB bigger so we can detect overflows
+const XATTR_BUFSZ = XATTR_SIZE_MAX + 1024
+
+// Fgetxattr is a wrapper around unix.Fgetxattr that handles the buffer sizing.
+func Fgetxattr(fd int, attr string) (val []byte, err error) {
+	// If the buffer is too small to fit the value, Linux and MacOS react
+	// differently:
+	// Linux: returns an ERANGE error and "-1" bytes.
+	// MacOS: truncates the value and returns "size" bytes.
+	//
+	// We choose the simple approach of buffer that is bigger than the limit on
+	// Linux, and return an error for everything that is bigger (which can
+	// only happen on MacOS).
+	//
+	// See https://github.com/pkg/xattr for a smarter solution.
+	// TODO: be smarter?
+	buf := make([]byte, XATTR_BUFSZ)
+	sz, err := unix.Fgetxattr(fd, attr, buf)
+	if err == syscall.ERANGE {
+		// Do NOT return ERANGE - the user might retry ad inifinitum!
+		return nil, syscall.EOVERFLOW
+	}
+	if err != nil {
+		return nil, err
+	}
+	if sz >= XATTR_SIZE_MAX {
+		return nil, syscall.EOVERFLOW
+	}
+	// Copy only the actually used bytes to a new (smaller) buffer
+	// so "buf" never leaves the function and can be allocated on the stack.
+	val = make([]byte, sz)
+	copy(val, buf)
+	return val, nil
+}
+
+// Flistxattr is a wrapper unix.Flistxattr that handles buffer sizing and
+// parsing the returned blob to a string slice.
+func Flistxattr(fd int) (attrs []string, err error) {
+	// See the buffer sizing comments in Fgetxattr.
+	// TODO: be smarter?
+	buf := make([]byte, XATTR_BUFSZ)
+	sz, err := unix.Flistxattr(fd, buf)
+	if err == syscall.ERANGE {
+		// Do NOT return ERANGE - the user might retry ad inifinitum!
+		return nil, syscall.EOVERFLOW
+	}
+	if err != nil {
+		return nil, err
+	}
+	if sz >= XATTR_SIZE_MAX {
+		return nil, syscall.EOVERFLOW
+	}
+	buf = buf[:sz]
+	parts := bytes.Split(buf, []byte{0})
+	for _, part := range parts {
+		if len(part) == 0 {
+			// Last part is empty, ignore
+			continue
+		}
+		attrs = append(attrs, string(part))
+	}
+	return attrs, nil
 }
