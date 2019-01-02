@@ -1,9 +1,12 @@
 package fusefrontend
 
 import (
+	"fmt"
+	"os"
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 
 	"golang.org/x/sys/unix"
 
@@ -53,7 +56,9 @@ func TestOpenBackingDir(t *testing.T) {
 	}
 	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
 	if err != nil {
-		t.Error(err)
+		fmt.Printf("pid=%d dirfd=%d dir1->cName=%q: %v\n", os.Getpid(), dirfd, cName, err)
+		time.Sleep(600 * time.Second)
+		t.Errorf("dirfd=%d cName=%q: %v", dirfd, cName, err)
 	}
 	syscall.Close(dirfd)
 

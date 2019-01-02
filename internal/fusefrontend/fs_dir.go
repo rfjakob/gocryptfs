@@ -30,8 +30,6 @@ func (fs *FS) mkdirWithIv(dirfd int, cName string, mode uint32) error {
 	// the directory is inconsistent. Take the lock to prevent other readers
 	// from seeing it.
 	fs.dirIVLock.Lock()
-	// The new directory may take the place of an older one that is still in the cache
-	fs.nameTransform.DirIVCache.Clear()
 	defer fs.dirIVLock.Unlock()
 	err := syscallcompat.Mkdirat(dirfd, cName, mode)
 	if err != nil {
@@ -57,6 +55,7 @@ func (fs *FS) mkdirWithIv(dirfd int, cName string, mode uint32) error {
 //
 // Symlink-safe through use of Mkdirat().
 func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fuse.Status) {
+	defer fs.dirCache.Clear()
 	if fs.isFiltered(newPath) {
 		return fuse.EPERM
 	}
@@ -142,6 +141,7 @@ func haveDsstore(entries []fuse.DirEntry) bool {
 //
 // Symlink-safe through Unlinkat() + AT_REMOVEDIR.
 func (fs *FS) Rmdir(relPath string, context *fuse.Context) (code fuse.Status) {
+	defer fs.dirCache.Clear()
 	parentDirFd, cName, err := fs.openBackingDir(relPath)
 	if err != nil {
 		return fuse.ToStatus(err)
@@ -252,8 +252,8 @@ retry:
 	if nametransform.IsLongContent(cName) {
 		nametransform.DeleteLongNameAt(parentDirFd, cName)
 	}
-	// The now-deleted directory may have been in the DirIV cache. Clear it.
-	fs.nameTransform.DirIVCache.Clear()
+	// The now-deleted directory may have been in the dirCache. Clear it.
+	fs.dirCache.Clear()
 	return fuse.OK
 }
 

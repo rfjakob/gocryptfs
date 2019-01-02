@@ -10,7 +10,8 @@ import (
 )
 
 // openBackingDir opens the parent ciphertext directory of plaintext path
-// "relPath" and returns the dirfd and the encrypted basename.
+// "relPath". It returns the dirfd (opened with O_PATH) and the encrypted
+// basename.
 //
 // The caller should then use Openat(dirfd, cName, ...) and friends.
 // For convenience, if relPath is "", cName is going to be ".".
@@ -18,15 +19,22 @@ import (
 // openBackingDir is secure against symlink races by using Openat and
 // ReadDirIVAt.
 func (fs *FS) openBackingDir(relPath string) (dirfd int, cName string, err error) {
+	dirRelPath := nametransform.Dir(relPath)
 	// With PlaintextNames, we don't need to read DirIVs. Easy.
 	if fs.args.PlaintextNames {
-		dir := nametransform.Dir(relPath)
-		dirfd, err = syscallcompat.OpenDirNofollow(fs.args.Cipherdir, dir)
+		dirfd, err = syscallcompat.OpenDirNofollow(fs.args.Cipherdir, dirRelPath)
 		if err != nil {
 			return -1, "", err
 		}
 		// If relPath is empty, cName is ".".
 		cName = filepath.Base(relPath)
+		return dirfd, cName, nil
+	}
+	// Cache lookup
+	dirfd, iv := fs.dirCache.Lookup(dirRelPath)
+	if dirfd > 0 {
+		name := filepath.Base(relPath)
+		cName = fs.nameTransform.EncryptAndHashName(name, iv)
 		return dirfd, cName, nil
 	}
 	// Open cipherdir (following symlinks)
@@ -49,6 +57,7 @@ func (fs *FS) openBackingDir(relPath string) (dirfd int, cName string, err error
 		cName = fs.nameTransform.EncryptAndHashName(name, iv)
 		// Last part? We are done.
 		if i == len(parts)-1 {
+			fs.dirCache.Store(dirRelPath, dirfd, iv)
 			break
 		}
 		// Not the last part? Descend into next directory.

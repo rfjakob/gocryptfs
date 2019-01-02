@@ -53,6 +53,8 @@ type FS struct {
 	// which is called as part of every filesystem operation.
 	// (This flag uses a uint32 so that it can be reset with CompareAndSwapUint32.)
 	AccessedSinceLastCheck uint32
+
+	dirCache dirCacheStruct
 }
 
 var _ pathfs.FileSystem = &FS{} // Verify that interface is implemented.
@@ -533,6 +535,7 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 //
 // Symlink-safe through Renameat().
 func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (code fuse.Status) {
+	defer fs.dirCache.Clear()
 	if fs.isFiltered(newPath) {
 		return fuse.EPERM
 	}
@@ -546,9 +549,6 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 		return fuse.ToStatus(err)
 	}
 	defer syscall.Close(newDirfd)
-	// The Rename may cause a directory to take the place of another directory.
-	// That directory may still be in the DirIV cache, clear it.
-	fs.nameTransform.DirIVCache.Clear()
 	// Easy case.
 	if fs.args.PlaintextNames {
 		return fuse.ToStatus(syscallcompat.Renameat(oldDirfd, oldCName, newDirfd, newCName))

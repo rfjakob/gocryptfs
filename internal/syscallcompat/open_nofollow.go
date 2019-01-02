@@ -23,6 +23,7 @@ func OpenDirNofollow(baseDir string, relPath string) (fd int, err error) {
 		return -1, syscall.EINVAL
 	}
 	// Open the base dir (following symlinks)
+	// TODO: should this use syscallcompat.O_PATH?
 	dirfd, err := syscall.Open(baseDir, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
 	if err != nil {
 		return -1, err
