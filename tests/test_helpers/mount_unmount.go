@@ -141,14 +141,22 @@ func UnmountErr(dir string) (err error) {
 	for i := 1; i <= max; i++ {
 		if pid > 0 {
 			fdsNow = ListFds(pid)
+			if len(fdsNow) > len(fds) {
+				// File close on FUSE is asynchronous, closing a socket
+				// when testing -ctlsock as well. Wait one extra millisecond
+				// and hope that all close commands get through to the gocryptfs
+				// process.
+				time.Sleep(1 * time.Millisecond)
+				fdsNow = ListFds(pid)
+			}
 		}
 		cmd := exec.Command(UnmountScript, "-u", dir)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		err = cmd.Run()
 		if err == nil {
-			if pid > 0 && len(fdsNow) > len(fds) {
-				fmt.Printf("FD leak? Details:\nold=%v \nnew=%v\n", fds, fdsNow)
+			if len(fdsNow) > len(fds) {
+				return fmt.Errorf("FD leak? pid=%d dir=%q, fds:\nold=%v \nnew=%v\n", pid, dir, fds, fdsNow)
 			}
 			return nil
 		}
