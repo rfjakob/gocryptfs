@@ -140,13 +140,17 @@ func UnmountErr(dir string) (err error) {
 	// Retry a few times to hide that problem.
 	for i := 1; i <= max; i++ {
 		if pid > 0 {
-			fdsNow = ListFds(pid)
-			if len(fdsNow) > len(fds) {
+			for j := 1; j <= max; j++ {
 				// File close on FUSE is asynchronous, closing a socket
-				// when testing -ctlsock as well. Wait one extra millisecond
-				// and hope that all close commands get through to the gocryptfs
+				// when testing "-ctlsock" is as well. Wait a little and
+				// hope that all close commands get through to the gocryptfs
 				// process.
-				time.Sleep(1 * time.Millisecond)
+				fdsNow = ListFds(pid)
+				if len(fdsNow) <= len(fds) {
+					break
+				}
+				fmt.Printf("UnmountErr: fdsOld=%d fdsNow=%d, retrying\n", len(fds), len(fdsNow))
+				time.Sleep(10 * time.Millisecond)
 				fdsNow = ListFds(pid)
 			}
 		}
