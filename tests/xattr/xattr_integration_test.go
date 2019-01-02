@@ -97,13 +97,17 @@ func setGetRmList(fn string) error {
 // Test xattr set, get, rm on a regular file.
 func TestSetGetRmRegularFile(t *testing.T) {
 	fn := test_helpers.DefaultPlainDir + "/TestSetGetRmRegularFile"
-	err := ioutil.WriteFile(fn, nil, 0700)
+	err := ioutil.WriteFile(fn, []byte("12345"), 0700)
 	if err != nil {
 		t.Fatalf("creating empty file failed: %v", err)
 	}
 	err = setGetRmList(fn)
 	if err != nil {
 		t.Error(err)
+	}
+	fi, _ := os.Lstat(fn)
+	if fi.Size() != 5 {
+		t.Errorf("file size has changed!? size=%d", fi.Size())
 	}
 }
 
@@ -274,5 +278,31 @@ func TestBase64XattrRead(t *testing.T) {
 		if err == nil || err2.Err != syscall.EIO {
 			t.Fatalf("Incorrect handling of broken data %s %v", string(plainValue), err)
 		}
+	}
+}
+
+// Listing xattrs should work even when we don't have read access
+func TestList0000File(t *testing.T) {
+	fn := test_helpers.DefaultPlainDir + "/TestList0000File"
+	err := ioutil.WriteFile(fn, nil, 0000)
+	if err != nil {
+		t.Fatalf("creating empty file failed: %v", err)
+	}
+	_, err = xattr.LList(fn)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+// Setting xattrs should work even when we don't have read access
+func TestSet0200File(t *testing.T) {
+	fn := test_helpers.DefaultPlainDir + "/TestSet0200File"
+	err := ioutil.WriteFile(fn, nil, 0200)
+	if err != nil {
+		t.Fatalf("creating empty file failed: %v", err)
+	}
+	err = xattr.LSet(fn, "user.foo", []byte("bar"))
+	if err != nil {
+		t.Error(err)
 	}
 }
