@@ -181,18 +181,17 @@ func (f *File) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) fuse.Statu
 	if newPlainSz <= oldPlainSz {
 		log.Panicf("BUG: newSize=%d <= oldSize=%d", newPlainSz, oldPlainSz)
 	}
-	var n1 uint64
-	if oldPlainSz > 0 {
-		n1 = f.contentEnc.PlainOffToBlockNo(oldPlainSz - 1)
-	}
 	newEOFOffset := newPlainSz - 1
-	n2 := f.contentEnc.PlainOffToBlockNo(newEOFOffset)
-	// The file is grown within one block, no need to pad anything.
-	// Write a single zero to the last byte and let doWrite figure out the RMW.
-	if n1 == n2 {
-		buf := make([]byte, 1)
-		_, status := f.doWrite(buf, int64(newEOFOffset))
-		return status
+	if oldPlainSz > 0 {
+		n1 := f.contentEnc.PlainOffToBlockNo(oldPlainSz - 1)
+		n2 := f.contentEnc.PlainOffToBlockNo(newEOFOffset)
+		// The file is grown within one block, no need to pad anything.
+		// Write a single zero to the last byte and let doWrite figure out the RMW.
+		if n1 == n2 {
+			buf := make([]byte, 1)
+			_, status := f.doWrite(buf, int64(newEOFOffset))
+			return status
+		}
 	}
 	// The truncate creates at least one new block.
 	//
