@@ -76,7 +76,7 @@ func ReadLongNameAt(dirfd int, cName string) (string, error) {
 	cName += LongNameSuffix
 	var f *os.File
 	{
-		fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_NOFOLLOW, 0)
+		fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
 		if err != nil {
 			return "", err
 		}
