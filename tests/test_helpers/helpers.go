@@ -18,6 +18,7 @@ import (
 
 	"github.com/rfjakob/gocryptfs/internal/ctlsock"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 )
 
 // TmpDir will be created inside this directory, set in init() to
@@ -112,7 +113,12 @@ func ResetTmpDir(createDirIV bool) {
 		panic(err)
 	}
 	if createDirIV {
-		err = nametransform.WriteDirIV(-1, DefaultCipherDir)
+		// Open cipherdir (following symlinks)
+		dirfd, err := syscall.Open(DefaultCipherDir, syscall.O_RDONLY|syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
+		if err == nil {
+			err = nametransform.WriteDirIVAt(dirfd)
+			syscall.Close(dirfd)
+		}
 		if err != nil {
 			panic(err)
 		}

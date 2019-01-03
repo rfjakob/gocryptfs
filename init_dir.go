@@ -6,12 +6,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -96,7 +98,12 @@ func initDir(args *argContainer) {
 	// Forward mode with filename encryption enabled needs a gocryptfs.diriv file
 	// in the root dir
 	if !args.plaintextnames && !args.reverse {
-		err = nametransform.WriteDirIV(-1, args.cipherdir)
+		// Open cipherdir (following symlinks)
+		dirfd, err := syscall.Open(args.cipherdir, syscall.O_RDONLY|syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
+		if err == nil {
+			err = nametransform.WriteDirIVAt(dirfd)
+			syscall.Close(dirfd)
+		}
 		if err != nil {
 			tlog.Fatal.Println(err)
 			os.Exit(exitcodes.Init)

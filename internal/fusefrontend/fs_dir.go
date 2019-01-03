@@ -37,9 +37,14 @@ func (fs *FS) mkdirWithIv(dirfd int, cName string, mode uint32) error {
 	if err != nil {
 		return err
 	}
-	// Create gocryptfs.diriv
-	err = nametransform.WriteDirIV(dirfd, cName)
+	dirfd2, err := syscallcompat.Openat(dirfd, cName, syscall.O_DIRECTORY|syscall.O_NOFOLLOW|syscallcompat.O_PATH, 0)
+	if err == nil {
+		// Create gocryptfs.diriv
+		err = nametransform.WriteDirIVAt(dirfd2)
+		syscall.Close(dirfd2)
+	}
 	if err != nil {
+		// Delete inconsistent directory (missing gocryptfs.diriv!)
 		err2 := syscallcompat.Unlinkat(dirfd, cName, unix.AT_REMOVEDIR)
 		if err2 != nil {
 			tlog.Warn.Printf("mkdirWithIv: rollback failed: %v", err2)
