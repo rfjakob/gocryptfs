@@ -42,7 +42,7 @@ func (fs *FS) openBackingDir(relPath string) (dirfd int, cName string, err error
 		return dirfd, cName, nil
 	}
 	// Open cipherdir (following symlinks)
-	dirfd, err = syscall.Open(fs.args.Cipherdir, syscall.O_RDONLY|syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
+	dirfd, err = syscall.Open(fs.args.Cipherdir, syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
 	if err != nil {
 		return -1, "", err
 	}
@@ -65,7 +65,7 @@ func (fs *FS) openBackingDir(relPath string) (dirfd int, cName string, err error
 			break
 		}
 		// Not the last part? Descend into next directory.
-		dirfd2, err := syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
+		dirfd2, err := syscallcompat.Openat(dirfd, cName, syscall.O_NOFOLLOW|syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
 		syscall.Close(dirfd)
 		if err != nil {
 			return -1, "", err
