@@ -114,7 +114,7 @@ func ResetTmpDir(createDirIV bool) {
 	}
 	if createDirIV {
 		// Open cipherdir (following symlinks)
-		dirfd, err := syscall.Open(DefaultCipherDir, syscall.O_RDONLY|syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
+		dirfd, err := syscall.Open(DefaultCipherDir, syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
 		if err == nil {
 			err = nametransform.WriteDirIVAt(dirfd)
 			syscall.Close(dirfd)

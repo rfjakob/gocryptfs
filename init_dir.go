@@ -99,7 +99,7 @@ func initDir(args *argContainer) {
 	// in the root dir
 	if !args.plaintextnames && !args.reverse {
 		// Open cipherdir (following symlinks)
-		dirfd, err := syscall.Open(args.cipherdir, syscall.O_RDONLY|syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
+		dirfd, err := syscall.Open(args.cipherdir, syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
 		if err == nil {
 			err = nametransform.WriteDirIVAt(dirfd)
 			syscall.Close(dirfd)
