@@ -269,7 +269,7 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 	// Read ciphertext directory
 	var cipherEntries []fuse.DirEntry
 	var status fuse.Status
-	fd, err := syscallcompat.Openat(parentDirFd, cDirName, syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
+	fd, err := syscallcompat.Openat(parentDirFd, cDirName, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
