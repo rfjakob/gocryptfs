@@ -163,7 +163,7 @@ Changelog
 v1.7-beta1, 2019-01-03
 * **Fix possible symlink race attacks in forward mode** when using allow_other + plaintextnames
   * If you use *both* `-allow_other` *and* `-plaintextnames`, you should upgrade.
-    Malicous users could trick gocryptfs into modifying files outside of `CIPHERDIR`,
+    Malicious users could trick gocryptfs into modifying files outside of `CIPHERDIR`,
 	or reading files inside `CIPHERDIR` that they should not have access to.
   * If you do not use `-plaintextnames` (disabled per default), these attacks do
     not work as symlinks are encrypted.

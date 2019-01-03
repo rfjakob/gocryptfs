@@ -101,7 +101,7 @@ func ReadLongNameAt(dirfd int, cName string) (string, error) {
 	return string(buf[0:n]), nil
 }
 
-// DeleteLongName deletes "hashName.name" in the directory openend at "dirfd".
+// DeleteLongName deletes "hashName.name" in the directory opened at "dirfd".
 //
 // This function is symlink-safe through the use of Unlinkat().
 func DeleteLongNameAt(dirfd int, hashName string) error {
