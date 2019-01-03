@@ -252,8 +252,6 @@ retry:
 	if nametransform.IsLongContent(cName) {
 		nametransform.DeleteLongNameAt(parentDirFd, cName)
 	}
-	// The now-deleted directory may have been in the dirCache. Clear it.
-	fs.dirCache.Clear()
 	return fuse.OK
 }
 
