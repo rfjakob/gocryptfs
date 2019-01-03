@@ -138,8 +138,8 @@ Example for a CPU without AES-NI:
 ```
 $ ./gocryptfs -speed
 AES-GCM-256-OpenSSL    165.67 MB/s  (selected in auto mode)
-AES-GCM-256-Go          49.62 MB/s  
-AES-SIV-512-Go          39.98 MB/s  
+AES-GCM-256-Go          49.62 MB/s
+AES-SIV-512-Go          39.98 MB/s
 ```
 
 You can run `./benchmark.bash` to run gocryptfs' canonical set of
@@ -148,7 +148,7 @@ tarball, recursively listing and finally deleting it. The output will
 look like this:
 
 ```
-$ ./benchmark.bash 
+$ ./benchmark.bash
 Testing gocryptfs at /tmp/benchmark.bash.DwL: gocryptfs v1.6; go-fuse v20170619-45-g95c6370; 2018-08-18 go1.10.3
 WRITE: 262144000 bytes (262 MB, 250 MiB) copied, 1.1033 s, 238 MB/s
 READ:  262144000 bytes (262 MB, 250 MiB) copied, 0.945291 s, 277 MB/s
@@ -160,6 +160,18 @@ RM:    3.379
 
 Changelog
 ---------
+v1.7-beta1, 2019-01-03
+* **Fix possible symlink race attacks in forward mode** when using allow_other + plaintextnames
+  * If you use *both* `-allow_other` *and* `-plaintextnames`, you should upgrade.
+    Malicous users could trick gocryptfs into modifying files outside of `CIPHERDIR`,
+	or reading files inside `CIPHERDIR` that they should not have access to.
+  * If you do not use `-plaintextnames` (disabled per default), these attacks do
+    not work as symlinks are encrypted.
+  * Forward mode has been reworked to use the "*at" family of system calls everywhere
+    (`Openat/Unlinkat/Symlinkat/...`).
+  * As a result, gocryptfs may run slightly slower, as the caching logic has been
+    replaced and is very simple at the moment.
+  * The possibility for such attacks was found during an internal code review.
 
 v1.6.1, 2018-12-12
 * Fix "Operation not supported" chmod errors on Go 1.11
