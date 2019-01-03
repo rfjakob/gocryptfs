@@ -91,7 +91,7 @@ func (fs *FS) decryptPathAt(dirfd int, cipherPath string) (plainPath string, err
 			break
 		}
 		// Descend into next directory
-		wd, err = syscallcompat.Openat(wd, part, syscall.O_NOFOLLOW, 0)
+		wd, err = syscallcompat.Openat(wd, part, syscall.O_NOFOLLOW|syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
 		if err != nil {
 			return "", err
 		}
