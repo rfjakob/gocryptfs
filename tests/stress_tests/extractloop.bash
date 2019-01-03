@@ -93,7 +93,7 @@ function loop {
 		delta=$((t2-t1))
 		if [[ $FSPID -gt 0 && -d /proc ]]; then
 			RSS=$(grep VmRSS /proc/$FSPID/status | tr -s ' ' | cut -f2 -d ' ')
-			echo "$N,$SECONDS,$RSS" >> $CSV
+			echo "$N,$SECONDS,$RSS,$delta" >> $CSV
 		fi
 		echo "[looper $ID] Iteration $N done, $delta seconds, RSS $RSS kiB"
 		let N=$N+1
