@@ -122,6 +122,9 @@ func UnmountPanic(dir string) {
 	}
 }
 
+// gocryptfs may hold up to maxCacheFds open for caching
+const maxCacheFds = 1
+
 // UnmountErr tries to unmount "dir", retrying 10 times, and returns the
 // resulting error.
 func UnmountErr(dir string) (err error) {
@@ -146,7 +149,7 @@ func UnmountErr(dir string) (err error) {
 				// hope that all close commands get through to the gocryptfs
 				// process.
 				fdsNow = ListFds(pid)
-				if len(fdsNow) <= len(fds) {
+				if len(fdsNow) <= len(fds)+maxCacheFds {
 					break
 				}
 				fmt.Printf("UnmountErr: fdsOld=%d fdsNow=%d, retrying\n", len(fds), len(fdsNow))
@@ -159,7 +162,7 @@ func UnmountErr(dir string) (err error) {
 		cmd.Stderr = os.Stderr
 		err = cmd.Run()
 		if err == nil {
-			if len(fdsNow) > len(fds) {
+			if len(fdsNow) > len(fds)+maxCacheFds {
 				return fmt.Errorf("FD leak? pid=%d dir=%q, fds:\nold=%v \nnew=%v\n", pid, dir, fds, fdsNow)
 			}
 			return nil
