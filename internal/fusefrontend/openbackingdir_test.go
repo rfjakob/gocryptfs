@@ -37,6 +37,18 @@ func TestOpenBackingDir(t *testing.T) {
 	if cName != "." {
 		t.Fatal("cName should be .")
 	}
+	syscall.Close(dirfd)
+
+	// Again, but populate the cache for "" by looking up a non-existing file
+	fs.GetAttr("xyz1234", nil)
+	dirfd, cName, err = fs.openBackingDir("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cName != "." {
+		t.Fatal("cName should be .")
+	}
+
 	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
 	if err != nil {
 		t.Error(err)

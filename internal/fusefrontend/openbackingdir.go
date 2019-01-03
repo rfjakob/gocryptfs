@@ -33,6 +33,10 @@ func (fs *FS) openBackingDir(relPath string) (dirfd int, cName string, err error
 	// Cache lookup
 	dirfd, iv := fs.dirCache.Lookup(dirRelPath)
 	if dirfd > 0 {
+		// If relPath is empty, cName is ".".
+		if relPath == "" {
+			return dirfd, ".", nil
+		}
 		name := filepath.Base(relPath)
 		cName = fs.nameTransform.EncryptAndHashName(name, iv)
 		return dirfd, cName, nil
