@@ -269,7 +269,7 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 	return NewFile(f, fs)
 }
 
-// Chmod - FUSE call. Change permissons on "path".
+// Chmod - FUSE call. Change permissions on "path".
 //
 // Symlink-safe through use of Fchmodat().
 func (fs *FS) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.Status) {
