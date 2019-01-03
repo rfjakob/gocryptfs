@@ -5,7 +5,7 @@ sudo: required
 dist: trusty
 
 git:
-  depth: 100
+  depth: 300
 
 # Build with the lastest versions of Go 1.7 and later
 # See https://golang.org/dl/
