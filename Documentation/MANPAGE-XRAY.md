@@ -21,6 +21,10 @@ DESCRIPTION
 
 Available options are listed below.
 
+#### -aessiv
+Assume AES-SIV mode instead of AES-GCM when examining an encrypted file.
+Is not needed and has no effect in `-dumpmasterkey` mode.
+
 #### -dumpmasterkey
 Decrypts and shows the master key.
 

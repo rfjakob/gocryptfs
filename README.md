@@ -176,6 +176,8 @@ v1.7, in progress (v1.7-beta1 released 2019-01-03)
 * Reverse mode: fix excluded, unaccessible files showing up in directory listings
   ([#285](https://github.com/rfjakob/gocryptfs/issues/285),
   [#286](https://github.com/rfjakob/gocryptfs/issues/286))
+* gocryptfs-xray: add `-aessiv` flag for correctly parsing AES-SIV format files
+  ([#299](https://github.com/rfjakob/gocryptfs/issues/299))
 
 v1.6.1, 2018-12-12
 * Fix "Operation not supported" chmod errors on Go 1.11
