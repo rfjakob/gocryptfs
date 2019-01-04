@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	ivLen     = contentenc.DefaultIVBits / 8
-	blockSize = contentenc.DefaultBS + ivLen + cryptocore.AuthTagLen
-	myName    = "gocryptfs-xray"
+	ivLen      = contentenc.DefaultIVBits / 8
+	authTagLen = cryptocore.AuthTagLen
+	blockSize  = contentenc.DefaultBS + ivLen + cryptocore.AuthTagLen
+	myName     = "gocryptfs-xray"
 )
 
 func errExit(err error) {
@@ -26,13 +27,18 @@ func errExit(err error) {
 	os.Exit(1)
 }
 
-func prettyPrintHeader(h *contentenc.FileHeader) {
+func prettyPrintHeader(h *contentenc.FileHeader, aessiv bool) {
 	id := hex.EncodeToString(h.ID)
-	fmt.Printf("Header: Version: %d, Id: %s\n", h.Version, id)
+	msg := "Header: Version: %d, Id: %s"
+	if aessiv {
+		msg += ", assuming AES-SIV mode"
+	}
+	fmt.Printf(msg+"\n", h.Version, id)
 }
 
 func main() {
 	dumpmasterkey := flag.Bool("dumpmasterkey", false, "Decrypt and dump the master key")
+	aessiv := flag.Bool("aessiv", false, "Assume AES-SIV mode instead of AES-GCM")
 	flag.Parse()
 	if flag.NArg() != 1 {
 		fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] FILE\n"+
@@ -54,7 +60,7 @@ func main() {
 	if *dumpmasterkey {
 		dumpMasterKey(fn)
 	} else {
-		inspectCiphertext(fd)
+		inspectCiphertext(fd, *aessiv)
 	}
 }
 
@@ -72,7 +78,7 @@ func dumpMasterKey(fn string) {
 	}
 }
 
-func inspectCiphertext(fd *os.File) {
+func inspectCiphertext(fd *os.File, aessiv bool) {
 	headerBytes := make([]byte, contentenc.HeaderLen)
 	n, err := fd.ReadAt(headerBytes, 0)
 	if err == io.EOF && n == 0 {
@@ -88,34 +94,30 @@ func inspectCiphertext(fd *os.File) {
 	if err != nil {
 		errExit(err)
 	}
-	prettyPrintHeader(header)
+	prettyPrintHeader(header, aessiv)
 	var i int64
+	buf := make([]byte, blockSize)
 	for i = 0; ; i++ {
-		blockLen := int64(blockSize)
 		off := contentenc.HeaderLen + i*blockSize
-		iv := make([]byte, ivLen)
-		_, err := fd.ReadAt(iv, off)
-		if err == io.EOF {
-			break
-		} else if err != nil {
+		n, err := fd.ReadAt(buf, off)
+		if err != nil && err != io.EOF {
 			errExit(err)
 		}
-		tag := make([]byte, cryptocore.AuthTagLen)
-		_, err = fd.ReadAt(tag, off+blockSize-cryptocore.AuthTagLen)
-		if err == io.EOF {
-			fi, err2 := fd.Stat()
-			if err2 != nil {
-				errExit(err2)
-			}
-			_, err2 = fd.ReadAt(tag, fi.Size()-cryptocore.AuthTagLen)
-			if err2 != nil {
-				errExit(err2)
-			}
-			blockLen = (fi.Size() - contentenc.HeaderLen) % blockSize
-		} else if err != nil {
-			errExit(err)
+		if n == 0 && err == io.EOF {
+			break
+		}
+		// A block contains at least the IV, the Auth Tag and 1 data byte
+		if n < ivLen+authTagLen+1 {
+			errExit(fmt.Errorf("corrupt block: truncated data, len=%d", n))
+		}
+		data := buf[:n]
+		// Parse block data
+		iv := data[:ivLen]
+		tag := data[len(data)-authTagLen:]
+		if aessiv {
+			tag = data[ivLen : ivLen+authTagLen]
 		}
 		fmt.Printf("Block %2d: IV: %s, Tag: %s, Offset: %5d Len: %d\n",
-			i, hex.EncodeToString(iv), hex.EncodeToString(tag), off, blockLen)
+			i, hex.EncodeToString(iv), hex.EncodeToString(tag), off, len(data))
 	}
 }
