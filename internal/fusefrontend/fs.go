@@ -255,6 +255,12 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 		// Create content, normal (short) file name
 		fd, err = syscallcompat.Openat(dirfd, cName, newFlags|syscall.O_CREAT|syscall.O_EXCL, mode)
 		if err != nil {
+			// xfstests generic/488 triggers this
+			if err == syscall.EMFILE {
+				var lim syscall.Rlimit
+				syscall.Getrlimit(syscall.RLIMIT_NOFILE, &lim)
+				tlog.Warn.Printf("Create %q: too many open files. Current \"ulimit -n\": %d", cName, lim.Cur)
+			}
 			return nil, fuse.ToStatus(err)
 		}
 	}
