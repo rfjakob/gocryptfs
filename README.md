@@ -160,18 +160,22 @@ RM:    3.379
 
 Changelog
 ---------
-v1.7-beta1, 2019-01-03
+
+v1.7, in progress (v1.7-beta1 released 2019-01-03)
 * **Fix possible symlink race attacks in forward mode** when using allow_other + plaintextnames
   * If you use *both* `-allow_other` *and* `-plaintextnames`, you should upgrade.
     Malicious users could trick gocryptfs into modifying files outside of `CIPHERDIR`,
 	or reading files inside `CIPHERDIR` that they should not have access to.
   * If you do not use `-plaintextnames` (disabled per default), these attacks do
     not work as symlinks are encrypted.
-  * Forward mode has been reworked to use the "*at" family of system calls everywhere
+  * Forward mode has been reworked to use the "\*at" family of system calls everywhere
     (`Openat/Unlinkat/Symlinkat/...`).
   * As a result, gocryptfs may run slightly slower, as the caching logic has been
     replaced and is very simple at the moment.
   * The possibility for such attacks was found during an internal code review.
+* Reverse mode: fix excluded, unaccessible files showing up in directory listings
+  ([#285](https://github.com/rfjakob/gocryptfs/issues/285),
+  [#286](https://github.com/rfjakob/gocryptfs/issues/286))
 
 v1.6.1, 2018-12-12
 * Fix "Operation not supported" chmod errors on Go 1.11
