@@ -10,7 +10,7 @@ function render {
 	echo "Rendering $IN to $OUT"
 	echo ".\\\" This is a man page. View it using 'man ./$OUT'" > $OUT
 	echo ".\\\"" >> $OUT
-	pandoc MANPAGE.md -s -t man >> $OUT
+	pandoc "$IN" -s -t man >> $OUT
 }
 
 render MANPAGE.md gocryptfs.1
