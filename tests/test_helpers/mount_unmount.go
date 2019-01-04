@@ -123,7 +123,9 @@ func UnmountPanic(dir string) {
 }
 
 // gocryptfs may hold up to maxCacheFds open for caching
-const maxCacheFds = 1
+// Keen in sync with fusefrontend.dirCacheSize
+// TODO: How to share this constant without causing in import cycle?!
+const maxCacheFds = 3
 
 // UnmountErr tries to unmount "dir", retrying 10 times, and returns the
 // resulting error.

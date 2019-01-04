@@ -14,6 +14,8 @@ import (
 const (
 	// Number of entries in the dirCache. Three entries work well for two
 	// (probably also three) parallel tar extracts (hit rate around 92%).
+	// Keen in sync with test_helpers.maxCacheFds !
+	// TODO: How to share this constant without causing in import cycle?
 	dirCacheSize = 3
 	// Enable Lookup/Store/Clear debug messages
 	enableDebugMessages = false
