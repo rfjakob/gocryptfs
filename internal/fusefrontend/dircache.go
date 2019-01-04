@@ -18,7 +18,7 @@ const (
 	// Enable Lookup/Store/Clear debug messages
 	enableDebugMessages = false
 	// Enable hit rate statistics printing
-	enableStats = true
+	enableStats = false
 )
 
 type dirCacheEntryStruct struct {
