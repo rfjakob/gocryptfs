@@ -2,9 +2,11 @@ package reverse_test
 
 import (
 	"io/ioutil"
+	"path/filepath"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/ctlsock"
+	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
@@ -82,25 +84,39 @@ func testExclude(t *testing.T, flag string) {
 	test_helpers.MountOrFatal(t, "exclude_test_fs", mnt, cliArgs...)
 	defer test_helpers.UnmountPanic(mnt)
 	// Get encrypted version of "ok" and "excluded" paths
-	cOk := make([]string, len(pOk))
-	cExclude := make([]string, len(pExclude))
-	for i, v := range pOk {
-		cOk[i] = ctlsockEncryptPath(t, sock, v)
-	}
-	for i, v := range pExclude {
-		cExclude[i] = ctlsockEncryptPath(t, sock, v)
-	}
+	cOk := encryptExcludeTestPaths(t, sock, pOk)
+	cExclude := encryptExcludeTestPaths(t, sock, pExclude)
 	// Check that "excluded" paths are not there and "ok" paths are there
-	for i, v := range cExclude {
+	for _, v := range cExclude {
 		if test_helpers.VerifyExistence(mnt + "/" + v) {
-			t.Errorf("File %q / %q is visible, but should be excluded", pExclude[i], v)
+			t.Errorf("File %q is visible, but should be excluded", v)
+		}
+		if nametransform.IsLongContent(filepath.Base(v)) {
+
 		}
 	}
-	for i, v := range cOk {
+	for _, v := range cOk {
 		if !test_helpers.VerifyExistence(mnt + "/" + v) {
-			t.Errorf("File %q / %q is hidden, but should be visible", pOk[i], v)
+			t.Errorf("File %q is hidden, but should be visible", v)
 		}
 	}
+}
+
+// encryptExcludeTestPaths is used by testExclude() to encrypt the lists of
+// testcase paths
+func encryptExcludeTestPaths(t *testing.T, socket string, pRelPaths []string) (out []string) {
+	for _, pRelPath := range pRelPaths {
+		cRelPath := ctlsockEncryptPath(t, socket, pRelPath)
+		out = append(out, cRelPath)
+		if !plaintextnames && nametransform.IsLongContent(filepath.Base(cRelPath)) {
+			// If we exclude
+			//   gocryptfs.longname.3vZ_r3eDPb1_fL3j5VA4rd_bcKWLKT9eaxOVIGK5HFA
+			// we should also exclude
+			//   gocryptfs.longname.3vZ_r3eDPb1_fL3j5VA4rd_bcKWLKT9eaxOVIGK5HFA.name
+			out = append(out, cRelPath+nametransform.LongNameSuffix)
+		}
+	}
+	return out
 }
 
 func TestExclude(t *testing.T) {
