@@ -122,6 +122,7 @@ func (d *dirCacheStruct) Lookup(dirRelPath string) (fd int, iv []byte) {
 			return -1, nil
 		}
 		iv = e.iv
+		break
 	}
 	if fd == 0 {
 		d.dbg("Lookup %q: miss\n", dirRelPath)
