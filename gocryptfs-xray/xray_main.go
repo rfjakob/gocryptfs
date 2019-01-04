@@ -32,6 +32,8 @@ func prettyPrintHeader(h *contentenc.FileHeader, aessiv bool) {
 	msg := "Header: Version: %d, Id: %s"
 	if aessiv {
 		msg += ", assuming AES-SIV mode"
+	} else {
+		msg += ", assuming AES-GCM mode"
 	}
 	fmt.Printf(msg+"\n", h.Version, id)
 }
