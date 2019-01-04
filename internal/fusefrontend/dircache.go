@@ -11,40 +11,60 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-type dirCacheStruct struct {
-	sync.Mutex
+const (
+	// Number of entries in the dirCache. Three entries work well for two
+	// (probably also three) parallel tar extracts (hit rate around 92%).
+	dirCacheSize = 3
+	// Enable Lookup/Store/Clear debug messages
+	enableDebugMessages = false
+	// Enable hit rate statistics printing
+	enableStats = true
+)
+
+type dirCacheEntryStruct struct {
 	// relative plaintext path to the directory
 	dirRelPath string
 	// fd to the directory (opened with O_PATH!)
 	fd int
 	// content of gocryptfs.diriv in this directory
 	iv []byte
-	// on the first Lookup(), the expire thread is stared, and this is set
+}
+
+func (e *dirCacheEntryStruct) Clear() {
+	// An earlier clear may have already closed the fd, or the cache
+	// has never been filled (fd is 0 in that case).
+	if e.fd > 0 {
+		err := syscall.Close(e.fd)
+		if err != nil {
+			tlog.Warn.Printf("dirCache.Clear: Close failed: %v", err)
+		}
+	}
+	e.fd = -1
+	e.dirRelPath = ""
+	e.iv = nil
+}
+
+type dirCacheStruct struct {
+	sync.Mutex
+	// Cache entries
+	entries [dirCacheSize]dirCacheEntryStruct
+	// Where to store the next entry (index into entries)
+	nextIndex int
+	// On the first Lookup(), the expire thread is stared, and this flag is set
 	// to true.
 	expireThreadRunning bool
+	// Hit rate stats. Evaluated and reset by the expire thread.
+	lookups uint64
+	hits    uint64
 }
 
 // Clear clears the cache contents.
 func (d *dirCacheStruct) Clear() {
 	d.Lock()
 	defer d.Unlock()
-	d.doClear()
-}
-
-// doClear closes the fd and clears the cache contents.
-// Caller must hold d.Lock()!
-func (d *dirCacheStruct) doClear() {
-	// An earlier clear may have already closed the fd, or the cache
-	// has never been filled (fd is 0 in that case).
-	if d.fd > 0 {
-		err := syscall.Close(d.fd)
-		if err != nil {
-			tlog.Warn.Printf("dirCache.Clear: Close failed: %v", err)
-		}
+	for i := range d.entries {
+		d.entries[i].Clear()
 	}
-	d.fd = -1
-	d.dirRelPath = ""
-	d.iv = nil
 }
 
 // Store the entry in the cache. The passed "fd" will be Dup()ed, and the caller
@@ -55,17 +75,20 @@ func (d *dirCacheStruct) Store(dirRelPath string, fd int, iv []byte) {
 	}
 	d.Lock()
 	defer d.Unlock()
+	e := &d.entries[d.nextIndex]
+	// Round-robin works well enough
+	d.nextIndex = (d.nextIndex + 1) % dirCacheSize
 	// Close the old fd
-	d.doClear()
+	e.Clear()
 	fd2, err := syscall.Dup(fd)
 	if err != nil {
 		tlog.Warn.Printf("dirCache.Store: Dup failed: %v", err)
 		return
 	}
-	d.fd = fd2
 	d.dbg("Store: %q %d %x\n", dirRelPath, fd2, iv)
-	d.dirRelPath = dirRelPath
-	d.iv = iv
+	e.fd = fd2
+	e.dirRelPath = dirRelPath
+	e.iv = iv
 	// expireThread is started on the first Lookup()
 	if !d.expireThreadRunning {
 		d.expireThreadRunning = true
@@ -73,31 +96,45 @@ func (d *dirCacheStruct) Store(dirRelPath string, fd int, iv []byte) {
 	}
 }
 
-// Lookup checks if relPath is in the cache, and returns and (fd, iv) pair.
+// Lookup checks if relPath is in the cache, and returns an (fd, iv) pair.
 // It returns (-1, nil) if not found. The fd is internally Dup()ed and the
 // caller must close it when done.
 func (d *dirCacheStruct) Lookup(dirRelPath string) (fd int, iv []byte) {
 	d.Lock()
 	defer d.Unlock()
-	if d.fd <= 0 {
-		// Cache is empty
-		d.dbg("Lookup %q: empty\n", dirRelPath)
-		return -1, nil
+	if enableStats {
+		d.lookups++
 	}
-	if dirRelPath != d.dirRelPath {
+	for i := range d.entries {
+		e := &d.entries[i]
+		if e.fd <= 0 {
+			// Cache slot is empty
+			continue
+		}
+		if dirRelPath != e.dirRelPath {
+			// Not the right path
+			continue
+		}
+		var err error
+		fd, err = syscall.Dup(e.fd)
+		if err != nil {
+			tlog.Warn.Printf("dirCache.Lookup: Dup failed: %v", err)
+			return -1, nil
+		}
+		iv = e.iv
+	}
+	if fd == 0 {
 		d.dbg("Lookup %q: miss\n", dirRelPath)
 		return -1, nil
 	}
-	fd, err := syscall.Dup(d.fd)
-	if err != nil {
-		tlog.Warn.Printf("dirCache.Lookup: Dup failed: %v", err)
-		return -1, nil
+	if enableStats {
+		d.hits++
 	}
-	if fd <= 0 || len(d.iv) != nametransform.DirIVLen {
-		log.Panicf("Lookup sanity check failed: fd=%d len=%d", fd, len(d.iv))
+	if fd <= 0 || len(iv) != nametransform.DirIVLen {
+		log.Panicf("Lookup sanity check failed: fd=%d len=%d", fd, len(iv))
 	}
-	d.dbg("Lookup %q: hit %d %x\n", dirRelPath, fd, d.iv)
-	return fd, d.iv
+	d.dbg("Lookup %q: hit %d %x\n", dirRelPath, fd, iv)
+	return fd, iv
 }
 
 // expireThread is started on the first Lookup()
@@ -105,13 +142,23 @@ func (d *dirCacheStruct) expireThread() {
 	for {
 		time.Sleep(1 * time.Second)
 		d.Clear()
+		if enableStats {
+			d.Lock()
+			lookups := d.lookups
+			hits := d.hits
+			d.lookups = 0
+			d.hits = 0
+			d.Unlock()
+			if lookups > 0 {
+				fmt.Printf("dirCache: hits=%3d lookups=%3d, rate=%3d%%\n", hits, lookups, (hits*100)/lookups)
+			}
+		}
 	}
 }
 
 // dbg prints a debug message. Usually disabled.
 func (d *dirCacheStruct) dbg(format string, a ...interface{}) {
-	const EnableDebugMessages = false
-	if EnableDebugMessages {
+	if enableDebugMessages {
 		fmt.Printf(format, a...)
 	}
 }
