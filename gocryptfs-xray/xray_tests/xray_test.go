@@ -13,7 +13,7 @@ func TestAesgcmXray(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command("../gocryptfs-xray", "aesgcm_fs/fRtDWUFQK9vDAtAJrTbbWg")
+	cmd := exec.Command("../gocryptfs-xray", "aesgcm_fs/VnvoeSetPaOFjZDaZAh0lA")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatal(err)
@@ -30,7 +30,7 @@ func TestAessivXray(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command("../gocryptfs-xray", "-aessiv", "aessiv_fs/Ldq-c4ADpM5iGSSrPjUAqQ")
+	cmd := exec.Command("../gocryptfs-xray", "-aessiv", "aessiv_fs/klepPXQJIaEDaIx-yurAqQ")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatal(err)
@@ -43,7 +43,7 @@ func TestAessivXray(t *testing.T) {
 }
 
 func TestDumpmasterkey(t *testing.T) {
-	expected := "f342380e238f708ff4eb94d1fcf79cca7e1e9d9ab91222865e4eaae8a292ee43\n"
+	expected := "b4d8b25c324dd6eaa328c9906e8a2a3c6038552a042ced4326cfff210c62957a\n"
 	cmd := exec.Command("../gocryptfs-xray", "-dumpmasterkey", "aesgcm_fs/gocryptfs.conf")
 	// Password = "test"
 	cmd.Stdin = bytes.NewBuffer([]byte("test"))

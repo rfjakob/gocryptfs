@@ -1,5 +1,4 @@
 Your master key is:
 
-    f342380e-238f708f-f4eb94d1-fcf79cca-
-    7e1e9d9a-b9122286-5e4eaae8-a292ee43
-
+    b4d8b25c-324dd6ea-a328c990-6e8a2a3c-
+    6038552a-042ced43-26cfff21-0c62957a
