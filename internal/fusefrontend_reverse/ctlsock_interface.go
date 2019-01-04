@@ -13,8 +13,7 @@ import (
 var _ ctlsock.Interface = &ReverseFS{} // Verify that interface is implemented.
 
 // EncryptPath implements ctlsock.Backend.
-// This is actually not used inside reverse mode, but we implement it because
-// third-party tools want to encrypt paths through the control socket.
+// This is used for the control socket and for the "-exclude" logic.
 func (rfs *ReverseFS) EncryptPath(plainPath string) (string, error) {
 	if rfs.args.PlaintextNames || plainPath == "" {
 		return plainPath, nil

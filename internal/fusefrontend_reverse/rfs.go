@@ -39,6 +39,7 @@ type ReverseFS struct {
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
 	// Relative ciphertext paths to exclude (hide) from the user. Used by -exclude.
+	// With -plaintextnames, these are relative *plaintext* paths.
 	cExclude []string
 }
 
@@ -288,7 +289,7 @@ func (rfs *ReverseFS) openDirPlaintextnames(relPath string, entries []fuse.DirEn
 	if dupe >= 0 {
 		// Warn the user loudly: The gocryptfs.conf_NAME_COLLISION file will
 		// throw ENOENT errors that are hard to miss.
-		tlog.Warn.Printf("The file %s is mapped to %s and shadows another file. Please rename %s in %s .",
+		tlog.Warn.Printf("The file %q is mapped to %q and shadows another file. Please rename %q in directory %q.",
 			configfile.ConfReverseName, configfile.ConfDefaultName, configfile.ConfDefaultName, rfs.args.Cipherdir)
 		entries[dupe].Name = "gocryptfs.conf_NAME_COLLISION_" + fmt.Sprintf("%d", cryptocore.RandUint64())
 	}
@@ -320,7 +321,12 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 		return nil, fuse.ToStatus(err)
 	}
 	if rfs.args.PlaintextNames {
-		return rfs.openDirPlaintextnames(cipherPath, entries)
+		entries, status := rfs.openDirPlaintextnames(cipherPath, entries)
+		if !status.Ok() {
+			return nil, status
+		}
+		entries = rfs.excludeDirEntries(cipherPath, entries)
+		return entries, fuse.OK
 	}
 	// Allocate maximum possible number of virtual files.
 	// If all files have long names we need a virtual ".name" file for each,
@@ -356,22 +362,31 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 		entries[i].Name = cName
 	}
 	// Filter out excluded entries
-	if rfs.cExclude != nil {
-		filtered := make([]fuse.DirEntry, 0, len(entries))
-		for _, entry := range entries {
-			// filepath.Join handles the case of cipherPath="" correctly:
-			// Join("", "foo") -> "foo". This does not: cipherPath + "/" + name"
-			p := filepath.Join(cipherPath, entry.Name)
-			if rfs.isExcluded(p) {
-				// Skip file
-				continue
-			}
-			filtered = append(filtered, entry)
-		}
-		entries = filtered
-	}
+	entries = rfs.excludeDirEntries(cipherPath, entries)
+	// Add virtual files
 	entries = append(entries, virtualFiles[:nVirtual]...)
 	return entries, fuse.OK
+}
+
+// excludeDirEntries filters out directory entries that are "-exclude"d.
+// cDir is the relative ciphertext path to the directory these entries are
+// from.
+func (rfs *ReverseFS) excludeDirEntries(cDir string, entries []fuse.DirEntry) (filtered []fuse.DirEntry) {
+	if rfs.cExclude == nil {
+		return entries
+	}
+	filtered = make([]fuse.DirEntry, 0, len(entries))
+	for _, entry := range entries {
+		// filepath.Join handles the case of cipherPath="" correctly:
+		// Join("", "foo") -> "foo". This does not: cipherPath + "/" + name"
+		p := filepath.Join(cDir, entry.Name)
+		if rfs.isExcluded(p) {
+			// Skip file
+			continue
+		}
+		filtered = append(filtered, entry)
+	}
+	return filtered
 }
 
 // StatFs - FUSE call. Returns information about the filesystem (free space
