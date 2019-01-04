@@ -153,6 +153,7 @@ func (ck *fsckObj) file(path string) {
 		return
 	}
 	defer f.Release()
+	// 128 kiB of zeros
 	allZero := make([]byte, fuse.MAX_KERNEL_WRITE)
 	buf := make([]byte, fuse.MAX_KERNEL_WRITE)
 	var off int64
@@ -167,14 +168,16 @@ func (ck *fsckObj) file(path string) {
 			fmt.Printf("fsck: error reading file %q (inum %d): %v\n", path, inum(f), status)
 			return
 		}
+		n := result.Size()
 		// EOF
-		if result.Size() == 0 {
+		if n == 0 {
 			return
 		}
-		off += int64(result.Size())
+		off += int64(n)
 		// If we seem to be in the middle of a file hole, try to skip to the next
 		// data section.
-		if bytes.Equal(buf, allZero) {
+		data := buf[:n]
+		if bytes.Equal(data, allZero) {
 			tlog.Debug.Printf("ck.file: trying to skip file hole\n")
 			f2 := f.(*fusefrontend.File)
 			nextOff, err := f2.SeekData(off)
