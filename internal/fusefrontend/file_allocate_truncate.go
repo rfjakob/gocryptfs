@@ -62,7 +62,7 @@ func (f *File) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
 	// the file.
 	cipherOff := firstBlock.BlockCipherOff()
 	cipherSz := lastBlock.BlockCipherOff() - cipherOff +
-		f.contentEnc.PlainSizeToCipherSize(lastBlock.Skip+lastBlock.Length)
+		f.contentEnc.BlockOverhead() + lastBlock.Skip + lastBlock.Length
 	err := syscallcompat.Fallocate(f.intFd(), FALLOC_FL_KEEP_SIZE, int64(cipherOff), int64(cipherSz))
 	tlog.Debug.Printf("Allocate off=%d sz=%d mode=%x cipherOff=%d cipherSz=%d\n",
 		off, sz, mode, cipherOff, cipherSz)
