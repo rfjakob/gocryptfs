@@ -41,3 +41,20 @@ func TestAessivXray(t *testing.T) {
 		fmt.Printf("have:\n%s", string(out))
 	}
 }
+
+func TestDumpmasterkey(t *testing.T) {
+	expected := "f342380e238f708ff4eb94d1fcf79cca7e1e9d9ab91222865e4eaae8a292ee43\n"
+	cmd := exec.Command("../gocryptfs-xray", "-dumpmasterkey", "aesgcm_fs/gocryptfs.conf")
+	// Password = "test"
+	cmd.Stdin = bytes.NewBuffer([]byte("test"))
+	out1, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(out1)
+	if out != expected {
+		t.Errorf("Wrong output")
+		fmt.Printf("expected: %s\n", expected)
+		fmt.Printf("have: %s\n", out)
+	}
+}
