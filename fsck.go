@@ -22,18 +22,30 @@ type fsckObj struct {
 	fs *fusefrontend.FS
 	// List of corrupt files
 	corruptList []string
+	// List of skipped files
+	skippedList []string
 	// Protects corruptList
-	corruptListLock sync.Mutex
+	listLock sync.Mutex
 	// stop a running watchMitigatedCorruptions thread
 	watchDone chan struct{}
 	// Inode numbers of hard-linked files (Nlink > 1) that we have already checked
 	seenInodes map[uint64]struct{}
 }
 
+func runsAsRoot() bool {
+	return syscall.Geteuid() == 0
+}
+
 func (ck *fsckObj) markCorrupt(path string) {
-	ck.corruptListLock.Lock()
+	ck.listLock.Lock()
 	ck.corruptList = append(ck.corruptList, path)
-	ck.corruptListLock.Unlock()
+	ck.listLock.Unlock()
+}
+
+func (ck *fsckObj) markSkipped(path string) {
+	ck.listLock.Lock()
+	ck.skippedList = append(ck.skippedList, path)
+	ck.listLock.Unlock()
 }
 
 // Watch for mitigated corruptions that occur during OpenDir()
@@ -59,8 +71,12 @@ func (ck *fsckObj) dir(path string) {
 	ck.watchDone <- struct{}{}
 	// Also catch non-mitigated corruptions
 	if !status.Ok() {
-		ck.markCorrupt(path)
 		fmt.Printf("fsck: error opening dir %q: %v\n", path, status)
+		if status == fuse.EACCES && !runsAsRoot() {
+			ck.markSkipped(path)
+		} else {
+			ck.markCorrupt(path)
+		}
 		return
 	}
 	// Sort alphabetically
@@ -128,8 +144,12 @@ func (ck *fsckObj) file(path string) {
 	ck.xattrs(path)
 	f, status := ck.fs.Open(path, syscall.O_RDONLY, nil)
 	if !status.Ok() {
-		ck.markCorrupt(path)
 		fmt.Printf("fsck: error opening file %q: %v\n", path, status)
+		if status == fuse.EACCES && !runsAsRoot() {
+			ck.markSkipped(path)
+		} else {
+			ck.markCorrupt(path)
+		}
 		return
 	}
 	defer f.Release()
@@ -194,7 +214,11 @@ func (ck *fsckObj) xattrs(path string) {
 		_, status := ck.fs.GetXAttr(path, a, nil)
 		if !status.Ok() {
 			fmt.Printf("fsck: error reading xattr %q from %q: %v\n", a, path, status)
-			ck.markCorrupt(path)
+			if status == fuse.EACCES && !runsAsRoot() {
+				ck.markSkipped(path)
+			} else {
+				ck.markCorrupt(path)
+			}
 		}
 	}
 }
@@ -215,11 +239,14 @@ func fsck(args *argContainer) {
 	}
 	ck.dir("")
 	wipeKeys()
-	if len(ck.corruptList) == 0 {
+	if len(ck.corruptList) == 0 && len(ck.skippedList) == 0 {
 		tlog.Info.Printf("fsck summary: no problems found\n")
 		return
 	}
-	fmt.Printf("fsck summary: %d corrupt files\n", len(ck.corruptList))
+	if len(ck.skippedList) > 0 {
+		tlog.Warn.Printf("fsck: re-run this program as root to check all files!\n")
+	}
+	fmt.Printf("fsck summary: %d corrupt files, %d files skipped\n", len(ck.corruptList), len(ck.skippedList))
 	os.Exit(exitcodes.FsckErrors)
 }
 
