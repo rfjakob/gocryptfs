@@ -74,6 +74,15 @@ func NewFS(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransform.Na
 				os.Exit(exitcodes.ExcludeError)
 			}
 			fs.cExclude = append(fs.cExclude, cPath)
+			if !fs.args.PlaintextNames {
+				// If we exclude
+				//   gocryptfs.longname.3vZ_r3eDPb1_fL3j5VA4rd_bcKWLKT9eaxOVIGK5HFA
+				// we should also exclude
+				//   gocryptfs.longname.3vZ_r3eDPb1_fL3j5VA4rd_bcKWLKT9eaxOVIGK5HFA.name
+				if nametransform.IsLongContent(filepath.Base(cPath)) {
+					fs.cExclude = append(fs.cExclude, cPath+nametransform.LongNameSuffix)
+				}
+			}
 		}
 		tlog.Debug.Printf("-exclude: %v -> %v", fs.args.Exclude, fs.cExclude)
 	}
@@ -361,10 +370,10 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 		}
 		entries[i].Name = cName
 	}
-	// Filter out excluded entries
-	entries = rfs.excludeDirEntries(cipherPath, entries)
 	// Add virtual files
 	entries = append(entries, virtualFiles[:nVirtual]...)
+	// Filter out excluded entries
+	entries = rfs.excludeDirEntries(cipherPath, entries)
 	return entries, fuse.OK
 }
 
