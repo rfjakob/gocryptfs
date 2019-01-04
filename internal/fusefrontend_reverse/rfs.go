@@ -330,7 +330,8 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 		return nil, fuse.ToStatus(err)
 	}
 	if rfs.args.PlaintextNames {
-		entries, status := rfs.openDirPlaintextnames(cipherPath, entries)
+		var status fuse.Status
+		entries, status = rfs.openDirPlaintextnames(cipherPath, entries)
 		if !status.Ok() {
 			return nil, status
 		}
