@@ -29,7 +29,7 @@ func ReadDirIVAt(dirfd int) (iv []byte, err error) {
 	fdRaw, err := syscallcompat.Openat(dirfd, DirIVFilename,
 		syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
-		return nil, fmt.Errorf("openat failed: %v", err)
+		return nil, err
 	}
 	fd := os.NewFile(uintptr(fdRaw), DirIVFilename)
 	defer fd.Close()
