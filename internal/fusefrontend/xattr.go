@@ -71,6 +71,10 @@ func (fs *FS) SetXAttr(relPath string, attr string, data []byte, flags int, cont
 
 	// O_NONBLOCK to not block on FIFOs.
 	fd, err := fs.openBackingFile(relPath, syscall.O_WRONLY|syscall.O_NONBLOCK)
+	// Directories cannot be opened read-write. Retry.
+	if err == syscall.EISDIR {
+		fd, err = fs.openBackingFile(relPath, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NONBLOCK)
+	}
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
@@ -100,6 +104,10 @@ func (fs *FS) RemoveXAttr(relPath string, attr string, context *fuse.Context) fu
 
 	// O_NONBLOCK to not block on FIFOs.
 	fd, err := fs.openBackingFile(relPath, syscall.O_WRONLY|syscall.O_NONBLOCK)
+	// Directories cannot be opened read-write. Retry.
+	if err == syscall.EISDIR {
+		fd, err = fs.openBackingFile(relPath, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NONBLOCK)
+	}
 	if err != nil {
 		return fuse.ToStatus(err)
 	}

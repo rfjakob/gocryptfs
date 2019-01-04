@@ -124,6 +124,16 @@ func TestSetGetRmFifo(t *testing.T) {
 	setGetRmList(fn)
 }
 
+// Test xattr set, get, rm on a directory. This should not fail with EISDIR.
+func TestSetGetRmDir(t *testing.T) {
+	fn := test_helpers.DefaultPlainDir + "/TestSetGetRmDir"
+	err := syscall.Mkdir(fn, 0700)
+	if err != nil {
+		t.Fatalf("creating fifo failed: %v", err)
+	}
+	setGetRmList(fn)
+}
+
 func TestXattrSetEmpty(t *testing.T) {
 	attr := "user.foo"
 	fn := test_helpers.DefaultPlainDir + "/TestXattrSetEmpty1"
