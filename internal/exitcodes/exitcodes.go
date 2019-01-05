@@ -70,6 +70,8 @@ const (
 	TrezorError = 28
 	// ExcludeError - an error occurred while processing "-exclude"
 	ExcludeError = 29
+	// DevNull means that /dev/null could not be opened
+	DevNull = 30
 )
 
 // Err wraps an error with an associated numeric exit code

@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
 
@@ -149,6 +150,7 @@ func printVersion() {
 }
 
 func main() {
+	ensureStdFds()
 	mxp := runtime.GOMAXPROCS(0)
 	if mxp < 4 {
 		// On a 2-core machine, setting maxprocs to 4 gives 10% better performance
@@ -327,4 +329,27 @@ func main() {
 		fsck(&args)
 		os.Exit(0)
 	}
+}
+
+// ensureStdFds ensures that file descriptors 0,1,2 are open. The Go stdlib,
+// as well as the gocryptfs code, relies on the fact that fds 0,1,2 are always
+// open.
+// See https://github.com/rfjakob/gocryptfs/issues/320 for details.
+//
+// This function should be called as the first thing from main().
+func ensureStdFds() {
+	fd, err := syscall.Open("/dev/null", syscall.O_RDWR, 0)
+	if err != nil {
+		tlog.Fatal.Printf("ensureStdFds: open /dev/null failed: %v", err)
+		os.Exit(exitcodes.DevNull)
+	}
+	for fd <= 2 {
+		fd, err = syscall.Dup(fd)
+		if err != nil {
+			tlog.Fatal.Printf("ensureStdFds: dup failed: %v", err)
+			os.Exit(exitcodes.DevNull)
+		}
+	}
+	// Close excess fd (usually fd 3)
+	syscall.Close(fd)
 }
