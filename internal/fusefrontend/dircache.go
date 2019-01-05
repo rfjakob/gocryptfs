@@ -35,6 +35,8 @@ type dirCacheEntryStruct struct {
 func (e *dirCacheEntryStruct) Clear() {
 	// An earlier clear may have already closed the fd, or the cache
 	// has never been filled (fd is 0 in that case).
+	// Note: package ensurefds012, imported from main, guarantees that dirCache
+	// can never get fds 0,1,2.
 	if e.fd > 0 {
 		err := syscall.Close(e.fd)
 		if err != nil {
@@ -72,6 +74,8 @@ func (d *dirCacheStruct) Clear() {
 // Store the entry in the cache. The passed "fd" will be Dup()ed, and the caller
 // can close their copy at will.
 func (d *dirCacheStruct) Store(dirRelPath string, fd int, iv []byte) {
+	// Note: package ensurefds012, imported from main, guarantees that dirCache
+	// can never get fds 0,1,2.
 	if fd <= 0 || len(iv) != nametransform.DirIVLen {
 		log.Panicf("Store sanity check failed: fd=%d len=%d", fd, len(iv))
 	}
