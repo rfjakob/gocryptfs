@@ -84,6 +84,29 @@ func Fgetxattr(fd int, attr string) (val []byte, err error) {
 	return val, nil
 }
 
+// Lgetxattr is a wrapper around unix.Lgetxattr that handles the buffer sizing.
+func Lgetxattr(path string, attr string) (val []byte, err error) {
+	// See the buffer sizing comments in Fgetxattr.
+	// TODO: smarter buffer sizing?
+	buf := make([]byte, XATTR_BUFSZ)
+	sz, err := unix.Lgetxattr(path, attr, buf)
+	if err == syscall.ERANGE {
+		// Do NOT return ERANGE - the user might retry ad inifinitum!
+		return nil, syscall.EOVERFLOW
+	}
+	if err != nil {
+		return nil, err
+	}
+	if sz >= XATTR_SIZE_MAX {
+		return nil, syscall.EOVERFLOW
+	}
+	// Copy only the actually used bytes to a new (smaller) buffer
+	// so "buf" never leaves the function and can be allocated on the stack.
+	val = make([]byte, sz)
+	copy(val, buf)
+	return val, nil
+}
+
 // Flistxattr is a wrapper for unix.Flistxattr that handles buffer sizing and
 // parsing the returned blob to a string slice.
 func Flistxattr(fd int) (attrs []string, err error) {

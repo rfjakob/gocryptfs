@@ -129,7 +129,7 @@ func TestSetGetRmDir(t *testing.T) {
 	fn := test_helpers.DefaultPlainDir + "/TestSetGetRmDir"
 	err := syscall.Mkdir(fn, 0700)
 	if err != nil {
-		t.Fatalf("creating fifo failed: %v", err)
+		t.Fatalf("creating directory failed: %v", err)
 	}
 	setGetRmList(fn)
 }
@@ -312,6 +312,34 @@ func TestSet0200File(t *testing.T) {
 		t.Fatalf("creating empty file failed: %v", err)
 	}
 	err = xattr.LSet(fn, "user.foo", []byte("bar"))
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+// Listing xattrs should work even when we don't have read access
+func TestList0000Dir(t *testing.T) {
+	fn := test_helpers.DefaultPlainDir + "/TestList0000Dir"
+	err := syscall.Mkdir(fn, 0000)
+	if err != nil {
+		t.Fatalf("creating directory failed: %v", err)
+	}
+	_, err = xattr.LList(fn)
+	os.Chmod(fn, 0700)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+// Setting xattrs should work even when we don't have read access
+func TestSet0200Dir(t *testing.T) {
+	fn := test_helpers.DefaultPlainDir + "/TestSet0200Dir"
+	err := syscall.Mkdir(fn, 0200)
+	if err != nil {
+		t.Fatalf("creating directory failed: %v", err)
+	}
+	err = xattr.LSet(fn, "user.foo", []byte("bar"))
+	os.Chmod(fn, 0700)
 	if err != nil {
 		t.Error(err)
 	}

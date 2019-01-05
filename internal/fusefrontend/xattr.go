@@ -2,16 +2,11 @@
 package fusefrontend
 
 import (
-	"fmt"
-	"runtime"
 	"strings"
 	"syscall"
 
-	"golang.org/x/sys/unix"
-
 	"github.com/hanwen/go-fuse/fuse"
 
-	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -36,18 +31,11 @@ func (fs *FS) GetXAttr(relPath string, attr string, context *fuse.Context) ([]by
 		return nil, _EOPNOTSUPP
 	}
 
-	// O_NONBLOCK to not block on FIFOs.
-	fd, err := fs.openBackingFile(relPath, syscall.O_RDONLY|syscall.O_NONBLOCK)
-	if err != nil {
-		return nil, fuse.ToStatus(err)
-	}
-	defer syscall.Close(fd)
-
 	cAttr := fs.encryptXattrName(attr)
 
-	cData, err := syscallcompat.Fgetxattr(fd, cAttr)
-	if err != nil {
-		return nil, fuse.ToStatus(err)
+	cData, status := fs.getXAttr(relPath, cAttr, context)
+	if !status.Ok() {
+		return nil, status
 	}
 
 	data, err := fs.decryptXattrValue(cData)
@@ -69,26 +57,10 @@ func (fs *FS) SetXAttr(relPath string, attr string, data []byte, flags int, cont
 		return _EOPNOTSUPP
 	}
 
-	// O_NONBLOCK to not block on FIFOs.
-	fd, err := fs.openBackingFile(relPath, syscall.O_WRONLY|syscall.O_NONBLOCK)
-	// Directories cannot be opened read-write. Retry.
-	if err == syscall.EISDIR {
-		fd, err = fs.openBackingFile(relPath, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NONBLOCK)
-	}
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
-	defer syscall.Close(fd)
-
 	flags = filterXattrSetFlags(flags)
 	cAttr := fs.encryptXattrName(attr)
 	cData := fs.encryptXattrValue(data)
-
-	err = unix.Fsetxattr(fd, cAttr, cData, flags)
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
-	return fuse.OK
+	return fs.setXAttr(relPath, cAttr, cData, flags, context)
 }
 
 // RemoveXAttr - FUSE call.
@@ -102,23 +74,8 @@ func (fs *FS) RemoveXAttr(relPath string, attr string, context *fuse.Context) fu
 		return _EOPNOTSUPP
 	}
 
-	// O_NONBLOCK to not block on FIFOs.
-	fd, err := fs.openBackingFile(relPath, syscall.O_WRONLY|syscall.O_NONBLOCK)
-	// Directories cannot be opened read-write. Retry.
-	if err == syscall.EISDIR {
-		fd, err = fs.openBackingFile(relPath, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NONBLOCK)
-	}
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
-	defer syscall.Close(fd)
-
 	cAttr := fs.encryptXattrName(attr)
-	err = unix.Fremovexattr(fd, cAttr)
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
-	return fuse.OK
+	return fs.removeXAttr(relPath, cAttr, context)
 }
 
 // ListXAttr - FUSE call. Lists extended attributes on the file at "relPath".
@@ -128,32 +85,10 @@ func (fs *FS) ListXAttr(relPath string, context *fuse.Context) ([]string, fuse.S
 	if fs.isFiltered(relPath) {
 		return nil, fuse.EPERM
 	}
-	var cNames []string
-	var err error
-	if runtime.GOOS == "linux" {
-		dirfd, cName, err2 := fs.openBackingDir(relPath)
-		if err2 != nil {
-			return nil, fuse.ToStatus(err2)
-		}
-		defer syscall.Close(dirfd)
-		procPath := fmt.Sprintf("/proc/self/fd/%d/%s", dirfd, cName)
-		cNames, err = syscallcompat.Llistxattr(procPath)
-	} else {
-		// O_NONBLOCK to not block on FIFOs.
-		fd, err2 := fs.openBackingFile(relPath, syscall.O_RDONLY|syscall.O_NONBLOCK)
-		// On a symlink, openBackingFile fails with ELOOP. Let's pretend there
-		// can be no xattrs on symlinks, and always return an empty result.
-		if err2 == syscall.ELOOP {
-			return nil, fuse.OK
-		}
-		if err2 != nil {
-			return nil, fuse.ToStatus(err2)
-		}
-		defer syscall.Close(fd)
-		cNames, err = syscallcompat.Flistxattr(fd)
-	}
-	if err != nil {
-		return nil, fuse.ToStatus(err)
+
+	cNames, status := fs.listXAttr(relPath, context)
+	if !status.Ok() {
+		return nil, status
 	}
 
 	names := make([]string, 0, len(cNames))
