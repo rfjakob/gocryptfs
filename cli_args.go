@@ -1,6 +1,9 @@
 package main
 
 import (
+	// Should be initialized before anything else.
+	_ "github.com/rfjakob/gocryptfs/internal/ensurestdfds"
+
 	"flag"
 	"fmt"
 	"net"
