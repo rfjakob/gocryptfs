@@ -161,7 +161,7 @@ RM:    3.379
 Changelog
 ---------
 
-v1.7, in progress (v1.7-beta1 released 2019-01-03)
+v1.7, in progress (v1.7-beta1: 2019-01-03, v1.7-rc1: 2019-01-04)
 * **Fix possible symlink race attacks in forward mode** when using allow_other + plaintextnames
   * If you use *both* `-allow_other` *and* `-plaintextnames`, you should upgrade.
     Malicious users could trick gocryptfs into modifying files outside of `CIPHERDIR`,
@@ -178,6 +178,10 @@ v1.7, in progress (v1.7-beta1 released 2019-01-03)
   [#286](https://github.com/rfjakob/gocryptfs/issues/286))
 * gocryptfs-xray: add `-aessiv` flag for correctly parsing AES-SIV format files
   ([#299](https://github.com/rfjakob/gocryptfs/issues/299))
+* Ensure that standard fds 0,1,2 are always initialized
+  ([#320](https://github.com/rfjakob/gocryptfs/issues/320)).
+  Prevents trouble in the unlikely case that gocryptfs is called with
+  stdin,stdout and/or stderr closed.
 
 v1.6.1, 2018-12-12
 * Fix "Operation not supported" chmod errors on Go 1.11
