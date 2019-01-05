@@ -12,7 +12,7 @@ Data block, default AES-GCM mode
 	1-4096 bytes encrypted data
 	16 bytes GHASH
 
-Data block, AES-SIV mode (used in reverse mode, or when explicitely enabled with `-init -aessiv`)
+Data block, AES-SIV mode (used in reverse mode, or when explicitly enabled with `-init -aessiv`)
 
 	16 bytes nonce
 	16 bytes SIV
