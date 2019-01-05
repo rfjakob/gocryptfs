@@ -14,8 +14,8 @@ import (
 const (
 	// Number of entries in the dirCache. Three entries work well for two
 	// (probably also three) parallel tar extracts (hit rate around 92%).
-	// Keen in sync with test_helpers.maxCacheFds !
-	// TODO: How to share this constant without causing in import cycle?
+	// Keep in sync with test_helpers.maxCacheFds !
+	// TODO: How to share this constant without causing an import cycle?
 	dirCacheSize = 3
 	// Enable Lookup/Store/Clear debug messages
 	enableDebugMessages = false
@@ -52,7 +52,7 @@ type dirCacheStruct struct {
 	entries [dirCacheSize]dirCacheEntryStruct
 	// Where to store the next entry (index into entries)
 	nextIndex int
-	// On the first Lookup(), the expire thread is stared, and this flag is set
+	// On the first Lookup(), the expire thread is started, and this flag is set
 	// to true.
 	expireThreadRunning bool
 	// Hit rate stats. Evaluated and reset by the expire thread.
