@@ -148,6 +148,23 @@ func TestFallocate(t *testing.T) {
 			}
 		}
 	}
+	// We used to allocate 18 bytes too much:
+	// https://github.com/rfjakob/gocryptfs/issues/311
+	//
+	// 8110 bytes of plaintext should get us exactly 8192 bytes of ciphertext.
+	err = file.Truncate(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = syscallcompat.Fallocate(fd, FALLOC_DEFAULT, 0, 8110)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nBytes = test_helpers.Du(t, fd)
+	want = 8192
+	if nBytes != want {
+		t.Errorf("Expected %d allocated bytes, have %d", want, nBytes)
+	}
 	// Cleanup
 	syscall.Unlink(fn)
 	if !wellKnown {
