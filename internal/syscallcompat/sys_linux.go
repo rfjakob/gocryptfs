@@ -2,6 +2,7 @@
 package syscallcompat
 
 import (
+	"fmt"
 	"sync"
 	"syscall"
 
@@ -97,12 +98,43 @@ func Dup3(oldfd int, newfd int, flags int) (err error) {
 
 // Fchmodat syscall.
 func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
-	// Linux does not support passing flags to fchmodat! From the man page:
+	// Linux does not support passing flags to Fchmodat! From the man page:
 	// AT_SYMLINK_NOFOLLOW ... This flag is not currently implemented.
 	// Linux ignores any flags, but Go stdlib rejects them with EOPNOTSUPP starting
 	// with Go 1.11. See https://github.com/golang/go/issues/20130 for more info.
 	// TODO: Use fchmodat2 once available on Linux.
-	return syscall.Fchmodat(dirfd, path, mode, 0)
+
+	// Why would we ever want to call this without AT_SYMLINK_NOFOLLOW?
+	if flags&unix.AT_SYMLINK_NOFOLLOW == 0 {
+		tlog.Warn.Printf("Fchmodat: adding missing AT_SYMLINK_NOFOLLOW flag")
+	}
+
+	// Open handle to the filename (but without opening the actual file).
+	fd, err := syscall.Openat(dirfd, path, syscall.O_NOFOLLOW|O_PATH, 0)
+	if err != nil {
+		return err
+	}
+	defer syscall.Close(fd)
+
+	// Now we can check the type without the risk of race-conditions.
+	var st syscall.Stat_t
+	err = syscall.Fstat(fd, &st)
+	if err != nil {
+		return err
+	}
+
+	// Return syscall.ELOOP if path refers to a symlink.
+	var a fuse.Attr
+	a.FromStat(&st)
+	if a.IsSymlink() {
+		return syscall.ELOOP
+	}
+
+	// Change mode of the actual file. Note that we can neither use
+	// Fchmodat (since fd is not necessarily a directory) nor Fchmod
+	// (since we are using O_PATH).
+	procPath := fmt.Sprintf("/proc/self/fd/%d", fd)
+	return syscall.Chmod(procPath, mode)
 }
 
 // Fchownat syscall.
