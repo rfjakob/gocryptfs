@@ -251,6 +251,7 @@ func TestFallocate(t *testing.T) {
 	// Allocate 30 bytes, keep size
 	// gocryptfs ||        (0 blocks)
 	//      ext4 |  d   |  (1 block)
+	//              ^ d = data block
 	err = syscallcompat.Fallocate(fd, FALLOC_FL_KEEP_SIZE, 0, 30)
 	if err != nil {
 		t.Error(err)
@@ -265,6 +266,7 @@ func TestFallocate(t *testing.T) {
 	// Three ciphertext blocks. The middle one should be a file hole.
 	// gocryptfs |  h   |   h  | d|   (1 block)
 	//      ext4 |  d  |  h  |  d  |  (2 blocks)
+	//                    ^ h = file hole
 	// (Note that gocryptfs blocks are slightly bigger than the ext4 blocks,
 	// but the last one is partial)
 	err = file.Truncate(9000)
