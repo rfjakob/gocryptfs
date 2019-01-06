@@ -204,7 +204,7 @@ func (fs *FS) openWriteOnlyFile(dirfd int, cName string, newFlags int) (*File, f
 		fs.openWriteOnlyLock.RLock()
 	}()
 	// Relax permissions and revert on return
-	syscall.Fchmod(woFd, perms|0400)
+	err = syscall.Fchmod(woFd, perms|0400)
 	if err != nil {
 		tlog.Warn.Printf("openWriteOnlyFile: changing permissions failed: %v", err)
 		return nil, fuse.ToStatus(err)
