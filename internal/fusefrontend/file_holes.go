@@ -64,6 +64,29 @@ func (f *File) SeekData(oldOffset int64) (int64, error) {
 		return 0, syscall.EOPNOTSUPP
 	}
 	const SEEK_DATA = 3
-	fd := f.intFd()
-	return syscall.Seek(fd, oldOffset, SEEK_DATA)
+
+	// Convert plaintext offset to ciphertext offset and round down to the
+	// start of the current block. File holes smaller than a full block will
+	// be ignored.
+	blockNo := f.contentEnc.PlainOffToBlockNo(uint64(oldOffset))
+	oldCipherOff := int64(f.contentEnc.BlockNoToCipherOff(blockNo))
+
+	// Determine the next data offset. If the old offset points to (or beyond)
+	// the end of the file, the Seek syscall fails with syscall.ENXIO.
+	newCipherOff, err := syscall.Seek(f.intFd(), oldCipherOff, SEEK_DATA)
+	if err != nil {
+		return 0, err
+	}
+
+	// Convert ciphertext offset back to plaintext offset. At this point,
+	// newCipherOff should always be >= contentenc.HeaderLen. Round down,
+	// but ensure that the result is never smaller than the initial offset
+	// (to avoid endless loops).
+	blockNo = f.contentEnc.CipherOffToBlockNo(uint64(newCipherOff))
+	newOffset := int64(f.contentEnc.BlockNoToPlainOff(blockNo))
+	if newOffset < oldOffset {
+		newOffset = oldOffset
+	}
+
+	return newOffset, nil
 }
