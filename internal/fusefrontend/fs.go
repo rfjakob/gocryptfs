@@ -124,6 +124,9 @@ func (fs *FS) mangleOpenFlags(flags uint32) (newFlags int) {
 	// accesses. Running xfstests generic/013 on ext4 used to trigger lots of
 	// EINVAL errors due to missing alignment. Just fall back to buffered IO.
 	newFlags = newFlags &^ syscallcompat.O_DIRECT
+	// Create and Open are two separate FUSE operations, so O_CREAT should not
+	// be part of the open flags.
+	newFlags = newFlags &^ syscall.O_CREAT
 	// We always want O_NOFOLLOW to be safe against symlink races
 	newFlags |= syscall.O_NOFOLLOW
 	return newFlags
