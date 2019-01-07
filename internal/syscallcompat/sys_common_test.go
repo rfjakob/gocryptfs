@@ -2,6 +2,7 @@ package syscallcompat
 
 import (
 	"bytes"
+	"os"
 	"syscall"
 	"testing"
 )
@@ -30,5 +31,58 @@ func TestReadlinkat(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+func TestFchmodat(t *testing.T) {
+	regular := "TestFchmodat_Regular"
+	f, err := os.OpenFile(tmpDir+"/"+regular, os.O_CREATE|os.O_WRONLY, 0000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	symlink := "TestFchmodat_Symlink"
+	err = syscall.Symlink(regular, tmpDir+"/"+symlink)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dirfd, err := syscall.Open(tmpDir, syscall.O_RDONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer syscall.Close(dirfd)
+
+	// Check that chmod on a regular file works ok
+	err = Fchmodat(dirfd, regular, 0111, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var st syscall.Stat_t
+	syscall.Lstat(tmpDir+"/"+regular, &st)
+	st.Mode &= 0777
+	if st.Mode != 0111 {
+		t.Errorf("wrong mode: %#0o", st.Mode)
+	}
+	err = Fchmodat(dirfd, regular, 0000, 0)
+	if err != nil {
+		t.Error(err)
+	}
+	syscall.Lstat(tmpDir+"/"+regular, &st)
+	st.Mode &= 0777
+	if st.Mode != 0000 {
+		t.Errorf("wrong mode: %#0o", st.Mode)
+	}
+
+	// Check what happens on a symlink
+	err = Fchmodat(dirfd, symlink, 0333, 0)
+	if err == nil {
+		syscall.Lstat(tmpDir+"/"+symlink, &st)
+		st.Mode &= 0777
+		t.Errorf("chmod on symlink should have failed, but did not. New mode=%#0o", st.Mode)
+	}
+	syscall.Lstat(tmpDir+"/"+regular, &st)
+	st.Mode &= 0777
+	if st.Mode != 0000 {
+		t.Errorf("chmod on symlink affected symlink target: New mode=%#0o", st.Mode)
 	}
 }
