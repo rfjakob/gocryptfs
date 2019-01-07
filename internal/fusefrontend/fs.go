@@ -114,7 +114,7 @@ func (fs *FS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.S
 func (fs *FS) mangleOpenFlags(flags uint32) (newFlags int) {
 	newFlags = int(flags)
 	// Convert WRONLY to RDWR. We always need read access to do read-modify-write cycles.
-	if newFlags&os.O_WRONLY > 0 {
+	if (newFlags & syscall.O_ACCMODE) == syscall.O_WRONLY {
 		newFlags = newFlags ^ os.O_WRONLY | os.O_RDWR
 	}
 	// We also cannot open the file in append mode, we need to seek back for RMW
@@ -154,7 +154,7 @@ func (fs *FS) Open(path string, flags uint32, context *fuse.Context) (fuseFile n
 			syscall.Getrlimit(syscall.RLIMIT_NOFILE, &lim)
 			tlog.Warn.Printf("Open %q: too many open files. Current \"ulimit -n\": %d", cName, lim.Cur)
 		}
-		if err == syscall.EACCES && (int(flags)&os.O_WRONLY > 0) {
+		if err == syscall.EACCES && (int(flags)&syscall.O_ACCMODE) == syscall.O_WRONLY {
 			return fs.openWriteOnlyFile(dirfd, cName, newFlags)
 		}
 		return nil, fuse.ToStatus(err)
