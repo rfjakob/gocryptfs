@@ -5,7 +5,6 @@ package fusefrontend
 
 import (
 	"os"
-	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
@@ -326,19 +325,8 @@ func (fs *FS) Chown(path string, uid uint32, gid uint32, context *fuse.Context) 
 		return fuse.ToStatus(err)
 	}
 	defer syscall.Close(dirfd)
-	code = fuse.ToStatus(syscallcompat.Fchownat(dirfd, cName, int(uid), int(gid), unix.AT_SYMLINK_NOFOLLOW))
-	if !code.Ok() {
-		return code
-	}
-	if !fs.args.PlaintextNames {
-		// When filename encryption is active, every directory contains
-		// a "gocryptfs.diriv" file. This file should also change the owner.
-		// Instead of checking if "cName" is a directory, we just blindly
-		// execute the chown on "cName/gocryptfs.diriv" and ignore errors.
-		dirIVPath := filepath.Join(cName, nametransform.DirIVFilename)
-		syscallcompat.Fchownat(dirfd, dirIVPath, int(uid), int(gid), unix.AT_SYMLINK_NOFOLLOW)
-	}
-	return fuse.OK
+	err = syscallcompat.Fchownat(dirfd, cName, int(uid), int(gid), unix.AT_SYMLINK_NOFOLLOW)
+	return fuse.ToStatus(err)
 }
 
 // Mknod - FUSE call. Create a device file.

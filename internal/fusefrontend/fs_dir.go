@@ -5,7 +5,6 @@ package fusefrontend
 import (
 	"fmt"
 	"io"
-	"path/filepath"
 	"runtime"
 	"syscall"
 
@@ -124,15 +123,10 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 		err = syscallcompat.Fchownat(dirfd, cName, int(context.Owner.Uid),
 			int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
-			tlog.Warn.Printf("Mkdir %q: Fchownat(1) %d:%d failed: %v", cName, context.Owner.Uid, context.Owner.Gid, err)
+			tlog.Warn.Printf("Mkdir %q: Fchownat %d:%d failed: %v", cName, context.Owner.Uid, context.Owner.Gid, err)
 			// In case of a failure, we don't want to proceed setting more
 			// permissive modes.
 			return fuse.ToStatus(err)
-		}
-		err = syscallcompat.Fchownat(dirfd, filepath.Join(cName, nametransform.DirIVFilename),
-			int(context.Owner.Uid), int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
-		if err != nil {
-			tlog.Warn.Printf("Mkdir %q: Fchownat(2) %d:%d failed: %v", cName, context.Owner.Uid, context.Owner.Gid, err)
 		}
 	}
 	// Set mode
