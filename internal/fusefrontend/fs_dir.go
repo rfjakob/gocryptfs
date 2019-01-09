@@ -64,6 +64,12 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 		return fuse.ToStatus(err)
 	}
 	defer syscall.Close(dirfd)
+	// Don't set the full mode before we have set the correct owner.
+	// See Create FUSE call for more details.
+	origMode := mode
+	if fs.args.PreserveOwner {
+		mode = 0000
+	}
 	if fs.args.PlaintextNames {
 		err = syscallcompat.Mkdirat(dirfd, cName, mode)
 		if err != nil {
@@ -74,14 +80,23 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 			err = syscallcompat.Fchownat(dirfd, cName, int(context.Owner.Uid),
 				int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
 			if err != nil {
-				tlog.Warn.Printf("Mkdir: Fchownat failed: %v", err)
+				tlog.Warn.Printf("Mkdir %q: Fchownat %d:%d failed: %v", cName, context.Owner.Uid, context.Owner.Gid, err)
+				// In case of a failure, we don't want to proceed setting more
+				// permissive modes.
+				return fuse.ToStatus(err)
+			}
+		}
+		// Set mode
+		if origMode != mode {
+			err = syscallcompat.Fchmodat(dirfd, cName, origMode, unix.AT_SYMLINK_NOFOLLOW)
+			if err != nil {
+				tlog.Warn.Printf("Mkdir %q: Fchmodat %#o -> %#o failed: %v", cName, mode, origMode, err)
 			}
 		}
 		return fuse.OK
 	}
 
 	// We need write and execute permissions to create gocryptfs.diriv
-	origMode := mode
 	mode = mode | 0300
 
 	// Handle long file name
@@ -104,24 +119,27 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 			return fuse.ToStatus(err)
 		}
 	}
-	// Set permissions back to what the user wanted
-	if origMode != mode {
-		err = syscallcompat.Fchmodat(dirfd, cName, origMode, unix.AT_SYMLINK_NOFOLLOW)
-		if err != nil {
-			tlog.Warn.Printf("Mkdir: Fchmodat failed: %v", err)
-		}
-	}
 	// Set owner
 	if fs.args.PreserveOwner {
 		err = syscallcompat.Fchownat(dirfd, cName, int(context.Owner.Uid),
 			int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
-			tlog.Warn.Printf("Mkdir: Fchownat 1 failed: %v", err)
+			tlog.Warn.Printf("Mkdir %q: Fchownat(1) %d:%d failed: %v", cName, context.Owner.Uid, context.Owner.Gid, err)
+			// In case of a failure, we don't want to proceed setting more
+			// permissive modes.
+			return fuse.ToStatus(err)
 		}
 		err = syscallcompat.Fchownat(dirfd, filepath.Join(cName, nametransform.DirIVFilename),
 			int(context.Owner.Uid), int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
-			tlog.Warn.Printf("Mkdir: Fchownat 2 failed: %v", err)
+			tlog.Warn.Printf("Mkdir %q: Fchownat(2) %d:%d failed: %v", cName, context.Owner.Uid, context.Owner.Gid, err)
+		}
+	}
+	// Set mode
+	if origMode != mode {
+		err = syscallcompat.Fchmodat(dirfd, cName, origMode, unix.AT_SYMLINK_NOFOLLOW)
+		if err != nil {
+			tlog.Warn.Printf("Mkdir %q: Fchmodat %#o -> %#o failed: %v", cName, mode, origMode, err)
 		}
 	}
 	return fuse.OK
