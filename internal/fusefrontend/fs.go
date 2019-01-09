@@ -353,6 +353,13 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 		return fuse.ToStatus(err)
 	}
 	defer syscall.Close(dirfd)
+	// Don't set the full mode before we have set the correct owner.
+	// Preserve file type (S_IFREG, S_IFIFO, ...) since this cannot
+	// be changed later. See Create FUSE call for more details.
+	origMode := mode
+	if fs.args.PreserveOwner {
+		mode = mode & syscall.S_IFMT
+	}
 	// Create ".name" file to store long file name (except in PlaintextNames mode)
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
 		err = fs.nameTransform.WriteLongNameAt(dirfd, cName, path)
@@ -376,7 +383,17 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 		err = syscallcompat.Fchownat(dirfd, cName, int(context.Owner.Uid),
 			int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
-			tlog.Warn.Printf("Mknod: Fchownat failed: %v", err)
+			tlog.Warn.Printf("Mknod %q: Fchownat %d:%d failed: %v", cName, context.Owner.Uid, context.Owner.Gid, err)
+			// In case of a failure, we don't want to proceed setting more
+			// permissive modes.
+			return fuse.ToStatus(err)
+		}
+	}
+	// Set mode
+	if origMode != mode {
+		err = syscallcompat.Fchmodat(dirfd, cName, origMode, unix.AT_SYMLINK_NOFOLLOW)
+		if err != nil {
+			tlog.Warn.Printf("Mknod %q: Fchmodat %#o -> %#o failed: %v", cName, mode, origMode, err)
 		}
 	}
 	return fuse.OK
