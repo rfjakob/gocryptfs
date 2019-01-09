@@ -129,7 +129,7 @@ func (n *NameTransform) WriteLongNameAt(dirfd int, hashName string, plainName st
 
 	// Write the encrypted name into hashName.name
 	fdRaw, err := syscallcompat.Openat(dirfd, hashName+LongNameSuffix,
-		syscall.O_WRONLY|syscall.O_CREAT|syscall.O_EXCL, 0600)
+		syscall.O_WRONLY|syscall.O_CREAT|syscall.O_EXCL, 0400)
 	if err != nil {
 		// Don't warn if the file already exists - this is allowed for renames
 		// and should be handled by the caller.
