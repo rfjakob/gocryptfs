@@ -180,6 +180,28 @@ func Mkdirat(dirfd int, path string, mode uint32) (err error) {
 	return syscall.Mkdirat(dirfd, path, mode)
 }
 
+// MkdiratUser runs the Mkdirat syscall in the context of a different user.
+func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
+	if context != nil {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+
+		err = syscall.Setregid(-1, int(context.Owner.Gid))
+		if err != nil {
+			return err
+		}
+		defer syscall.Setregid(-1, 0)
+
+		err = syscall.Setreuid(-1, int(context.Owner.Uid))
+		if err != nil {
+			return err
+		}
+		defer syscall.Setreuid(-1, 0)
+	}
+
+	return Mkdirat(dirfd, path, mode)
+}
+
 // Fstatat syscall.
 func Fstatat(dirfd int, path string, stat *unix.Stat_t, flags int) (err error) {
 	// Why would we ever want to call this without AT_SYMLINK_NOFOLLOW?

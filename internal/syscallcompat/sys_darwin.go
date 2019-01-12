@@ -79,6 +79,11 @@ func Mkdirat(dirfd int, path string, mode uint32) (err error) {
 	return emulateMkdirat(dirfd, path, mode)
 }
 
+func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
+	// FIXME: take into account context.Owner
+	return Mkdirat(dirfd, path, mode)
+}
+
 func Fstatat(dirfd int, path string, stat *unix.Stat_t, flags int) (err error) {
 	return emulateFstatat(dirfd, path, stat, flags)
 }
