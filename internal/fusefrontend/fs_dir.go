@@ -163,7 +163,7 @@ func (fs *FS) Rmdir(relPath string, context *fuse.Context) (code fuse.Status) {
 			return fuse.ToStatus(err)
 		}
 		// This cast is needed on Darwin, where st.Mode is uint16.
-		origMode := uint32(st.Mode & 0777)
+		origMode := uint32(st.Mode)
 		err = syscallcompat.Fchmodat(parentDirFd, cName, origMode|0700, unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
 			tlog.Debug.Printf("Rmdir: Fchmodat failed: %v", err)
