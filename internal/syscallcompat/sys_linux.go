@@ -3,6 +3,7 @@ package syscallcompat
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
 	"syscall"
 
@@ -73,6 +74,28 @@ func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) 
 		}
 	}
 	return syscall.Openat(dirfd, path, flags, mode)
+}
+
+// OpenatUser runs the Openat syscall in the context of a different user.
+func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Context) (fd int, err error) {
+	if context != nil {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+
+		err = syscall.Setregid(-1, int(context.Owner.Gid))
+		if err != nil {
+			return -1, err
+		}
+		defer syscall.Setregid(-1, 0)
+
+		err = syscall.Setreuid(-1, int(context.Owner.Uid))
+		if err != nil {
+			return -1, err
+		}
+		defer syscall.Setreuid(-1, 0)
+	}
+
+	return Openat(dirfd, path, flags, mode)
 }
 
 // Renameat wraps the Renameat syscall.

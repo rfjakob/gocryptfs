@@ -46,6 +46,11 @@ func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) 
 	return emulateOpenat(dirfd, path, flags, mode)
 }
 
+func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Context) (fd int, err error) {
+	// FIXME: take into account context.Owner
+	return Openat(dirfd, path, flags, mode)
+}
+
 func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
 	return emulateRenameat(olddirfd, oldpath, newdirfd, newpath)
 }

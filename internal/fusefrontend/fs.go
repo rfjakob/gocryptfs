@@ -238,15 +238,11 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 		return nil, fuse.ToStatus(err)
 	}
 	defer syscall.Close(dirfd)
-	// Don't set full mode before we have set the correct owner. Files with SUID/SGID
-	// mode belonging to the wrong owner would be a security risk. Even for other
-	// modes, we don't want anyone else to open the file in the meantime: the fd would
-	// stay open and could later be used to read the file.
-	origMode := mode
-	if fs.args.PreserveOwner {
-		mode = 0000
-	}
 	fd := -1
+	// Make sure context is nil if we don't want to preserve the owner
+	if !fs.args.PreserveOwner {
+		context = nil
+	}
 	// Handle long file name
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
 		// Create ".name"
@@ -255,14 +251,14 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 			return nil, fuse.ToStatus(err)
 		}
 		// Create content
-		fd, err = syscallcompat.Openat(dirfd, cName, newFlags|os.O_CREATE|os.O_EXCL, mode)
+		fd, err = syscallcompat.OpenatUser(dirfd, cName, newFlags|os.O_CREATE|os.O_EXCL, mode, context)
 		if err != nil {
 			nametransform.DeleteLongNameAt(dirfd, cName)
 			return nil, fuse.ToStatus(err)
 		}
 	} else {
 		// Create content, normal (short) file name
-		fd, err = syscallcompat.Openat(dirfd, cName, newFlags|syscall.O_CREAT|syscall.O_EXCL, mode)
+		fd, err = syscallcompat.OpenatUser(dirfd, cName, newFlags|syscall.O_CREAT|syscall.O_EXCL, mode, context)
 		if err != nil {
 			// xfstests generic/488 triggers this
 			if err == syscall.EMFILE {
@@ -271,24 +267,6 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 				tlog.Warn.Printf("Create %q: too many open files. Current \"ulimit -n\": %d", cName, lim.Cur)
 			}
 			return nil, fuse.ToStatus(err)
-		}
-	}
-	// Set owner
-	if fs.args.PreserveOwner {
-		err = syscall.Fchown(fd, int(context.Owner.Uid), int(context.Owner.Gid))
-		if err != nil {
-			tlog.Warn.Printf("Create %q: Fchown %d:%d failed: %v", cName, context.Owner.Uid, context.Owner.Gid, err)
-			// In case of a failure, we don't want to proceed setting more
-			// permissive modes.
-			syscall.Close(fd)
-			return nil, fuse.ToStatus(err)
-		}
-	}
-	// Set mode
-	if mode != origMode {
-		err = syscall.Fchmod(fd, origMode)
-		if err != nil {
-			tlog.Warn.Printf("Create %q: Fchmod %#o -> %#o failed: %v", cName, mode, origMode, err)
 		}
 	}
 	f := os.NewFile(uintptr(fd), cName)
