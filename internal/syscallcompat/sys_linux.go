@@ -113,6 +113,28 @@ func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 	return syscall.Mknodat(dirfd, path, mode, dev)
 }
 
+// MknodatUser runs the Mknodat syscall in the context of a different user.
+func MknodatUser(dirfd int, path string, mode uint32, dev int, context *fuse.Context) (err error) {
+	if context != nil {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+
+		err = syscall.Setregid(-1, int(context.Owner.Gid))
+		if err != nil {
+			return err
+		}
+		defer syscall.Setregid(-1, 0)
+
+		err = syscall.Setreuid(-1, int(context.Owner.Uid))
+		if err != nil {
+			return err
+		}
+		defer syscall.Setreuid(-1, 0)
+	}
+
+	return Mknodat(dirfd, path, mode, dev)
+}
+
 // Dup3 wraps the Dup3 syscall. We want to use Dup3 rather than Dup2 because Dup2
 // is not implemented on arm64.
 func Dup3(oldfd int, newfd int, flags int) (err error) {

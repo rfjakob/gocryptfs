@@ -319,6 +319,10 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 		return fuse.ToStatus(err)
 	}
 	defer syscall.Close(dirfd)
+	// Make sure context is nil if we don't want to preserve the owner
+	if !fs.args.PreserveOwner {
+		context = nil
+	}
 	// Create ".name" file to store long file name (except in PlaintextNames mode)
 	if !fs.args.PlaintextNames && nametransform.IsLongContent(cName) {
 		err = fs.nameTransform.WriteLongNameAt(dirfd, cName, path)
@@ -326,26 +330,15 @@ func (fs *FS) Mknod(path string, mode uint32, dev uint32, context *fuse.Context)
 			return fuse.ToStatus(err)
 		}
 		// Create "gocryptfs.longfile." device node
-		err = syscallcompat.Mknodat(dirfd, cName, mode, int(dev))
+		err = syscallcompat.MknodatUser(dirfd, cName, mode, int(dev), context)
 		if err != nil {
 			nametransform.DeleteLongNameAt(dirfd, cName)
 		}
 	} else {
 		// Create regular device node
-		err = syscallcompat.Mknodat(dirfd, cName, mode, int(dev))
+		err = syscallcompat.MknodatUser(dirfd, cName, mode, int(dev), context)
 	}
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
-	// Set owner
-	if fs.args.PreserveOwner {
-		err = syscallcompat.Fchownat(dirfd, cName, int(context.Owner.Uid),
-			int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
-		if err != nil {
-			tlog.Warn.Printf("Mknod: Fchownat failed: %v", err)
-		}
-	}
-	return fuse.OK
+	return fuse.ToStatus(err)
 }
 
 // Truncate - FUSE call. Truncates a file.

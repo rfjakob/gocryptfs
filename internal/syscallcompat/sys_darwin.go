@@ -63,6 +63,11 @@ func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 	return emulateMknodat(dirfd, path, mode, dev)
 }
 
+func MknodatUser(dirfd int, path string, mode uint32, dev int, context *fuse.Context) (err error) {
+	// FIXME: take into account context.Owner
+	return Mknodat(dirfd, path, mode, dev)
+}
+
 func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
 	return emulateFchmodat(dirfd, path, mode, flags)
 }
