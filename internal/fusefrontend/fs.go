@@ -483,6 +483,10 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 		return fuse.ToStatus(err)
 	}
 	defer syscall.Close(dirfd)
+	// Make sure context is nil if we don't want to preserve the owner
+	if !fs.args.PreserveOwner {
+		context = nil
+	}
 	cTarget := target
 	if !fs.args.PlaintextNames {
 		// Symlinks are encrypted like file contents (GCM) and base64-encoded
@@ -495,26 +499,15 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 			return fuse.ToStatus(err)
 		}
 		// Create "gocryptfs.longfile." symlink
-		err = syscallcompat.Symlinkat(cTarget, dirfd, cName)
+		err = syscallcompat.SymlinkatUser(cTarget, dirfd, cName, context)
 		if err != nil {
 			nametransform.DeleteLongNameAt(dirfd, cName)
 		}
 	} else {
 		// Create symlink
-		err = syscallcompat.Symlinkat(cTarget, dirfd, cName)
+		err = syscallcompat.SymlinkatUser(cTarget, dirfd, cName, context)
 	}
-	if err != nil {
-		return fuse.ToStatus(err)
-	}
-	// Set owner
-	if fs.args.PreserveOwner {
-		err = syscallcompat.Fchownat(dirfd, cName, int(context.Owner.Uid),
-			int(context.Owner.Gid), unix.AT_SYMLINK_NOFOLLOW)
-		if err != nil {
-			tlog.Warn.Printf("Symlink: Fchownat failed: %v", err)
-		}
-	}
-	return fuse.OK
+	return fuse.ToStatus(err)
 }
 
 // Rename - FUSE call.

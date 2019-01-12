@@ -80,6 +80,11 @@ func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
 	return emulateSymlinkat(oldpath, newdirfd, newpath)
 }
 
+func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.Context) (err error) {
+	// FIXME: take into account context.Owner
+	return Symlinkat(oldpath, newdirfd, newpath)
+}
+
 func Mkdirat(dirfd int, path string, mode uint32) (err error) {
 	return emulateMkdirat(dirfd, path, mode)
 }
