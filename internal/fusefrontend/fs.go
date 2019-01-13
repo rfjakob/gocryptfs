@@ -25,8 +25,11 @@ import (
 
 // FS implements the go-fuse virtual filesystem interface.
 type FS struct {
-	pathfs.FileSystem      // loopbackFileSystem, see go-fuse/fuse/pathfs/loopback.go
-	args              Args // Stores configuration arguments
+	// Embed pathfs.defaultFileSystem to avoid compile failure when the
+	// pathfs.FileSystem interface gets new functions. defaultFileSystem
+	// provides a no-op implementation for all functions.
+	pathfs.FileSystem
+	args Args // Stores configuration arguments
 	// dirIVLock: Lock()ed if any "gocryptfs.diriv" file is modified
 	// Readers must RLock() it to prevent them from seeing intermediate
 	// states
@@ -56,7 +59,7 @@ type FS struct {
 	dirCache dirCacheStruct
 }
 
-var _ pathfs.FileSystem = &FS{} // Verify that interface is implemented.
+//var _ pathfs.FileSystem = &FS{} // Verify that interface is implemented.
 
 // NewFS returns a new encrypted FUSE overlay filesystem.
 func NewFS(args Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) *FS {
@@ -67,7 +70,7 @@ func NewFS(args Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) 
 		tlog.Warn.Printf("Forward mode does not support -exclude")
 	}
 	return &FS{
-		FileSystem:    pathfs.NewLoopbackFileSystem(args.Cipherdir),
+		FileSystem:    pathfs.NewDefaultFileSystem(),
 		args:          args,
 		nameTransform: n,
 		contentEnc:    c,
@@ -381,7 +384,14 @@ func (fs *FS) Utimens(path string, a *time.Time, m *time.Time, context *fuse.Con
 //
 // Symlink-safe because the passed path is ignored.
 func (fs *FS) StatFs(path string) *fuse.StatfsOut {
-	return fs.FileSystem.StatFs("")
+	var st syscall.Statfs_t
+	err := syscall.Statfs(fs.args.Cipherdir, &st)
+	if err == nil {
+		var out fuse.StatfsOut
+		out.FromStatfsT(&st)
+		return &out
+	}
+	return nil
 }
 
 // decryptSymlinkTarget: "cData64" is base64-decoded and decrypted
