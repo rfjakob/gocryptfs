@@ -2,6 +2,7 @@ package syscallcompat
 
 import (
 	"log"
+	"runtime"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -16,7 +17,21 @@ const (
 
 	// O_PATH is only defined on Linux
 	O_PATH = 0
+
+	// KAUTH_UID_NONE and KAUTH_GID_NONE are special values to
+	// revert permissions to the process credentials.
+	KAUTH_UID_NONE = ^uint32(0) - 100
+	KAUTH_GID_NONE = ^uint32(0) - 100
 )
+
+// Unfortunately pthread_setugid_np does not have a syscall wrapper yet.
+func pthread_setugid_np(uid uint32, gid uint32) (err error) {
+	_, _, e1 := syscall.RawSyscall(syscall.SYS_SETTID, uintptr(uid), uintptr(gid), 0)
+	if e1 != 0 {
+		err = e1
+	}
+	return
+}
 
 // Sorry, fallocate is not available on OSX at all and
 // fcntl F_PREALLOCATE is not accessible from Go.
@@ -47,9 +62,16 @@ func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) 
 }
 
 func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Context) (fd int, err error) {
-	// FIXME: take into account context.Owner
-	// Until we have that, filter SUID and SGID bits:
-	mode = filterSuidSgid(mode)
+	if context != nil {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+
+		err = pthread_setugid_np(context.Owner.Uid, context.Owner.Gid)
+		if err != nil {
+			return -1, err
+		}
+		defer pthread_setugid_np(KAUTH_UID_NONE, KAUTH_GID_NONE)
+	}
 
 	return Openat(dirfd, path, flags, mode)
 }
@@ -67,9 +89,16 @@ func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 }
 
 func MknodatUser(dirfd int, path string, mode uint32, dev int, context *fuse.Context) (err error) {
-	// FIXME: take into account context.Owner
-	// Until we have that, filter SUID and SGID bits:
-	mode = filterSuidSgid(mode)
+	if context != nil {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+
+		err = pthread_setugid_np(context.Owner.Uid, context.Owner.Gid)
+		if err != nil {
+			return err
+		}
+		defer pthread_setugid_np(KAUTH_UID_NONE, KAUTH_GID_NONE)
+	}
 
 	return Mknodat(dirfd, path, mode, dev)
 }
@@ -87,7 +116,17 @@ func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
 }
 
 func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.Context) (err error) {
-	// FIXME: take into account context.Owner
+	if context != nil {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+
+		err = pthread_setugid_np(context.Owner.Uid, context.Owner.Gid)
+		if err != nil {
+			return err
+		}
+		defer pthread_setugid_np(KAUTH_UID_NONE, KAUTH_GID_NONE)
+	}
+
 	return Symlinkat(oldpath, newdirfd, newpath)
 }
 
@@ -96,9 +135,16 @@ func Mkdirat(dirfd int, path string, mode uint32) (err error) {
 }
 
 func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
-	// FIXME: take into account context.Owner
-	// Until we have that, filter SUID and SGID bits:
-	mode = filterSuidSgid(mode)
+	if context != nil {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+
+		err = pthread_setugid_np(context.Owner.Uid, context.Owner.Gid)
+		if err != nil {
+			return err
+		}
+		defer pthread_setugid_np(KAUTH_UID_NONE, KAUTH_GID_NONE)
+	}
 
 	return Mkdirat(dirfd, path, mode)
 }
@@ -109,9 +155,4 @@ func Fstatat(dirfd int, path string, stat *unix.Stat_t, flags int) (err error) {
 
 func Getdents(fd int) ([]fuse.DirEntry, error) {
 	return emulateGetdents(fd)
-}
-
-// filterSuidSgid removes SUID and SGID bits from "mode".
-func filterSuidSgid(mode uint32) uint32 {
-	return mode & ^uint32(syscall.S_ISGID|syscall.S_ISUID)
 }
