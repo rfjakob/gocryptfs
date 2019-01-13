@@ -46,14 +46,6 @@ func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) 
 	return emulateOpenat(dirfd, path, flags, mode)
 }
 
-func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Context) (fd int, err error) {
-	// FIXME: take into account context.Owner
-	// Until we have that, filter SUID and SGID bits:
-	mode = filterSuidSgid(mode)
-
-	return Openat(dirfd, path, flags, mode)
-}
-
 func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
 	return emulateRenameat(olddirfd, oldpath, newdirfd, newpath)
 }
@@ -64,14 +56,6 @@ func Unlinkat(dirfd int, path string, flags int) (err error) {
 
 func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 	return emulateMknodat(dirfd, path, mode, dev)
-}
-
-func MknodatUser(dirfd int, path string, mode uint32, dev int, context *fuse.Context) (err error) {
-	// FIXME: take into account context.Owner
-	// Until we have that, filter SUID and SGID bits:
-	mode = filterSuidSgid(mode)
-
-	return Mknodat(dirfd, path, mode, dev)
 }
 
 func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
@@ -86,21 +70,8 @@ func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
 	return emulateSymlinkat(oldpath, newdirfd, newpath)
 }
 
-func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.Context) (err error) {
-	// FIXME: take into account context.Owner
-	return Symlinkat(oldpath, newdirfd, newpath)
-}
-
 func Mkdirat(dirfd int, path string, mode uint32) (err error) {
 	return emulateMkdirat(dirfd, path, mode)
-}
-
-func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
-	// FIXME: take into account context.Owner
-	// Until we have that, filter SUID and SGID bits:
-	mode = filterSuidSgid(mode)
-
-	return Mkdirat(dirfd, path, mode)
 }
 
 func Fstatat(dirfd int, path string, stat *unix.Stat_t, flags int) (err error) {
@@ -109,9 +80,4 @@ func Fstatat(dirfd int, path string, stat *unix.Stat_t, flags int) (err error) {
 
 func Getdents(fd int) ([]fuse.DirEntry, error) {
 	return emulateGetdents(fd)
-}
-
-// filterSuidSgid removes SUID and SGID bits from "mode".
-func filterSuidSgid(mode uint32) uint32 {
-	return mode & ^uint32(syscall.S_ISGID|syscall.S_ISUID)
 }

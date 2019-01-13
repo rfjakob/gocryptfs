@@ -2,9 +2,12 @@ package syscallcompat
 
 import (
 	"bytes"
+	"runtime"
 	"syscall"
 
 	"golang.org/x/sys/unix"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 // PATH_MAX is the maximum allowed path length on Linux.
@@ -158,4 +161,92 @@ func parseListxattrBlob(buf []byte) (attrs []string) {
 		attrs = append(attrs, string(part))
 	}
 	return attrs
+}
+
+// OpenatUser runs the Openat syscall in the context of a different user.
+func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Context) (fd int, err error) {
+	if context != nil {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+
+		err = syscall.Setregid(-1, int(context.Owner.Gid))
+		if err != nil {
+			return -1, err
+		}
+		defer syscall.Setregid(-1, 0)
+
+		err = syscall.Setreuid(-1, int(context.Owner.Uid))
+		if err != nil {
+			return -1, err
+		}
+		defer syscall.Setreuid(-1, 0)
+	}
+
+	return Openat(dirfd, path, flags, mode)
+}
+
+// MknodatUser runs the Mknodat syscall in the context of a different user.
+func MknodatUser(dirfd int, path string, mode uint32, dev int, context *fuse.Context) (err error) {
+	if context != nil {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+
+		err = syscall.Setregid(-1, int(context.Owner.Gid))
+		if err != nil {
+			return err
+		}
+		defer syscall.Setregid(-1, 0)
+
+		err = syscall.Setreuid(-1, int(context.Owner.Uid))
+		if err != nil {
+			return err
+		}
+		defer syscall.Setreuid(-1, 0)
+	}
+
+	return Mknodat(dirfd, path, mode, dev)
+}
+
+// SymlinkatUser runs the Symlinkat syscall in the context of a different user.
+func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.Context) (err error) {
+	if context != nil {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+
+		err = syscall.Setregid(-1, int(context.Owner.Gid))
+		if err != nil {
+			return err
+		}
+		defer syscall.Setregid(-1, 0)
+
+		err = syscall.Setreuid(-1, int(context.Owner.Uid))
+		if err != nil {
+			return err
+		}
+		defer syscall.Setreuid(-1, 0)
+	}
+
+	return Symlinkat(oldpath, newdirfd, newpath)
+}
+
+// MkdiratUser runs the Mkdirat syscall in the context of a different user.
+func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
+	if context != nil {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+
+		err = syscall.Setregid(-1, int(context.Owner.Gid))
+		if err != nil {
+			return err
+		}
+		defer syscall.Setregid(-1, 0)
+
+		err = syscall.Setreuid(-1, int(context.Owner.Uid))
+		if err != nil {
+			return err
+		}
+		defer syscall.Setreuid(-1, 0)
+	}
+
+	return Mkdirat(dirfd, path, mode)
 }

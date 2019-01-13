@@ -3,7 +3,6 @@ package syscallcompat
 
 import (
 	"fmt"
-	"runtime"
 	"sync"
 	"syscall"
 
@@ -76,28 +75,6 @@ func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) 
 	return syscall.Openat(dirfd, path, flags, mode)
 }
 
-// OpenatUser runs the Openat syscall in the context of a different user.
-func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Context) (fd int, err error) {
-	if context != nil {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-
-		err = syscall.Setregid(-1, int(context.Owner.Gid))
-		if err != nil {
-			return -1, err
-		}
-		defer syscall.Setregid(-1, 0)
-
-		err = syscall.Setreuid(-1, int(context.Owner.Uid))
-		if err != nil {
-			return -1, err
-		}
-		defer syscall.Setreuid(-1, 0)
-	}
-
-	return Openat(dirfd, path, flags, mode)
-}
-
 // Renameat wraps the Renameat syscall.
 func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
 	return syscall.Renameat(olddirfd, oldpath, newdirfd, newpath)
@@ -111,28 +88,6 @@ func Unlinkat(dirfd int, path string, flags int) (err error) {
 // Mknodat wraps the Mknodat syscall.
 func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 	return syscall.Mknodat(dirfd, path, mode, dev)
-}
-
-// MknodatUser runs the Mknodat syscall in the context of a different user.
-func MknodatUser(dirfd int, path string, mode uint32, dev int, context *fuse.Context) (err error) {
-	if context != nil {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-
-		err = syscall.Setregid(-1, int(context.Owner.Gid))
-		if err != nil {
-			return err
-		}
-		defer syscall.Setregid(-1, 0)
-
-		err = syscall.Setreuid(-1, int(context.Owner.Uid))
-		if err != nil {
-			return err
-		}
-		defer syscall.Setreuid(-1, 0)
-	}
-
-	return Mknodat(dirfd, path, mode, dev)
 }
 
 // Dup3 wraps the Dup3 syscall. We want to use Dup3 rather than Dup2 because Dup2
@@ -197,53 +152,9 @@ func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
 	return unix.Symlinkat(oldpath, newdirfd, newpath)
 }
 
-// SymlinkatUser runs the Symlinkat syscall in the context of a different user.
-func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.Context) (err error) {
-	if context != nil {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-
-		err = syscall.Setregid(-1, int(context.Owner.Gid))
-		if err != nil {
-			return err
-		}
-		defer syscall.Setregid(-1, 0)
-
-		err = syscall.Setreuid(-1, int(context.Owner.Uid))
-		if err != nil {
-			return err
-		}
-		defer syscall.Setreuid(-1, 0)
-	}
-
-	return Symlinkat(oldpath, newdirfd, newpath)
-}
-
 // Mkdirat syscall.
 func Mkdirat(dirfd int, path string, mode uint32) (err error) {
 	return syscall.Mkdirat(dirfd, path, mode)
-}
-
-// MkdiratUser runs the Mkdirat syscall in the context of a different user.
-func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
-	if context != nil {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-
-		err = syscall.Setregid(-1, int(context.Owner.Gid))
-		if err != nil {
-			return err
-		}
-		defer syscall.Setregid(-1, 0)
-
-		err = syscall.Setreuid(-1, int(context.Owner.Uid))
-		if err != nil {
-			return err
-		}
-		defer syscall.Setreuid(-1, 0)
-	}
-
-	return Mkdirat(dirfd, path, mode)
 }
 
 // Fstatat syscall.
