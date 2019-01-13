@@ -48,6 +48,9 @@ func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) 
 
 func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Context) (fd int, err error) {
 	// FIXME: take into account context.Owner
+	// Until we have that, filter SUID and SGID bits:
+	mode = filterSuidSgid(mode)
+
 	return Openat(dirfd, path, flags, mode)
 }
 
@@ -65,6 +68,9 @@ func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 
 func MknodatUser(dirfd int, path string, mode uint32, dev int, context *fuse.Context) (err error) {
 	// FIXME: take into account context.Owner
+	// Until we have that, filter SUID and SGID bits:
+	mode = filterSuidSgid(mode)
+
 	return Mknodat(dirfd, path, mode, dev)
 }
 
@@ -91,6 +97,9 @@ func Mkdirat(dirfd int, path string, mode uint32) (err error) {
 
 func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
 	// FIXME: take into account context.Owner
+	// Until we have that, filter SUID and SGID bits:
+	mode = filterSuidSgid(mode)
+
 	return Mkdirat(dirfd, path, mode)
 }
 
@@ -100,4 +109,9 @@ func Fstatat(dirfd int, path string, stat *unix.Stat_t, flags int) (err error) {
 
 func Getdents(fd int) ([]fuse.DirEntry, error) {
 	return emulateGetdents(fd)
+}
+
+// filterSuidSgid removes SUID and SGID bits from "mode".
+func filterSuidSgid(mode uint32) uint32 {
+	return mode & ^uint32(syscall.S_ISGID|syscall.S_ISUID)
 }
