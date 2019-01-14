@@ -34,6 +34,35 @@ func TestReadlinkat(t *testing.T) {
 	}
 }
 
+func TestOpenat(t *testing.T) {
+	_, err := Openat(tmpDirFd, "testOpenAt", 0, 0)
+	if err == nil {
+		t.Errorf("should have failed")
+	}
+	fd, err := os.Create(tmpDir + "/testOpenAt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fd.Close()
+	rawFd, err := Openat(tmpDirFd, "testOpenAt", 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer syscall.Close(rawFd)
+	if rawFd < 0 {
+		t.Fatalf("rawFd=%d", rawFd)
+	}
+	// Test with absolute path
+	rawFd, err = Openat(-1, tmpDir+"/testOpenAt", 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer syscall.Close(rawFd)
+	if rawFd < 0 {
+		t.Fatalf("rawFd=%d", rawFd)
+	}
+}
+
 func TestFchmodat(t *testing.T) {
 	regular := "TestFchmodat_Regular"
 	f, err := os.OpenFile(tmpDir+"/"+regular, os.O_CREATE|os.O_WRONLY, 0000)
