@@ -102,10 +102,6 @@ func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
 	return unix.Fchmodat(dirfd, path, mode, flags)
 }
 
-func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
-	return emulateSymlinkat(oldpath, newdirfd, newpath)
-}
-
 func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.Context) (err error) {
 	if context != nil {
 		runtime.LockOSThread()

@@ -154,11 +154,6 @@ func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
 	return syscall.Chmod(procPath, mode)
 }
 
-// Symlinkat syscall.
-func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
-	return unix.Symlinkat(oldpath, newdirfd, newpath)
-}
-
 // SymlinkatUser runs the Symlinkat syscall in the context of a different user.
 func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.Context) (err error) {
 	if context != nil {
