@@ -63,6 +63,43 @@ func TestOpenat(t *testing.T) {
 	}
 }
 
+func TestRenameat(t *testing.T) {
+	os.Mkdir(tmpDir+"/dir1", 0700)
+	dir1, err := os.Open(tmpDir + "/dir1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dir1.Close()
+	os.Mkdir(tmpDir+"/dir2", 0700)
+	dir2, err := os.Open(tmpDir + "/dir2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dir2.Close()
+	fd, err := os.Create(tmpDir + "/dir1/f1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fd.Close()
+	err = Renameat(int(dir1.Fd()), "f1", int(dir2.Fd()), "f2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = os.Stat(tmpDir + "/dir2/f2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Test with absolute path
+	err = Renameat(-1, tmpDir+"/dir2/f2", -1, tmpDir+"/dir2/f1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = os.Stat(tmpDir + "/dir2/f1")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestFchmodat(t *testing.T) {
 	regular := "TestFchmodat_Regular"
 	f, err := os.OpenFile(tmpDir+"/"+regular, os.O_CREATE|os.O_WRONLY, 0000)

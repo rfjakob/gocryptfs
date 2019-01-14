@@ -80,11 +80,6 @@ func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Co
 	return Openat(dirfd, path, flags, mode)
 }
 
-// Renameat wraps the Renameat syscall.
-func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
-	return syscall.Renameat(olddirfd, oldpath, newdirfd, newpath)
-}
-
 // Unlinkat syscall.
 func Unlinkat(dirfd int, path string, flags int) (err error) {
 	return unix.Unlinkat(dirfd, path, flags)

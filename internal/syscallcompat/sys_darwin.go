@@ -72,10 +72,6 @@ func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Co
 	return Openat(dirfd, path, flags, mode)
 }
 
-func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
-	return emulateRenameat(olddirfd, oldpath, newdirfd, newpath)
-}
-
 func Unlinkat(dirfd int, path string, flags int) (err error) {
 	return emulateUnlinkat(dirfd, path, flags)
 }
