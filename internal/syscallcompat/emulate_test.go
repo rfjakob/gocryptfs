@@ -9,43 +9,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func TestEmulateRenameat(t *testing.T) {
-	os.Mkdir(tmpDir+"/dir1", 0700)
-	dir1, err := os.Open(tmpDir + "/dir1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer dir1.Close()
-	os.Mkdir(tmpDir+"/dir2", 0700)
-	dir2, err := os.Open(tmpDir + "/dir2")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer dir2.Close()
-	fd, err := os.Create(tmpDir + "/dir1/f1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	fd.Close()
-	err = emulateRenameat(int(dir1.Fd()), "f1", int(dir2.Fd()), "f2")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = os.Stat(tmpDir + "/dir2/f2")
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Test with absolute path
-	err = emulateRenameat(-1, tmpDir+"/dir2/f2", -1, tmpDir+"/dir2/f1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = os.Stat(tmpDir + "/dir2/f1")
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestEmulateUnlinkat(t *testing.T) {
 	os.Mkdir(tmpDir+"/unlink1", 0700)
 	dirfd, err := os.Open(tmpDir + "/unlink1")

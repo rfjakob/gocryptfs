@@ -11,34 +11,6 @@ import (
 
 var chdirMutex sync.Mutex
 
-// emulateRenameat emulates the syscall for platforms that don't have it
-// in the kernel (darwin).
-func emulateRenameat(olddirfd int, oldpath string, newdirfd int, newpath string) error {
-	chdirMutex.Lock()
-	defer chdirMutex.Unlock()
-	// Unless both paths are absolute we have to save the old working dir and
-	// Chdir(oldWd) back to it in the end. If we error out before the first
-	// chdir, Chdir(oldWd) is unneccassary but does no harm.
-	if !filepath.IsAbs(oldpath) || !filepath.IsAbs(newpath) {
-		oldWd, err := os.Getwd()
-		if err != nil {
-			return err
-		}
-		defer os.Chdir(oldWd)
-	}
-	// Make oldpath absolute
-	oldpath, err := dirfdAbs(olddirfd, oldpath)
-	if err != nil {
-		return err
-	}
-	// Make newpath absolute
-	newpath, err = dirfdAbs(newdirfd, newpath)
-	if err != nil {
-		return err
-	}
-	return syscall.Rename(oldpath, newpath)
-}
-
 // emulateUnlinkat emulates the syscall for platforms that don't have it
 // in the kernel (darwin).
 func emulateUnlinkat(dirfd int, path string, flags int) (err error) {
@@ -80,24 +52,6 @@ func emulateMknodat(dirfd int, path string, mode uint32, dev int) error {
 		defer syscall.Fchdir(cwd)
 	}
 	return syscall.Mknod(path, mode, dev)
-}
-
-// dirfdAbs transforms the dirfd-relative "path" to an absolute one. If the
-// path is not already absolute, this function will change the working
-// directory. The caller has to chdir back.
-func dirfdAbs(dirfd int, path string) (string, error) {
-	if filepath.IsAbs(path) {
-		return path, nil
-	}
-	err := syscall.Fchdir(dirfd)
-	if err != nil {
-		return "", err
-	}
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(wd, path), nil
 }
 
 // emulateFchmodat emulates the syscall for platforms that don't have it

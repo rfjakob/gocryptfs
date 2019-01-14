@@ -62,6 +62,11 @@ func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) 
 	return unix.Openat(dirfd, path, flags, mode)
 }
 
+// Renameat wraps the Renameat syscall.
+func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
+	return unix.Renameat(olddirfd, oldpath, newdirfd, newpath)
+}
+
 // Linkat exists both in Linux and in MacOS 10.10+.
 func Linkat(olddirfd int, oldpath string, newdirfd int, newpath string, flags int) (err error) {
 	return unix.Linkat(olddirfd, oldpath, newdirfd, newpath, flags)
