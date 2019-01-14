@@ -198,16 +198,6 @@ func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (er
 	return Mkdirat(dirfd, path, mode)
 }
 
-// Fstatat syscall.
-func Fstatat(dirfd int, path string, stat *unix.Stat_t, flags int) (err error) {
-	// Why would we ever want to call this without AT_SYMLINK_NOFOLLOW?
-	if flags&unix.AT_SYMLINK_NOFOLLOW == 0 {
-		tlog.Warn.Printf("Fstatat: adding missing AT_SYMLINK_NOFOLLOW flag")
-		flags |= unix.AT_SYMLINK_NOFOLLOW
-	}
-	return unix.Fstatat(dirfd, path, stat, flags)
-}
-
 // Getdents syscall.
 func Getdents(fd int) ([]fuse.DirEntry, error) {
 	return getdents(fd)

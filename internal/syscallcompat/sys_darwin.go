@@ -132,10 +132,6 @@ func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (er
 	return Mkdirat(dirfd, path, mode)
 }
 
-func Fstatat(dirfd int, path string, stat *unix.Stat_t, flags int) (err error) {
-	return emulateFstatat(dirfd, path, stat, flags)
-}
-
 func Getdents(fd int) ([]fuse.DirEntry, error) {
 	return emulateGetdents(fd)
 }
