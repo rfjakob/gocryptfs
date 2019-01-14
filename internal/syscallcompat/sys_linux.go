@@ -113,20 +113,17 @@ func Dup3(oldfd int, newfd int, flags int) (err error) {
 	return syscall.Dup3(oldfd, newfd, flags)
 }
 
-// Fchmodat syscall.
-func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
-	// Linux does not support passing flags to Fchmodat! From the man page:
-	// AT_SYMLINK_NOFOLLOW ... This flag is not currently implemented.
-	// Linux ignores any flags, but Go stdlib rejects them with EOPNOTSUPP starting
-	// with Go 1.11. See https://github.com/golang/go/issues/20130 for more info.
-	// TODO: Use fchmodat2 once available on Linux.
-
-	// Why would we ever want to call this without AT_SYMLINK_NOFOLLOW?
-	if flags&unix.AT_SYMLINK_NOFOLLOW == 0 {
-		tlog.Warn.Printf("Fchmodat: adding missing AT_SYMLINK_NOFOLLOW flag")
-	}
-
+// FchmodatNofollow is like Fchmodat but never follows symlinks.
+//
+// This should be handled by the AT_SYMLINK_NOFOLLOW flag, but Linux
+// does not implement it, so we have to perform an elaborate dance
+// with O_PATH and /proc/self/fd.
+//
+// See also: Qemu implemented the same logic as fchmodat_nofollow():
+// https://git.qemu.org/?p=qemu.git;a=blob;f=hw/9pfs/9p-local.c#l335
+func FchmodatNofollow(dirfd int, path string, mode uint32) (err error) {
 	// Open handle to the filename (but without opening the actual file).
+	// This succeeds even when we don't have read permissions to the file.
 	fd, err := syscall.Openat(dirfd, path, syscall.O_NOFOLLOW|O_PATH, 0)
 	if err != nil {
 		return err
@@ -134,22 +131,18 @@ func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
 	defer syscall.Close(fd)
 
 	// Now we can check the type without the risk of race-conditions.
+	// Return syscall.ELOOP if it is a symlink.
 	var st syscall.Stat_t
 	err = syscall.Fstat(fd, &st)
 	if err != nil {
 		return err
 	}
-
-	// Return syscall.ELOOP if path refers to a symlink.
-	var a fuse.Attr
-	a.FromStat(&st)
-	if a.IsSymlink() {
+	if st.Mode&syscall.S_IFMT == syscall.S_IFLNK {
 		return syscall.ELOOP
 	}
 
-	// Change mode of the actual file. Note that we can neither use
-	// Fchmodat (since fd is not necessarily a directory) nor Fchmod
-	// (since we are using O_PATH).
+	// Change mode of the actual file. Fchmod does not work with O_PATH,
+	// but Chmod via /proc/self/fd works.
 	procPath := fmt.Sprintf("/proc/self/fd/%d", fd)
 	return syscall.Chmod(procPath, mode)
 }

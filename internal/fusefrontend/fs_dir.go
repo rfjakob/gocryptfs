@@ -164,7 +164,7 @@ func (fs *FS) Rmdir(relPath string, context *fuse.Context) (code fuse.Status) {
 		}
 		// This cast is needed on Darwin, where st.Mode is uint16.
 		origMode := uint32(st.Mode)
-		err = syscallcompat.Fchmodat(parentDirFd, cName, origMode|0700, unix.AT_SYMLINK_NOFOLLOW)
+		err = syscallcompat.FchmodatNofollow(parentDirFd, cName, origMode|0700)
 		if err != nil {
 			tlog.Debug.Printf("Rmdir: Fchmodat failed: %v", err)
 			return fuse.ToStatus(err)
@@ -175,7 +175,7 @@ func (fs *FS) Rmdir(relPath string, context *fuse.Context) (code fuse.Status) {
 		// Undo the chmod if removing the directory failed
 		defer func() {
 			if code != fuse.OK {
-				err = syscallcompat.Fchmodat(parentDirFd, cName, origMode, unix.AT_SYMLINK_NOFOLLOW)
+				err = syscallcompat.FchmodatNofollow(parentDirFd, cName, origMode)
 				if err != nil {
 					tlog.Warn.Printf("Rmdir: Chmod rollback failed: %v", err)
 				}

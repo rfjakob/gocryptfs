@@ -175,7 +175,7 @@ func TestFchmodat(t *testing.T) {
 	defer syscall.Close(dirfd)
 
 	// Check that chmod on a regular file works ok
-	err = Fchmodat(dirfd, regular, 0111, 0)
+	err = FchmodatNofollow(dirfd, regular, 0111, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,7 +185,7 @@ func TestFchmodat(t *testing.T) {
 	if st.Mode != 0111 {
 		t.Errorf("wrong mode: %#0o", st.Mode)
 	}
-	err = Fchmodat(dirfd, regular, 0000, 0)
+	err = FchmodatNofollow(dirfd, regular, 0000, 0)
 	if err != nil {
 		t.Error(err)
 	}
@@ -196,7 +196,7 @@ func TestFchmodat(t *testing.T) {
 	}
 
 	// Check what happens on a symlink
-	err = Fchmodat(dirfd, symlink, 0333, 0)
+	err = FchmodatNofollow(dirfd, symlink, 0333, 0)
 	if err == nil {
 		syscall.Lstat(tmpDir+"/"+symlink, &st)
 		st.Mode &= 0777

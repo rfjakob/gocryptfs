@@ -290,7 +290,7 @@ func (fs *FS) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.
 	defer syscall.Close(dirfd)
 	// os.Chmod goes through the "syscallMode" translation function that messes
 	// up the suid and sgid bits. So use a syscall directly.
-	err = syscallcompat.Fchmodat(dirfd, cName, mode, unix.AT_SYMLINK_NOFOLLOW)
+	err = syscallcompat.FchmodatNofollow(dirfd, cName, mode)
 	return fuse.ToStatus(err)
 }
 
