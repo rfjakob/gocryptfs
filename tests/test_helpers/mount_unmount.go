@@ -133,7 +133,8 @@ func UnmountErr(dir string) (err error) {
 	var fdsNow []string
 	pid := MountInfo[dir].Pid
 	fds := MountInfo[dir].Fds
-	if pid <= 0 {
+	if pid <= 0 && runtime.GOOS == "linux" {
+		// The FD leak check only works on Linux.
 		fmt.Printf("UnmountErr: %q was not found in MountInfo, cannot check for FD leaks\n", dir)
 	}
 

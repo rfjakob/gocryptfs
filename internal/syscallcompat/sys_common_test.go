@@ -38,7 +38,9 @@ func TestReadlinkat(t *testing.T) {
 }
 
 func TestOpenat(t *testing.T) {
-	_, err := Openat(tmpDirFd, "testOpenAt", 0, 0)
+	// Always pass O_NOFOLLOW to avoid this warning:
+	// Openat: O_NOFOLLOW missing: flags = 0x0"
+	_, err := Openat(tmpDirFd, "testOpenAt", syscall.O_NOFOLLOW, 0)
 	if err == nil {
 		t.Errorf("should have failed")
 	}
@@ -47,7 +49,7 @@ func TestOpenat(t *testing.T) {
 		t.Fatal(err)
 	}
 	fd.Close()
-	rawFd, err := Openat(tmpDirFd, "testOpenAt", 0, 0)
+	rawFd, err := Openat(tmpDirFd, "testOpenAt", syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +58,7 @@ func TestOpenat(t *testing.T) {
 		t.Fatalf("rawFd=%d", rawFd)
 	}
 	// Test with absolute path
-	rawFd, err = Openat(-1, tmpDir+"/testOpenAt", 0, 0)
+	rawFd, err = Openat(-1, tmpDir+"/testOpenAt", syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +158,7 @@ func TestUnlinkat(t *testing.T) {
 	}
 }
 
-func TestFchmodat(t *testing.T) {
+func TestFchmodatNofollow(t *testing.T) {
 	regular := "TestFchmodat_Regular"
 	f, err := os.OpenFile(tmpDir+"/"+regular, os.O_CREATE|os.O_WRONLY, 0000)
 	if err != nil {
@@ -197,7 +199,10 @@ func TestFchmodat(t *testing.T) {
 
 	// Check what happens on a symlink
 	err = FchmodatNofollow(dirfd, symlink, 0333)
-	if err == nil {
+	// On Darwin, permissions on symlinks are significant and can be changed. On
+	// Linux they are ignored, and FchmodatNofollow rejects attempts to change
+	// them.
+	if err == nil && runtime.GOOS == "linux" {
 		syscall.Lstat(tmpDir+"/"+symlink, &st)
 		st.Mode &= 0777
 		t.Errorf("chmod on symlink should have failed, but did not. New mode=%#0o", st.Mode)

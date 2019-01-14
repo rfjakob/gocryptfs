@@ -625,7 +625,7 @@ func doTestUtimesNano(t *testing.T, path string) {
 	for i, tc := range utimeTestcases {
 		err := syscall.UtimesNano(path, tc.in[:])
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("%q: %v", path, err)
 		}
 		var st syscall.Stat_t
 		err = syscall.Stat(path, &st)
