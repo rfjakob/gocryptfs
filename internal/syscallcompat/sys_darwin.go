@@ -102,10 +102,6 @@ func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
 	return unix.Fchmodat(dirfd, path, mode, flags)
 }
 
-func Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error) {
-	return emulateFchownat(dirfd, path, uid, gid, flags)
-}
-
 func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
 	return emulateSymlinkat(oldpath, newdirfd, newpath)
 }
