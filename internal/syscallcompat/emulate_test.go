@@ -29,59 +29,6 @@ func TestEmulateMknodat(t *testing.T) {
 	}
 }
 
-func TestEmulateFchmodat(t *testing.T) {
-	fd, err := os.Create(tmpDir + "/chmod")
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = fd.Chmod(0654)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fd.Close()
-	// Chmod a normal file
-	err = emulateFchmodat(tmpDirFd, "chmod", 0600, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var st syscall.Stat_t
-	err = syscall.Lstat(tmpDir+"/chmod", &st)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if st.Mode != 0100600 {
-		t.Fatalf("Wrong mode: have %o, want %o", st.Mode, 0100600)
-	}
-	// Chmod a symlink (original file should not change)
-	err = os.Symlink(tmpDir+"/chmod", tmpDir+"/chmodSymlink")
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = emulateFchmodat(tmpDirFd, "chmodSymlink", 0123, unix.AT_SYMLINK_NOFOLLOW)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = syscall.Lstat(tmpDir+"/chmod", &st)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if st.Mode != 0100600 {
-		t.Fatalf("Wrong mode: have %o, want %o", st.Mode, 0100600)
-	}
-	// Test with absolute path
-	err = emulateFchmodat(-1, tmpDir+"/chmod", 0400, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = syscall.Lstat(tmpDir+"/chmod", &st)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if st.Mode != 0100400 {
-		t.Fatalf("Wrong mode: have %o, want %o", st.Mode, 0100400)
-	}
-}
-
 func TestEmulateFchownat(t *testing.T) {
 	t.Skipf("TODO")
 }
