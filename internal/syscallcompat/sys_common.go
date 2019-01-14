@@ -87,6 +87,11 @@ func Linkat(olddirfd int, oldpath string, newdirfd int, newpath string, flags in
 	return unix.Linkat(olddirfd, oldpath, newdirfd, newpath, flags)
 }
 
+// Symlinkat syscall.
+func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
+	return unix.Symlinkat(oldpath, newdirfd, newpath)
+}
+
 const XATTR_SIZE_MAX = 65536
 
 // Make the buffer 1kB bigger so we can detect overflows

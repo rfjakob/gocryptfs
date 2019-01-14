@@ -3,6 +3,7 @@ package syscallcompat
 import (
 	"bytes"
 	"os"
+	"runtime"
 	"syscall"
 	"testing"
 
@@ -206,4 +207,43 @@ func TestFchmodat(t *testing.T) {
 	if st.Mode != 0000 {
 		t.Errorf("chmod on symlink affected symlink target: New mode=%#0o", st.Mode)
 	}
+}
+
+// symlinkCheckMode looks if the mode bits in "st" say that this is a symlink.
+// Calls t.Fatal() if not.
+func symlinkCheckMode(t *testing.T, st syscall.Stat_t) {
+	if runtime.GOOS == "darwin" {
+		// On MacOS, symlinks don't carry their own permissions, so
+		// only check the file type.
+		if st.Mode&syscall.S_IFMT != syscall.S_IFLNK {
+			t.Fatalf("This is not a symlink: mode = 0%o", st.Mode)
+		}
+		return
+	}
+	if st.Mode != 0120777 {
+		t.Fatalf("Wrong mode, have 0%o, want 0120777", st.Mode)
+	}
+}
+
+func TestSymlinkat(t *testing.T) {
+	err := Symlinkat("/foo/bar/baz", tmpDirFd, "symlink1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var st syscall.Stat_t
+	err = syscall.Lstat(tmpDir+"/symlink1", &st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	symlinkCheckMode(t, st)
+	// Test with absolute path
+	err = Symlinkat("/foo/bar/baz", -1, tmpDir+"/symlink2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = syscall.Lstat(tmpDir+"/symlink2", &st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	symlinkCheckMode(t, st)
 }
