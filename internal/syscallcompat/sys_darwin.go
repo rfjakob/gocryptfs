@@ -57,10 +57,6 @@ func Dup3(oldfd int, newfd int, flags int) (err error) {
 //// Emulated Syscalls (see emulate.go) ////////////////
 ////////////////////////////////////////////////////////
 
-func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) {
-	return emulateOpenat(dirfd, path, flags, mode)
-}
-
 func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Context) (fd int, err error) {
 	if context != nil {
 		runtime.LockOSThread()

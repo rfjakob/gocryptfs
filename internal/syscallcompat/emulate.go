@@ -11,26 +11,6 @@ import (
 
 var chdirMutex sync.Mutex
 
-// emulateOpenat emulates the syscall for platforms that don't have it
-// in the kernel (darwin).
-func emulateOpenat(dirfd int, path string, flags int, mode uint32) (int, error) {
-	if !filepath.IsAbs(path) {
-		chdirMutex.Lock()
-		defer chdirMutex.Unlock()
-		cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
-		if err != nil {
-			return -1, err
-		}
-		defer syscall.Close(cwd)
-		err = syscall.Fchdir(dirfd)
-		if err != nil {
-			return -1, err
-		}
-		defer syscall.Fchdir(cwd)
-	}
-	return syscall.Open(path, flags, mode)
-}
-
 // emulateRenameat emulates the syscall for platforms that don't have it
 // in the kernel (darwin).
 func emulateRenameat(olddirfd int, oldpath string, newdirfd int, newpath string) error {

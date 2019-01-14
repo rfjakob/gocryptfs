@@ -9,35 +9,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func TestEmulateOpenat(t *testing.T) {
-	_, err := emulateOpenat(tmpDirFd, "testOpenAt", 0, 0)
-	if err == nil {
-		t.Errorf("should have failed")
-	}
-	fd, err := os.Create(tmpDir + "/testOpenAt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	fd.Close()
-	rawFd, err := emulateOpenat(tmpDirFd, "testOpenAt", 0, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer syscall.Close(rawFd)
-	if rawFd < 0 {
-		t.Fatalf("rawFd=%d", rawFd)
-	}
-	// Test with absolute path
-	rawFd, err = emulateOpenat(-1, tmpDir+"/testOpenAt", 0, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer syscall.Close(rawFd)
-	if rawFd < 0 {
-		t.Fatalf("rawFd=%d", rawFd)
-	}
-}
-
 func TestEmulateRenameat(t *testing.T) {
 	os.Mkdir(tmpDir+"/dir1", 0700)
 	dir1, err := os.Open(tmpDir + "/dir1")

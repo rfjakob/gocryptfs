@@ -5,6 +5,8 @@ import (
 	"syscall"
 
 	"golang.org/x/sys/unix"
+
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 // PATH_MAX is the maximum allowed path length on Linux.
@@ -40,6 +42,24 @@ func Faccessat(dirfd int, path string, mode uint32) error {
 		return nil
 	}
 	return unix.Faccessat(dirfd, path, mode, 0)
+}
+
+// Openat wraps the Openat syscall.
+func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) {
+	if flags&syscall.O_CREAT != 0 {
+		// O_CREAT should be used with O_EXCL. O_NOFOLLOW has no effect with O_EXCL.
+		if flags&syscall.O_EXCL == 0 {
+			tlog.Warn.Printf("Openat: O_CREAT without O_EXCL: flags = %#x", flags)
+			flags |= syscall.O_EXCL
+		}
+	} else {
+		// If O_CREAT is not used, we should use O_NOFOLLOW
+		if flags&syscall.O_NOFOLLOW == 0 {
+			tlog.Warn.Printf("Openat: O_NOFOLLOW missing: flags = %#x", flags)
+			flags |= syscall.O_NOFOLLOW
+		}
+	}
+	return unix.Openat(dirfd, path, flags, mode)
 }
 
 // Linkat exists both in Linux and in MacOS 10.10+.
