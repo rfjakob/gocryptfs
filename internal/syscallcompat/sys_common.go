@@ -92,6 +92,11 @@ func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
 	return unix.Symlinkat(oldpath, newdirfd, newpath)
 }
 
+// Mkdirat syscall.
+func Mkdirat(dirfd int, path string, mode uint32) (err error) {
+	return unix.Mkdirat(dirfd, path, mode)
+}
+
 const XATTR_SIZE_MAX = 65536
 
 // Make the buffer 1kB bigger so we can detect overflows

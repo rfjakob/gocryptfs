@@ -117,10 +117,6 @@ func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.C
 	return Symlinkat(oldpath, newdirfd, newpath)
 }
 
-func Mkdirat(dirfd int, path string, mode uint32) (err error) {
-	return emulateMkdirat(dirfd, path, mode)
-}
-
 func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
 	if context != nil {
 		runtime.LockOSThread()

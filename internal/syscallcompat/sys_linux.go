@@ -176,11 +176,6 @@ func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.C
 	return Symlinkat(oldpath, newdirfd, newpath)
 }
 
-// Mkdirat syscall.
-func Mkdirat(dirfd int, path string, mode uint32) (err error) {
-	return syscall.Mkdirat(dirfd, path, mode)
-}
-
 // MkdiratUser runs the Mkdirat syscall in the context of a different user.
 func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
 	if context != nil {
