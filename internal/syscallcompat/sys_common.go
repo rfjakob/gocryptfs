@@ -97,6 +97,16 @@ func Mkdirat(dirfd int, path string, mode uint32) (err error) {
 	return unix.Mkdirat(dirfd, path, mode)
 }
 
+// Fstatat syscall.
+func Fstatat(dirfd int, path string, stat *unix.Stat_t, flags int) (err error) {
+	// Why would we ever want to call this without AT_SYMLINK_NOFOLLOW?
+	if flags&unix.AT_SYMLINK_NOFOLLOW == 0 {
+		tlog.Warn.Printf("Fstatat: adding missing AT_SYMLINK_NOFOLLOW flag")
+		flags |= unix.AT_SYMLINK_NOFOLLOW
+	}
+	return unix.Fstatat(dirfd, path, stat, flags)
+}
+
 const XATTR_SIZE_MAX = 65536
 
 // Make the buffer 1kB bigger so we can detect overflows
