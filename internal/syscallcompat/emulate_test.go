@@ -27,32 +27,6 @@ func TestEmulateMknodat(t *testing.T) {
 	}
 }
 
-func TestEmulateMkdirat(t *testing.T) {
-	err := emulateMkdirat(tmpDirFd, "mkdirat", 0700)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fi, err := os.Stat(tmpDir + "/mkdirat")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !fi.IsDir() {
-		t.Fatalf("mkdirat did not create a directory")
-	}
-	// Test with absolute path
-	err = emulateMkdirat(-1, tmpDir+"/mkdirat2", 0700)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fi, err = os.Stat(tmpDir + "/mkdirat2")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !fi.IsDir() {
-		t.Fatalf("mkdirat did not create a directory")
-	}
-}
-
 func TestEmulateFstatat(t *testing.T) {
 	var st unix.Stat_t
 	// stat a normal file (size 3)

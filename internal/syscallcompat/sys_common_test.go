@@ -247,3 +247,29 @@ func TestSymlinkat(t *testing.T) {
 	}
 	symlinkCheckMode(t, st)
 }
+
+func TestMkdirat(t *testing.T) {
+	err := Mkdirat(tmpDirFd, "mkdirat", 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fi, err := os.Stat(tmpDir + "/mkdirat")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !fi.IsDir() {
+		t.Fatalf("mkdirat did not create a directory")
+	}
+	// Test with absolute path
+	err = Mkdirat(-1, tmpDir+"/mkdirat2", 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fi, err = os.Stat(tmpDir + "/mkdirat2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !fi.IsDir() {
+		t.Fatalf("mkdirat did not create a directory")
+	}
+}
