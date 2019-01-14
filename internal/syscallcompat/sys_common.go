@@ -67,6 +67,11 @@ func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err e
 	return unix.Renameat(olddirfd, oldpath, newdirfd, newpath)
 }
 
+// Unlinkat syscall.
+func Unlinkat(dirfd int, path string, flags int) (err error) {
+	return unix.Unlinkat(dirfd, path, flags)
+}
+
 // Linkat exists both in Linux and in MacOS 10.10+.
 func Linkat(olddirfd int, oldpath string, newdirfd int, newpath string, flags int) (err error) {
 	return unix.Linkat(olddirfd, oldpath, newdirfd, newpath, flags)
