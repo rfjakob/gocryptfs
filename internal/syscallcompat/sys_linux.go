@@ -154,16 +154,6 @@ func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
 	return syscall.Chmod(procPath, mode)
 }
 
-// Fchownat syscall.
-func Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error) {
-	// Why would we ever want to call this without AT_SYMLINK_NOFOLLOW?
-	if flags&unix.AT_SYMLINK_NOFOLLOW == 0 {
-		tlog.Warn.Printf("Fchownat: adding missing AT_SYMLINK_NOFOLLOW flag")
-		flags |= unix.AT_SYMLINK_NOFOLLOW
-	}
-	return syscall.Fchownat(dirfd, path, uid, gid, flags)
-}
-
 // Symlinkat syscall.
 func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
 	return unix.Symlinkat(oldpath, newdirfd, newpath)

@@ -29,10 +29,6 @@ func TestEmulateMknodat(t *testing.T) {
 	}
 }
 
-func TestEmulateFchownat(t *testing.T) {
-	t.Skipf("TODO")
-}
-
 // symlinkCheckMode looks if the mode bits in "st" say that this is a symlink.
 // Calls t.Fatal() if not.
 func symlinkCheckMode(t *testing.T, st syscall.Stat_t) {

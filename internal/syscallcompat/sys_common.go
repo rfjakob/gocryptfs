@@ -72,6 +72,16 @@ func Unlinkat(dirfd int, path string, flags int) (err error) {
 	return unix.Unlinkat(dirfd, path, flags)
 }
 
+// Fchownat syscall.
+func Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error) {
+	// Why would we ever want to call this without AT_SYMLINK_NOFOLLOW?
+	if flags&unix.AT_SYMLINK_NOFOLLOW == 0 {
+		tlog.Warn.Printf("Fchownat: adding missing AT_SYMLINK_NOFOLLOW flag")
+		flags |= unix.AT_SYMLINK_NOFOLLOW
+	}
+	return unix.Fchownat(dirfd, path, uid, gid, flags)
+}
+
 // Linkat exists both in Linux and in MacOS 10.10+.
 func Linkat(olddirfd int, oldpath string, newdirfd int, newpath string, flags int) (err error) {
 	return unix.Linkat(olddirfd, oldpath, newdirfd, newpath, flags)
