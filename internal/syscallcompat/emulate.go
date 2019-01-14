@@ -11,29 +11,6 @@ import (
 
 var chdirMutex sync.Mutex
 
-// emulateUnlinkat emulates the syscall for platforms that don't have it
-// in the kernel (darwin).
-func emulateUnlinkat(dirfd int, path string, flags int) (err error) {
-	if !filepath.IsAbs(path) {
-		chdirMutex.Lock()
-		defer chdirMutex.Unlock()
-		cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
-		if err != nil {
-			return err
-		}
-		defer syscall.Close(cwd)
-		err = syscall.Fchdir(dirfd)
-		if err != nil {
-			return err
-		}
-		defer syscall.Fchdir(cwd)
-	}
-	if (flags & unix.AT_REMOVEDIR) != 0 {
-		return syscall.Rmdir(path)
-	}
-	return syscall.Unlink(path)
-}
-
 // emulateMknodat emulates the syscall for platforms that don't have it
 // in the kernel (darwin).
 func emulateMknodat(dirfd int, path string, mode uint32, dev int) error {

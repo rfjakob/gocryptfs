@@ -72,10 +72,6 @@ func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Co
 	return Openat(dirfd, path, flags, mode)
 }
 
-func Unlinkat(dirfd int, path string, flags int) (err error) {
-	return emulateUnlinkat(dirfd, path, flags)
-}
-
 func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 	return emulateMknodat(dirfd, path, mode, dev)
 }

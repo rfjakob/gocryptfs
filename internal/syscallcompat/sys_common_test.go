@@ -5,6 +5,8 @@ import (
 	"os"
 	"syscall"
 	"testing"
+
+	"golang.org/x/sys/unix"
 )
 
 func TestReadlinkat(t *testing.T) {
@@ -97,6 +99,59 @@ func TestRenameat(t *testing.T) {
 	_, err = os.Stat(tmpDir + "/dir2/f1")
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestUnlinkat(t *testing.T) {
+	os.Mkdir(tmpDir+"/unlink1", 0700)
+	dirfd, err := os.Open(tmpDir + "/unlink1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dirfd.Close()
+	// Try to delete file
+	fd, err := os.Create(tmpDir + "/unlink1/f1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fd.Close()
+	err = Unlinkat(int(dirfd.Fd()), "f1", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = os.Stat(tmpDir + "/unlink1/f1")
+	if err == nil {
+		t.Fatalf("file not deleted!")
+	}
+	// Try to delete dir
+	err = os.Mkdir(tmpDir+"/unlink1/d1", 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = Unlinkat(int(dirfd.Fd()), "d1", 0)
+	if err == nil {
+		t.Fatalf("this should fail due to missing AT_REMOVEDIR flag")
+	}
+	err = Unlinkat(int(dirfd.Fd()), "d1", unix.AT_REMOVEDIR)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = os.Stat(tmpDir + "/unlink1/d1")
+	if err == nil {
+		t.Fatalf("dir not deleted!")
+	}
+	// Test with absolute path
+	err = os.Mkdir(tmpDir+"/unlink1/d1", 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = Unlinkat(-1, tmpDir+"/unlink1/d1", unix.AT_REMOVEDIR)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = os.Stat(tmpDir + "/unlink1/d1")
+	if err == nil {
+		t.Fatalf("dir not deleted!")
 	}
 }
 

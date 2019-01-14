@@ -80,11 +80,6 @@ func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Co
 	return Openat(dirfd, path, flags, mode)
 }
 
-// Unlinkat syscall.
-func Unlinkat(dirfd int, path string, flags int) (err error) {
-	return unix.Unlinkat(dirfd, path, flags)
-}
-
 // Mknodat wraps the Mknodat syscall.
 func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 	return syscall.Mknodat(dirfd, path, mode, dev)
