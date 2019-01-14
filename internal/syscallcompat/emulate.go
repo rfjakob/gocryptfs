@@ -1,7 +1,6 @@
 package syscallcompat
 
 import (
-	"os"
 	"path/filepath"
 	"sync"
 	"syscall"
@@ -29,36 +28,6 @@ func emulateMknodat(dirfd int, path string, mode uint32, dev int) error {
 		defer syscall.Fchdir(cwd)
 	}
 	return syscall.Mknod(path, mode, dev)
-}
-
-// emulateFchmodat emulates the syscall for platforms that don't have it
-// in the kernel (darwin).
-func emulateFchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
-	if !filepath.IsAbs(path) {
-		chdirMutex.Lock()
-		defer chdirMutex.Unlock()
-		cwd, err := syscall.Open(".", syscall.O_RDONLY, 0)
-		if err != nil {
-			return err
-		}
-		defer syscall.Close(cwd)
-		err = syscall.Fchdir(dirfd)
-		if err != nil {
-			return err
-		}
-		defer syscall.Fchdir(cwd)
-	}
-	// We also don't have Lchmod, so emulate it (poorly).
-	if flags&unix.AT_SYMLINK_NOFOLLOW != 0 {
-		fi, err := os.Lstat(path)
-		if err != nil {
-			return err
-		}
-		if fi.Mode()&os.ModeSymlink != 0 {
-			return nil
-		}
-	}
-	return syscall.Chmod(path, mode)
 }
 
 // emulateFchownat emulates the syscall for platforms that don't have it

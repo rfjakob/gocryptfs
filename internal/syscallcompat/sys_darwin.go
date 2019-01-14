@@ -8,6 +8,8 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/hanwen/go-fuse/fuse"
+
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 const (
@@ -92,7 +94,12 @@ func MknodatUser(dirfd int, path string, mode uint32, dev int, context *fuse.Con
 }
 
 func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
-	return emulateFchmodat(dirfd, path, mode, flags)
+	// Why would we ever want to call this without AT_SYMLINK_NOFOLLOW?
+	if flags&unix.AT_SYMLINK_NOFOLLOW == 0 {
+		tlog.Warn.Printf("Fchmodat: adding missing AT_SYMLINK_NOFOLLOW flag")
+		flags |= unix.AT_SYMLINK_NOFOLLOW
+	}
+	return unix.Fchmodat(dirfd, path, mode, flags)
 }
 
 func Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error) {
