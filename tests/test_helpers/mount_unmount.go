@@ -83,7 +83,7 @@ func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 		return err
 	case <-chanUsr1:
 		// noop
-	case <-time.After(1 * time.Second):
+	case <-time.After(2 * time.Second):
 		log.Panicf("Timeout waiting for process %d", pid)
 	}
 
