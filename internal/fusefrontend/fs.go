@@ -254,23 +254,22 @@ func (fs *FS) Create(path string, flags uint32, mode uint32, context *fuse.Conte
 			return nil, fuse.ToStatus(err)
 		}
 		// Create content
-		fd, err = syscallcompat.OpenatUser(dirfd, cName, newFlags|os.O_CREATE|os.O_EXCL, mode, context)
+		fd, err = syscallcompat.OpenatUser(dirfd, cName, newFlags|syscall.O_CREAT|syscall.O_EXCL, mode, context)
 		if err != nil {
 			nametransform.DeleteLongNameAt(dirfd, cName)
-			return nil, fuse.ToStatus(err)
 		}
 	} else {
 		// Create content, normal (short) file name
 		fd, err = syscallcompat.OpenatUser(dirfd, cName, newFlags|syscall.O_CREAT|syscall.O_EXCL, mode, context)
-		if err != nil {
-			// xfstests generic/488 triggers this
-			if err == syscall.EMFILE {
-				var lim syscall.Rlimit
-				syscall.Getrlimit(syscall.RLIMIT_NOFILE, &lim)
-				tlog.Warn.Printf("Create %q: too many open files. Current \"ulimit -n\": %d", cName, lim.Cur)
-			}
-			return nil, fuse.ToStatus(err)
+	}
+	if err != nil {
+		// xfstests generic/488 triggers this
+		if err == syscall.EMFILE {
+			var lim syscall.Rlimit
+			syscall.Getrlimit(syscall.RLIMIT_NOFILE, &lim)
+			tlog.Warn.Printf("Create %q: too many open files. Current \"ulimit -n\": %d", cName, lim.Cur)
 		}
+		return nil, fuse.ToStatus(err)
 	}
 	f := os.NewFile(uintptr(fd), cName)
 	return NewFile(f, fs)
