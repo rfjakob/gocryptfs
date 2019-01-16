@@ -44,8 +44,6 @@ type File struct {
 	qIno openfiletable.QIno
 	// Entry in the open file table
 	fileTableEntry *openfiletable.Entry
-	// go-fuse nodefs.loopbackFile
-	loopbackFile nodefs.File
 	// Store where the last byte was written
 	lastWrittenOffset int64
 	// The opCount is used to judge whether "lastWrittenOffset" is still
@@ -75,7 +73,6 @@ func NewFile(fd *os.File, fs *FS) (*File, fuse.Status) {
 		contentEnc:     fs.contentEnc,
 		qIno:           qi,
 		fileTableEntry: e,
-		loopbackFile:   nodefs.NewLoopbackFile(fd),
 		fs:             fs,
 		File:           nodefs.NewDefaultFile(),
 	}, fuse.OK
@@ -473,5 +470,6 @@ func (f *File) GetAttr(a *fuse.Attr) fuse.Status {
 func (f *File) Utimens(a *time.Time, m *time.Time) fuse.Status {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
-	return f.loopbackFile.Utimens(a, m)
+	err := syscallcompat.FutimesNano(f.intFd(), a, m)
+	return fuse.ToStatus(err)
 }
