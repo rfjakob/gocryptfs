@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"sync"
 	"syscall"
+	"time"
 
 	"golang.org/x/sys/unix"
 
@@ -189,6 +190,28 @@ func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (er
 	}
 
 	return Mkdirat(dirfd, path, mode)
+}
+
+func timesToTimespec(a *time.Time, m *time.Time) []unix.Timespec {
+	ts := make([]unix.Timespec, 2)
+	ts[0] = unix.Timespec(fuse.UtimeToTimespec(a))
+	ts[1] = unix.Timespec(fuse.UtimeToTimespec(m))
+	return ts
+}
+
+// FutimesNano syscall.
+func FutimesNano(fd int, a *time.Time, m *time.Time) (err error) {
+	ts := timesToTimespec(a, m)
+	// To avoid introducing a separate syscall wrapper for futimens()
+	// (as done in go-fuse, for example), we instead use the /proc/self/fd trick.
+	procPath := fmt.Sprintf("/proc/self/fd/%d", fd)
+	return unix.UtimesNanoAt(unix.AT_FDCWD, procPath, ts, 0)
+}
+
+// UtimesNanoAtNofollow is like UtimesNanoAt but never follows symlinks.
+func UtimesNanoAtNofollow(dirfd int, path string, a *time.Time, m *time.Time) (err error) {
+	ts := timesToTimespec(a, m)
+	return unix.UtimesNanoAt(dirfd, path, ts, unix.AT_SYMLINK_NOFOLLOW)
 }
 
 // Getdents syscall.

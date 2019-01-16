@@ -372,10 +372,7 @@ func (fs *FS) Utimens(path string, a *time.Time, m *time.Time, context *fuse.Con
 		return fuse.ToStatus(err)
 	}
 	defer syscall.Close(dirfd)
-	ts := make([]unix.Timespec, 2)
-	ts[0] = unix.Timespec(fuse.UtimeToTimespec(a))
-	ts[1] = unix.Timespec(fuse.UtimeToTimespec(m))
-	err = unix.UtimesNanoAt(dirfd, cName, ts, unix.AT_SYMLINK_NOFOLLOW)
+	err = syscallcompat.UtimesNanoAtNofollow(dirfd, cName, a, m)
 	return fuse.ToStatus(err)
 }
 

@@ -2,8 +2,11 @@ package syscallcompat
 
 import (
 	"log"
+	"path/filepath"
 	"runtime"
 	"syscall"
+	"time"
+	"unsafe"
 
 	"golang.org/x/sys/unix"
 
@@ -27,6 +30,24 @@ const (
 // Unfortunately pthread_setugid_np does not have a syscall wrapper yet.
 func pthread_setugid_np(uid uint32, gid uint32) (err error) {
 	_, _, e1 := syscall.RawSyscall(syscall.SYS_SETTID, uintptr(uid), uintptr(gid), 0)
+	if e1 != 0 {
+		err = e1
+	}
+	return
+}
+
+// Unfortunately fsetattrlist does not have a syscall wrapper yet.
+func fsetattrlist(fd int, list unsafe.Pointer, buf unsafe.Pointer, size uintptr, options int) (err error) {
+	_, _, e1 := syscall.Syscall6(syscall.SYS_FSETATTRLIST, uintptr(fd), uintptr(list), uintptr(buf), uintptr(size), uintptr(options), 0)
+	if e1 != 0 {
+		err = e1
+	}
+	return
+}
+
+// Setattrlist already has a syscall wrapper, but it is not exported.
+func setattrlist(path *byte, list unsafe.Pointer, buf unsafe.Pointer, size uintptr, options int) (err error) {
+	_, _, e1 := syscall.Syscall6(syscall.SYS_SETATTRLIST, uintptr(unsafe.Pointer(path)), uintptr(list), uintptr(buf), uintptr(size), uintptr(options), 0)
 	if e1 != 0 {
 		err = e1
 	}
@@ -123,6 +144,72 @@ func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (er
 	}
 
 	return Mkdirat(dirfd, path, mode)
+}
+
+type attrList struct {
+	bitmapCount uint16
+	_           uint16
+	CommonAttr  uint32
+	VolAttr     uint32
+	DirAttr     uint32
+	FileAttr    uint32
+	Forkattr    uint32
+}
+
+func timesToAttrList(a *time.Time, m *time.Time) (attrList attrList, attributes [2]unix.Timespec) {
+	attrList.bitmapCount = unix.ATTR_BIT_MAP_COUNT
+	attrList.CommonAttr = 0
+	i := 0
+	if m != nil {
+		attributes[i] = unix.Timespec(fuse.UtimeToTimespec(m))
+		attrList.CommonAttr |= unix.ATTR_CMN_MODTIME
+		i += 1
+	}
+	if a != nil {
+		attributes[i] = unix.Timespec(fuse.UtimeToTimespec(a))
+		attrList.CommonAttr |= unix.ATTR_CMN_ACCTIME
+		i += 1
+	}
+	return attrList, attributes
+}
+
+// FutimesNano syscall.
+func FutimesNano(fd int, a *time.Time, m *time.Time) (err error) {
+	attrList, attributes := timesToAttrList(a, m)
+	return fsetattrlist(fd, unsafe.Pointer(&attrList), unsafe.Pointer(&attributes),
+		unsafe.Sizeof(attributes), 0)
+}
+
+// UtimesNanoAtNofollow is like UtimesNanoAt but never follows symlinks.
+//
+// Unfortunately we cannot use unix.UtimesNanoAt since it is broken and just
+// ignores the provided 'dirfd'. In addition, it also lacks handling of 'nil'
+// pointers (used to preserve one of both timestamps).
+func UtimesNanoAtNofollow(dirfd int, path string, a *time.Time, m *time.Time) (err error) {
+	if !filepath.IsAbs(path) {
+		chdirMutex.Lock()
+		defer chdirMutex.Unlock()
+		var cwd int
+		cwd, err = syscall.Open(".", syscall.O_RDONLY, 0)
+		if err != nil {
+			return err
+		}
+		defer syscall.Close(cwd)
+		err = syscall.Fchdir(dirfd)
+		if err != nil {
+			return err
+		}
+		defer syscall.Fchdir(cwd)
+	}
+
+	_p0, err := syscall.BytePtrFromString(path)
+	if err != nil {
+		return err
+	}
+
+	attrList, attributes := timesToAttrList(a, m)
+	return setattrlist(_p0, unsafe.Pointer(&attrList), unsafe.Pointer(&attributes),
+		unsafe.Sizeof(attributes), unix.FSOPT_NOFOLLOW)
 }
 
 func Getdents(fd int) ([]fuse.DirEntry, error) {
