@@ -78,8 +78,7 @@ func NewFile(fd *os.File, fs *FS) (*File, fuse.Status) {
 	}, fuse.OK
 }
 
-// intFd - return the backing file descriptor as an integer. Used for debug
-// messages.
+// intFd - return the backing file descriptor as an integer.
 func (f *File) intFd() int {
 	return int(f.fd.Fd())
 }
@@ -117,7 +116,7 @@ func (f *File) createHeader() (fileID []byte, err error) {
 	buf := h.Pack()
 	// Prevent partially written (=corrupt) header by preallocating the space beforehand
 	if !f.fs.args.NoPrealloc {
-		err = syscallcompat.EnospcPrealloc(int(f.fd.Fd()), 0, contentenc.HeaderLen)
+		err = syscallcompat.EnospcPrealloc(f.intFd(), 0, contentenc.HeaderLen)
 		if err != nil {
 			if !syscallcompat.IsENOSPC(err) {
 				tlog.Warn.Printf("ino%d: createHeader: prealloc failed: %s\n", f.qIno.Ino, err.Error())
@@ -316,7 +315,7 @@ func (f *File) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 	var err error
 	cOff := int64(blocks[0].BlockCipherOff())
 	if !f.fs.args.NoPrealloc {
-		err = syscallcompat.EnospcPrealloc(int(f.fd.Fd()), cOff, int64(len(ciphertext)))
+		err = syscallcompat.EnospcPrealloc(f.intFd(), cOff, int64(len(ciphertext)))
 		if err != nil {
 			if !syscallcompat.IsENOSPC(err) {
 				tlog.Warn.Printf("ino%d fh%d: doWrite: prealloc failed: %v", f.qIno.Ino, f.intFd(), err)
@@ -324,7 +323,7 @@ func (f *File) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 			if fileWasEmpty {
 				// Kill the file header again
 				f.fileTableEntry.ID = nil
-				err2 := syscall.Ftruncate(int(f.fd.Fd()), 0)
+				err2 := syscall.Ftruncate(f.intFd(), 0)
 				if err2 != nil {
 					tlog.Warn.Printf("ino%d fh%d: doWrite: rollback failed: %v", f.qIno.Ino, f.intFd(), err2)
 				}
@@ -411,7 +410,7 @@ func (f *File) Flush() fuse.Status {
 	// Since Flush() may be called for each dup'd fd, we don't
 	// want to really close the file, we just want to flush. This
 	// is achieved by closing a dup'd fd.
-	newFd, err := syscall.Dup(int(f.fd.Fd()))
+	newFd, err := syscall.Dup(f.intFd())
 
 	if err != nil {
 		return fuse.ToStatus(err)
@@ -425,7 +424,7 @@ func (f *File) Fsync(flags int) (code fuse.Status) {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 
-	return fuse.ToStatus(syscall.Fsync(int(f.fd.Fd())))
+	return fuse.ToStatus(syscall.Fsync(f.intFd()))
 }
 
 // Chmod FUSE call
@@ -454,7 +453,7 @@ func (f *File) GetAttr(a *fuse.Attr) fuse.Status {
 
 	tlog.Debug.Printf("file.GetAttr()")
 	st := syscall.Stat_t{}
-	err := syscall.Fstat(int(f.fd.Fd()), &st)
+	err := syscall.Fstat(f.intFd(), &st)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
