@@ -96,9 +96,9 @@ func (ch *ctlSockHandler) handleConnection(conn *net.UnixConn) {
 			conn.Close()
 			return
 		}
-		buf = buf[:n]
+		data := buf[:n]
 		var in RequestStruct
-		err = json.Unmarshal(buf, &in)
+		err = json.Unmarshal(data, &in)
 		if err != nil {
 			tlog.Warn.Printf("ctlsock: JSON Unmarshal error: %#v", err)
 			err = errors.New("JSON Unmarshal error: " + err.Error())
@@ -106,8 +106,6 @@ func (ch *ctlSockHandler) handleConnection(conn *net.UnixConn) {
 			continue
 		}
 		ch.handleRequest(&in, conn)
-		// Restore original size.
-		buf = buf[:cap(buf)]
 	}
 }
 
