@@ -7,7 +7,6 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
@@ -46,11 +45,11 @@ func TestOpenBackingDir(t *testing.T) {
 		t.Fatal("cName should be .")
 	}
 
-	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
+	err = unix.Faccessat(dirfd, cName, unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Error(err)
 	}
-	err = syscallcompat.Faccessat(dirfd, ".", unix.R_OK)
+	err = unix.Faccessat(dirfd, ".", unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Error(err)
 	}
@@ -63,7 +62,7 @@ func TestOpenBackingDir(t *testing.T) {
 	if cName == "" {
 		t.Fatal("cName should not be empty")
 	}
-	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
+	err = unix.Faccessat(dirfd, cName, unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Error(err)
 	}
@@ -76,7 +75,7 @@ func TestOpenBackingDir(t *testing.T) {
 	if cName == "" {
 		t.Fatal("cName should not be empty")
 	}
-	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
+	err = unix.Faccessat(dirfd, cName, unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Error(err)
 	}
@@ -95,7 +94,7 @@ func TestOpenBackingDir(t *testing.T) {
 	if len(cName) >= 255 {
 		t.Fatalf("cName is too long: %q", cName)
 	}
-	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
+	err = unix.Faccessat(dirfd, cName, unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Error(err)
 	}
@@ -126,11 +125,11 @@ func TestOpenBackingDirPlaintextNames(t *testing.T) {
 	if cName != "." {
 		t.Fatal("cName should be .")
 	}
-	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
+	err = unix.Faccessat(dirfd, cName, unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Error(err)
 	}
-	err = syscallcompat.Faccessat(dirfd, ".", unix.R_OK)
+	err = unix.Faccessat(dirfd, ".", unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Error(err)
 	}
@@ -143,7 +142,7 @@ func TestOpenBackingDirPlaintextNames(t *testing.T) {
 	if cName != "dir1" {
 		t.Fatalf("wrong cName: %q", cName)
 	}
-	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
+	err = unix.Faccessat(dirfd, cName, unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Error(err)
 	}
@@ -156,7 +155,7 @@ func TestOpenBackingDirPlaintextNames(t *testing.T) {
 	if cName != "dir2" {
 		t.Fatalf("wrong cName: %q", cName)
 	}
-	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
+	err = unix.Faccessat(dirfd, cName, unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Error(err)
 	}

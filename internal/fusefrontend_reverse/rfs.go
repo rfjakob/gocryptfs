@@ -255,7 +255,7 @@ func (rfs *ReverseFS) Access(relPath string, mode uint32, context *fuse.Context)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	err = syscallcompat.Faccessat(dirfd, name, mode)
+	err = unix.Faccessat(dirfd, name, mode, unix.AT_SYMLINK_NOFOLLOW)
 	syscall.Close(dirfd)
 	return fuse.ToStatus(err)
 }

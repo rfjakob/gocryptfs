@@ -626,7 +626,7 @@ func (fs *FS) Access(relPath string, mode uint32, context *fuse.Context) (code f
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	err = syscallcompat.Faccessat(dirfd, cName, mode)
+	err = unix.Faccessat(dirfd, cName, mode, unix.AT_SYMLINK_NOFOLLOW)
 	syscall.Close(dirfd)
 	return fuse.ToStatus(err)
 }
