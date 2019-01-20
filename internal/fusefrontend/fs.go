@@ -617,6 +617,16 @@ func (fs *FS) Link(oldPath string, newPath string, context *fuse.Context) (code 
 // Access - FUSE call. Check if a file can be accessed in the specified mode(s)
 // (read, write, execute).
 //
+// From https://github.com/libfuse/libfuse/blob/master/include/fuse.h :
+//
+// > Check file access permissions
+// >
+// > If the 'default_permissions' mount option is given, this method is not
+// > called.
+//
+// We always enable default_permissions when -allow_other is passed, so there
+// is no need for this function to check the uid in fuse.Context.
+//
 // Symlink-safe through use of faccessat.
 func (fs *FS) Access(relPath string, mode uint32, context *fuse.Context) (code fuse.Status) {
 	if fs.isFiltered(relPath) {
