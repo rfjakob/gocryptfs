@@ -232,6 +232,9 @@ func TestMvWarningSymlink(t *testing.T) {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Log(string(out))
+		if runtime.GOOS == "darwin" {
+			t.Skip("mv on darwin chokes on broken symlinks, see https://github.com/rfjakob/gocryptfs/issues/349")
+		}
 		t.Fatal(err)
 	}
 	if len(out) != 0 {
