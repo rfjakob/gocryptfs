@@ -372,32 +372,9 @@ func TestFilenameEncryption(t *testing.T) {
 	}
 }
 
-// Test Mkdir and Rmdir
-func testMkdirRmdir(t *testing.T) {
-	test_helpers.TestMkdirRmdir(t, test_helpers.DefaultPlainDir)
-}
-
 // Test Rename
-func testRename(t *testing.T) {
+func TestRename(t *testing.T) {
 	test_helpers.TestRename(t, test_helpers.DefaultPlainDir)
-}
-
-// Overwrite an empty directory with another directory
-func TestDirOverwrite(t *testing.T) {
-	dir1 := test_helpers.DefaultPlainDir + "/DirOverwrite1"
-	dir2 := test_helpers.DefaultPlainDir + "/DirOverwrite2"
-	err := os.Mkdir(dir1, 0777)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = os.Mkdir(dir2, 0777)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = syscall.Rename(dir1, dir2)
-	if err != nil {
-		t.Fatal(err)
-	}
 }
 
 func TestLongNames(t *testing.T) {
