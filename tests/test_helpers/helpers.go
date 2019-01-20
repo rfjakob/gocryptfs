@@ -227,7 +227,9 @@ func TestMkdirRmdir(t *testing.T, plainDir string) {
 	}
 	err = syscall.Unlink(dir + "/file")
 	if err != nil {
-		t.Error(err)
+		var st syscall.Stat_t
+		syscall.Stat(dir, &st)
+		t.Errorf("err=%v mode=%0o", err, st.Mode)
 		return
 	}
 	err = syscall.Rmdir(dir)
