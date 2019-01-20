@@ -151,42 +151,47 @@ func (fs *FS) Rmdir(relPath string, context *fuse.Context) (code fuse.Status) {
 		err = unix.Unlinkat(parentDirFd, cName, unix.AT_REMOVEDIR)
 		return fuse.ToStatus(err)
 	}
-	dirfd, err := syscallcompat.Openat(parentDirFd, cName,
-		syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
-	if err == syscall.EACCES {
-		// We need permission to read and modify the directory
-		tlog.Debug.Printf("Rmdir: handling EACCESS")
+	// Unless we are running as root, we need read, write and execute permissions
+	// to handle gocryptfs.diriv.
+	permWorkaround := false
+	var origMode uint32
+	if !fs.args.PreserveOwner {
 		var st unix.Stat_t
 		err = syscallcompat.Fstatat(parentDirFd, cName, &st, unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
-			tlog.Debug.Printf("Rmdir: Stat: %v", err)
 			return fuse.ToStatus(err)
 		}
-		// This cast is needed on Darwin, where st.Mode is uint16.
-		origMode := uint32(st.Mode)
-		err = syscallcompat.FchmodatNofollow(parentDirFd, cName, origMode|0700)
-		if err != nil {
-			tlog.Debug.Printf("Rmdir: Fchmodat failed: %v", err)
-			return fuse.ToStatus(err)
-		}
-		// Retry open
-		dirfd, err = syscallcompat.Openat(parentDirFd, cName,
-			syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
-		// Undo the chmod if removing the directory failed
-		defer func() {
-			if code != fuse.OK {
-				err = syscallcompat.FchmodatNofollow(parentDirFd, cName, origMode)
-				if err != nil {
-					tlog.Warn.Printf("Rmdir: Chmod rollback failed: %v", err)
-				}
+		if st.Mode&0700 != 0700 {
+			tlog.Debug.Printf("Rmdir: permWorkaround")
+			permWorkaround = true
+			// This cast is needed on Darwin, where st.Mode is uint16.
+			origMode = uint32(st.Mode)
+			err = syscallcompat.FchmodatNofollow(parentDirFd, cName, origMode|0700)
+			if err != nil {
+				tlog.Debug.Printf("Rmdir: permWorkaround: chmod failed: %v", err)
+				return fuse.ToStatus(err)
 			}
-		}()
+		}
 	}
+	dirfd, err := syscallcompat.Openat(parentDirFd, cName,
+		syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		tlog.Debug.Printf("Rmdir: Open: %v", err)
 		return fuse.ToStatus(err)
 	}
 	defer syscall.Close(dirfd)
+	// Undo the chmod if removing the directory failed. This must run before
+	// closing dirfd, so defer it after (defer is LIFO).
+	if permWorkaround {
+		defer func() {
+			if code != fuse.OK {
+				err = unix.Fchmod(dirfd, origMode)
+				if err != nil {
+					tlog.Warn.Printf("Rmdir: permWorkaround: rollback failed: %v", err)
+				}
+			}
+		}()
+	}
 retry:
 	// Check directory contents
 	children, err := syscallcompat.Getdents(dirfd)
