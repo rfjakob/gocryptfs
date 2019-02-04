@@ -3,133 +3,93 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/conejoninja/hid"
-  packages = ["."]
-  revision = "3a959b87ebefc18767a31fa567eea402eb37239e"
-
-[[projects]]
-  branch = "modelT"
-  name = "github.com/conejoninja/tesoro"
-  packages = [
-    ".",
-    "pb/google/protobuf",
-    "pb/messages",
-    "pb/types",
-    "transport"
-  ]
-  revision = "e0e839b6a6f14bce56d1bfac9a86311a1646a6a3"
-
-[[projects]]
-  name = "github.com/golang/protobuf"
-  packages = ["proto"]
-  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
-  version = "v1.1.0"
-
-[[projects]]
-  branch = "master"
+  digest = "1:a88f17ffb943ca381527612d66b5254f78cd6d50c69b54011c6d46c909384cd6"
   name = "github.com/hanwen/go-fuse"
   packages = [
     "fuse",
     "fuse/nodefs",
     "fuse/pathfs",
     "internal/utimens",
-    "splice"
+    "splice",
   ]
-  revision = "95c6370914ac7822973d1893680e878e156f8d70"
+  pruneopts = ""
+  revision = "d0fca860a5759d17592becfa1b8e5b1bd354b24a"
 
 [[projects]]
   branch = "master"
+  digest = "1:d8b48d1941f06ed91371d0f00378d2487e70febcebada831d031b32da07e7a1b"
   name = "github.com/jacobsa/crypto"
   packages = [
     "cmac",
     "common",
-    "siv"
+    "siv",
   ]
-  revision = "c73681c634de898c869684602cf0c0d2ce938c4d"
+  pruneopts = ""
+  revision = "d95898ceee0769dac9bf74c46f8f68d3d3d79100"
 
 [[projects]]
   branch = "master"
+  digest = "1:6e487a1dc86459293b2b27f414dc08f260530aa88063a84ad2c4e5a8370f2701"
   name = "github.com/pkg/xattr"
   packages = ["."]
-  revision = "f5b647e257e19d63831e7c7adb95dfb79d9ff4d9"
+  pruneopts = ""
+  revision = "7782c2d6871d6e659e1563dc19c86b845264a6fc"
 
 [[projects]]
   branch = "master"
+  digest = "1:4f7240806708b689451b6491f574aedd454bf8a25666dc9a65b0903f4e9f53af"
   name = "github.com/rfjakob/eme"
   packages = ["."]
+  pruneopts = ""
   revision = "2222dbd4ba467ab3fc7e8af41562fcfe69c0d770"
 
 [[projects]]
-  name = "github.com/trezor/trezord-go"
-  packages = ["usb/lowlevel"]
-  revision = "bae9c40e5d71c459bde056d42d4b19ab318c90c2"
-  version = "v2.0.20"
-
-[[projects]]
   branch = "master"
-  name = "github.com/xaionaro-go/cryptoWallet"
-  packages = [
-    ".",
-    "interfaces",
-    "internal/errors",
-    "internal/routines",
-    "internal/wallets",
-    "internal/wallets/satoshilabs",
-    "internal/wallets/satoshilabs/trezor",
-    "internal/wallets/satoshilabs/trezor/models/1",
-    "internal/wallets/satoshilabs/trezor/models/t",
-    "vendors"
-  ]
-  revision = "47f9f6877e4324a8bc47fc5661c32d2fe6d29586"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/zserge/hid"
-  packages = ["."]
-  revision = "c86e7adeabafd6fcb3371ad64d6ed366b04d55db"
-
-[[projects]]
-  branch = "master"
+  digest = "1:cbc1ebc01ec2ceb2c3cc7b9e33357dbc3eff173335f02d9f01603f14102602a7"
   name = "golang.org/x/crypto"
   packages = [
     "hkdf",
     "pbkdf2",
     "scrypt",
-    "ssh/terminal"
+    "ssh/terminal",
   ]
-  revision = "de0752318171da717af4ce24d0a2e8626afaeb11"
+  pruneopts = ""
+  revision = "b8fe1690c61389d7d2a8074a507d1d40c5d30448"
 
 [[projects]]
   branch = "master"
+  digest = "1:814474ab808c5e04b9334d046f8a0060fc1724c2c02acfd00a7cc0008d675455"
   name = "golang.org/x/sync"
   packages = ["syncmap"]
-  revision = "1d60e4601c6fd243af51cc01ddf169918a5407ca"
+  pruneopts = ""
+  revision = "37e7f081c4d4c64e13b10787722085407fe5d15f"
 
 [[projects]]
   branch = "master"
+  digest = "1:489610147902fe0c7229218c749bb25a8a9ecce0d726ae4f8662517319f32554"
   name = "golang.org/x/sys"
   packages = [
     "unix",
-    "windows"
+    "windows",
   ]
-  revision = "14742f9018cd6651ec7364dc6ee08af0baaa1031"
-
-[[projects]]
-  name = "golang.org/x/text"
-  packages = [
-    "internal/gen",
-    "internal/triegen",
-    "internal/ucd",
-    "transform",
-    "unicode/cldr",
-    "unicode/norm"
-  ]
-  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
-  version = "v0.3.0"
+  pruneopts = ""
+  revision = "41f3e6584952bb034a481797859f6ab34b6803bd"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e12369bfb63fd78ad5b21b6bb8d0e68ed7bb5d66fd2c01e122b7a89dfb99eec4"
+  input-imports = [
+    "github.com/hanwen/go-fuse/fuse",
+    "github.com/hanwen/go-fuse/fuse/nodefs",
+    "github.com/hanwen/go-fuse/fuse/pathfs",
+    "github.com/jacobsa/crypto/siv",
+    "github.com/pkg/xattr",
+    "github.com/rfjakob/eme",
+    "golang.org/x/crypto/hkdf",
+    "golang.org/x/crypto/scrypt",
+    "golang.org/x/crypto/ssh/terminal",
+    "golang.org/x/sync/syncmap",
+    "golang.org/x/sys/unix",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
