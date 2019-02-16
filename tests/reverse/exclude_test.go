@@ -15,11 +15,19 @@ const xxx = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 /*
 tree exclude_test_fs
 exclude_test_fs/
+├── bkp1~
 ├── dir1
 │   ├── file1
 │   ├── file2
+│   ├── exclude
+│   ├── longbkp1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx~
 │   ├── longfile1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-│   └── longfile2xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+│   ├── longfile2xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+│   ├── longfile3xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+│   └── subdir1
+│       ├── exclude
+│       └── subdir2
+│           └── exclude
 ├── dir2
 │   ├── file
 │   ├── longdir1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -30,11 +38,13 @@ exclude_test_fs/
 ├── file1
 ├── file2
 ├── longdir1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-│   └── file
+│   └── file1
 ├── longdir2xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+│   ├── bkp~
 │   └── file
 ├── longfile1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-└── longfile2xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+├── longfile2xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+└── longfile3xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 */
 
 func ctlsockEncryptPath(t *testing.T, sock string, path string) string {
@@ -47,26 +57,46 @@ func ctlsockEncryptPath(t *testing.T, sock string, path string) string {
 }
 
 func testExclude(t *testing.T, flag string) {
+	pPatterns := []string{
+		"file1",                      // matches file1 anywhere
+		"!longdir1" + xxx + "/file1", // ! includes an otherwise file
+		"file2/",                     // a trailing slash matches only a directory
+		"dir1/file2",                 // matches file2 inside dir1 anywhere
+		"#file2",                     // comments are ignored
+		"dir2",                       // excludes the whole directory
+		"longfile2" + xxx,            // matches longfile2 anywhere
+		"/longfile3" + xxx,           // a leading / anchors the match at the root
+		"*~",                         // wildcards are supported
+		"dir1/**/exclude",            // ** matches any number of directories
+	}
 	pOk := []string{
 		"file2",
-		"dir1/file1",
 		"dir1/longfile1" + xxx,
+		"dir1/longfile3" + xxx,
 		"longdir1" + xxx,
-		"longdir1" + xxx + "/file",
+		"longdir1" + xxx + "/file1",
+		"longdir2" + xxx + "/file",
 		"longfile1" + xxx,
 	}
 	pExclude := []string{
-		"file1",
+		"bkp1~",
+		"dir1/file1",
 		"dir1/file2",
+		"dir1/exclude",
+		"dir1/longbkp1" + xxx + "~",
 		"dir1/longfile2" + xxx,
+		"dir1/subdir1/exclude",
+		"dir1/subdir1/subdir2/exclude",
 		"dir2",
 		"dir2/file",
-		"dir2/file/xxx",
-		"dir2/subdir",
-		"dir2/subdir/file",
 		"dir2/longdir1" + xxx + "/file",
 		"dir2/longfile." + xxx,
+		"dir2/subdir",
+		"dir2/subdir/file",
+		"file1",
+		"longdir2" + xxx + "/bkp~",
 		"longfile2" + xxx,
+		"longfile3" + xxx,
 	}
 	// Mount reverse fs
 	mnt, err := ioutil.TempDir(test_helpers.TmpDir, "TestExclude")
@@ -75,7 +105,7 @@ func testExclude(t *testing.T, flag string) {
 	}
 	sock := mnt + ".sock"
 	cliArgs := []string{"-reverse", "-extpass", "echo test", "-ctlsock", sock}
-	for _, v := range pExclude {
+	for _, v := range pPatterns {
 		cliArgs = append(cliArgs, flag, v)
 	}
 	if plaintextnames {
@@ -120,6 +150,6 @@ func encryptExcludeTestPaths(t *testing.T, socket string, pRelPaths []string) (o
 }
 
 func TestExclude(t *testing.T) {
-	testExclude(t, "-exclude")
-	testExclude(t, "-e")
+	testExclude(t, "-exclude-wildcard")
+	testExclude(t, "-ew")
 }

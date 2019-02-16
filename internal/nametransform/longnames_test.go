@@ -20,3 +20,11 @@ func TestIsLongName(t *testing.T) {
 		t.Errorf("False positive")
 	}
 }
+
+func TestRemoveLongNameSuffix(t *testing.T) {
+	filename := "gocryptfs.longname.LkwUdALvV_ANnzQN6ZZMYnxxfARD3IeZWCKnxGJjYmU=.name"
+	content := "gocryptfs.longname.LkwUdALvV_ANnzQN6ZZMYnxxfARD3IeZWCKnxGJjYmU="
+	if RemoveLongNameSuffix(filename) != content {
+		t.Error(".name suffix not removed")
+	}
+}

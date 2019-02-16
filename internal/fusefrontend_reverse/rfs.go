@@ -2,9 +2,7 @@ package fusefrontend_reverse
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -16,13 +14,13 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
-	"github.com/rfjakob/gocryptfs/internal/ctlsock"
-	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/pathiv"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
+
+	"github.com/sabhiram/go-gitignore"
 )
 
 // ReverseFS implements the pathfs.FileSystem interface and provides an
@@ -35,12 +33,11 @@ type ReverseFS struct {
 	// Stores configuration arguments
 	args fusefrontend.Args
 	// Filename encryption helper
-	nameTransform *nametransform.NameTransform
+	nameTransform nametransform.NameTransformer
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
-	// Relative ciphertext paths to exclude (hide) from the user. Used by -exclude.
-	// With -plaintextnames, these are relative *plaintext* paths.
-	cExclude []string
+	// Tests wheter a path is excluded (hiden) from the user. Used by -exclude.
+	excluder ignore.IgnoreParser
 }
 
 var _ pathfs.FileSystem = &ReverseFS{}
@@ -48,7 +45,7 @@ var _ pathfs.FileSystem = &ReverseFS{}
 // NewFS returns an encrypted FUSE overlay filesystem.
 // In this case (reverse mode) the backing directory is plain-text and
 // ReverseFS provides an encrypted view.
-func NewFS(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) *ReverseFS {
+func NewFS(args fusefrontend.Args, c *contentenc.ContentEnc, n nametransform.NameTransformer) *ReverseFS {
 	initLongnameCache()
 	fs := &ReverseFS{
 		// pathfs.defaultFileSystem returns ENOSYS for all operations
@@ -58,34 +55,7 @@ func NewFS(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransform.Na
 		nameTransform: n,
 		contentEnc:    c,
 	}
-	if len(args.Exclude) > 0 {
-		for _, dirty := range args.Exclude {
-			clean := ctlsock.SanitizePath(dirty)
-			if clean != dirty {
-				tlog.Warn.Printf("-exclude: non-canonical path %q has been interpreted as %q", dirty, clean)
-			}
-			if clean == "" {
-				tlog.Fatal.Printf("-exclude: excluding the root dir %q makes no sense", clean)
-				os.Exit(exitcodes.ExcludeError)
-			}
-			cPath, err := fs.EncryptPath(clean)
-			if err != nil {
-				tlog.Fatal.Printf("-exclude: EncryptPath %q failed: %v", clean, err)
-				os.Exit(exitcodes.ExcludeError)
-			}
-			fs.cExclude = append(fs.cExclude, cPath)
-			if !fs.args.PlaintextNames {
-				// If we exclude
-				//   gocryptfs.longname.3vZ_r3eDPb1_fL3j5VA4rd_bcKWLKT9eaxOVIGK5HFA
-				// we should also exclude
-				//   gocryptfs.longname.3vZ_r3eDPb1_fL3j5VA4rd_bcKWLKT9eaxOVIGK5HFA.name
-				if nametransform.IsLongContent(filepath.Base(cPath)) {
-					fs.cExclude = append(fs.cExclude, cPath+nametransform.LongNameSuffix)
-				}
-			}
-		}
-		tlog.Debug.Printf("-exclude: %v -> %v", fs.args.Exclude, fs.cExclude)
-	}
+	fs.prepareExcluder(args)
 	return fs
 }
 
@@ -100,24 +70,64 @@ func relDir(path string) string {
 	return dir
 }
 
-// isExcluded finds out if relative ciphertext path "relPath" is excluded
-// (used when -exclude is passed by the user)
-func (rfs *ReverseFS) isExcluded(relPath string) bool {
-	for _, e := range rfs.cExclude {
-		// If the root dir is excluded, everything is excluded.
-		if e == "" {
-			return true
-		}
-		// This exact path is excluded
-		if e == relPath {
-			return true
-		}
-		// Files inside an excluded directory are also excluded
-		if strings.HasPrefix(relPath, e+"/") {
-			return true
-		}
+// getFileInfo returns information on a ciphertext path "relPath":
+// - ftype: file type (as returned by getFileType)
+// - excluded: if the path is excluded
+// - pPath: if it's not a special file, the decrypted path
+// - err: non nil if any error happens
+func (rfs *ReverseFS) getFileInfo(relPath string) (ftype fileType, excluded bool, pPath string, err error) {
+	ftype = rfs.getFileType(relPath)
+	if ftype == typeConfig {
+		excluded, pPath, err = false, "", nil
+		return
 	}
-	return false
+	if ftype == typeDiriv {
+		parentDir := nametransform.Dir(relPath)
+		_, excluded, _, err = rfs.getFileInfo(parentDir)
+		pPath = ""
+		return
+	}
+	if ftype == typeName {
+		parentDir := nametransform.Dir(relPath)
+		var parentExcluded bool
+		_, parentExcluded, _, err = rfs.getFileInfo(parentDir)
+		if parentExcluded || err != nil {
+			excluded, pPath = parentExcluded, ""
+			return
+		}
+		relPath = nametransform.RemoveLongNameSuffix(relPath)
+	}
+	pPath, err = rfs.decryptPath(relPath)
+	excluded = err == nil && rfs.isExcludedPlain(pPath)
+	return
+}
+
+type fileType int
+
+// Values returned by getFileType
+const (
+	// A regular file/directory/symlink
+	typeRegular fileType = iota
+	// A DirIV (gocryptfs.diriv) file
+	typeDiriv
+	// A .name file for a file with a long name
+	typeName
+	// The config file
+	typeConfig
+)
+
+// getFileType returns the type of file. Only the name is checked
+func (rfs *ReverseFS) getFileType(cPath string) fileType {
+	if rfs.isDirIV(cPath) {
+		return typeDiriv
+	}
+	if rfs.isNameFile(cPath) {
+		return typeName
+	}
+	if rfs.isTranslatedConfig(cPath) {
+		return typeConfig
+	}
+	return typeRegular
 }
 
 // isDirIV determines if the path points to a gocryptfs.diriv file
@@ -155,14 +165,18 @@ func (rfs *ReverseFS) isTranslatedConfig(relPath string) bool {
 // GetAttr - FUSE call
 // "relPath" is the relative ciphertext path
 func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
-	if rfs.isExcluded(relPath) {
+	ftype, excluded, pPath, err := rfs.getFileInfo(relPath)
+	if excluded {
 		return nil, fuse.ENOENT
 	}
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
 	// Handle "gocryptfs.conf"
-	if rfs.isTranslatedConfig(relPath) {
+	if ftype == typeConfig {
 		absConfPath, _ := rfs.abs(configfile.ConfReverseName, nil)
 		var st syscall.Stat_t
-		err := syscall.Lstat(absConfPath, &st)
+		err = syscall.Lstat(absConfPath, &st)
 		if err != nil {
 			return nil, fuse.ToStatus(err)
 		}
@@ -177,11 +191,11 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 	var f nodefs.File
 	var status fuse.Status
 	virtual := false
-	if rfs.isDirIV(relPath) {
+	if ftype == typeDiriv {
 		virtual = true
 		f, status = rfs.newDirIVFile(relPath)
 	}
-	if rfs.isNameFile(relPath) {
+	if ftype == typeName {
 		virtual = true
 		f, status = rfs.newNameFile(relPath)
 	}
@@ -197,7 +211,7 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 		}
 		return &a, status
 	}
-	dirfd, name, err := rfs.openBackingDir(relPath)
+	dirfd, name, err := rfs.openBackingDir(pPath)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
@@ -239,10 +253,14 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 
 // Access - FUSE call
 func (rfs *ReverseFS) Access(relPath string, mode uint32, context *fuse.Context) fuse.Status {
-	if rfs.isExcluded(relPath) {
+	ftype, excluded, pPath, err := rfs.getFileInfo(relPath)
+	if excluded {
 		return fuse.ENOENT
 	}
-	if rfs.isTranslatedConfig(relPath) || rfs.isDirIV(relPath) || rfs.isNameFile(relPath) {
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	if ftype != typeRegular {
 		// access(2) R_OK flag for checking if the file is readable, always 4 as defined in POSIX.
 		ROK := uint32(0x4)
 		// Virtual files can always be read and never written
@@ -251,7 +269,7 @@ func (rfs *ReverseFS) Access(relPath string, mode uint32, context *fuse.Context)
 		}
 		return fuse.EPERM
 	}
-	dirfd, name, err := rfs.openBackingDir(relPath)
+	dirfd, name, err := rfs.openBackingDir(pPath)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
@@ -262,19 +280,23 @@ func (rfs *ReverseFS) Access(relPath string, mode uint32, context *fuse.Context)
 
 // Open - FUSE call
 func (rfs *ReverseFS) Open(relPath string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
-	if rfs.isExcluded(relPath) {
+	ftype, excluded, pPath, err := rfs.getFileInfo(relPath)
+	if excluded {
 		return nil, fuse.ENOENT
 	}
-	if rfs.isTranslatedConfig(relPath) {
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	if ftype == typeConfig {
 		return rfs.loopbackfs.Open(configfile.ConfReverseName, flags, context)
 	}
-	if rfs.isDirIV(relPath) {
+	if ftype == typeDiriv {
 		return rfs.newDirIVFile(relPath)
 	}
-	if rfs.isNameFile(relPath) {
+	if ftype == typeName {
 		return rfs.newNameFile(relPath)
 	}
-	return rfs.newFile(relPath)
+	return rfs.newFile(relPath, pPath)
 }
 
 func (rfs *ReverseFS) openDirPlaintextnames(relPath string, entries []fuse.DirEntry) ([]fuse.DirEntry, fuse.Status) {
@@ -304,12 +326,15 @@ func (rfs *ReverseFS) openDirPlaintextnames(relPath string, entries []fuse.DirEn
 
 // OpenDir - FUSE readdir call
 func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
-	if rfs.isExcluded(cipherPath) {
+	ftype, excluded, relPath, err := rfs.getFileInfo(cipherPath)
+	if excluded {
 		return nil, fuse.ENOENT
 	}
-	relPath, err := rfs.decryptPath(cipherPath)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
+	}
+	if ftype != typeRegular {
+		return nil, fuse.ENOTDIR
 	}
 	// Read plaintext dir
 	dirfd, err := syscallcompat.OpenDirNofollow(rfs.args.Cipherdir, filepath.Dir(relPath))
@@ -332,9 +357,11 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 		if !status.Ok() {
 			return nil, status
 		}
-		entries = rfs.excludeDirEntries(cipherPath, entries)
+		entries = rfs.excludeDirEntries(relPath, entries)
 		return entries, fuse.OK
 	}
+	// Filter out excluded entries
+	entries = rfs.excludeDirEntries(relPath, entries)
 	// Allocate maximum possible number of virtual files.
 	// If all files have long names we need a virtual ".name" file for each,
 	// plus one for gocryptfs.diriv.
@@ -370,24 +397,22 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 	}
 	// Add virtual files
 	entries = append(entries, virtualFiles[:nVirtual]...)
-	// Filter out excluded entries
-	entries = rfs.excludeDirEntries(cipherPath, entries)
 	return entries, fuse.OK
 }
 
 // excludeDirEntries filters out directory entries that are "-exclude"d.
-// cDir is the relative ciphertext path to the directory these entries are
-// from.
-func (rfs *ReverseFS) excludeDirEntries(cDir string, entries []fuse.DirEntry) (filtered []fuse.DirEntry) {
-	if rfs.cExclude == nil {
+// pDir is the relative plaintext path to the directory these entries are
+// from. The entries should be plaintext files.
+func (rfs *ReverseFS) excludeDirEntries(pDir string, entries []fuse.DirEntry) (filtered []fuse.DirEntry) {
+	if rfs.excluder == nil {
 		return entries
 	}
 	filtered = make([]fuse.DirEntry, 0, len(entries))
 	for _, entry := range entries {
-		// filepath.Join handles the case of cipherPath="" correctly:
-		// Join("", "foo") -> "foo". This does not: cipherPath + "/" + name"
-		p := filepath.Join(cDir, entry.Name)
-		if rfs.isExcluded(p) {
+		// filepath.Join handles the case of pDir="" correctly:
+		// Join("", "foo") -> "foo". This does not: pDir + "/" + name"
+		p := filepath.Join(pDir, entry.Name)
+		if rfs.isExcludedPlain(p) {
 			// Skip file
 			continue
 		}
@@ -402,11 +427,12 @@ func (rfs *ReverseFS) excludeDirEntries(cDir string, entries []fuse.DirEntry) (f
 // it's worth, so we just ignore the path and always return info about the
 // backing storage root dir.
 func (rfs *ReverseFS) StatFs(relPath string) *fuse.StatfsOut {
-	if rfs.isExcluded(relPath) {
+	_, excluded, _, err := rfs.getFileInfo(relPath)
+	if excluded || err != nil {
 		return nil
 	}
 	var s syscall.Statfs_t
-	err := syscall.Statfs(rfs.args.Cipherdir, &s)
+	err = syscall.Statfs(rfs.args.Cipherdir, &s)
 	if err != nil {
 		return nil
 	}
@@ -417,10 +443,17 @@ func (rfs *ReverseFS) StatFs(relPath string) *fuse.StatfsOut {
 
 // Readlink - FUSE call
 func (rfs *ReverseFS) Readlink(relPath string, context *fuse.Context) (string, fuse.Status) {
-	if rfs.isExcluded(relPath) {
+	ftype, excluded, pPath, err := rfs.getFileInfo(relPath)
+	if excluded {
 		return "", fuse.ENOENT
 	}
-	dirfd, name, err := rfs.openBackingDir(relPath)
+	if err != nil {
+		return "", fuse.ToStatus(err)
+	}
+	if ftype != typeRegular {
+		return "", fuse.EINVAL
+	}
+	dirfd, name, err := rfs.openBackingDir(pPath)
 	if err != nil {
 		return "", fuse.ToStatus(err)
 	}
@@ -436,7 +469,7 @@ func (rfs *ReverseFS) Readlink(relPath string, context *fuse.Context) (string, f
 	nonce := pathiv.Derive(relPath, pathiv.PurposeSymlinkIV)
 	// Symlinks are encrypted like file contents and base64-encoded
 	cBinTarget := rfs.contentEnc.EncryptBlockNonce([]byte(plainTarget), 0, nil, nonce)
-	cTarget := rfs.nameTransform.B64.EncodeToString(cBinTarget)
+	cTarget := rfs.nameTransform.B64EncodeToString(cBinTarget)
 	// The kernel will reject a symlink target above 4096 chars and return
 	// and I/O error to the user. Better emit the proper error ourselves.
 	if len(cTarget) > syscallcompat.PATH_MAX {

@@ -231,15 +231,17 @@ func initFuseFrontend(args *argContainer) (pfs pathfs.FileSystem, wipeKeys func(
 		args.allow_other = true
 	}
 	frontendArgs := fusefrontend.Args{
-		Cipherdir:      args.cipherdir,
-		PlaintextNames: args.plaintextnames,
-		LongNames:      args.longnames,
-		ConfigCustom:   args._configCustom,
-		NoPrealloc:     args.noprealloc,
-		SerializeReads: args.serialize_reads,
-		ForceDecode:    args.forcedecode,
-		ForceOwner:     args._forceOwner,
-		Exclude:        args.exclude,
+		Cipherdir:       args.cipherdir,
+		PlaintextNames:  args.plaintextnames,
+		LongNames:       args.longnames,
+		ConfigCustom:    args._configCustom,
+		NoPrealloc:      args.noprealloc,
+		SerializeReads:  args.serialize_reads,
+		ForceDecode:     args.forcedecode,
+		ForceOwner:      args._forceOwner,
+		Exclude:         args.exclude,
+		ExcludeWildcard: args.excludeWildcard,
+		ExcludeFrom:     args.excludeFrom,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {

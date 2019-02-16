@@ -36,8 +36,8 @@ type argContainer struct {
 	memprofile, ko, passfile, ctlsock, fsname, force_owner, trace string
 	// -extpass can be passed multiple times
 	extpass multipleStrings
-	// For reverse mode, -exclude is available. It can be specified multiple times.
-	exclude multipleStrings
+	// For reverse mode, several ways to specify exclusions. All can be specified multiple times.
+	exclude, excludeWildcard, excludeFrom multipleStrings
 	// Configuration file name override
 	config             string
 	notifypid, scryptn int
@@ -193,9 +193,13 @@ func parseCliOpts() (args argContainer) {
 	flagSet.StringVar(&args.force_owner, "force_owner", "", "uid:gid pair to coerce ownership")
 	flagSet.StringVar(&args.trace, "trace", "", "Write execution trace to file")
 
-	// -e, --exclude
+	// Exclusion options
 	flagSet.Var(&args.exclude, "e", "Alias for -exclude")
 	flagSet.Var(&args.exclude, "exclude", "Exclude relative path from reverse view")
+	flagSet.Var(&args.excludeWildcard, "ew", "Alias for -exclude-wildcard")
+	flagSet.Var(&args.excludeWildcard, "exclude-wildcard", "Exclude path from reverse view, supporting wildcards")
+	flagSet.Var(&args.excludeFrom, "exclude-from", "File from which to read exclusion patterns (with -exclude-wildcard syntax)")
+
 	// -extpass
 	flagSet.Var(&args.extpass, "extpass", "Use external program for the password prompt")
 

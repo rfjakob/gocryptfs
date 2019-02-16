@@ -78,9 +78,28 @@ harvest enough entropy.
 
 #### -e PATH, -exclude PATH
 Only for reverse mode: exclude relative plaintext path from the encrypted
-view. Can be passed multiple times. Example:
+view, matching only from root of mounted filesystem. Can be passed multiple
+times. Example:
 
     gocryptfs -reverse -exclude Music -exclude Movies /home/user /mnt/user.encrypted
+
+See also `-exclude-wildcard`, `-exclude-from` and the [EXCLUDING FILES](#excluding-files) section.
+
+#### -ew PATH, -exclude-wildcard PATH
+Only for reverse mode: exclude paths from the encrypted view, matching anywhere.
+Wildcards supported. Can be passed multiple times. Example:
+
+    gocryptfs -reverse -exclude-wildcard '*~' /home/user /mnt/user.encrypted
+
+See also `-exclude`, `-exclude-from` and the [EXCLUDING FILES](#excluding-files) section.
+
+#### -exclude-from FILE
+Only for reverse mode: reads exclusion patters (using `-exclude-wildcard` syntax)
+from a file. Can be passed multiple times. Example:
+
+    gocryptfs -reverse -exclude-from ~/crypt-exclusions /home/user /mnt/user.encrypted
+
+See also `-exclude`, `-exclude-wildcard` and the [EXCLUDING FILES](#excluding-files) section.
 
 #### -exec, -noexec
 Enable (`-exec`) or disable (`-noexec`) executables in a gocryptfs mount
@@ -403,6 +422,67 @@ automated testing as it does not provide any security.
 #### \-\-
 Stop option parsing. Helpful when CIPHERDIR may start with a
 dash "-".
+
+EXCLUDING FILES
+===============
+
+In reverse mode, it is possible to exclude files from the encrypted view, using
+the `-exclude`, `-exclude-wildcard` and `-exclude-from` options.
+
+`-exclude` matches complete paths, so `-exclude file.txt` only excludes a file
+named `file.txt` in the root of the mounted filesystem; files named `file.txt`
+in subdirectories are still visible. (This option is kept for compatibility
+with the behavior up to version 1.6.x)
+
+`-exclude-wildcard` matches files anywhere, so `-exclude-wildcard file.txt`
+excludes files named `file.txt` in any directory. If you want to match complete
+paths, you can prefix the filename with a `/`: `-exclude-wildcard /file.txt`
+excludes only `file.txt` in the root of the mounted filesystem.
+
+If there are many exclusions, you can use `-exclude-from` to read exclusion
+patterns from a file. The syntax is that of `-exclude-wildcard`, so use a
+leading `/` to match complete paths.
+
+The rules for exclusion are that of [gitignore](https://git-scm.com/docs/gitignore#_pattern_format).
+In short:
+
+1. A blank line matches no files, so it can serve as a separator
+   for readability.
+2. A line starting with `#` serves as a comment. Put a backslash (`\`)
+   in front of the first hash for patterns that begin with a hash.
+3. Trailing spaces are ignored unless they are quoted with backslash (`\`).
+4. An optional prefix `!` negates the pattern; any matching file
+   excluded by a previous pattern will become included again. It is not
+   possible to re-include a file if a parent directory of that file is
+   excluded. Put a backslash (`\`) in front of the first `!` for
+   patterns that begin with a literal `!`, for example, `\!important!.txt`.
+5. If the pattern ends with a slash, it is removed for the purpose of the
+   following description, but it would only find a match with a directory.
+   In other words, `foo/` will match a directory foo and paths underneath it,
+   but will not match a regular file or a symbolic link foo.
+6. If the pattern does not contain a slash `/`, it is treated as a shell glob
+   pattern and checked for a match against the pathname relative to the
+   root of the mounted filesystem.
+7. Otherwise, the pattern is treated as a shell glob suitable for
+   consumption by fnmatch(3) with the FNM_PATHNAME flag: wildcards in the
+   pattern will not match a `/` in the pathname. For example,
+   `Documentation/*.html` matches `Documentation/git.html` but not
+   `Documentation/ppc/ppc.html` or `tools/perf/Documentation/perf.html`.
+8. A leading slash matches the beginning of the pathname. For example,
+   `/*.c` matches `cat-file.c` but not `mozilla-sha1/sha1.c`.
+9. Two consecutive asterisks (`**`) in patterns matched against full
+   pathname may have special meaning:
+    i.   A leading `**` followed by a slash means match in all directories.
+         For example, `**/foo` matches file or directory `foo` anywhere,
+         the same as pattern `foo`. `**/foo/bar` matches file or directory
+         `bar` anywhere that is directly under directory `foo`.
+    ii.  A trailing `/**` matches everything inside. For example, `abc/**`
+         matches all files inside directory `abc`, with infinite depth.
+    iii. A slash followed by two consecutive asterisks then a slash matches
+         zero or more directories. For example, `a/**/b` matches `a/b`,
+         `a/x/b`, `a/x/y/b` and so on.
+    iv.  Other consecutive asterisks are considered invalid.
+
 
 EXAMPLES
 ========
