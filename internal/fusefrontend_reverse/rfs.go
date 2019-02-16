@@ -68,21 +68,7 @@ func NewFS(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransform.Na
 				tlog.Fatal.Printf("-exclude: excluding the root dir %q makes no sense", clean)
 				os.Exit(exitcodes.ExcludeError)
 			}
-			cPath, err := fs.EncryptPath(clean)
-			if err != nil {
-				tlog.Fatal.Printf("-exclude: EncryptPath %q failed: %v", clean, err)
-				os.Exit(exitcodes.ExcludeError)
-			}
-			fs.cExclude = append(fs.cExclude, cPath)
-			if !fs.args.PlaintextNames {
-				// If we exclude
-				//   gocryptfs.longname.3vZ_r3eDPb1_fL3j5VA4rd_bcKWLKT9eaxOVIGK5HFA
-				// we should also exclude
-				//   gocryptfs.longname.3vZ_r3eDPb1_fL3j5VA4rd_bcKWLKT9eaxOVIGK5HFA.name
-				if nametransform.IsLongContent(filepath.Base(cPath)) {
-					fs.cExclude = append(fs.cExclude, cPath+nametransform.LongNameSuffix)
-				}
-			}
+			fs.cExclude = append(fs.cExclude, clean)
 		}
 		tlog.Debug.Printf("-exclude: %v -> %v", fs.args.Exclude, fs.cExclude)
 	}
@@ -103,17 +89,30 @@ func relDir(path string) string {
 // isExcluded finds out if relative ciphertext path "relPath" is excluded
 // (used when -exclude is passed by the user)
 func (rfs *ReverseFS) isExcluded(relPath string) bool {
+	if rfs.isTranslatedConfig(relPath) || rfs.isDirIV(relPath) {
+		return false
+	}
+	if rfs.isNameFile(relPath) {
+		relPath = relPath[:len(relPath)-len(nametransform.LongNameSuffix)]
+	}
+	decPath, err := rfs.decryptPath(relPath)
+	if err != nil {
+		if err != syscall.ENOENT {
+			tlog.Warn.Printf("Error decrypting path %q", relPath)
+		}
+		return false
+	}
 	for _, e := range rfs.cExclude {
 		// If the root dir is excluded, everything is excluded.
 		if e == "" {
 			return true
 		}
 		// This exact path is excluded
-		if e == relPath {
+		if e == decPath {
 			return true
 		}
 		// Files inside an excluded directory are also excluded
-		if strings.HasPrefix(relPath, e+"/") {
+		if strings.HasPrefix(decPath, e+"/") {
 			return true
 		}
 	}
