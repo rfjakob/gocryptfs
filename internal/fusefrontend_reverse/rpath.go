@@ -96,16 +96,12 @@ func (rfs *ReverseFS) decryptPath(relPath string) (string, error) {
 	return pRelPath, nil
 }
 
-// openBackingDir decrypt the relative ciphertext path "cRelPath", opens
-// the directory that contains the target file/dir and returns the fd to
-// the directory and the decrypted name of the target file.
-// The fd/name pair is intended for use with fchownat and friends.
-func (rfs *ReverseFS) openBackingDir(cRelPath string) (dirfd int, pName string, err error) {
-	// Decrypt relative path
-	pRelPath, err := rfs.decryptPath(cRelPath)
-	if err != nil {
-		return -1, "", err
-	}
+// openBackingDir receives an already decrypted relative path
+// "pRelPath", opens the directory that contains the target file/dir
+// and returns the fd to the directory and the decrypted name of the
+// target file. The fd/name pair is intended for use with fchownat and
+// friends.
+func (rfs *ReverseFS) openBackingDir(pRelPath string) (dirfd int, pName string, err error) {
 	// Open directory, safe against symlink races
 	pDir := filepath.Dir(pRelPath)
 	dirfd, err = syscallcompat.OpenDirNofollow(rfs.args.Cipherdir, pDir)

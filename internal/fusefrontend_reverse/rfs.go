@@ -79,27 +79,26 @@ func relDir(path string) string {
 	return dir
 }
 
-// isExcluded finds out if relative ciphertext path "relPath" is excluded
-// (used when -exclude is passed by the user)
-func (rfs *ReverseFS) isExcluded(relPath string) bool {
-	if rfs.excluder == nil {
-		return false
-	}
-
+// isExcludedCipher finds out if relative ciphertext path "relPath" is
+// excluded (used when -exclude is passed by the user).
+// If relPath is not a special file, it returns the decrypted path or error
+// from decryptPath for convenience.
+func (rfs *ReverseFS) isExcludedCipher(relPath string) (bool, string, error) {
 	if rfs.isTranslatedConfig(relPath) || rfs.isDirIV(relPath) {
-		return false
+		return false, "", nil
 	}
 	if rfs.isNameFile(relPath) {
 		relPath = nametransform.RemoveLongNameSuffix(relPath)
 	}
 	decPath, err := rfs.decryptPath(relPath)
-	if err != nil {
-		if err != syscall.ENOENT {
-			tlog.Warn.Printf("Error decrypting path %q", relPath)
-		}
-		return false
-	}
-	return rfs.excluder.MatchesPath(decPath)
+	excluded := err == nil && rfs.isExcludedPlain(decPath)
+	return excluded, decPath, err
+}
+
+// isExcludedPlain finds out if the plaintext path "pPath" is
+// excluded (used when -exclude is passed by the user).
+func (rfs *ReverseFS) isExcludedPlain(pPath string) bool {
+	return rfs.excluder != nil && rfs.excluder.MatchesPath(pPath)
 }
 
 // isDirIV determines if the path points to a gocryptfs.diriv file
@@ -137,14 +136,18 @@ func (rfs *ReverseFS) isTranslatedConfig(relPath string) bool {
 // GetAttr - FUSE call
 // "relPath" is the relative ciphertext path
 func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
-	if rfs.isExcluded(relPath) {
+	excluded, pPath, err := rfs.isExcludedCipher(relPath)
+	if excluded {
 		return nil, fuse.ENOENT
+	}
+	if err != nil {
+		return nil, fuse.ToStatus(err)
 	}
 	// Handle "gocryptfs.conf"
 	if rfs.isTranslatedConfig(relPath) {
 		absConfPath, _ := rfs.abs(configfile.ConfReverseName, nil)
 		var st syscall.Stat_t
-		err := syscall.Lstat(absConfPath, &st)
+		err = syscall.Lstat(absConfPath, &st)
 		if err != nil {
 			return nil, fuse.ToStatus(err)
 		}
@@ -179,7 +182,7 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 		}
 		return &a, status
 	}
-	dirfd, name, err := rfs.openBackingDir(relPath)
+	dirfd, name, err := rfs.openBackingDir(pPath)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
@@ -221,8 +224,12 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 
 // Access - FUSE call
 func (rfs *ReverseFS) Access(relPath string, mode uint32, context *fuse.Context) fuse.Status {
-	if rfs.isExcluded(relPath) {
+	excluded, pPath, err := rfs.isExcludedCipher(relPath)
+	if excluded {
 		return fuse.ENOENT
+	}
+	if err != nil {
+		return fuse.ToStatus(err)
 	}
 	if rfs.isTranslatedConfig(relPath) || rfs.isDirIV(relPath) || rfs.isNameFile(relPath) {
 		// access(2) R_OK flag for checking if the file is readable, always 4 as defined in POSIX.
@@ -233,7 +240,7 @@ func (rfs *ReverseFS) Access(relPath string, mode uint32, context *fuse.Context)
 		}
 		return fuse.EPERM
 	}
-	dirfd, name, err := rfs.openBackingDir(relPath)
+	dirfd, name, err := rfs.openBackingDir(pPath)
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
@@ -244,8 +251,12 @@ func (rfs *ReverseFS) Access(relPath string, mode uint32, context *fuse.Context)
 
 // Open - FUSE call
 func (rfs *ReverseFS) Open(relPath string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
-	if rfs.isExcluded(relPath) {
+	excluded, pPath, err := rfs.isExcludedCipher(relPath)
+	if excluded {
 		return nil, fuse.ENOENT
+	}
+	if err != nil {
+		return nil, fuse.ToStatus(err)
 	}
 	if rfs.isTranslatedConfig(relPath) {
 		return rfs.loopbackfs.Open(configfile.ConfReverseName, flags, context)
@@ -256,7 +267,7 @@ func (rfs *ReverseFS) Open(relPath string, flags uint32, context *fuse.Context) 
 	if rfs.isNameFile(relPath) {
 		return rfs.newNameFile(relPath)
 	}
-	return rfs.newFile(relPath)
+	return rfs.newFile(relPath, pPath)
 }
 
 func (rfs *ReverseFS) openDirPlaintextnames(relPath string, entries []fuse.DirEntry) ([]fuse.DirEntry, fuse.Status) {
@@ -286,10 +297,10 @@ func (rfs *ReverseFS) openDirPlaintextnames(relPath string, entries []fuse.DirEn
 
 // OpenDir - FUSE readdir call
 func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
-	if rfs.isExcluded(cipherPath) {
+	excluded, relPath, err := rfs.isExcludedCipher(cipherPath)
+	if excluded {
 		return nil, fuse.ENOENT
 	}
-	relPath, err := rfs.decryptPath(cipherPath)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
@@ -369,7 +380,7 @@ func (rfs *ReverseFS) excludeDirEntries(cDir string, entries []fuse.DirEntry) (f
 		// filepath.Join handles the case of cipherPath="" correctly:
 		// Join("", "foo") -> "foo". This does not: cipherPath + "/" + name"
 		p := filepath.Join(cDir, entry.Name)
-		if rfs.isExcluded(p) {
+		if excluded, _, _ := rfs.isExcludedCipher(p); excluded {
 			// Skip file
 			continue
 		}
@@ -384,7 +395,8 @@ func (rfs *ReverseFS) excludeDirEntries(cDir string, entries []fuse.DirEntry) (f
 // it's worth, so we just ignore the path and always return info about the
 // backing storage root dir.
 func (rfs *ReverseFS) StatFs(relPath string) *fuse.StatfsOut {
-	if rfs.isExcluded(relPath) {
+	excluded, _, _ := rfs.isExcludedCipher(relPath)
+	if excluded {
 		return nil
 	}
 	var s syscall.Statfs_t
@@ -399,10 +411,14 @@ func (rfs *ReverseFS) StatFs(relPath string) *fuse.StatfsOut {
 
 // Readlink - FUSE call
 func (rfs *ReverseFS) Readlink(relPath string, context *fuse.Context) (string, fuse.Status) {
-	if rfs.isExcluded(relPath) {
+	excluded, pPath, err := rfs.isExcludedCipher(relPath)
+	if excluded {
 		return "", fuse.ENOENT
 	}
-	dirfd, name, err := rfs.openBackingDir(relPath)
+	if err != nil {
+		return "", fuse.ToStatus(err)
+	}
+	dirfd, name, err := rfs.openBackingDir(pPath)
 	if err != nil {
 		return "", fuse.ToStatus(err)
 	}
