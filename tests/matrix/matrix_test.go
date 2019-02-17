@@ -98,7 +98,7 @@ func testWriteN(t *testing.T, fn string, n int) string {
 	}
 
 	d := make([]byte, n)
-	_, err := file.Write(d)
+	_, err = file.Write(d)
 	if err != nil {
 		t.Fatal(err)
 	}
