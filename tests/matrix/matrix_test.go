@@ -98,13 +98,13 @@ func testWriteN(t *testing.T, fn string, n int) string {
 	}
 
 	d := make([]byte, n)
-	written, err := file.Write(d)
-	if err != nil || written != len(d) {
-		t.Errorf("err=\"%s\", written=%d", err, written)
+	_, err := file.Write(d)
+	if err != nil {
+		t.Fatal(err)
 	}
 	err = file.Close()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	test_helpers.VerifySize(t, test_helpers.DefaultPlainDir+"/"+fn, n)

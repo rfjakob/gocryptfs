@@ -7,6 +7,7 @@ package contentenc
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"log"
 
@@ -52,11 +53,13 @@ func ParseHeader(buf []byte) (*FileHeader, error) {
 	var h FileHeader
 	h.Version = binary.BigEndian.Uint16(buf[0:headerVersionLen])
 	if h.Version != CurrentVersion {
-		return nil, fmt.Errorf("ParseHeader: invalid version, want=%d have=%d", CurrentVersion, h.Version)
+		return nil, fmt.Errorf("ParseHeader: invalid version, want=%d have=%d. Hexdump: %s",
+			CurrentVersion, h.Version, hex.EncodeToString(buf))
 	}
 	h.ID = buf[headerVersionLen:]
 	if bytes.Equal(h.ID, allZeroFileID) {
-		return nil, fmt.Errorf("ParseHeader: file id is all-zero")
+		return nil, fmt.Errorf("ParseHeader: file id is all-zero. Hexdump: %s",
+			hex.EncodeToString(buf))
 	}
 	return &h, nil
 }
