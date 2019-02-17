@@ -6,7 +6,7 @@
 # https://nuetzlich.net/gocryptfs/
 
 NAME="x"
-LEN=0
+LEN=1
 
 if [[ ! -f a/gocryptfs.conf ]] ; then
 	echo "fatal: must have gocryptfs dir 'a' mounted at 'b'"
