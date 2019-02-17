@@ -45,6 +45,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:321aeb7694b1803b7c7e27191e464ec2ce541a2730b3a0c5f7451296d9b3a69e"
+  name = "github.com/sabhiram/go-gitignore"
+  packages = ["."]
+  pruneopts = ""
+  revision = "d3107576ba9425fc1c85f4b3569c4631b805a02e"
+
+[[projects]]
+  branch = "master"
   digest = "1:5462386895a322b94a79a5de7314310edbd5f4d15f851ae032f146b2c951b3de"
   name = "golang.org/x/crypto"
   packages = [
@@ -85,6 +93,7 @@
     "github.com/jacobsa/crypto/siv",
     "github.com/pkg/xattr",
     "github.com/rfjakob/eme",
+    "github.com/sabhiram/go-gitignore",
     "golang.org/x/crypto/hkdf",
     "golang.org/x/crypto/scrypt",
     "golang.org/x/crypto/ssh/terminal",

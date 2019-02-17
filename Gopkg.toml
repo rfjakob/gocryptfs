@@ -16,6 +16,10 @@
 
 [[constraint]]
   branch = "master"
+  name = "github.com/sabhiram/go-gitignore"
+
+[[constraint]]
+  branch = "master"
   name = "golang.org/x/crypto"
 
 [[constraint]]

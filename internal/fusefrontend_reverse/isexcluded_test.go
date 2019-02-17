@@ -2,25 +2,51 @@ package fusefrontend_reverse
 
 import (
 	"testing"
+
+	"github.com/rfjakob/gocryptfs/internal/configfile"
+	"github.com/rfjakob/gocryptfs/internal/nametransform"
 )
 
-func verifyExcluded(t *testing.T, rfs *ReverseFS, paths []string) {
-	for _, p := range paths {
-		if !rfs.isExcluded(p) {
-			t.Errorf("Path %q should be excluded, but is not", p)
-		}
-	}
-	if t.Failed() {
-		t.Logf("cExclude = %#v", rfs.cExclude)
-	}
+type IgnoreParserMock struct {
+	calledWith string
+}
+
+func (parser *IgnoreParserMock) MatchesPath(f string) bool {
+	parser.calledWith = f
+	return false
 }
 
 // Note: See also the integration tests in
 // tests/reverse/exclude_test.go
-func TestIsExcluded(t *testing.T) {
+func TestShouldReturnFalseIfThereAreNoExclusions(t *testing.T) {
 	var rfs ReverseFS
-	// If the root directory is excluded, all files and subdirs should be excluded
-	// as well
-	rfs.cExclude = []string{""}
-	verifyExcluded(t, &rfs, []string{"", "foo", "foo/bar"})
+	if rfs.isExcluded("any/path") {
+		t.Error("Should not exclude any path is no exclusions were specified")
+	}
+}
+
+func TestShouldNoCallIgnoreParserForTranslatedConfig(t *testing.T) {
+	ignorerMock := &IgnoreParserMock{}
+	var rfs ReverseFS
+	rfs.excluder = ignorerMock
+
+	if rfs.isExcluded(configfile.ConfDefaultName) {
+		t.Error("Should not exclude translated config")
+	}
+	if ignorerMock.calledWith != "" {
+		t.Error("Should not call IgnoreParser for translated config")
+	}
+}
+
+func TestShouldNoCallIgnoreParserForDirIV(t *testing.T) {
+	ignorerMock := &IgnoreParserMock{}
+	var rfs ReverseFS
+	rfs.excluder = ignorerMock
+
+	if rfs.isExcluded(nametransform.DirIVFilename) {
+		t.Error("Should not exclude DirIV")
+	}
+	if ignorerMock.calledWith != "" {
+		t.Error("Should not call IgnoreParser for DirIV")
+	}
 }

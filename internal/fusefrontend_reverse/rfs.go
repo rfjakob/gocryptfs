@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -16,13 +15,14 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
-	"github.com/rfjakob/gocryptfs/internal/ctlsock"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/pathiv"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
+
+	"github.com/sabhiram/go-gitignore"
 )
 
 // ReverseFS implements the pathfs.FileSystem interface and provides an
@@ -38,9 +38,8 @@ type ReverseFS struct {
 	nameTransform *nametransform.NameTransform
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
-	// Relative ciphertext paths to exclude (hide) from the user. Used by -exclude.
-	// With -plaintextnames, these are relative *plaintext* paths.
-	cExclude []string
+	// Tests wheter a path is excluded (hiden) from the user. Used by -exclude.
+	excluder ignore.IgnoreParser
 }
 
 var _ pathfs.FileSystem = &ReverseFS{}
@@ -59,18 +58,12 @@ func NewFS(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransform.Na
 		contentEnc:    c,
 	}
 	if len(args.Exclude) > 0 {
-		for _, dirty := range args.Exclude {
-			clean := ctlsock.SanitizePath(dirty)
-			if clean != dirty {
-				tlog.Warn.Printf("-exclude: non-canonical path %q has been interpreted as %q", dirty, clean)
-			}
-			if clean == "" {
-				tlog.Fatal.Printf("-exclude: excluding the root dir %q makes no sense", clean)
-				os.Exit(exitcodes.ExcludeError)
-			}
-			fs.cExclude = append(fs.cExclude, clean)
+		excluder, err := ignore.CompileIgnoreLines(args.Exclude...)
+		if err != nil {
+			tlog.Fatal.Printf("Error compiling exclusion rules: %q", err)
+			os.Exit(exitcodes.ExcludeError)
 		}
-		tlog.Debug.Printf("-exclude: %v -> %v", fs.args.Exclude, fs.cExclude)
+		fs.excluder = excluder
 	}
 	return fs
 }
@@ -89,6 +82,10 @@ func relDir(path string) string {
 // isExcluded finds out if relative ciphertext path "relPath" is excluded
 // (used when -exclude is passed by the user)
 func (rfs *ReverseFS) isExcluded(relPath string) bool {
+	if rfs.excluder == nil {
+		return false
+	}
+
 	if rfs.isTranslatedConfig(relPath) || rfs.isDirIV(relPath) {
 		return false
 	}
@@ -102,21 +99,7 @@ func (rfs *ReverseFS) isExcluded(relPath string) bool {
 		}
 		return false
 	}
-	for _, e := range rfs.cExclude {
-		// If the root dir is excluded, everything is excluded.
-		if e == "" {
-			return true
-		}
-		// This exact path is excluded
-		if e == decPath {
-			return true
-		}
-		// Files inside an excluded directory are also excluded
-		if strings.HasPrefix(decPath, e+"/") {
-			return true
-		}
-	}
-	return false
+	return rfs.excluder.MatchesPath(decPath)
 }
 
 // isDirIV determines if the path points to a gocryptfs.diriv file
@@ -378,7 +361,7 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 // cDir is the relative ciphertext path to the directory these entries are
 // from.
 func (rfs *ReverseFS) excludeDirEntries(cDir string, entries []fuse.DirEntry) (filtered []fuse.DirEntry) {
-	if rfs.cExclude == nil {
+	if rfs.excluder == nil {
 		return entries
 	}
 	filtered = make([]fuse.DirEntry, 0, len(entries))
