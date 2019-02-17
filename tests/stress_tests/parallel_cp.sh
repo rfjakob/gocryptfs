@@ -12,8 +12,27 @@
 #
 # See https://github.com/rfjakob/gocryptfs/issues/322 for details.
 
-echo "deleting old files"
-rm -Rf origin sub_*
+cd "$(dirname "$0")"
+MYNAME=$(basename $0)
+source ../fuse-unmount.bash
+
+# Set the GOPATH variable to the default if it is empty
+GOPATH=$(go env GOPATH)
+
+# Backing directory
+DIR=$(mktemp -d /tmp/$MYNAME.XXX)
+$GOPATH/bin/gocryptfs -q -init -extpass "echo test" -scryptn=10 $DIR
+
+# Mountpoint
+MNT="$DIR.mnt"
+mkdir $MNT
+$GOPATH/bin/gocryptfs -q -extpass "echo test" -nosyslog $DIR $MNT
+echo "Mounted gocryptfs $DIR at $MNT"
+
+# Cleanup trap
+trap "cd / ; fuse-unmount -z $MNT ; rm -rf $DIR $MNT" EXIT
+
+cd $MNT
 
 SECONDS=0
 echo "creating files with dd"
