@@ -106,7 +106,7 @@ func (rfs *ReverseFS) findLongnameParent(dir string, dirIV []byte, longname stri
 
 func (rfs *ReverseFS) newNameFile(relPath string) (nodefs.File, fuse.Status) {
 	dotName := filepath.Base(relPath)                                    // gocryptfs.longname.XYZ.name
-	longname := dotName[:len(dotName)-len(nametransform.LongNameSuffix)] // gocryptfs.longname.XYZ
+	longname := nametransform.RemoveLongNameSuffix(dotName) // gocryptfs.longname.XYZ
 	// cipher directory
 	cDir := nametransform.Dir(relPath)
 	// plain directory

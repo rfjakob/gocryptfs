@@ -93,7 +93,7 @@ func (rfs *ReverseFS) isExcluded(relPath string) bool {
 		return false
 	}
 	if rfs.isNameFile(relPath) {
-		relPath = relPath[:len(relPath)-len(nametransform.LongNameSuffix)]
+		relPath = nametransform.RemoveLongNameSuffix(relPath)
 	}
 	decPath, err := rfs.decryptPath(relPath)
 	if err != nil {

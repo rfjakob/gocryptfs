@@ -69,6 +69,13 @@ func IsLongContent(cName string) bool {
 	return NameType(cName) == LongNameContent
 }
 
+// RemoveLongNameSuffix removes the ".name" suffix from cName, returning the corresponding
+// content file name.
+// No check is made if cName actually is a LongNameFilename.
+func RemoveLongNameSuffix(cName string) string {
+	return cName[:len(cName)-len(LongNameSuffix)]
+}
+
 // ReadLongName - read cName + ".name" from the directory opened as dirfd.
 //
 // Symlink-safe through Openat().
