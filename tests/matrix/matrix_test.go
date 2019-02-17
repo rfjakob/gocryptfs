@@ -377,6 +377,57 @@ func TestRename(t *testing.T) {
 	test_helpers.TestRename(t, test_helpers.DefaultPlainDir)
 }
 
+// Test that names of all lengths work
+func TestNameLengths(t *testing.T) {
+	f, err := os.Open(test_helpers.DefaultPlainDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries, err := f.Readdirnames(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	cnt1 := len(entries)
+
+	wd := test_helpers.DefaultPlainDir + "/"
+	name := "x"
+	for len(name) < 2000 {
+		f, err := os.Create(wd + name + "x")
+		if err != nil {
+			break
+		}
+		name = name + "x"
+		f.Close()
+		f, err = os.Open(test_helpers.DefaultPlainDir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// In v1.7-rc2, we had a bug that allowed creation of too-long names.
+		// This threw errors in like this in READDIR:
+		//
+		//   OpenDir ".": invalid entry "gocryptfs.longname.wrE-izsR9ciEkP7JSCFDrk_d_Nj4mQo1dGY6hjuixAU=":
+		//   Could not read .name: ReadLongName: size=345 > limit=344
+		//
+		entries, err = f.Readdirnames(0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.Close()
+		cnt2 := len(entries)
+		if cnt2 != cnt1+1 {
+			t.Fatalf("len=%d: expected %d dir entries, have %d: %v", len(name), cnt1+1, cnt2, entries)
+		}
+		err = syscall.Unlink(wd + name)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(name) != 255 {
+		t.Errorf("maxlen=%d", len(name))
+	}
+}
+
 func TestLongNames(t *testing.T) {
 	fi, err := ioutil.ReadDir(test_helpers.DefaultCipherDir)
 	if err != nil {

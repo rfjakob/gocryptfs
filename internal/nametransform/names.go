@@ -12,6 +12,11 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
+const (
+	// Like ext4, we allow at most 255 bytes for a file name.
+	NameMax = 255
+)
+
 // NameTransform is used to transform filenames.
 type NameTransform struct {
 	emeCipher *eme.EMECipher

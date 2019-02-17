@@ -38,7 +38,11 @@ func (fs *FS) openBackingDir(relPath string) (dirfd int, cName string, err error
 			return dirfd, ".", nil
 		}
 		name := filepath.Base(relPath)
-		cName = fs.nameTransform.EncryptAndHashName(name, iv)
+		cName, err = fs.nameTransform.EncryptAndHashName(name, iv)
+		if err != nil {
+			syscall.Close(dirfd)
+			return -1, "", err
+		}
 		return dirfd, cName, nil
 	}
 	// Open cipherdir (following symlinks)
@@ -58,7 +62,11 @@ func (fs *FS) openBackingDir(relPath string) (dirfd int, cName string, err error
 			syscall.Close(dirfd)
 			return -1, "", err
 		}
-		cName = fs.nameTransform.EncryptAndHashName(name, iv)
+		cName, err = fs.nameTransform.EncryptAndHashName(name, iv)
+		if err != nil {
+			syscall.Close(dirfd)
+			return -1, "", err
+		}
 		// Last part? We are done.
 		if i == len(parts)-1 {
 			fs.dirCache.Store(dirRelPath, dirfd, iv)

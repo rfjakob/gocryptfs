@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"golang.org/x/sys/unix"
-
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
@@ -97,12 +95,17 @@ func WriteDirIVAt(dirfd int) error {
 
 // encryptAndHashName encrypts "name" and hashes it to a longname if it is
 // too long.
-func (be *NameTransform) EncryptAndHashName(name string, iv []byte) string {
-	cName := be.EncryptName(name, iv)
-	if be.longNames && len(cName) > unix.NAME_MAX {
-		return be.HashLongName(cName)
+// Returns ENAMETOOLONG if "name" is longer than 255 bytes.
+func (be *NameTransform) EncryptAndHashName(name string, iv []byte) (string, error) {
+	// Prevent the user from creating files longer than 255 chars.
+	if len(name) > NameMax {
+		return "", syscall.ENAMETOOLONG
 	}
-	return cName
+	cName := be.EncryptName(name, iv)
+	if be.longNames && len(cName) > NameMax {
+		return be.HashLongName(cName), nil
+	}
+	return cName, nil
 }
 
 // Dir is like filepath.Dir but returns "" instead of ".".
