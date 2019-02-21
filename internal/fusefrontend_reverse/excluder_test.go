@@ -4,8 +4,18 @@ import (
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
+	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 )
+
+func TestShouldNoCreateExcluderIfNoPattersWereSpecified(t *testing.T) {
+	var rfs ReverseFS
+	var args fusefrontend.Args
+	rfs.prepareExcluder(args)
+	if rfs.excluder != nil {
+		t.Error("Should not have created excluder")
+	}
+}
 
 type IgnoreParserMock struct {
 	calledWith string

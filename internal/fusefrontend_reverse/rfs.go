@@ -2,7 +2,6 @@ package fusefrontend_reverse
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"syscall"
 
@@ -15,7 +14,6 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
-	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/pathiv"
@@ -57,14 +55,7 @@ func NewFS(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransform.Na
 		nameTransform: n,
 		contentEnc:    c,
 	}
-	if len(args.Exclude) > 0 {
-		excluder, err := ignore.CompileIgnoreLines(args.Exclude...)
-		if err != nil {
-			tlog.Fatal.Printf("Error compiling exclusion rules: %q", err)
-			os.Exit(exitcodes.ExcludeError)
-		}
-		fs.excluder = excluder
-	}
+	fs.prepareExcluder(args)
 	return fs
 }
 
@@ -77,28 +68,6 @@ func relDir(path string) string {
 		return ""
 	}
 	return dir
-}
-
-// isExcludedCipher finds out if relative ciphertext path "relPath" is
-// excluded (used when -exclude is passed by the user).
-// If relPath is not a special file, it returns the decrypted path or error
-// from decryptPath for convenience.
-func (rfs *ReverseFS) isExcludedCipher(relPath string) (bool, string, error) {
-	if rfs.isTranslatedConfig(relPath) || rfs.isDirIV(relPath) {
-		return false, "", nil
-	}
-	if rfs.isNameFile(relPath) {
-		relPath = nametransform.RemoveLongNameSuffix(relPath)
-	}
-	decPath, err := rfs.decryptPath(relPath)
-	excluded := err == nil && rfs.isExcludedPlain(decPath)
-	return excluded, decPath, err
-}
-
-// isExcludedPlain finds out if the plaintext path "pPath" is
-// excluded (used when -exclude is passed by the user).
-func (rfs *ReverseFS) isExcludedPlain(pPath string) bool {
-	return rfs.excluder != nil && rfs.excluder.MatchesPath(pPath)
 }
 
 // isDirIV determines if the path points to a gocryptfs.diriv file
