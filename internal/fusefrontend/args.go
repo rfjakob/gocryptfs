@@ -30,6 +30,10 @@ type Args struct {
 	SerializeReads bool
 	// Force decode even if integrity check fails (openSSL only)
 	ForceDecode bool
-	// Exclude is a list of paths to make inaccessible
+	// Exclude is a list of paths to make inaccessible, starting match at
+	// the filesystem root
 	Exclude []string
+	// ExcludeWildcards is a list of paths to make inaccessible, matched
+	// anywhere, and supporting wildcards
+	ExcludeWildcard []string
 }

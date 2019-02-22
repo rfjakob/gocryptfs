@@ -150,6 +150,6 @@ func encryptExcludeTestPaths(t *testing.T, socket string, pRelPaths []string) (o
 }
 
 func TestExclude(t *testing.T) {
-	testExclude(t, "-exclude")
-	testExclude(t, "-e")
+	testExclude(t, "-exclude-wildcard")
+	testExclude(t, "-ew")
 }

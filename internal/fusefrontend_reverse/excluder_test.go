@@ -1,6 +1,7 @@
 package fusefrontend_reverse
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
@@ -14,6 +15,19 @@ func TestShouldNoCreateExcluderIfNoPattersWereSpecified(t *testing.T) {
 	rfs.prepareExcluder(args)
 	if rfs.excluder != nil {
 		t.Error("Should not have created excluder")
+	}
+}
+
+func TestShouldPrefixExcludeValuesWithSlash(t *testing.T) {
+	var args fusefrontend.Args
+	args.Exclude = []string{"file1", "dir1/file2.txt"}
+	args.ExcludeWildcard = []string{"*~", "build/*.o"}
+
+	expected := []string{"/file1", "/dir1/file2.txt", "*~", "build/*.o"}
+
+	patterns := getExclusionPatterns(args)
+	if !reflect.DeepEqual(patterns, expected) {
+		t.Errorf("expected %q, got %q", expected, patterns)
 	}
 }
 
