@@ -35,7 +35,7 @@ type argContainer struct {
 	masterkey, mountpoint, cipherdir, cpuprofile, extpass,
 	memprofile, ko, passfile, ctlsock, fsname, force_owner, trace string
 	// For reverse mode, several ways to specify exclusions. All can be specified multiple times.
-	exclude, excludeWildcard multipleStrings
+	exclude, excludeWildcard, excludeFrom multipleStrings
 	// Configuration file name override
 	config             string
 	notifypid, scryptn int
@@ -192,6 +192,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.Var(&args.exclude, "exclude", "Exclude relative path from reverse view")
 	flagSet.Var(&args.excludeWildcard, "ew", "Alias for -exclude-wildcard")
 	flagSet.Var(&args.excludeWildcard, "exclude-wildcard", "Exclude path from reverse view, supporting wildcards")
+	flagSet.Var(&args.excludeFrom, "exclude-from", "File from which to read exclusion patterns (with -exclude-wildcard syntax)")
 
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")

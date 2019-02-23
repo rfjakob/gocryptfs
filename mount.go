@@ -241,6 +241,7 @@ func initFuseFrontend(args *argContainer) (pfs pathfs.FileSystem, wipeKeys func(
 		ForceOwner:      args._forceOwner,
 		Exclude:         args.exclude,
 		ExcludeWildcard: args.excludeWildcard,
+		ExcludeFrom:     args.excludeFrom,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {
