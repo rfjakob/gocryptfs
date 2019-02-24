@@ -294,9 +294,11 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 		if !status.Ok() {
 			return nil, status
 		}
-		entries = rfs.excludeDirEntries(cipherPath, entries)
+		entries = rfs.excludeDirEntries(relPath, entries)
 		return entries, fuse.OK
 	}
+	// Filter out excluded entries
+	entries = rfs.excludeDirEntries(relPath, entries)
 	// Allocate maximum possible number of virtual files.
 	// If all files have long names we need a virtual ".name" file for each,
 	// plus one for gocryptfs.diriv.
@@ -332,24 +334,22 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 	}
 	// Add virtual files
 	entries = append(entries, virtualFiles[:nVirtual]...)
-	// Filter out excluded entries
-	entries = rfs.excludeDirEntries(cipherPath, entries)
 	return entries, fuse.OK
 }
 
 // excludeDirEntries filters out directory entries that are "-exclude"d.
-// cDir is the relative ciphertext path to the directory these entries are
-// from.
-func (rfs *ReverseFS) excludeDirEntries(cDir string, entries []fuse.DirEntry) (filtered []fuse.DirEntry) {
+// pDir is the relative plaintext path to the directory these entries are
+// from. The entries should be plaintext files.
+func (rfs *ReverseFS) excludeDirEntries(pDir string, entries []fuse.DirEntry) (filtered []fuse.DirEntry) {
 	if rfs.excluder == nil {
 		return entries
 	}
 	filtered = make([]fuse.DirEntry, 0, len(entries))
 	for _, entry := range entries {
-		// filepath.Join handles the case of cipherPath="" correctly:
-		// Join("", "foo") -> "foo". This does not: cipherPath + "/" + name"
-		p := filepath.Join(cDir, entry.Name)
-		if excluded, _, _ := rfs.isExcludedCipher(p); excluded {
+		// filepath.Join handles the case of pDir="" correctly:
+		// Join("", "foo") -> "foo". This does not: pDir + "/" + name"
+		p := filepath.Join(pDir, entry.Name)
+		if rfs.isExcludedPlain(p) {
 			// Skip file
 			continue
 		}
