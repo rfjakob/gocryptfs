@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:35e131c10a20cafb85ccd53016dfbb3abc4fded02fdcf41511e45c3eaa791f04"
+  digest = "1:8b2a56e7ee8b311348dea37ae4fc27655b20d0ed415fea609710af180cb1575c"
   name = "github.com/hanwen/go-fuse"
   packages = [
     "fuse",
@@ -13,7 +13,7 @@
     "splice",
   ]
   pruneopts = ""
-  revision = "58dcd77a24cd3d5dd8191abd8d9e3c772578bc27"
+  revision = "a533f0a5a633cccc0928c81985b13fa24407a211"
 
 [[projects]]
   branch = "master"
@@ -45,7 +45,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:5462386895a322b94a79a5de7314310edbd5f4d15f851ae032f146b2c951b3de"
+  digest = "1:7a77b79efe106f3304dcf50dc86836151758f246169b527722552a5eb2ae14fc"
   name = "golang.org/x/crypto"
   packages = [
     "hkdf",
@@ -54,26 +54,26 @@
     "ssh/terminal",
   ]
   pruneopts = ""
-  revision = "74369b46fc6756741c016591724fd1cb8e26845f"
+  revision = "8dd112bcdc25174059e45e07517d9fc663123347"
 
 [[projects]]
   branch = "master"
-  digest = "1:814474ab808c5e04b9334d046f8a0060fc1724c2c02acfd00a7cc0008d675455"
+  digest = "1:0142c968b74c157abbb0220c05fa2bdde8a3a4509d6134b35ef75d5b58afb721"
   name = "golang.org/x/sync"
   packages = ["syncmap"]
   pruneopts = ""
-  revision = "37e7f081c4d4c64e13b10787722085407fe5d15f"
+  revision = "e225da77a7e68af35c70ccbf71af2b83e6acac3c"
 
 [[projects]]
   branch = "master"
-  digest = "1:991cf54090eb6e382daf2f243a0bcabdda4964a664e07feefbef2b7fb6bf2ae1"
+  digest = "1:e9f4395061c4001e3a32b7ab02cb4fa62b50bafaa3245e3f84cc80f637df61a6"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = ""
-  revision = "d0b11bdaac8adb652bff00e49bcacf992835621a"
+  revision = "b6889370fb1098ed892bd3400d189bb6a3355813"
 
 [solve-meta]
   analyzer-name = "dep"
