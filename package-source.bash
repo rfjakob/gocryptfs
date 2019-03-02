@@ -18,14 +18,18 @@ cd "$(dirname "$0")"
 GITVERSION=$(git describe --tags --dirty)
 echo $GITVERSION > VERSION
 
+# Render the manpages and include them in the tarball. This
+# avoids a build-dependency to pandoc.
+./Documentation/MANPAGE-render.bash
+
 # gocryptfs source tarball
 PREFIX_SRC_ONLY=gocryptfs_${GITVERSION}_src
-git_archive_extra $PREFIX_SRC_ONLY VERSION
+git_archive_extra $PREFIX_SRC_ONLY VERSION Documentation/*.1
 
 # gocryptfs source + dependencies tarball
 dep ensure
 PREFIX_SRC_DEPS=gocryptfs_${GITVERSION}_src-deps
-git_archive_extra $PREFIX_SRC_DEPS VERSION vendor
+git_archive_extra $PREFIX_SRC_DEPS VERSION Documentation/*.1 vendor
 
 rm VERSION
 

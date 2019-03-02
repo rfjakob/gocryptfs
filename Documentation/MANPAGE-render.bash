@@ -8,7 +8,7 @@ function render {
 	IN=$1
 	OUT=$2
 	echo "Rendering $IN to $OUT"
-	echo ".\\\" This is a man page. View it using 'man ./$OUT'" > $OUT
+	echo ".\\\" This man page was generated from $IN. View it using 'man ./$OUT'" > $OUT
 	echo ".\\\"" >> $OUT
 	pandoc "$IN" -s -t man >> $OUT
 }
