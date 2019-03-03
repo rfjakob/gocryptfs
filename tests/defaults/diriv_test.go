@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
@@ -35,8 +36,8 @@ func TestDirIVRace(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	stop := false
-	defer func() { stop = true }()
+	var stop int32
+	defer func() { atomic.StoreInt32(&stop, 1) }()
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -48,7 +49,7 @@ func TestDirIVRace(t *testing.T) {
 			if err2 == nil {
 				fd.Close()
 			}
-			if stop {
+			if atomic.LoadInt32(&stop) != 0 {
 				return
 			}
 		}
