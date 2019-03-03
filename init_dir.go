@@ -68,7 +68,7 @@ func initDir(args *argContainer) {
 		}
 	}
 	// Choose password for config file
-	if args.extpass == "" {
+	if args.extpass.Empty() {
 		tlog.Info.Printf("Choose a password for protecting your files.")
 	}
 	{
@@ -80,7 +80,7 @@ func initDir(args *argContainer) {
 			password = readpassword.Trezor(trezorPayload)
 		} else {
 			// Normal password entry
-			password = readpassword.Twice(args.extpass, args.passfile)
+			password = readpassword.Twice([]string(args.extpass), args.passfile)
 			readpassword.CheckTrailingGarbage()
 		}
 		creator := tlog.ProgramName + " " + GitVersion

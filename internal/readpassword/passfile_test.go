@@ -14,6 +14,7 @@ func TestPassfile(t *testing.T) {
 		{"mypassword.txt", "mypassword"},
 		{"mypassword_garbage.txt", "mypassword"},
 		{"mypassword_missing_newline.txt", "mypassword"},
+		{"file with spaces.txt", "mypassword"},
 	}
 	for _, tc := range testcases {
 		pw := readPassFile("passfile_test_files/" + tc.file)

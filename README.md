@@ -182,6 +182,8 @@ v1.7, in progress (v1.7-beta1: 2019-01-03, v1.7-rc1: 2019-01-04)
   ([#320](https://github.com/rfjakob/gocryptfs/issues/320)).
   Prevents trouble in the unlikely case that gocryptfs is called with
   stdin,stdout and/or stderr closed.
+* `-extpass` now can be specified multiple times to support arguments containing spaces
+  ([#289](https://github.com/rfjakob/gocryptfs/issues/289))
 
 v1.6.1, 2018-12-12
 * Fix "Operation not supported" chmod errors on Go 1.11

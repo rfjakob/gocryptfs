@@ -89,8 +89,19 @@ Enable (`-exec`) or disable (`-noexec`) executables in a gocryptfs mount
 #### -extpass string
 Use an external program (like ssh-askpass) for the password prompt.
 The program should return the password on stdout, a trailing newline is
-stripped by gocryptfs. Using something like "cat /mypassword.txt" allows
-one to mount the gocryptfs filesystem without user interaction.
+stripped by gocryptfs. If you just want to read from a password file, see `-passfile`.
+
+When `-extpass` is specified once, the string argument will be split on spaces.
+For example, `-extpass "md5sum my password.txt"` will be executed as
+`"md5sum" "my" "password.txt"`, which is NOT what you want.
+
+Specify `-extpass` twice or more to use the string arguments as-is.
+For example, you DO want to call `md5sum` like this:
+`-extpass "md5sum" -extpass "my password.txt"`.
+
+If you want to prevent splitting on spaces but don't want to pass arguments
+to your program, use `"--"`, which is accepted by most programs:
+`-extpass "my program" -extpass "--"`
 
 #### -fg, -f
 Stay in the foreground instead of forking away. Implies "-nosyslog".

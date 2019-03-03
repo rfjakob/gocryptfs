@@ -24,11 +24,11 @@ const (
 
 // Once tries to get a password from the user, either from the terminal, extpass
 // or stdin. Leave "prompt" empty to use the default "Password: " prompt.
-func Once(extpass string, passfile string, prompt string) []byte {
+func Once(extpass []string, passfile string, prompt string) []byte {
 	if passfile != "" {
 		return readPassFile(passfile)
 	}
-	if extpass != "" {
+	if len(extpass) != 0 {
 		return readPasswordExtpass(extpass)
 	}
 	if prompt == "" {
@@ -42,11 +42,11 @@ func Once(extpass string, passfile string, prompt string) []byte {
 
 // Twice is the same as Once but will prompt twice if we get the password from
 // the terminal.
-func Twice(extpass string, passfile string) []byte {
+func Twice(extpass []string, passfile string) []byte {
 	if passfile != "" {
 		return readPassFile(passfile)
 	}
-	if extpass != "" {
+	if len(extpass) != 0 {
 		return readPasswordExtpass(extpass)
 	}
 	if !terminal.IsTerminal(int(os.Stdin.Fd())) {
@@ -99,9 +99,14 @@ func readPasswordStdin(prompt string) []byte {
 // readPasswordExtpass executes the "extpass" program and returns the first line
 // of the output.
 // Exits on read error or empty result.
-func readPasswordExtpass(extpass string) []byte {
-	tlog.Info.Println("Reading password from extpass program")
-	parts := strings.Split(extpass, " ")
+func readPasswordExtpass(extpass []string) []byte {
+	var parts []string
+	if len(extpass) == 1 {
+		parts = strings.Split(extpass[0], " ")
+	} else {
+		parts = extpass
+	}
+	tlog.Info.Printf("Reading password from extpass program %q, arguments: %q\n", parts[0], parts[1:])
 	cmd := exec.Command(parts[0], parts[1:]...)
 	cmd.Stderr = os.Stderr
 	pipe, err := cmd.StdoutPipe()

@@ -53,7 +53,7 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 		pw = readpassword.Trezor(cf.TrezorPayload)
 	} else {
 		// Normal password entry
-		pw = readpassword.Once(args.extpass, args.passfile, "")
+		pw = readpassword.Once([]string(args.extpass), args.passfile, "")
 	}
 	tlog.Info.Println("Decrypting master key")
 	masterkey, err = cf.DecryptMasterKey(pw)
@@ -93,7 +93,7 @@ func changePassword(args *argContainer) {
 			log.Panic("empty masterkey")
 		}
 		tlog.Info.Println("Please enter your new password.")
-		newPw := readpassword.Twice(args.extpass, args.passfile)
+		newPw := readpassword.Twice([]string(args.extpass), args.passfile)
 		readpassword.CheckTrailingGarbage()
 		confFile.EncryptKey(masterkey, newPw, confFile.ScryptObject.LogN())
 		for i := range newPw {

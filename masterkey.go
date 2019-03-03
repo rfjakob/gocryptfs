@@ -43,7 +43,7 @@ func getMasterKey(args *argContainer) (masterkey []byte, confFile *configfile.Co
 	masterkeyFromStdin := false
 	// "-masterkey=stdin"
 	if args.masterkey == "stdin" {
-		args.masterkey = string(readpassword.Once("", "", "Masterkey"))
+		args.masterkey = string(readpassword.Once(nil, "", "Masterkey"))
 		masterkeyFromStdin = true
 	}
 	// "-masterkey=941a6029-3adc6a1c-..."
