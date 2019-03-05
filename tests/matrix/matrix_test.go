@@ -147,6 +147,45 @@ func TestWrite100x100(t *testing.T) {
 	}
 }
 
+func TestWrite10Tight(t *testing.T) {
+	path := test_helpers.DefaultPlainDir + "/TestWrite10Tight"
+	content := make([]byte, 10)
+	buf := make([]byte, 100)
+	for i := 0; i < 1000; i++ {
+		file, err := os.Create(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = file.Write(content)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = file.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		file, err = os.Open(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		n, err := file.Read(buf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n != 10 {
+			t.Fatalf("want 10 bytes, got %d", n)
+		}
+		err = file.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = os.Remove(path)
+		if err != nil {
+			t.Fatal()
+		}
+	}
+}
+
 // Hint for calculating reference md5sums:
 // dd if=/dev/zero count=1 bs=XYZ | md5sum
 func TestTruncate(t *testing.T) {
