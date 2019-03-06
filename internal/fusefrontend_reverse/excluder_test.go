@@ -70,20 +70,27 @@ func TestShouldReadExcludePatternsFromFiles(t *testing.T) {
 }
 
 type IgnoreParserMock struct {
+	toExclude  string
 	calledWith string
 }
 
 func (parser *IgnoreParserMock) MatchesPath(f string) bool {
 	parser.calledWith = f
-	return false
+	return f == parser.toExclude
+}
+
+type NameTransformMock struct {
+	nametransform.NameTransform
+}
+
+func (n *NameTransformMock) DecryptName(cipherName string, iv []byte) (string, error) {
+	return "mockdecrypt_" + cipherName, nil
 }
 
 // Note: See also the integration tests in
 // tests/reverse/exclude_test.go
 func TestShouldNotCallIgnoreParserForTranslatedConfig(t *testing.T) {
-	ignorerMock := &IgnoreParserMock{}
-	var rfs ReverseFS
-	rfs.excluder = ignorerMock
+	rfs, ignorerMock := createRFSWithMocks()
 
 	if excluded, _, _ := rfs.isExcludedCipher(configfile.ConfDefaultName); excluded {
 		t.Error("Should not exclude translated config")
@@ -94,15 +101,25 @@ func TestShouldNotCallIgnoreParserForTranslatedConfig(t *testing.T) {
 }
 
 func TestShouldNotCallIgnoreParserForDirIV(t *testing.T) {
-	ignorerMock := &IgnoreParserMock{}
-	var rfs ReverseFS
-	rfs.excluder = ignorerMock
+	rfs, ignorerMock := createRFSWithMocks()
 
 	if excluded, _, _ := rfs.isExcludedCipher(nametransform.DirIVFilename); excluded {
 		t.Error("Should not exclude DirIV")
 	}
 	if ignorerMock.calledWith != "" {
 		t.Error("Should not call IgnoreParser for DirIV")
+	}
+}
+
+func TestShouldDecryptPathAndReturnTrueForExcludedPath(t *testing.T) {
+	rfs, ignorerMock := createRFSWithMocks()
+	ignorerMock.toExclude = "mockdecrypt_file.txt"
+
+	if excluded, _, _ := rfs.isExcludedCipher("file.txt"); !excluded {
+		t.Error("Should have excluded")
+	}
+	if ignorerMock.calledWith != "mockdecrypt_file.txt" {
+		t.Error("Didn't call IgnoreParser with decrypted path")
 	}
 }
 
@@ -114,13 +131,19 @@ func TestShouldReturnFalseIfThereAreNoExclusions(t *testing.T) {
 }
 
 func TestShouldCallIgnoreParserToCheckExclusion(t *testing.T) {
-	ignorerMock := &IgnoreParserMock{}
-	var rfs ReverseFS
-	rfs.excluder = ignorerMock
+	rfs, ignorerMock := createRFSWithMocks()
 
 	rfs.isExcludedPlain("some/path")
 	if ignorerMock.calledWith != "some/path" {
 		t.Error("Failed to call IgnoreParser")
 	}
+}
 
+func createRFSWithMocks() (*ReverseFS, *IgnoreParserMock) {
+	ignorerMock := &IgnoreParserMock{}
+	nameTransformMock := &NameTransformMock{}
+	var rfs ReverseFS
+	rfs.excluder = ignorerMock
+	rfs.nameTransform = nameTransformMock
+	return &rfs, ignorerMock
 }

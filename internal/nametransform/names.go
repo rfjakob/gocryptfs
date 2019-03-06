@@ -17,6 +17,17 @@ const (
 	NameMax = 255
 )
 
+// NameTransformer is an interface used to transform filenames.
+type NameTransformer interface {
+	DecryptName(cipherName string, iv []byte) (string, error)
+	EncryptName(plainName string, iv []byte) string
+	EncryptAndHashName(name string, iv []byte) (string, error)
+	HashLongName(name string) string
+	WriteLongNameAt(dirfd int, hashName string, plainName string) error
+	B64EncodeToString(src []byte) string
+	B64DecodeString(s string) ([]byte, error)
+}
+
 // NameTransform is used to transform filenames.
 type NameTransform struct {
 	emeCipher *eme.EMECipher
@@ -87,4 +98,14 @@ func (n *NameTransform) EncryptName(plainName string, iv []byte) (cipherName64 s
 	bin = n.emeCipher.Encrypt(iv, bin)
 	cipherName64 = n.B64.EncodeToString(bin)
 	return cipherName64
+}
+
+// B64EncodeToString returns a Base64-encoded string
+func (n *NameTransform) B64EncodeToString(src []byte) string {
+	return n.B64.EncodeToString(src)
+}
+
+// B64DecodeString decodes a Base64-encoded string
+func (n *NameTransform) B64DecodeString(s string) ([]byte, error) {
+	return n.B64.DecodeString(s)
 }

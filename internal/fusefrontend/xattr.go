@@ -150,7 +150,7 @@ func (fs *FS) decryptXattrValue(cData []byte) (data []byte, err error) {
 	}
 	// This backward compatibility is needed to support old
 	// file systems having xattr values base64-encoded.
-	cData, err2 := fs.nameTransform.B64.DecodeString(string(cData))
+	cData, err2 := fs.nameTransform.B64DecodeString(string(cData))
 	if err2 != nil {
 		// Looks like the value was not base64-encoded, but just corrupt.
 		// Return the original decryption error: err1

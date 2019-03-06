@@ -33,7 +33,7 @@ type ReverseFS struct {
 	// Stores configuration arguments
 	args fusefrontend.Args
 	// Filename encryption helper
-	nameTransform *nametransform.NameTransform
+	nameTransform nametransform.NameTransformer
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
 	// Tests wheter a path is excluded (hiden) from the user. Used by -exclude.
@@ -45,7 +45,7 @@ var _ pathfs.FileSystem = &ReverseFS{}
 // NewFS returns an encrypted FUSE overlay filesystem.
 // In this case (reverse mode) the backing directory is plain-text and
 // ReverseFS provides an encrypted view.
-func NewFS(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) *ReverseFS {
+func NewFS(args fusefrontend.Args, c *contentenc.ContentEnc, n nametransform.NameTransformer) *ReverseFS {
 	initLongnameCache()
 	fs := &ReverseFS{
 		// pathfs.defaultFileSystem returns ENOSYS for all operations
@@ -403,7 +403,7 @@ func (rfs *ReverseFS) Readlink(relPath string, context *fuse.Context) (string, f
 	nonce := pathiv.Derive(relPath, pathiv.PurposeSymlinkIV)
 	// Symlinks are encrypted like file contents and base64-encoded
 	cBinTarget := rfs.contentEnc.EncryptBlockNonce([]byte(plainTarget), 0, nil, nonce)
-	cTarget := rfs.nameTransform.B64.EncodeToString(cBinTarget)
+	cTarget := rfs.nameTransform.B64EncodeToString(cBinTarget)
 	// The kernel will reject a symlink target above 4096 chars and return
 	// and I/O error to the user. Better emit the proper error ourselves.
 	if len(cTarget) > syscallcompat.PATH_MAX {

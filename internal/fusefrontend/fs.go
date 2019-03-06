@@ -35,7 +35,7 @@ type FS struct {
 	// states
 	dirIVLock sync.RWMutex
 	// Filename encryption helper
-	nameTransform *nametransform.NameTransform
+	nameTransform nametransform.NameTransformer
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
 	// This lock is used by openWriteOnlyFile() to block concurrent opens while
@@ -62,7 +62,7 @@ type FS struct {
 //var _ pathfs.FileSystem = &FS{} // Verify that interface is implemented.
 
 // NewFS returns a new encrypted FUSE overlay filesystem.
-func NewFS(args Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) *FS {
+func NewFS(args Args, c *contentenc.ContentEnc, n nametransform.NameTransformer) *FS {
 	if args.SerializeReads {
 		serialize_reads.InitSerializer()
 	}
@@ -399,7 +399,7 @@ func (fs *FS) decryptSymlinkTarget(cData64 string) (string, error) {
 	if cData64 == "" {
 		return "", nil
 	}
-	cData, err := fs.nameTransform.B64.DecodeString(cData64)
+	cData, err := fs.nameTransform.B64DecodeString(cData64)
 	if err != nil {
 		return "", err
 	}
@@ -472,7 +472,7 @@ func (fs *FS) encryptSymlinkTarget(data string) (cData64 string) {
 		return ""
 	}
 	cData := fs.contentEnc.EncryptBlock([]byte(data), 0, nil)
-	cData64 = fs.nameTransform.B64.EncodeToString(cData)
+	cData64 = fs.nameTransform.B64EncodeToString(cData)
 	return cData64
 }
 
