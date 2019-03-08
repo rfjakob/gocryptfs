@@ -65,8 +65,13 @@ func getLines(file string) ([]string, error) {
 // If relPath is not a special file, it returns the decrypted path or error
 // from decryptPath for convenience.
 func (rfs *ReverseFS) isExcludedCipher(relPath string) (bool, string, error) {
-	if rfs.isTranslatedConfig(relPath) || rfs.isDirIV(relPath) {
+	if rfs.isTranslatedConfig(relPath) {
 		return false, "", nil
+	}
+	if rfs.isDirIV(relPath) {
+		parentDir := nametransform.Dir(relPath)
+		excluded, _, err := rfs.isExcludedCipher(parentDir)
+		return excluded, "", err
 	}
 	if rfs.isNameFile(relPath) {
 		relPath = nametransform.RemoveLongNameSuffix(relPath)

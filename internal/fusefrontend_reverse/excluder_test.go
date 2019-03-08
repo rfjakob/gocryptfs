@@ -100,14 +100,17 @@ func TestShouldNotCallIgnoreParserForTranslatedConfig(t *testing.T) {
 	}
 }
 
-func TestShouldNotCallIgnoreParserForDirIV(t *testing.T) {
+func TestShouldCheckIfParentIsExcludedForDirIV(t *testing.T) {
 	rfs, ignorerMock := createRFSWithMocks()
+	path := "dir"
+	ignorerMock.toExclude = "mockdecrypt_dir"
+	dirIV := path + "/" + nametransform.DirIVFilename
 
-	if excluded, _, _ := rfs.isExcludedCipher(nametransform.DirIVFilename); excluded {
-		t.Error("Should not exclude DirIV")
+	if excluded, _, _ := rfs.isExcludedCipher(dirIV); !excluded {
+		t.Error("Should have excluded DirIV based on parent")
 	}
-	if ignorerMock.calledWith != "" {
-		t.Error("Should not call IgnoreParser for DirIV")
+	if ignorerMock.calledWith != "mockdecrypt_dir" {
+		t.Errorf("Should have checked parent dir, checked %q", ignorerMock.calledWith)
 	}
 }
 
