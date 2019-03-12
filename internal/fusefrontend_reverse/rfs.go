@@ -364,12 +364,12 @@ func (rfs *ReverseFS) excludeDirEntries(pDir string, entries []fuse.DirEntry) (f
 // it's worth, so we just ignore the path and always return info about the
 // backing storage root dir.
 func (rfs *ReverseFS) StatFs(relPath string) *fuse.StatfsOut {
-	excluded, _, _ := rfs.isExcludedCipher(relPath)
-	if excluded {
+	excluded, _, err := rfs.isExcludedCipher(relPath)
+	if excluded || err != nil {
 		return nil
 	}
 	var s syscall.Statfs_t
-	err := syscall.Statfs(rfs.args.Cipherdir, &s)
+	err = syscall.Statfs(rfs.args.Cipherdir, &s)
 	if err != nil {
 		return nil
 	}
