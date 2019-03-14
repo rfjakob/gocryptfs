@@ -114,6 +114,20 @@ func TestShouldCheckIfParentIsExcludedForDirIV(t *testing.T) {
 	}
 }
 
+func TestShouldCheckIfParentIsExcludedForLongName(t *testing.T) {
+	rfs, ignorerMock := createRFSWithMocks()
+	path := "parent"
+	ignorerMock.toExclude = "mockdecrypt_parent"
+	dirIV := path + "/" + "gocryptfs.longname.fake.name"
+
+	if excluded, _, _ := rfs.isExcludedCipher(dirIV); !excluded {
+		t.Error("Should have excluded LongName based on parent")
+	}
+	if ignorerMock.calledWith != "mockdecrypt_parent" {
+		t.Errorf("Should have checked parent dir, checked %q", ignorerMock.calledWith)
+	}
+}
+
 func TestShouldDecryptPathAndReturnTrueForExcludedPath(t *testing.T) {
 	rfs, ignorerMock := createRFSWithMocks()
 	ignorerMock.toExclude = "mockdecrypt_file.txt"

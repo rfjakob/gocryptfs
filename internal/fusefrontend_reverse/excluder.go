@@ -74,6 +74,11 @@ func (rfs *ReverseFS) isExcludedCipher(relPath string) (bool, string, error) {
 		return excluded, "", err
 	}
 	if rfs.isNameFile(relPath) {
+		parentDir := nametransform.Dir(relPath)
+		parentExcluded, _, err := rfs.isExcludedCipher(parentDir)
+		if parentExcluded || err != nil {
+			return parentExcluded, "", err
+		}
 		relPath = nametransform.RemoveLongNameSuffix(relPath)
 	}
 	decPath, err := rfs.decryptPath(relPath)
