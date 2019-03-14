@@ -70,6 +70,34 @@ func relDir(path string) string {
 	return dir
 }
 
+type fileType int
+
+// Values returned by getFileType
+const (
+	// A regular file/directory/symlink
+	regular fileType = iota
+	// A DirIV (gocryptfs.diriv) file
+	diriv
+	// A .name file for a file with a long name
+	namefile
+	// The config file
+	config
+)
+
+// getFileType returns the type of file. Only the name is checked
+func (rfs *ReverseFS) getFileType(cPath string) fileType {
+	if rfs.isDirIV(cPath) {
+		return diriv
+	}
+	if rfs.isNameFile(cPath) {
+		return namefile
+	}
+	if rfs.isTranslatedConfig(cPath) {
+		return config
+	}
+	return regular
+}
+
 // isDirIV determines if the path points to a gocryptfs.diriv file
 func (rfs *ReverseFS) isDirIV(relPath string) bool {
 	if rfs.args.PlaintextNames {
