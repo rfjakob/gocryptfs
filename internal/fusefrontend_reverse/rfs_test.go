@@ -44,7 +44,14 @@ func TestShouldDetectRegularFile(t *testing.T) {
 func TestShouldNotCallIgnoreParserForTranslatedConfig(t *testing.T) {
 	rfs, ignorerMock := createRFSWithMocks()
 
-	if excluded, _, _ := rfs.getFileInfo(configfile.ConfDefaultName); excluded {
+	ftype, excluded, _, err := rfs.getFileInfo(configfile.ConfDefaultName)
+	if err != nil {
+		t.Errorf("Unexpected error %q\n", err)
+	}
+	if ftype != config {
+		t.Errorf("Wrong file type, expecting %d, got %d\n", config, ftype)
+	}
+	if excluded {
 		t.Error("Should not exclude translated config")
 	}
 	if ignorerMock.calledWith != "" {
@@ -58,7 +65,14 @@ func TestShouldCheckIfParentIsExcludedForDirIV(t *testing.T) {
 	ignorerMock.toExclude = "mockdecrypt_dir"
 	dirIV := path + "/" + nametransform.DirIVFilename
 
-	if excluded, _, _ := rfs.getFileInfo(dirIV); !excluded {
+	ftype, excluded, _, err := rfs.getFileInfo(dirIV)
+	if err != nil {
+		t.Errorf("Unexpected error %q\n", err)
+	}
+	if ftype != diriv {
+		t.Errorf("Wrong file type, expecting %d, got %d\n", diriv, ftype)
+	}
+	if !excluded {
 		t.Error("Should have excluded DirIV based on parent")
 	}
 	if ignorerMock.calledWith != "mockdecrypt_dir" {
@@ -72,7 +86,14 @@ func TestShouldCheckIfParentIsExcludedForLongName(t *testing.T) {
 	ignorerMock.toExclude = "mockdecrypt_parent"
 	dirIV := path + "/" + "gocryptfs.longname.fake.name"
 
-	if excluded, _, _ := rfs.getFileInfo(dirIV); !excluded {
+	ftype, excluded, _, err := rfs.getFileInfo(dirIV)
+	if err != nil {
+		t.Errorf("Unexpected error %q\n", err)
+	}
+	if ftype != namefile {
+		t.Errorf("Wrong file type, expecting %d, got %d\n", namefile, ftype)
+	}
+	if !excluded {
 		t.Error("Should have excluded LongName based on parent")
 	}
 	if ignorerMock.calledWith != "mockdecrypt_parent" {
@@ -84,8 +105,18 @@ func TestShouldDecryptPathAndReturnTrueForExcludedPath(t *testing.T) {
 	rfs, ignorerMock := createRFSWithMocks()
 	ignorerMock.toExclude = "mockdecrypt_file.txt"
 
-	if excluded, _, _ := rfs.getFileInfo("file.txt"); !excluded {
+	ftype, excluded, pPath, err := rfs.getFileInfo("file.txt")
+	if err != nil {
+		t.Errorf("Unexpected error %q\n", err)
+	}
+	if ftype != regular {
+		t.Errorf("Wrong file type, expecting %d, got %d\n", regular, ftype)
+	}
+	if !excluded {
 		t.Error("Should have excluded")
+	}
+	if pPath != "mockdecrypt_file.txt" {
+		t.Errorf("Wrong pPath returned, got %q\n", pPath)
 	}
 	if ignorerMock.calledWith != "mockdecrypt_file.txt" {
 		t.Error("Didn't call IgnoreParser with decrypted path")
