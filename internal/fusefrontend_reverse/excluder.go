@@ -7,7 +7,6 @@ import (
 
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
-	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 
 	"github.com/sabhiram/go-gitignore"
@@ -58,32 +57,6 @@ func getLines(file string) ([]string, error) {
 		return nil, err
 	}
 	return strings.Split(string(buffer), "\n"), nil
-}
-
-// isExcludedCipher finds out if relative ciphertext path "relPath" is
-// excluded (used when -exclude is passed by the user).
-// If relPath is not a special file, it returns the decrypted path or error
-// from decryptPath for convenience.
-func (rfs *ReverseFS) isExcludedCipher(relPath string) (bool, string, error) {
-	if rfs.isTranslatedConfig(relPath) {
-		return false, "", nil
-	}
-	if rfs.isDirIV(relPath) {
-		parentDir := nametransform.Dir(relPath)
-		excluded, _, err := rfs.isExcludedCipher(parentDir)
-		return excluded, "", err
-	}
-	if rfs.isNameFile(relPath) {
-		parentDir := nametransform.Dir(relPath)
-		parentExcluded, _, err := rfs.isExcludedCipher(parentDir)
-		if parentExcluded || err != nil {
-			return parentExcluded, "", err
-		}
-		relPath = nametransform.RemoveLongNameSuffix(relPath)
-	}
-	decPath, err := rfs.decryptPath(relPath)
-	excluded := err == nil && rfs.isExcludedPlain(decPath)
-	return excluded, decPath, err
 }
 
 // isExcludedPlain finds out if the plaintext path "pPath" is

@@ -70,6 +70,36 @@ func relDir(path string) string {
 	return dir
 }
 
+// getFileInfo returns information on a ciphertext path "relPath":
+// - excluded: if the path is excluded
+// - pPath: if it's not a special file, the decrypted path
+// - err: non nil if any error happens
+func (rfs *ReverseFS) getFileInfo(relPath string) (excluded bool, pPath string, err error) {
+	if rfs.isTranslatedConfig(relPath) {
+		excluded, pPath, err = false, "", nil
+		return
+	}
+	if rfs.isDirIV(relPath) {
+		parentDir := nametransform.Dir(relPath)
+		excluded, _, err = rfs.getFileInfo(parentDir)
+		pPath = ""
+		return
+	}
+	if rfs.isNameFile(relPath) {
+		parentDir := nametransform.Dir(relPath)
+		var parentExcluded bool
+		parentExcluded, _, err = rfs.getFileInfo(parentDir)
+		if parentExcluded || err != nil {
+			excluded, pPath = parentExcluded, ""
+			return
+		}
+		relPath = nametransform.RemoveLongNameSuffix(relPath)
+	}
+	pPath, err = rfs.decryptPath(relPath)
+	excluded = err == nil && rfs.isExcludedPlain(pPath)
+	return
+}
+
 type fileType int
 
 // Values returned by getFileType
@@ -133,7 +163,7 @@ func (rfs *ReverseFS) isTranslatedConfig(relPath string) bool {
 // GetAttr - FUSE call
 // "relPath" is the relative ciphertext path
 func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
-	excluded, pPath, err := rfs.isExcludedCipher(relPath)
+	excluded, pPath, err := rfs.getFileInfo(relPath)
 	if excluded {
 		return nil, fuse.ENOENT
 	}
@@ -221,7 +251,7 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 
 // Access - FUSE call
 func (rfs *ReverseFS) Access(relPath string, mode uint32, context *fuse.Context) fuse.Status {
-	excluded, pPath, err := rfs.isExcludedCipher(relPath)
+	excluded, pPath, err := rfs.getFileInfo(relPath)
 	if excluded {
 		return fuse.ENOENT
 	}
@@ -248,7 +278,7 @@ func (rfs *ReverseFS) Access(relPath string, mode uint32, context *fuse.Context)
 
 // Open - FUSE call
 func (rfs *ReverseFS) Open(relPath string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
-	excluded, pPath, err := rfs.isExcludedCipher(relPath)
+	excluded, pPath, err := rfs.getFileInfo(relPath)
 	if excluded {
 		return nil, fuse.ENOENT
 	}
@@ -294,7 +324,7 @@ func (rfs *ReverseFS) openDirPlaintextnames(relPath string, entries []fuse.DirEn
 
 // OpenDir - FUSE readdir call
 func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
-	excluded, relPath, err := rfs.isExcludedCipher(cipherPath)
+	excluded, relPath, err := rfs.getFileInfo(cipherPath)
 	if excluded {
 		return nil, fuse.ENOENT
 	}
@@ -392,7 +422,7 @@ func (rfs *ReverseFS) excludeDirEntries(pDir string, entries []fuse.DirEntry) (f
 // it's worth, so we just ignore the path and always return info about the
 // backing storage root dir.
 func (rfs *ReverseFS) StatFs(relPath string) *fuse.StatfsOut {
-	excluded, _, err := rfs.isExcludedCipher(relPath)
+	excluded, _, err := rfs.getFileInfo(relPath)
 	if excluded || err != nil {
 		return nil
 	}
@@ -408,7 +438,7 @@ func (rfs *ReverseFS) StatFs(relPath string) *fuse.StatfsOut {
 
 // Readlink - FUSE call
 func (rfs *ReverseFS) Readlink(relPath string, context *fuse.Context) (string, fuse.Status) {
-	excluded, pPath, err := rfs.isExcludedCipher(relPath)
+	excluded, pPath, err := rfs.getFileInfo(relPath)
 	if excluded {
 		return "", fuse.ENOENT
 	}

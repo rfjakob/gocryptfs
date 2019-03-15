@@ -38,3 +38,56 @@ func TestShouldDetectRegularFile(t *testing.T) {
 		t.Errorf("Expecting %d, got %d\n", regular, ftype)
 	}
 }
+
+// Note: For path exclusion, see also the integration tests in
+// tests/reverse/exclude_test.go
+func TestShouldNotCallIgnoreParserForTranslatedConfig(t *testing.T) {
+	rfs, ignorerMock := createRFSWithMocks()
+
+	if excluded, _, _ := rfs.getFileInfo(configfile.ConfDefaultName); excluded {
+		t.Error("Should not exclude translated config")
+	}
+	if ignorerMock.calledWith != "" {
+		t.Error("Should not call IgnoreParser for translated config")
+	}
+}
+
+func TestShouldCheckIfParentIsExcludedForDirIV(t *testing.T) {
+	rfs, ignorerMock := createRFSWithMocks()
+	path := "dir"
+	ignorerMock.toExclude = "mockdecrypt_dir"
+	dirIV := path + "/" + nametransform.DirIVFilename
+
+	if excluded, _, _ := rfs.getFileInfo(dirIV); !excluded {
+		t.Error("Should have excluded DirIV based on parent")
+	}
+	if ignorerMock.calledWith != "mockdecrypt_dir" {
+		t.Errorf("Should have checked parent dir, checked %q", ignorerMock.calledWith)
+	}
+}
+
+func TestShouldCheckIfParentIsExcludedForLongName(t *testing.T) {
+	rfs, ignorerMock := createRFSWithMocks()
+	path := "parent"
+	ignorerMock.toExclude = "mockdecrypt_parent"
+	dirIV := path + "/" + "gocryptfs.longname.fake.name"
+
+	if excluded, _, _ := rfs.getFileInfo(dirIV); !excluded {
+		t.Error("Should have excluded LongName based on parent")
+	}
+	if ignorerMock.calledWith != "mockdecrypt_parent" {
+		t.Errorf("Should have checked parent dir, checked %q", ignorerMock.calledWith)
+	}
+}
+
+func TestShouldDecryptPathAndReturnTrueForExcludedPath(t *testing.T) {
+	rfs, ignorerMock := createRFSWithMocks()
+	ignorerMock.toExclude = "mockdecrypt_file.txt"
+
+	if excluded, _, _ := rfs.getFileInfo("file.txt"); !excluded {
+		t.Error("Should have excluded")
+	}
+	if ignorerMock.calledWith != "mockdecrypt_file.txt" {
+		t.Error("Didn't call IgnoreParser with decrypted path")
+	}
+}

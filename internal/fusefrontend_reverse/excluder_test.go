@@ -6,9 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
-	"github.com/rfjakob/gocryptfs/internal/nametransform"
 )
 
 func TestShouldNoCreateExcluderIfNoPattersWereSpecified(t *testing.T) {
@@ -69,77 +67,6 @@ func TestShouldReadExcludePatternsFromFiles(t *testing.T) {
 	}
 }
 
-type IgnoreParserMock struct {
-	toExclude  string
-	calledWith string
-}
-
-func (parser *IgnoreParserMock) MatchesPath(f string) bool {
-	parser.calledWith = f
-	return f == parser.toExclude
-}
-
-type NameTransformMock struct {
-	nametransform.NameTransform
-}
-
-func (n *NameTransformMock) DecryptName(cipherName string, iv []byte) (string, error) {
-	return "mockdecrypt_" + cipherName, nil
-}
-
-// Note: See also the integration tests in
-// tests/reverse/exclude_test.go
-func TestShouldNotCallIgnoreParserForTranslatedConfig(t *testing.T) {
-	rfs, ignorerMock := createRFSWithMocks()
-
-	if excluded, _, _ := rfs.isExcludedCipher(configfile.ConfDefaultName); excluded {
-		t.Error("Should not exclude translated config")
-	}
-	if ignorerMock.calledWith != "" {
-		t.Error("Should not call IgnoreParser for translated config")
-	}
-}
-
-func TestShouldCheckIfParentIsExcludedForDirIV(t *testing.T) {
-	rfs, ignorerMock := createRFSWithMocks()
-	path := "dir"
-	ignorerMock.toExclude = "mockdecrypt_dir"
-	dirIV := path + "/" + nametransform.DirIVFilename
-
-	if excluded, _, _ := rfs.isExcludedCipher(dirIV); !excluded {
-		t.Error("Should have excluded DirIV based on parent")
-	}
-	if ignorerMock.calledWith != "mockdecrypt_dir" {
-		t.Errorf("Should have checked parent dir, checked %q", ignorerMock.calledWith)
-	}
-}
-
-func TestShouldCheckIfParentIsExcludedForLongName(t *testing.T) {
-	rfs, ignorerMock := createRFSWithMocks()
-	path := "parent"
-	ignorerMock.toExclude = "mockdecrypt_parent"
-	dirIV := path + "/" + "gocryptfs.longname.fake.name"
-
-	if excluded, _, _ := rfs.isExcludedCipher(dirIV); !excluded {
-		t.Error("Should have excluded LongName based on parent")
-	}
-	if ignorerMock.calledWith != "mockdecrypt_parent" {
-		t.Errorf("Should have checked parent dir, checked %q", ignorerMock.calledWith)
-	}
-}
-
-func TestShouldDecryptPathAndReturnTrueForExcludedPath(t *testing.T) {
-	rfs, ignorerMock := createRFSWithMocks()
-	ignorerMock.toExclude = "mockdecrypt_file.txt"
-
-	if excluded, _, _ := rfs.isExcludedCipher("file.txt"); !excluded {
-		t.Error("Should have excluded")
-	}
-	if ignorerMock.calledWith != "mockdecrypt_file.txt" {
-		t.Error("Didn't call IgnoreParser with decrypted path")
-	}
-}
-
 func TestShouldReturnFalseIfThereAreNoExclusions(t *testing.T) {
 	var rfs ReverseFS
 	if rfs.isExcludedPlain("any/path") {
@@ -154,13 +81,4 @@ func TestShouldCallIgnoreParserToCheckExclusion(t *testing.T) {
 	if ignorerMock.calledWith != "some/path" {
 		t.Error("Failed to call IgnoreParser")
 	}
-}
-
-func createRFSWithMocks() (*ReverseFS, *IgnoreParserMock) {
-	ignorerMock := &IgnoreParserMock{}
-	nameTransformMock := &NameTransformMock{}
-	var rfs ReverseFS
-	rfs.excluder = ignorerMock
-	rfs.nameTransform = nameTransformMock
-	return &rfs, ignorerMock
 }
