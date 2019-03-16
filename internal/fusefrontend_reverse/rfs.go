@@ -165,7 +165,7 @@ func (rfs *ReverseFS) isTranslatedConfig(relPath string) bool {
 // GetAttr - FUSE call
 // "relPath" is the relative ciphertext path
 func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
-	_, excluded, pPath, err := rfs.getFileInfo(relPath)
+	ftype, excluded, pPath, err := rfs.getFileInfo(relPath)
 	if excluded {
 		return nil, fuse.ENOENT
 	}
@@ -173,7 +173,7 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 		return nil, fuse.ToStatus(err)
 	}
 	// Handle "gocryptfs.conf"
-	if rfs.isTranslatedConfig(relPath) {
+	if ftype == config {
 		absConfPath, _ := rfs.abs(configfile.ConfReverseName, nil)
 		var st syscall.Stat_t
 		err = syscall.Lstat(absConfPath, &st)
@@ -191,11 +191,11 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 	var f nodefs.File
 	var status fuse.Status
 	virtual := false
-	if rfs.isDirIV(relPath) {
+	if ftype == diriv {
 		virtual = true
 		f, status = rfs.newDirIVFile(relPath)
 	}
-	if rfs.isNameFile(relPath) {
+	if ftype == namefile {
 		virtual = true
 		f, status = rfs.newNameFile(relPath)
 	}
@@ -253,14 +253,14 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 
 // Access - FUSE call
 func (rfs *ReverseFS) Access(relPath string, mode uint32, context *fuse.Context) fuse.Status {
-	_, excluded, pPath, err := rfs.getFileInfo(relPath)
+	ftype, excluded, pPath, err := rfs.getFileInfo(relPath)
 	if excluded {
 		return fuse.ENOENT
 	}
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	if rfs.isTranslatedConfig(relPath) || rfs.isDirIV(relPath) || rfs.isNameFile(relPath) {
+	if ftype != regular {
 		// access(2) R_OK flag for checking if the file is readable, always 4 as defined in POSIX.
 		ROK := uint32(0x4)
 		// Virtual files can always be read and never written
@@ -280,20 +280,20 @@ func (rfs *ReverseFS) Access(relPath string, mode uint32, context *fuse.Context)
 
 // Open - FUSE call
 func (rfs *ReverseFS) Open(relPath string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
-	_, excluded, pPath, err := rfs.getFileInfo(relPath)
+	ftype, excluded, pPath, err := rfs.getFileInfo(relPath)
 	if excluded {
 		return nil, fuse.ENOENT
 	}
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	if rfs.isTranslatedConfig(relPath) {
+	if ftype == config {
 		return rfs.loopbackfs.Open(configfile.ConfReverseName, flags, context)
 	}
-	if rfs.isDirIV(relPath) {
+	if ftype == diriv {
 		return rfs.newDirIVFile(relPath)
 	}
-	if rfs.isNameFile(relPath) {
+	if ftype == namefile {
 		return rfs.newNameFile(relPath)
 	}
 	return rfs.newFile(relPath, pPath)
