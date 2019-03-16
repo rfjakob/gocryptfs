@@ -326,12 +326,15 @@ func (rfs *ReverseFS) openDirPlaintextnames(relPath string, entries []fuse.DirEn
 
 // OpenDir - FUSE readdir call
 func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
-	_, excluded, relPath, err := rfs.getFileInfo(cipherPath)
+	ftype, excluded, relPath, err := rfs.getFileInfo(cipherPath)
 	if excluded {
 		return nil, fuse.ENOENT
 	}
 	if err != nil {
 		return nil, fuse.ToStatus(err)
+	}
+	if ftype != regular {
+		return nil, fuse.ENOTDIR
 	}
 	// Read plaintext dir
 	dirfd, err := syscallcompat.OpenDirNofollow(rfs.args.Cipherdir, filepath.Dir(relPath))
@@ -440,12 +443,15 @@ func (rfs *ReverseFS) StatFs(relPath string) *fuse.StatfsOut {
 
 // Readlink - FUSE call
 func (rfs *ReverseFS) Readlink(relPath string, context *fuse.Context) (string, fuse.Status) {
-	_, excluded, pPath, err := rfs.getFileInfo(relPath)
+	ftype, excluded, pPath, err := rfs.getFileInfo(relPath)
 	if excluded {
 		return "", fuse.ENOENT
 	}
 	if err != nil {
 		return "", fuse.ToStatus(err)
+	}
+	if ftype != regular {
+		return "", fuse.EINVAL
 	}
 	dirfd, name, err := rfs.openBackingDir(pPath)
 	if err != nil {
