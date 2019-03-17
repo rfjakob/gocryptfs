@@ -161,7 +161,9 @@ RM:    3.379
 Changelog
 ---------
 
-v1.7, in progress (v1.7-beta1: 2019-01-03, v1.7-rc1: 2019-01-04)
+vNEXT, in progress
+
+v1.7, 2019-03-17
 * **Fix possible symlink race attacks in forward mode** when using allow_other + plaintextnames
   * If you use *both* `-allow_other` *and* `-plaintextnames`, you should upgrade.
     Malicious users could trick gocryptfs into modifying files outside of `CIPHERDIR`,
@@ -184,6 +186,12 @@ v1.7, in progress (v1.7-beta1: 2019-01-03, v1.7-rc1: 2019-01-04)
   stdin,stdout and/or stderr closed.
 * `-extpass` now can be specified multiple times to support arguments containing spaces
   ([#289](https://github.com/rfjakob/gocryptfs/issues/289))
+* Drop Fstatat, Mkdirat, Syslinkat, Fchownat, Unlinkat, Renameat, Openat emulation of MacOS
+  and instead use native functions (thanks @slackner !)
+* Use `Setreuid` to robustly set the owner with allow_other (@slackner,
+  ([commit](https://github.com/rfjakob/gocryptfs/commit/03b9d65cce53fb95b7d489ecd03d0853b9b923fb)))
+* Pack the rendered man page into the source code archive for user convenience
+  ([issue 355](https://github.com/rfjakob/gocryptfs/issues/355))
 
 v1.6.1, 2018-12-12
 * Fix "Operation not supported" chmod errors on Go 1.11
