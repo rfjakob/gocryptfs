@@ -90,7 +90,7 @@ fi
 # Actual "go build" call
 go build "-ldflags=$GO_LDFLAGS" "-gcflags=$TRIM" "-asmflags=$TRIM" "$@"
 
-(cd gocryptfs-xray; go build "-gcflags=$TRIM" "-asmflags=$TRIM" "$@")
+(cd gocryptfs-xray; go build "-ldflags=$GO_LDFLAGS" "-gcflags=$TRIM" "-asmflags=$TRIM" "$@")
 
 ./gocryptfs -version
 
