@@ -11,10 +11,10 @@ SYNOPSIS
 ========
 
 #### Examine encrypted file/directory
-gocryptfs CIPHERDIR/ENCRYPTED-FILE-OR-DIR
+gocryptfs-xray CIPHERDIR/ENCRYPTED-FILE-OR-DIR
 
 #### Decrypt and show master key
-gocryptfs -dumpmasterkey CIPHERDIR/gocryptfs.conf
+gocryptfs-xray -dumpmasterkey CIPHERDIR/gocryptfs.conf
 
 DESCRIPTION
 ===========
