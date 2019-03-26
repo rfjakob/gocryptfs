@@ -379,7 +379,8 @@ func (rfs *ReverseFS) OpenDir(cipherPath string, context *fuse.Context) ([]fuse.
 	for i := range entries {
 		var cName string
 		// ".gocryptfs.reverse.conf" in the root directory is mapped to "gocryptfs.conf"
-		if cipherPath == "" && entries[i].Name == configfile.ConfReverseName {
+		if cipherPath == "" && entries[i].Name == configfile.ConfReverseName &&
+			!rfs.args.ConfigCustom {
 			cName = configfile.ConfDefaultName
 		} else {
 			cName = rfs.nameTransform.EncryptName(entries[i].Name, dirIV)
