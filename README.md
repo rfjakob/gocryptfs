@@ -164,6 +164,8 @@ Changelog
 ---------
 
 vNEXT, in progress
+* Support wild cards in reverse mode via `--exclude-wildcard`
+  ([#367](https://github.com/rfjakob/gocryptfs/pull/367)). Thanks @ekalin!
 
 v1.7, 2019-03-17
 * **Fix possible symlink race attacks in forward mode** when using allow_other + plaintextnames
