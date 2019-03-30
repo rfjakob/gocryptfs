@@ -61,11 +61,19 @@ func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 // This function is exported because it is used from fusefrontend, main,
 // and also the automated tests.
 func WriteDirIVAt(dirfd int) error {
+	// It makes sense to have the diriv files group-readable so the FS can
+	// be mounted from several users from a network drive (see
+	// https://github.com/rfjakob/gocryptfs/issues/387 ).
+	//
+	// Note that gocryptfs.conf is still created with 0400 permissions so the
+	// owner must explicitely chmod it to permit access.
+	const dirivPerms = 0440
+
 	iv := cryptocore.RandBytes(DirIVLen)
 	// 0400 permissions: gocryptfs.diriv should never be modified after creation.
 	// Don't use "ioutil.WriteFile", it causes trouble on NFS:
 	// https://github.com/rfjakob/gocryptfs/commit/7d38f80a78644c8ec4900cc990bfb894387112ed
-	fd, err := syscallcompat.Openat(dirfd, DirIVFilename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0400)
+	fd, err := syscallcompat.Openat(dirfd, DirIVFilename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, dirivPerms)
 	if err != nil {
 		tlog.Warn.Printf("WriteDirIV: Openat: %v", err)
 		return err

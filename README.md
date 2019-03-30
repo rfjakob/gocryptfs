@@ -166,6 +166,11 @@ Changelog
 vNEXT, in progress
 * Support wild cards in reverse mode via `--exclude-wildcard`
   ([#367](https://github.com/rfjakob/gocryptfs/pull/367)). Thanks @ekalin!
+* Create `gocryptfs.diriv` files with 0440 permissions to make it easier to
+  share an encrypted folder via a network drive
+  ([#387](https://github.com/rfjakob/gocryptfs/issues/387)).
+  Note: as a security precaution, the owner must still manually 
+  `chmod gocryptfs.conf 0440` to allow mounting.
 
 v1.7, 2019-03-17
 * **Fix possible symlink race attacks in forward mode** when using allow_other + plaintextnames

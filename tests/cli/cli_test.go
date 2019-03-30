@@ -43,6 +43,26 @@ func TestInit(t *testing.T) {
 	}
 }
 
+// Test that gocryptfs.conf and gocryptfs.diriv are there with the expected
+// permissions after -init
+func TestInitFilePerms(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	var st syscall.Stat_t
+	syscall.Stat(dir+"/gocryptfs.conf", &st)
+	perms := st.Mode & 0777
+	if perms != 0400 {
+		t.Errorf("Wrong permissions for gocryptfs.conf: %#o", perms)
+	}
+	st = syscall.Stat_t{}
+	syscall.Stat(dir+"/gocryptfs.diriv", &st)
+	perms = st.Mode & 0777
+	// From v1.7.1, these are created with 0440 permissions, see
+	// https://github.com/rfjakob/gocryptfs/issues/387
+	if perms != 0440 {
+		t.Errorf("Wrong permissions for gocryptfs.diriv: %#o", perms)
+	}
+}
+
 // Test -init with -devrandom flag
 func TestInitDevRandom(t *testing.T) {
 	test_helpers.InitFS(t, "-devrandom")
