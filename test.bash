@@ -48,7 +48,7 @@ if ! go tool | grep vet > /dev/null ; then
 elif [[ -d vendor ]] ; then
 	echo "vendor directory exists, skipping 'go tool vet'"
 else
-	go vet .
+	go vet "$@" .
 fi
 
 #            We don't want all the subprocesses
