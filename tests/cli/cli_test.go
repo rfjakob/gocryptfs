@@ -285,6 +285,14 @@ func TestNonempty(t *testing.T) {
 	test_helpers.UnmountPanic(mnt)
 }
 
+// -nofail should be ignored and the mount should succeed
+func TestNofail(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	mnt := dir + ".mnt"
+	test_helpers.MountOrFatal(t, dir, mnt, "-nofail", "-extpass=echo test")
+	defer test_helpers.UnmountPanic(mnt)
+}
+
 // Test "mountpoint shadows cipherdir" handling
 func TestShadows(t *testing.T) {
 	mnt := test_helpers.InitFS(t)

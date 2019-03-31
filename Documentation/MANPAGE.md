@@ -238,6 +238,12 @@ See `-dev, -nodev`.
 #### -noexec
 See `-exec, -noexec`.
 
+#### -nofail
+Having the `nofail` option in `/etc/fstab` instructs `systemd` to continue
+booting normally even if the mount fails (see `man systemd.fstab`).
+
+The option is ignored by `gocryptfs` itself and has no effect outside `/etc/fstab`.
+
 #### -nonempty
 Allow mounting over non-empty directories. FUSE by default disallows
 this to prevent accidental shadowing of files.

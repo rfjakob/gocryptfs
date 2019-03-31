@@ -171,6 +171,7 @@ vNEXT, in progress
   ([#387](https://github.com/rfjakob/gocryptfs/issues/387)).
   Note: as a security precaution, the owner must still manually 
   `chmod gocryptfs.conf 0440` to allow mounting.
+* Allow the `nofail` option in `/etc/fstab`
 
 v1.7, 2019-03-17
 * **Fix possible symlink race attacks in forward mode** when using allow_other + plaintextnames

@@ -212,6 +212,9 @@ func parseCliOpts() (args argContainer) {
 	flagSet.DurationVar(&args.idle, "idle", 0, "Auto-unmount after specified idle duration (ignored in reverse mode). "+
 		"Durations are specified like \"500s\" or \"2h45m\". 0 means stay mounted indefinitely.")
 
+	var nofail bool
+	flagSet.BoolVar(&nofail, "nofail", false, "Ignored for /etc/fstab compatibility")
+
 	var dummyString string
 	flagSet.StringVar(&dummyString, "o", "", "For compatibility with mount(1), options can be also passed as a comma-separated list to -o on the end.")
 	// Actual parsing
