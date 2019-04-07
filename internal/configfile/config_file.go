@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"syscall"
 
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
@@ -285,7 +286,11 @@ func (cf *ConfFile) WriteFile() error {
 	}
 	err = fd.Sync()
 	if err != nil {
-		return err
+		// This can happen on network drives: FRITZ.NAS mounted on MacOS returns
+		// "operation not supported": https://github.com/rfjakob/gocryptfs/issues/390
+		tlog.Warn.Printf("Warning: fsync failed: %v", err)
+		// Try sync instead
+		syscall.Sync()
 	}
 	err = fd.Close()
 	if err != nil {
