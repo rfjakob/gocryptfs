@@ -81,7 +81,6 @@ func initDir(args *argContainer) {
 		} else {
 			// Normal password entry
 			password = readpassword.Twice([]string(args.extpass), args.passfile)
-			readpassword.CheckTrailingGarbage()
 		}
 		creator := tlog.ProgramName + " " + GitVersion
 		err = configfile.Create(args.config, password, args.plaintextnames,

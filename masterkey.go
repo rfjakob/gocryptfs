@@ -69,8 +69,5 @@ func getMasterKey(args *argContainer) (masterkey []byte, confFile *configfile.Co
 		}
 		exitcodes.Exit(err)
 	}
-	if !args.trezor {
-		readpassword.CheckTrailingGarbage()
-	}
 	return masterkey, confFile
 }

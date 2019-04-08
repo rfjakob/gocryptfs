@@ -94,7 +94,6 @@ func changePassword(args *argContainer) {
 		}
 		tlog.Info.Println("Please enter your new password.")
 		newPw := readpassword.Twice([]string(args.extpass), args.passfile)
-		readpassword.CheckTrailingGarbage()
 		confFile.EncryptKey(masterkey, newPw, confFile.ScryptObject.LogN())
 		for i := range newPw {
 			newPw[i] = 0

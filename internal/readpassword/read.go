@@ -8,8 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"sync"
-	"time"
 
 	"golang.org/x/crypto/ssh/terminal"
 
@@ -158,34 +156,4 @@ func readLineUnbuffered(r io.Reader) (l []byte) {
 		}
 		l = append(l, b...)
 	}
-}
-
-// CheckTrailingGarbage tries to read one byte from stdin and exits with a
-// fatal error if the read returns any data.
-// This is meant to be called after reading the password, when there is no more
-// data expected. This helps to catch problems with third-party tools that
-// interface with gocryptfs.
-//
-// This is tested via TestInitTrailingGarbage() in tests/cli/cli_test.go.
-func CheckTrailingGarbage() {
-	if terminal.IsTerminal(int(os.Stdin.Fd())) {
-		// Be lenient when interacting with a human.
-		return
-	}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		b := make([]byte, 1)
-		wg.Done()
-		n, _ := os.Stdin.Read(b)
-		if n > 0 {
-			tlog.Fatal.Printf("Received trailing garbage after the password")
-			os.Exit(exitcodes.ReadPassword)
-		}
-	}()
-	// Wait for the goroutine to start up plus one millisecond for the read to
-	// return. If there is data available, this SHOULD be plenty of time to
-	// read one byte. However, I don't see a way to be sure.
-	wg.Wait()
-	time.Sleep(1 * time.Millisecond)
 }
