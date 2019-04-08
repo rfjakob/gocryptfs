@@ -151,7 +151,7 @@ func TestWrite10Tight(t *testing.T) {
 	path := test_helpers.DefaultPlainDir + "/TestWrite10Tight"
 	content := make([]byte, 10)
 	buf := make([]byte, 100)
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 100; i++ {
 		file, err := os.Create(path)
 		if err != nil {
 			t.Fatal(err)

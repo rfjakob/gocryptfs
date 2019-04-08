@@ -26,7 +26,7 @@ func TestConcurrentReadWrite(t *testing.T) {
 	}
 	buf := make([]byte, 100)
 	content := []byte("1234567890")
-	threads := 30
+	threads := 10
 	loops := 30
 	for i := 0; i < threads; i++ {
 		// Reader thread
@@ -80,7 +80,7 @@ func TestConcurrentReadWrite(t *testing.T) {
 func TestConcurrentReadCreate(t *testing.T) {
 	fn := test_helpers.DefaultPlainDir + "/TestConcurrentReadCreate"
 	content := []byte("1234567890")
-	loops := 1000
+	loops := 100
 	var wg sync.WaitGroup
 	// "Creater" thread
 	wg.Add(1)
