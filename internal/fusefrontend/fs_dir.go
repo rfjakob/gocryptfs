@@ -197,7 +197,7 @@ retry:
 	children, err := syscallcompat.Getdents(dirfd)
 	if err == io.EOF {
 		// The directory is empty
-		tlog.Warn.Printf("Rmdir: %q: gocryptfs.diriv is missing", cName)
+		tlog.Warn.Printf("Rmdir: %q: %s is missing", cName, nametransform.DirIVFilename)
 		err = unix.Unlinkat(parentDirFd, cName, unix.AT_REMOVEDIR)
 		return fuse.ToStatus(err)
 	}
@@ -222,7 +222,7 @@ retry:
 		return fuse.ToStatus(syscall.ENOTEMPTY)
 	}
 	// Move "gocryptfs.diriv" to the parent dir as "gocryptfs.diriv.rmdir.XYZ"
-	tmpName := fmt.Sprintf("gocryptfs.diriv.rmdir.%d", cryptocore.RandUint64())
+	tmpName := fmt.Sprintf("%s.rmdir.%d", nametransform.DirIVFilename, cryptocore.RandUint64())
 	tlog.Debug.Printf("Rmdir: Renaming %s to %s", nametransform.DirIVFilename, tmpName)
 	// The directory is in an inconsistent state between rename and rmdir.
 	// Protect against concurrent readers.
@@ -293,7 +293,7 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 				return nil, fuse.ENOENT
 			}
 			// Any other problem warrants an error message
-			tlog.Warn.Printf("OpenDir %q: could not read gocryptfs.diriv: %v", cDirName, err)
+			tlog.Warn.Printf("OpenDir %q: could not read %s: %v", cDirName, nametransform.DirIVFilename, err)
 			return nil, fuse.EIO
 		}
 	}
