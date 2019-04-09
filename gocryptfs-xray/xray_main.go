@@ -38,19 +38,24 @@ func prettyPrintHeader(h *contentenc.FileHeader, aessiv bool) {
 	fmt.Printf(msg+"\n", h.Version, id)
 }
 
+func usage() {
+	fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] FILE\n"+
+		"\n"+
+		"Options:\n", myName)
+	flag.PrintDefaults()
+	fmt.Fprintf(os.Stderr, "\n"+
+		"Examples:\n"+
+		"  gocryptfs-xray myfs/mCXnISiv7nEmyc0glGuhTQ\n"+
+		"  gocryptfs-xray -dumpmasterkey myfs/gocryptfs.conf\n")
+}
+
 func main() {
 	dumpmasterkey := flag.Bool("dumpmasterkey", false, "Decrypt and dump the master key")
 	aessiv := flag.Bool("aessiv", false, "Assume AES-SIV mode instead of AES-GCM")
+	flag.Usage = usage
 	flag.Parse()
 	if flag.NArg() != 1 {
-		fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] FILE\n"+
-			"\n"+
-			"Options:\n", myName)
-		flag.PrintDefaults()
-		fmt.Fprintf(os.Stderr, "\n"+
-			"Examples:\n"+
-			"  gocryptfs-xray myfs/mCXnISiv7nEmyc0glGuhTQ\n"+
-			"  gocryptfs-xray -dumpmasterkey myfs/gocryptfs.conf\n")
+		usage()
 		os.Exit(1)
 	}
 	fn := flag.Arg(0)
