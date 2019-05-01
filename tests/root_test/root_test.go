@@ -61,4 +61,15 @@ func TestSupplementaryGroups(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
+	err = asUser(1235, 1235, []int{1234}, func() error {
+		f, err := os.Create(dir1 + "/file1")
+		if err == nil {
+			f.Close()
+		}
+		return err
+	})
+	if err != nil {
+		t.Error(err)
+	}
 }
