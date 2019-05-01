@@ -26,6 +26,9 @@ type mountInfo struct {
 
 // Mount CIPHERDIR "c" on PLAINDIR "p"
 // Creates "p" if it does not exist.
+//
+// Contrary to InitFS(), you MUST passt "-extpass=echo test" (or another way for
+// getting the master key) explicitely.
 func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 	args := []string{"-q", "-wpanic", "-nosyslog", "-fg", fmt.Sprintf("-notifypid=%d", os.Getpid())}
 	args = append(args, extraArgs...)
@@ -93,6 +96,9 @@ func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 }
 
 // MountOrExit calls Mount() and exits on failure.
+//
+// Contrary to InitFS(), you MUST passt "-extpass=echo test" (or another way for
+// getting the master key) explicitely.
 func MountOrExit(c string, p string, extraArgs ...string) {
 	err := Mount(c, p, true, extraArgs...)
 	if err != nil {
@@ -102,6 +108,9 @@ func MountOrExit(c string, p string, extraArgs ...string) {
 }
 
 // MountOrFatal calls Mount() and calls t.Fatal() on failure.
+//
+// Contrary to InitFS(), you MUST passt "-extpass=echo test" (or another way for
+// getting the master key) explicitely.
 func MountOrFatal(t *testing.T, c string, p string, extraArgs ...string) {
 	err := Mount(c, p, true, extraArgs...)
 	if err != nil {
