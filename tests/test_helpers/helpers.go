@@ -61,12 +61,14 @@ func doInit() {
 	MountInfo = make(map[string]mountInfo)
 	// Something like /tmp/gocryptfs-test-parent-1234
 	testParentDir := fmt.Sprintf("%s/gocryptfs-test-parent-%d", os.TempDir(), os.Getuid())
-	os.MkdirAll(testParentDir, 0700)
+	os.MkdirAll(testParentDir, 0755)
 	var err error
 	TmpDir, err = ioutil.TempDir(testParentDir, "")
 	if err != nil {
 		panic(err)
 	}
+	// Open permissions for the allow_other tests
+	os.Chmod(TmpDir, 0755)
 	DefaultPlainDir = TmpDir + "/default-plain"
 	DefaultCipherDir = TmpDir + "/default-cipher"
 }
@@ -104,11 +106,11 @@ func ResetTmpDir(createDirIV bool) {
 			}
 		}
 	}
-	err = os.Mkdir(DefaultPlainDir, 0700)
+	err = os.Mkdir(DefaultPlainDir, 0755)
 	if err != nil {
 		panic(err)
 	}
-	err = os.Mkdir(DefaultCipherDir, 0700)
+	err = os.Mkdir(DefaultCipherDir, 0755)
 	if err != nil {
 		panic(err)
 	}
