@@ -37,6 +37,7 @@ script:
   - ./build.bash
   - ./gocryptfs -speed
   - ./test.bash -v
+  - make root_test
   - ./crossbuild.bash
   - echo "rebuild with locked dependencies"
   - echo travis_fold:start:dep
