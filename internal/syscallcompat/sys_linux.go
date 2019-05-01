@@ -3,7 +3,10 @@ package syscallcompat
 
 import (
 	"fmt"
+	"io/ioutil"
 	"runtime"
+	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -59,11 +62,43 @@ func Fallocate(fd int, mode uint32, off int64, len int64) (err error) {
 	return syscall.Fallocate(fd, mode, off, len)
 }
 
+func getSupplementaryGroups(pid uint32) (gids []int) {
+	procPath := fmt.Sprintf("/proc/%d/task/%d/status", pid, pid)
+	blob, err := ioutil.ReadFile(procPath)
+	if err != nil {
+		return nil
+	}
+
+	lines := strings.Split(string(blob), "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "Groups:") {
+			f := strings.Fields(line[7:])
+			gids = make([]int, len(f))
+			for i := range gids {
+				val, err := strconv.ParseInt(f[i], 10, 32)
+				if err != nil {
+					return nil
+				}
+				gids[i] = int(val)
+			}
+			return gids
+		}
+	}
+
+	return nil
+}
+
 // OpenatUser runs the Openat syscall in the context of a different user.
 func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Context) (fd int, err error) {
 	if context != nil {
 		runtime.LockOSThread()
 		defer runtime.UnlockOSThread()
+
+		err = syscall.Setgroups(getSupplementaryGroups(context.Pid))
+		if err != nil {
+			return -1, err
+		}
+		defer syscall.Setgroups(nil)
 
 		err = syscall.Setregid(-1, int(context.Owner.Gid))
 		if err != nil {
@@ -91,6 +126,12 @@ func MknodatUser(dirfd int, path string, mode uint32, dev int, context *fuse.Con
 	if context != nil {
 		runtime.LockOSThread()
 		defer runtime.UnlockOSThread()
+
+		err = syscall.Setgroups(getSupplementaryGroups(context.Pid))
+		if err != nil {
+			return err
+		}
+		defer syscall.Setgroups(nil)
 
 		err = syscall.Setregid(-1, int(context.Owner.Gid))
 		if err != nil {
@@ -154,6 +195,12 @@ func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.C
 		runtime.LockOSThread()
 		defer runtime.UnlockOSThread()
 
+		err = syscall.Setgroups(getSupplementaryGroups(context.Pid))
+		if err != nil {
+			return err
+		}
+		defer syscall.Setgroups(nil)
+
 		err = syscall.Setregid(-1, int(context.Owner.Gid))
 		if err != nil {
 			return err
@@ -175,6 +222,12 @@ func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (er
 	if context != nil {
 		runtime.LockOSThread()
 		defer runtime.UnlockOSThread()
+
+		err = syscall.Setgroups(getSupplementaryGroups(context.Pid))
+		if err != nil {
+			return err
+		}
+		defer syscall.Setgroups(nil)
 
 		err = syscall.Setregid(-1, int(context.Owner.Gid))
 		if err != nil {
