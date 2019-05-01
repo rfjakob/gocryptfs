@@ -10,7 +10,7 @@ set -eu
 
 cd "$(dirname "$0")"
 MYNAME=$(basename "$0")
-TESTDIR=$TMPDIR/gocryptfs-test-parent
+TESTDIR=$TMPDIR/gocryptfs-test-parent-$UID
 mkdir -p $TESTDIR
 LOCKFILE=$TESTDIR/$MYNAME.lock
 

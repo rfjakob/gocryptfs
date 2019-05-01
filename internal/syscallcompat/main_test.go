@@ -16,7 +16,8 @@ func TestMain(m *testing.M) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	parent := "/tmp/gocryptfs-test-parent"
+	// Cannot import test_helpers because of import cycle
+	parent := fmt.Sprintf("/tmp/gocryptfs-test-parent-%d", os.Getuid())
 	err = os.MkdirAll(parent, 0700)
 	if err != nil {
 		fmt.Println(err)

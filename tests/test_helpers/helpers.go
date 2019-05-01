@@ -59,8 +59,8 @@ func init() {
 func doInit() {
 	X255 = string(bytes.Repeat([]byte("X"), 255))
 	MountInfo = make(map[string]mountInfo)
-
-	testParentDir := os.TempDir() + "/gocryptfs-test-parent"
+	// Something like /tmp/gocryptfs-test-parent-1234
+	testParentDir := fmt.Sprintf("%s/gocryptfs-test-parent-%d", os.TempDir(), os.Getuid())
 	os.MkdirAll(testParentDir, 0700)
 	var err error
 	TmpDir, err = ioutil.TempDir(testParentDir, "")
