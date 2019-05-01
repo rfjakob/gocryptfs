@@ -7,6 +7,11 @@ build:
 test:
 	./test.bash
 
+.phony: root_test
+root_test:
+	./build.bash
+	cd tests/root_test ; go test -c ; sudo ./root_test.test
+
 .phony: format
 format:
 	go fmt ./...
