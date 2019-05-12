@@ -126,7 +126,7 @@ func changePassword(args *argContainer) {
 }
 
 // printVersion prints a version string like this:
-// gocryptfs v0.12-36-ge021b9d-dirty; go-fuse a4c968c; 2016-07-03 go1.6.2
+// gocryptfs v1.7-32-gcf99cfd; go-fuse v1.0.0-174-g22a9cb9; 2019-05-12 go1.12 linux/amd64
 func printVersion() {
 	var tagsSlice []string
 	if stupidgcm.BuiltWithoutOpenssl {
@@ -143,8 +143,9 @@ func printVersion() {
 	if raceDetector {
 		built += " -race"
 	}
-	fmt.Printf("%s %s%s; go-fuse %s; %s\n",
-		tlog.ProgramName, GitVersion, tags, GitVersionFuse, built)
+	fmt.Printf("%s %s%s; go-fuse %s; %s %s/%s\n",
+		tlog.ProgramName, GitVersion, tags, GitVersionFuse, built,
+		runtime.GOOS, runtime.GOARCH)
 }
 
 func main() {
