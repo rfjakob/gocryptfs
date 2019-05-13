@@ -50,6 +50,8 @@ type argContainer struct {
 	_ctlsockFd net.Listener
 	// _forceOwner is, if non-nil, a parsed, validated Owner (as opposed to the string above)
 	_forceOwner *fuse.Owner
+	// _explicitScryptn is true then the user passed "-scryptn=xyz"
+	_explicitScryptn bool
 }
 
 type multipleStrings []string
@@ -205,7 +207,8 @@ func parseCliOpts() (args argContainer) {
 
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")
-	flagSet.IntVar(&args.scryptn, "scryptn", configfile.ScryptDefaultLogN, "scrypt cost parameter logN. Possible values: 10-28. "+
+	const scryptn = "scryptn"
+	flagSet.IntVar(&args.scryptn, scryptn, configfile.ScryptDefaultLogN, "scrypt cost parameter logN. Possible values: 10-28. "+
 		"A lower value speeds up mounting and reduces its memory needs, but makes the password susceptible to brute-force attacks")
 
 	flagSet.DurationVar(&args.idle, "i", 0, "Alias for -idle")
@@ -226,6 +229,10 @@ func parseCliOpts() (args argContainer) {
 	if err != nil {
 		tlog.Fatal.Printf("Invalid command line: %s. Try '%s -help'.", prettyArgs(), tlog.ProgramName)
 		os.Exit(exitcodes.Usage)
+	}
+	// We want to know if -scryptn was passed explicitely
+	if isFlagPassed(flagSet, scryptn) {
+		args._explicitScryptn = true
 	}
 	// "-openssl" needs some post-processing
 	if opensslAuto == "auto" {
@@ -310,4 +317,16 @@ func countOpFlags(args *argContainer) int {
 		count++
 	}
 	return count
+}
+
+// isFlagPassed finds out if the flag was explictely passed on the command line.
+// https://stackoverflow.com/a/54747682/1380267
+func isFlagPassed(flagSet *flag.FlagSet, name string) bool {
+	found := false
+	flagSet.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			found = true
+		}
+	})
+	return found
 }

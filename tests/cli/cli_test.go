@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strconv"
 	"syscall"
 	"testing"
 	"time"
@@ -92,6 +93,9 @@ func TestInitReverse(t *testing.T) {
 	}
 }
 
+// testPasswd changes the password from "test" to "test" using
+// the -extpass method, then from "test" to "newpasswd" using the
+// stdin method.
 func testPasswd(t *testing.T, dir string, extraArgs ...string) {
 	// Change password using "-extpass"
 	args := []string{"-q", "-passwd", "-extpass", "echo test"}
@@ -223,6 +227,23 @@ func TestPasswdReverse(t *testing.T) {
 	// Create FS
 	dir := test_helpers.InitFS(t, "-reverse")
 	testPasswd(t, dir, "-reverse")
+}
+
+// Test -passwd with -scryptn
+func TestPasswdScryptn(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	cf, err := configfile.Load(dir + "/gocryptfs.conf")
+	if err != nil {
+		t.Fatal(err)
+	}
+	testPasswd(t, dir, "-scryptn", strconv.Itoa(cf.ScryptObject.LogN()+1))
+	cf2, err := configfile.Load(dir + "/gocryptfs.conf")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cf2.ScryptObject.LogN() != cf.ScryptObject.LogN()+1 {
+		t.Errorf("wrong logN value %d", cf2.ScryptObject.LogN())
+	}
 }
 
 // Test -init & -config flag
