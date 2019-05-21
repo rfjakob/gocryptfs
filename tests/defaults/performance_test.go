@@ -53,6 +53,7 @@ func BenchmarkStreamRead(t *testing.B) {
 			fmt.Println(err)
 			t.FailNow()
 		}
+		defer f2.Close()
 		for h := 0; h < t.N-mb; h++ {
 			_, err = f2.Write(buf)
 			if err != nil {
@@ -60,13 +61,13 @@ func BenchmarkStreamRead(t *testing.B) {
 				t.FailNow()
 			}
 		}
-		f2.Close()
 	}
 
 	file, err := os.Open(fn)
 	if err != nil {
 		t.FailNow()
 	}
+	defer file.Close()
 	t.ResetTimer()
 	var i int
 	for i = 0; i < t.N; i++ {
@@ -79,7 +80,6 @@ func BenchmarkStreamRead(t *testing.B) {
 			t.FailNow()
 		}
 	}
-	file.Close()
 }
 
 // createFiles - create "count" files of size "size" bytes each

@@ -69,6 +69,8 @@ func openLoop() {
 			fmt.Printf("Open() failed: %v\n", err)
 			continue
 		}
+		defer f.Close()
+
 		_, err = f.Write(owned)
 		if err != nil {
 			fmt.Printf("Write() failed: %v\n", err)

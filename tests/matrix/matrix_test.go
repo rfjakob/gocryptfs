@@ -168,16 +168,13 @@ func TestWrite10Tight(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		defer file.Close()
 		n, err := file.Read(buf)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if n != 10 {
 			t.Fatalf("want 10 bytes, got %d", n)
-		}
-		err = file.Close()
-		if err != nil {
-			t.Fatal(err)
 		}
 		err = os.Remove(path)
 		if err != nil {
@@ -422,11 +419,11 @@ func TestNameLengths(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer f.Close()
 	entries, err := f.Readdirnames(0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.Close()
 	cnt1 := len(entries)
 
 	wd := test_helpers.DefaultPlainDir + "/"
@@ -442,6 +439,7 @@ func TestNameLengths(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		defer f.Close()
 		// In v1.7-rc2, we had a bug that allowed creation of too-long names.
 		// This threw errors in like this in READDIR:
 		//
@@ -452,7 +450,6 @@ func TestNameLengths(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		f.Close()
 		cnt2 := len(entries)
 		if cnt2 != cnt1+1 {
 			t.Fatalf("len=%d: expected %d dir entries, have %d: %v", len(name), cnt1+1, cnt2, entries)

@@ -242,5 +242,5 @@ func Test0100Dir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fd.Close()
+	defer fd.Close()
 }

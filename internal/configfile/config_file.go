@@ -274,6 +274,7 @@ func (cf *ConfFile) WriteFile() error {
 	if err != nil {
 		return err
 	}
+	defer fd.Close()
 	js, err := json.MarshalIndent(cf, "", "\t")
 	if err != nil {
 		return err
@@ -291,10 +292,6 @@ func (cf *ConfFile) WriteFile() error {
 		tlog.Warn.Printf("Warning: fsync failed: %v", err)
 		// Try sync instead
 		syscall.Sync()
-	}
-	err = fd.Close()
-	if err != nil {
-		return err
 	}
 	err = os.Rename(tmp, cf.filename)
 	return err

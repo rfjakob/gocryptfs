@@ -36,6 +36,7 @@ func TestConcurrentReadWrite(t *testing.T) {
 			if err != nil {
 				log.Fatal(err)
 			}
+			defer fRd.Close()
 			for j := 0; j < loops; j++ {
 				n, err := fRd.ReadAt(buf, 0)
 				if err != nil && err != io.EOF {
@@ -45,7 +46,6 @@ func TestConcurrentReadWrite(t *testing.T) {
 					log.Fatalf("strange read length: %d", n)
 				}
 			}
-			fRd.Close()
 			wg.Done()
 		}()
 
@@ -56,6 +56,7 @@ func TestConcurrentReadWrite(t *testing.T) {
 			if err != nil {
 				log.Fatal(err)
 			}
+			defer fWr.Close()
 			for j := 0; j < loops; j++ {
 				err = fWr.Truncate(0)
 				if err != nil {
@@ -66,7 +67,6 @@ func TestConcurrentReadWrite(t *testing.T) {
 					log.Fatal(err)
 				}
 			}
-			fWr.Close()
 			wg.Done()
 		}()
 	}

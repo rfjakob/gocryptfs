@@ -29,12 +29,12 @@ func BenchmarkLongnameStat(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
+	defer dirFd.Close()
 	encryptedNames, err := dirFd.Readdirnames(-1)
 	if err != nil {
 		b.Fatal(err)
 	}
 	l := len(encryptedNames)
-	dirFd.Close()
 	// Benchmark
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

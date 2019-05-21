@@ -53,6 +53,7 @@ func TestExampleFses(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer dirfd.Close()
 	var fsNames []string
 	entries, err := dirfd.Readdir(0)
 	if err != nil {
@@ -85,7 +86,6 @@ func TestExampleFses(t *testing.T) {
 			t.Errorf("fsck returned code %d but fs should be clean", code)
 		}
 	}
-	dirfd.Close()
 }
 
 // TestTerabyteFile verifies that fsck does something intelligent when it hits

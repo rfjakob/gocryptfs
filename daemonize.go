@@ -98,9 +98,9 @@ func redirectStdFds() {
 		tlog.Warn.Printf("redirectStdFds: could not open /dev/null: %v\n", err)
 		return
 	}
+	defer nullFd.Close()
 	err = syscallcompat.Dup3(int(nullFd.Fd()), 0, 0)
 	if err != nil {
 		tlog.Warn.Printf("redirectStdFds: stdin dup error: %v\n", err)
 	}
-	nullFd.Close()
 }

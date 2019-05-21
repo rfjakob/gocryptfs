@@ -289,7 +289,7 @@ func VerifyExistence(path string) bool {
 	if err != nil {
 		open = false
 	}
-	fd.Close()
+	defer fd.Close()
 	// Check if file shows up in directory listing
 	readdir := false
 	dir := filepath.Dir(path)

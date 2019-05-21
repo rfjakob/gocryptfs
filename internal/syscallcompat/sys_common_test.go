@@ -164,7 +164,7 @@ func TestFchmodatNofollow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.Close()
+	defer f.Close()
 	symlink := "TestFchmodat_Symlink"
 	err = syscall.Symlink(regular, tmpDir+"/"+symlink)
 	if err != nil {
