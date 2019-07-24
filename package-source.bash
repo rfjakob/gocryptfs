@@ -8,7 +8,7 @@ git_archive_extra() {
 	# Add files tracked in git
 	git archive --prefix "$PREFIX/" -o $PREFIX.tar HEAD
 	# Add "extra" files
-	tar --transform "s!^!$PREFIX/!" --append -f $PREFIX.tar "$@"
+	tar --owner=root --group=root --transform "s!^!$PREFIX/!" --append -f $PREFIX.tar "$@"
 	# Compress
 	gzip -f $PREFIX.tar
 }
