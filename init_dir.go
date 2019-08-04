@@ -17,9 +17,9 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-// isDirEmpty checks if "dir" exists and is an empty directory.
+// isEmptyDir checks if "dir" exists and is an empty directory.
 // Returns an *os.PathError if Stat() on the path fails.
-func isDirEmpty(dir string) error {
+func isEmptyDir(dir string) error {
 	err := isDir(dir)
 	if err != nil {
 		return err
@@ -61,7 +61,7 @@ func initDir(args *argContainer) {
 			os.Exit(exitcodes.Init)
 		}
 	} else {
-		err = isDirEmpty(args.cipherdir)
+		err = isEmptyDir(args.cipherdir)
 		if err != nil {
 			tlog.Fatal.Printf("Invalid cipherdir: %v", err)
 			os.Exit(exitcodes.Init)
