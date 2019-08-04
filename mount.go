@@ -19,6 +19,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
@@ -94,6 +96,18 @@ func doMount(args *argContainer) {
 				tlog.Warn.Printf("ctlsock close: %v", err)
 			}
 		}()
+	}
+	// Preallocation on Btrfs is broken ( https://github.com/rfjakob/gocryptfs/issues/395 )
+	// and slow ( https://github.com/rfjakob/gocryptfs/issues/63 ).
+	if !args.noprealloc {
+		var st unix.Statfs_t
+		err = unix.Statfs(args.cipherdir, &st)
+		if err == nil && st.Type == unix.BTRFS_SUPER_MAGIC {
+			tlog.Info.Printf(tlog.ColorYellow +
+				"Btrfs detected, forcing -noprealloc. See https://github.com/rfjakob/gocryptfs/issues/395 for why." +
+				tlog.ColorReset)
+			args.noprealloc = true
+		}
 	}
 	// We cannot use JSON for pretty-printing as the fields are unexported
 	tlog.Debug.Printf("cli args: %#v", args)
