@@ -105,7 +105,11 @@ func (sr *serializerState) pop() *submission {
 func (sr *serializerState) eventLoop() {
 	sr.input = make(chan *submission)
 	empty := true
+	timerDuration := time.Microsecond * 500
+	timer := time.NewTimer(timerDuration)
+	defer timer.Stop()
 	for {
+		timer.Reset(timerDuration)
 		if empty {
 			// If the queue is empty we block on the channel to conserve CPU
 			sb := <-sr.input
@@ -121,7 +125,7 @@ func (sr *serializerState) eventLoop() {
 				sr.unblockOne()
 			}
 			continue
-		case <-time.After(time.Microsecond * 500):
+		case <-timer.C:
 			// Looks like we have waited out all concurrent requests.
 			empty = sr.unblockOne()
 		}
