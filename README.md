@@ -50,6 +50,26 @@ of Mac OS X support but please create a new ticket if you hit a problem.
 For Windows, an independent C++ reimplementation can be found here:
 [cppcryptfs](https://github.com/bailey27/cppcryptfs)
 
+Installation
+------------
+Precompiled binaries that work on all x86_64 Linux systems are available for download from the github releases page.
+
+On Debian, gocryptfs is available as a deb package:
+```bash
+apt install gocryptfs
+```
+
+On Mac OS X, gocryptfs is available as a Homebrew formula:
+```bash
+brew install gocryptfs
+```
+
+On Fedora, gocryptfs is available as an rpm package:
+```bash
+sudo dnf install gocryptfs
+```
+See the [Quickstart](https://nuetzlich.net/gocryptfs/quickstart/) page for more info.
+
 Testing
 -------
 
