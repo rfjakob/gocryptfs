@@ -2,4 +2,4 @@ tenets:
 - import: codelingo/effective-go
 - import: codelingo/code-review-comments
 - import: codelingo/rfjakob-gocryptfs
-- import: codelingo/go/ticker-in-for-switch
+- import: codelingo/go/ticker-in-for-select
