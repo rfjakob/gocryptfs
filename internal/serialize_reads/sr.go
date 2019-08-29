@@ -107,9 +107,7 @@ func (sr *serializerState) eventLoop() {
 	empty := true
 	timerDuration := time.Microsecond * 500
 	timer := time.NewTimer(timerDuration)
-	defer timer.Stop()
 	for {
-		timer.Reset(timerDuration)
 		if empty {
 			// If the queue is empty we block on the channel to conserve CPU
 			sb := <-sr.input
@@ -118,6 +116,7 @@ func (sr *serializerState) eventLoop() {
 		}
 		select {
 		case sb := <-sr.input:
+			timer.Stop()
 			full := sr.push(sb)
 			if full {
 				// Queue is full, unblock the new request immediately
@@ -129,6 +128,7 @@ func (sr *serializerState) eventLoop() {
 			// Looks like we have waited out all concurrent requests.
 			empty = sr.unblockOne()
 		}
+		timer.Reset(timerDuration)
 	}
 }
 
