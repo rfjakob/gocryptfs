@@ -107,7 +107,6 @@ func (sr *serializerState) eventLoop() {
 	empty := true
 	timerDuration := time.Microsecond * 500
 	timer := time.NewTimer(timerDuration)
-	defer timer.Stop()
 	for {
 		timer.Reset(timerDuration)
 		if empty {
@@ -118,6 +117,7 @@ func (sr *serializerState) eventLoop() {
 		}
 		select {
 		case sb := <-sr.input:
+			timer.Stop()
 			full := sr.push(sb)
 			if full {
 				// Queue is full, unblock the new request immediately
