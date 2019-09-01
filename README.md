@@ -52,7 +52,7 @@ For Windows, an independent C++ reimplementation can be found here:
 
 Installation
 ------------
-Precompiled binaries that work on all x86_64 Linux systems are available for download from the github releases page.
+Precompiled binaries that work on all x86_64 Linux systems are available for download from the github releases page. 
 
 On Debian, gocryptfs is available as a deb package:
 ```bash
@@ -69,6 +69,8 @@ On Fedora, gocryptfs is available as an rpm package:
 sudo dnf install gocryptfs
 ```
 See the [Quickstart](https://nuetzlich.net/gocryptfs/quickstart/) page for more info.
+
+If you use the standalone binary, make sure you install the `fuse` package from your distributions package repository before running `gocryptfs`.  
 
 Testing
 -------
