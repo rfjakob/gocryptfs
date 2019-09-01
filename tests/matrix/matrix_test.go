@@ -38,21 +38,24 @@ type testcaseMatrix struct {
 	openssl        string
 	aessiv         bool
 	raw64          bool
+	extraArgs      []string
 }
 
 var matrix = []testcaseMatrix{
 	// Normal
-	{false, "auto", false, false},
-	{false, "true", false, false},
-	{false, "false", false, false},
+	{false, "auto", false, false, nil},
+	{false, "true", false, false, nil},
+	{false, "false", false, false, nil},
 	// Plaintextnames
-	{true, "true", false, false},
-	{true, "false", false, false},
+	{true, "true", false, false, nil},
+	{true, "false", false, false, nil},
 	// AES-SIV (does not use openssl, no need to test permutations)
-	{false, "auto", true, false},
-	{true, "auto", true, false},
+	{false, "auto", true, false, nil},
+	{true, "auto", true, false, nil},
 	// Raw64
-	{false, "auto", false, true},
+	{false, "auto", false, true, nil},
+	// -serialize_reads
+	{false, "auto", false, false, []string{"-serialize_reads"}},
 }
 
 // This is the entry point for the tests
@@ -72,6 +75,7 @@ func TestMain(m *testing.M) {
 		opts = append(opts, fmt.Sprintf("-plaintextnames=%v", testcase.plaintextnames))
 		opts = append(opts, fmt.Sprintf("-aessiv=%v", testcase.aessiv))
 		opts = append(opts, fmt.Sprintf("-raw64=%v", testcase.raw64))
+		opts = append(opts, testcase.extraArgs...)
 		test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, opts...)
 		before := test_helpers.ListFds(0)
 		r := m.Run()
