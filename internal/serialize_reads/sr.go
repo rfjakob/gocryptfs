@@ -123,7 +123,6 @@ func (sr *serializerState) eventLoop() {
 				tlog.Warn.Printf("serialize_reads: queue full, forcing unblock")
 				sr.unblockOne()
 			}
-			continue
 		case <-timer.C:
 			// Looks like we have waited out all concurrent requests.
 			empty = sr.unblockOne()
