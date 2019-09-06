@@ -335,7 +335,7 @@ directory. Implies "-aessiv".
 
 #### -rw, -ro
 Mount the filesystem read-write (`-rw`, default) or read-only (`-ro`).
-If both are specified, `-ro` takes precence.
+If both are specified, `-ro` takes precedence.
 
 #### -scryptn int
 scrypt cost parameter expressed as scryptn=log2(N). Possible values are
