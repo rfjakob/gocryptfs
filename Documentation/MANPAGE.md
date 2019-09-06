@@ -224,9 +224,10 @@ settings have to be passed on the command line: `-aessiv` when you
 mount a filesystem that was created using reverse mode, or
 `-plaintextnames` for a filesystem that was created with that option.
 
-Examples:  
--masterkey=6f717d8b-6b5f8e8a-fd0aa206-778ec093-62c5669b-abd229cd-241e00cd-b4d6713d  
--masterkey=stdin
+Examples:
+
+    -masterkey=6f717d8b-6b5f8e8a-fd0aa206-778ec093-62c5669b-abd229cd-241e00cd-b4d6713d
+    -masterkey=stdin
 
 #### -memprofile string
 Write memory profile to the specified file. This is useful when debugging
