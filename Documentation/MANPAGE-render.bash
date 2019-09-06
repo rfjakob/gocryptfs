@@ -15,4 +15,4 @@ function render {
 
 render MANPAGE.md gocryptfs.1
 render MANPAGE-XRAY.md gocryptfs-xray.1
-
+render MANPAGE-STATFS.md statfs.1
