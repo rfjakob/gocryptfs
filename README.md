@@ -70,7 +70,7 @@ sudo dnf install gocryptfs
 ```
 See the [Quickstart](https://nuetzlich.net/gocryptfs/quickstart/) page for more info.
 
-If you use the standalone binary, make sure you install the `fuse` package from your distributions package repository before running `gocryptfs`.  
+If you use the standalone binary, make sure you install the `fuse` package from your distributions package repository before running `gocryptfs`.
 
 Testing
 -------
