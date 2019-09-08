@@ -68,6 +68,10 @@ On Fedora, gocryptfs is available as an rpm package:
 ```bash
 sudo dnf install gocryptfs
 ```
+
+If you use the standalone binary, make sure you install the `fuse` package
+from your distributions package repository before running `gocryptfs`.
+
 See the [Quickstart](https://nuetzlich.net/gocryptfs/quickstart/) page for more info.
 
 Testing
