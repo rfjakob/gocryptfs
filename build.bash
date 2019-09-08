@@ -87,10 +87,11 @@ if [[ -n ${LDFLAGS:-} ]] ; then
 	GO_LDFLAGS="$GO_LDFLAGS \"-extldflags=$LDFLAGS\""
 fi
 
-# Actual "go build" call
+# Actual "go build" call for gocryptfs
 go build "-ldflags=$GO_LDFLAGS" "-gcflags=$TRIM" "-asmflags=$TRIM" "$@"
-
+# Additional binaries
 (cd gocryptfs-xray; go build "-ldflags=$GO_LDFLAGS" "-gcflags=$TRIM" "-asmflags=$TRIM" "$@")
+(cd contrib/statfs; go build "-ldflags=$GO_LDFLAGS" "-gcflags=$TRIM" "-asmflags=$TRIM" "$@")
 
 ./gocryptfs -version
 

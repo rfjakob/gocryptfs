@@ -5,7 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -23,8 +24,8 @@ func main() {
 		flag.Usage()
 	}
 	path := flag.Arg(0)
-	var st syscall.Statfs_t
-	err := syscall.Statfs(path, &st)
+	var st unix.Statfs_t
+	err := unix.Statfs(path, &st)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "statfs syscall returned error: %v\n", err)
 		os.Exit(2)
