@@ -568,3 +568,44 @@ func TestIdle(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+// Mount with idle timeout of 100ms read something every 10ms. The fs should
+// NOT get unmounted. Regression test for https://github.com/rfjakob/gocryptfs/issues/421
+func TestNotIdle(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	mnt := dir + ".mnt"
+	err := os.Mkdir(mnt, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = test_helpers.Mount(dir, mnt, false, "-extpass", "echo test", "-i=100ms")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ioutil.WriteFile(mnt+"/foo", []byte("foo"), 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Read every 10 milliseconds for a total of 1 second
+	for i := 1; i < 100; i++ {
+		_, err = ioutil.ReadFile(mnt + "/foo")
+		if err != nil {
+			t.Fatalf("iteration %d failed: %v", i, err)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	// Keep a file handle open for 1 second
+	fd, err := os.Open(mnt + "/foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(1 * time.Second)
+	buf := make([]byte, 100)
+	_, err = fd.Read(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fd.Close()
+	// All good.
+	test_helpers.UnmountPanic(mnt)
+}
