@@ -181,18 +181,18 @@ func idleMonitor(idleTimeout time.Duration, fs *fusefrontend.FS, srv *fuse.Serve
 	timeoutCycles := int(math.Ceil(float64(idleTimeout) / float64(sleepTimeBetweenChecks)))
 	idleCount := 0
 	for {
-		// Atomically check whether the access flag is set and reset it to 0 if so.
-		recentAccess := atomic.CompareAndSwapUint32(&fs.AccessedSinceLastCheck, 1, 0)
+		// Atomically check whether the flag is 0 and reset it to 1 if so.
+		isIdle := !atomic.CompareAndSwapUint32(&fs.IsIdle, 0, 1)
 		// Any form of current or recent access resets the idle counter.
 		openFileCount := openfiletable.CountOpenFiles()
-		if recentAccess || openFileCount > 0 {
+		if !isIdle || openFileCount > 0 {
 			idleCount = 0
 		} else {
 			idleCount++
 		}
 		tlog.Debug.Printf(
-			"Checking for idle (recentAccess = %t, open = %d): %s",
-			recentAccess, openFileCount, time.Now().String())
+			"Checking for idle (isIdle = %t, open = %d): %s",
+			isIdle, openFileCount, time.Now().String())
 		if idleCount > 0 && idleCount%timeoutCycles == 0 {
 			tlog.Info.Printf("Filesystem idle; unmounting: %s", mountpoint)
 			unmount(srv, mountpoint)

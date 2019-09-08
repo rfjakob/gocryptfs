@@ -6,6 +6,7 @@ package fusefrontend
 import (
 	"os"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -50,11 +51,11 @@ type FS struct {
 	// "gocryptfs -fsck" reads from the channel to also catch these transparently-
 	// mitigated corruptions.
 	MitigatedCorruptions chan string
-	// Track accesses to the filesystem so that we can know when to autounmount.
-	// An access is considered to have happened on every call to encryptPath,
-	// which is called as part of every filesystem operation.
-	// (This flag uses a uint32 so that it can be reset with CompareAndSwapUint32.)
-	AccessedSinceLastCheck uint32
+	// This flag is set to zero each time fs.isFiltered() is called
+	// (uint32 so that it can be reset with CompareAndSwapUint32).
+	// When -idle was used when mounting, idleMonitor() sets it to 1
+	// periodically.
+	IsIdle uint32
 
 	dirCache dirCacheStruct
 }
@@ -662,6 +663,8 @@ func (fs *FS) reportMitigatedCorruption(item string) {
 //
 // Prevents name clashes with internal files when file names are not encrypted
 func (fs *FS) isFiltered(path string) bool {
+	atomic.StoreUint32(&fs.IsIdle, 0)
+
 	if !fs.args.PlaintextNames {
 		return false
 	}
