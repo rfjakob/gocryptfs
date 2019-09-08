@@ -201,7 +201,8 @@ func ListFds(pid int) []string {
 	}
 	f, err := os.Open(dir)
 	if err != nil {
-		log.Panic(err)
+		fmt.Printf("ListFds: %v\n", err)
+		return nil
 	}
 	defer f.Close()
 	// Note: Readdirnames filters "." and ".."
