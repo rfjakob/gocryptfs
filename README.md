@@ -194,6 +194,8 @@ vNEXT, in progress
 * Allow the `nofail` option in `/etc/fstab`
 * `-passwd` can now change the `-scryptn` parameter for existing filesystems
   ([#400](https://github.com/rfjakob/gocryptfs/issues/400))
+* Fix `-idle` unmounting the filesystem despite recent activity
+  ([#421](https://github.com/rfjakob/gocryptfs/issues/421))
 
 v1.7, 2019-03-17
 * **Fix possible symlink race attacks in forward mode** when using allow_other + plaintextnames
