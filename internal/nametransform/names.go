@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"encoding/base64"
+  "regexp"
 	"syscall"
 
 	"github.com/rfjakob/eme"
@@ -35,6 +36,8 @@ type NameTransform struct {
 	// B64 = either base64.URLEncoding or base64.RawURLEncoding, depending
 	// on the Raw64 feature flag
 	B64 *base64.Encoding
+  // Regex to bypass decruption
+  BypassRegex *regexp.Regexp
 }
 
 // New returns a new NameTransform instance.
@@ -53,6 +56,10 @@ func New(e *eme.EMECipher, longNames bool, raw64 bool) *NameTransform {
 // DecryptName decrypts a base64-encoded encrypted filename "cipherName" using the
 // initialization vector "iv".
 func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error) {
+  if n.BypassRegex != nil && n.BypassRegex.MatchString(cipherName) {
+    return "INVALID_GOCRYPTFS_NAME " + cipherName, nil
+  }
+
 	bin, err := n.B64.DecodeString(cipherName)
 	if err != nil {
 		return "", err
