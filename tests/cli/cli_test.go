@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -642,5 +643,45 @@ func TestSymlinkedCipherdir(t *testing.T) {
 	}
 	if len(names) != 1 || names[0] != "file" {
 		t.Errorf("wrong Readdirnames result: %v", names)
+	}
+}
+
+func TestBypass(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	mnt := dir + ".mnt"
+
+	test_helpers.MountOrFatal(t, dir, mnt, "-badname=*", "-extpass=echo test")
+	defer test_helpers.UnmountPanic(mnt)
+
+	file := mnt + "/file"
+	err := ioutil.WriteFile(file, []byte("somecontent"), 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	invalid_file_name := "invalid_file"
+	invalid_file := dir + "/" + invalid_file_name
+	err = ioutil.WriteFile(invalid_file, []byte("somecontent"), 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f, err := os.Open(mnt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	names, err := f.Readdirnames(0)
+	found := false
+	for _, name := range names {
+		if strings.Contains(name, invalid_file_name) {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Errorf("did not find invalid name %s in %v", invalid_file_name, names)
 	}
 }

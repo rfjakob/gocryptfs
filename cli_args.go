@@ -32,8 +32,8 @@ type argContainer struct {
 	dev, nodev, suid, nosuid, exec, noexec, rw, ro bool
 	masterkey, mountpoint, cipherdir, cpuprofile,
 	memprofile, ko, passfile, ctlsock, fsname, force_owner, trace string
-	// -extpass can be passed multiple times
-	extpass multipleStrings
+	// -extpass and -badname can be passed multiple times
+	extpass, badname multipleStrings
 	// For reverse mode, several ways to specify exclusions. All can be specified multiple times.
 	exclude, excludeWildcard, excludeFrom multipleStrings
 	// Configuration file name override
@@ -199,6 +199,7 @@ func parseCliOpts() (args argContainer) {
 
 	// -extpass
 	flagSet.Var(&args.extpass, "extpass", "Use external program for the password prompt")
+	flagSet.Var(&args.badname, "badname", "Glob pattern invalid file names that should be shown")
 
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")
