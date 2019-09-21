@@ -72,7 +72,7 @@ if [[ $OPT_ENCFS -eq 1 ]]; then
 	fi
 	echo -n "Testing EncFS at $CRYPT: "
 	encfs --version
-	/home/jakob.donotbackup/encfs/build/encfs --extpass="echo test" --standard $CRYPT $MNT > /dev/null
+	encfs --extpass="echo test" --standard $CRYPT $MNT > /dev/null
 elif [[ $OPT_LOOPBACK -eq 1 ]]; then
 	echo "Testing go-fuse loopback"
 	$HOME/go/src/github.com/hanwen/go-fuse/example/loopback/loopback $MNT $CRYPT &
