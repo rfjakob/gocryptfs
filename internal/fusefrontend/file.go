@@ -401,11 +401,10 @@ func (f *File) Release() {
 	if f.released {
 		log.Panicf("ino%d fh%d: double release", f.qIno.Ino, f.intFd())
 	}
-	f.fd.Close()
 	f.released = true
-	f.fdLock.Unlock()
-
 	openfiletable.Unregister(f.qIno)
+	f.fd.Close()
+	f.fdLock.Unlock()
 }
 
 // Flush - FUSE call
