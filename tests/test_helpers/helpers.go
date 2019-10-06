@@ -44,14 +44,6 @@ var DefaultPlainDir string
 // DefaultCipherDir is TmpDir + "/default-cipher"
 var DefaultCipherDir string
 
-// SwitchTMPDIR changes TMPDIR and hence the directory the test are performed in.
-// This is used when you want to perform tests on a special filesystem. The
-// xattr tests cannot run on tmpfs and use /var/tmp instead of /tmp.
-func SwitchTMPDIR(newDir string) {
-	os.Setenv("TMPDIR", newDir)
-	doInit()
-}
-
 func init() {
 	doInit()
 }
