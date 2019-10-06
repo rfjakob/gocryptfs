@@ -2,6 +2,7 @@
 
 if [[ -z $TMPDIR ]]; then
 	TMPDIR=/var/tmp
+	export TMPDIR
 else
 	echo "Using TMPDIR=$TMPDIR"
 fi
