@@ -77,11 +77,13 @@ func TestMain(m *testing.M) {
 		opts = append(opts, fmt.Sprintf("-raw64=%v", testcase.raw64))
 		opts = append(opts, testcase.extraArgs...)
 		test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, opts...)
-		before := test_helpers.ListFds(0)
+		before := test_helpers.ListFds(0, test_helpers.TmpDir)
 		r := m.Run()
 		// Catch fd leaks in the tests. NOTE: this does NOT catch leaks in
 		// the gocryptfs FUSE process, but only in the tests that access it!
-		after := test_helpers.ListFds(0)
+		// All fds that point outside TmpDir are not interesting (the Go test
+		// infrastucture creates temporary log files we don't care about).
+		after := test_helpers.ListFds(0, test_helpers.TmpDir)
 		if len(before) != len(after) {
 			fmt.Printf("fd leak in test process? before, after:\n%v\n%v\n", before, after)
 			os.Exit(1)
