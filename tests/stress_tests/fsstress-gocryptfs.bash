@@ -12,6 +12,11 @@
 #
 # Nowadays it should pass an indefinite number of iterations.
 
+if [[ -z $TMPDIR ]]; then
+	TMPDIR=/var/tmp
+	export TMPDIR
+fi
+
 set -eu
 
 cd "$(dirname "$0")"
@@ -28,7 +33,7 @@ then
 fi
 
 # Backing directory
-DIR=$(mktemp -d /tmp/$MYNAME.XXX)
+DIR=$(mktemp -d $TMPDIR/$MYNAME.XXX)
 # Mountpoint
 MNT="$DIR.mnt"
 mkdir $MNT

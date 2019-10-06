@@ -11,6 +11,11 @@
 #
 # See Documentation/extractloop.md for example output.
 
+if [[ -z $TMPDIR ]]; then
+	TMPDIR=/var/tmp
+	export TMPDIR
+fi
+
 set -eu
 
 # Run at low priority to not annoy the user too much
@@ -23,8 +28,8 @@ source ../fuse-unmount.bash
 
 # Setup dirs
 ../dl-linux-tarball.bash
-cd /tmp
-EXTRACTLOOP_TMPDIR=/tmp/extractloop_tmpdir
+cd $TMPDIR
+EXTRACTLOOP_TMPDIR=$TMPDIR/extractloop_tmpdir
 mkdir -p $EXTRACTLOOP_TMPDIR
 CRYPT=$(mktemp -d $EXTRACTLOOP_TMPDIR/XXX)
 CSV=$CRYPT.csv

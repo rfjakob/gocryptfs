@@ -12,6 +12,11 @@
 #
 # See https://github.com/rfjakob/gocryptfs/issues/322 for details.
 
+if [[ -z $TMPDIR ]]; then
+	TMPDIR=/var/tmp
+	export TMPDIR
+fi
+
 cd "$(dirname "$0")"
 MYNAME=$(basename $0)
 source ../fuse-unmount.bash
@@ -20,7 +25,7 @@ source ../fuse-unmount.bash
 GOPATH=$(go env GOPATH)
 
 # Backing directory
-DIR=$(mktemp -d /tmp/$MYNAME.XXX)
+DIR=$(mktemp -d $TMPDIR/$MYNAME.XXX)
 $GOPATH/bin/gocryptfs -q -init -extpass "echo test" -scryptn=10 $DIR
 
 # Mountpoint
