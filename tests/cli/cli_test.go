@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 	r := m.Run()
 	after := test_helpers.ListFds(0)
 	if len(before) != len(after) {
-		fmt.Printf("fd leak? before, after:\n%v\n%v\n", before, after)
+		fmt.Printf("fd leak in test process? before, after:\n%v\n%v\n", before, after)
 		os.Exit(1)
 	}
 	os.Exit(r)

@@ -83,7 +83,7 @@ func TestMain(m *testing.M) {
 		// the gocryptfs FUSE process, but only in the tests that access it!
 		after := test_helpers.ListFds(0)
 		if len(before) != len(after) {
-			fmt.Printf("fd leak? before, after:\n%v\n%v\n", before, after)
+			fmt.Printf("fd leak in test process? before, after:\n%v\n%v\n", before, after)
 			os.Exit(1)
 		}
 		test_helpers.UnmountPanic(test_helpers.DefaultPlainDir)
