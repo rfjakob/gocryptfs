@@ -44,21 +44,25 @@ func (h *FileHeader) Pack() []byte {
 
 // allZeroFileID is preallocated to quickly check if the data read from disk is all zero
 var allZeroFileID = make([]byte, headerIDLen)
+var allZeroHeader = make([]byte, HeaderLen)
 
 // ParseHeader - parse "buf" into fileHeader object
 func ParseHeader(buf []byte) (*FileHeader, error) {
 	if len(buf) != HeaderLen {
 		return nil, fmt.Errorf("ParseHeader: invalid length, want=%d have=%d", HeaderLen, len(buf))
 	}
+	if bytes.Equal(buf, allZeroHeader) {
+		return nil, fmt.Errorf("ParseHeader: header is all-zero. Header hexdump: %s", hex.EncodeToString(buf))
+	}
 	var h FileHeader
 	h.Version = binary.BigEndian.Uint16(buf[0:headerVersionLen])
 	if h.Version != CurrentVersion {
-		return nil, fmt.Errorf("ParseHeader: invalid version, want=%d have=%d. Hexdump: %s",
+		return nil, fmt.Errorf("ParseHeader: invalid version, want=%d have=%d. Header hexdump: %s",
 			CurrentVersion, h.Version, hex.EncodeToString(buf))
 	}
 	h.ID = buf[headerVersionLen:]
 	if bytes.Equal(h.ID, allZeroFileID) {
-		return nil, fmt.Errorf("ParseHeader: file id is all-zero. Hexdump: %s",
+		return nil, fmt.Errorf("ParseHeader: file id is all-zero. Header hexdump: %s",
 			hex.EncodeToString(buf))
 	}
 	return &h, nil
