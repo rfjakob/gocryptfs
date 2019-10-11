@@ -33,7 +33,7 @@ type argContainer struct {
 	// Mount options with opposites
 	dev, nodev, suid, nosuid, exec, noexec, rw, ro bool
 	masterkey, mountpoint, cipherdir, cpuprofile,
-	memprofile, ko, passfile, ctlsock, fsname, force_owner, trace string
+	memprofile, ko, passfile, ctlsock, fsname, force_owner, trace, namedecr string
 	// -extpass can be passed multiple times
 	extpass multipleStrings
 	// For reverse mode, several ways to specify exclusions. All can be specified multiple times.
@@ -194,6 +194,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.StringVar(&args.fsname, "fsname", "", "Override the filesystem name")
 	flagSet.StringVar(&args.force_owner, "force_owner", "", "uid:gid pair to coerce ownership")
 	flagSet.StringVar(&args.trace, "trace", "", "Write execution trace to file")
+  flagSet.StringVar(&args.namedecr, "namedecr", "", "Regex for valid invalid file names")
 
 	// Exclusion options
 	flagSet.Var(&args.exclude, "e", "Alias for -exclude")
