@@ -1,10 +1,13 @@
-All test performed on a Pentium G630 (Dual-core Sandy Bridge, no AES-NI).
+Tests of gocryptfs v1.7 and later are run on an
+Intel Core i5-3470 CPU (quad-core Ivy Bridge, AES-NI supported).
+Earlier tests on a Pentium G630 (Dual-core Sandy Bridge, no AES-NI).
+
 The working directory is on tmpfs.
 The untar test uses https://cdn.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz .
 The archive is placed on tmpfs as well.
 
 WRITE: dd if=/dev/zero of=zero bs=131072 count=2000
-READ:  dd if=zero of=/dev/null bs=131072 count=2000 2>&1
+READ:  dd if=zero of=/dev/null bs=131072 count=2000
 UNTAR: time tar xzf ../linux-3.0.tar.gz
 MD5:   time md5sum --quiet -c linux-3.0.md5sums
 LS:    time ls -lR linux-3.0 > /dev/null
@@ -45,6 +48,9 @@ v1.5              228      292      17.6   9.3  1.5    3.5    go1.10.2, Linux 4.
 v1.6              250      289      17.7   8.0  1.3    3.2    go1.10.3, Linux 4.17.12
 v1.7-beta1        229      278      17.1   8.8  1.7    3.2    go1.11.4, Linux 4.19.12
 v1.7-rc1          226      289      17.6   8.9  1.7    2.9
+*** CPU changed from Pentium G630 to Core i5-3470, static builds used ***
+v1.7              232      698      12.2   9.4  1.7    4.3    go1.12.9, Linux 5.2.17
+v1.7.1            450      697      11.5   9.5  1.5    3.6
 
 Results for EncFS for comparison (benchmark.bash -encfs):
 
