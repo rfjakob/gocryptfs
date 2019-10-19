@@ -54,7 +54,7 @@ if [ $# -eq 1 ] && [ "$1" == "-encfs" ]; then
 elif [ $# -eq 1 ] && [ "$1" == "-loopback" ]; then
 	echo "Testing go-fuse loopback"
 	rm -f /tmp/loopback*.memprof
-	loopback -l -memprofile=/tmp/loopback $MNT $CRYPT &
+	loopback -memprofile=/tmp/loopback $MNT $CRYPT &
 	FSPID=$(jobs -p)
 	disown
 else
