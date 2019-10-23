@@ -136,11 +136,15 @@ func init() {
 }
 
 // SwitchToSyslog redirects the output of this logger to syslog.
-func (l *toggledLogger) SwitchToSyslog(p syslog.Priority) {
-	w, err := syslog.New(p, ProgramName)
+func (l *toggledLogger) SwitchToSyslog(p syslog.Priority, tagName string) {
+	// Use Dial instead of New.  New presumes a fork of what is generated from
+	// the Dial call to clone a new connection instance of the Dial-ed in syslog.
+	w, err := syslog.Dial("", "", p, ProgramName+"["+tagName+"]")
 	if err != nil {
 		Warn.Printf("SwitchToSyslog: %v", err)
 	} else {
+		// Disable printing the timestamp, syslog already provides that
+		log.SetFlags(0)
 		l.Logger.SetOutput(w)
 		// Disable colors
 		l.prefix = ""
@@ -150,8 +154,10 @@ func (l *toggledLogger) SwitchToSyslog(p syslog.Priority) {
 
 // SwitchLoggerToSyslog redirects the default log.Logger that the go-fuse lib uses
 // to syslog.
-func SwitchLoggerToSyslog(p syslog.Priority) {
-	w, err := syslog.New(p, ProgramName)
+func SwitchLoggerToSyslog(p syslog.Priority, tagName string) {
+	// Use Dial instead of New.  New presumes a fork of what is generated from
+	// the Dial call to clone a new connection instance of the Dial-ed in syslog.
+	w, err := syslog.Dial("", "", p, ProgramName+"["+tagName+"]")
 	if err != nil {
 		Warn.Printf("SwitchLoggerToSyslog: %v", err)
 	} else {

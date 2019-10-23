@@ -62,7 +62,11 @@ func forkChild() int {
 }
 
 // redirectStdFds redirects stderr and stdout to syslog; stdin to /dev/null
-func redirectStdFds() {
+//
+// (We're passing in a tagname (basically the mountpoint...) to be clearer
+//  than a PID which will not be the same from boot to boot and making it
+//  be consistent with the normal logging... )
+func redirectStdFds(tagName string) {
 	// Create a pipe pair "pw" -> "pr" and start logger reading from "pr".
 	// We do it ourselves instead of using StdinPipe() because we need access
 	// to the fd numbers.
@@ -71,7 +75,7 @@ func redirectStdFds() {
 		tlog.Warn.Printf("redirectStdFds: could not create pipe: %v\n", err)
 		return
 	}
-	tag := fmt.Sprintf("gocryptfs-%d-logger", os.Getpid())
+	tag := fmt.Sprintf("gocryptfs[%s]", tagName)
 	cmd := exec.Command("logger", "-t", tag)
 	cmd.Stdin = pr
 	err = cmd.Start()

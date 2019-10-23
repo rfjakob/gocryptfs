@@ -130,13 +130,15 @@ func doMount(args *argContainer) {
 		// Switch to syslog
 		if !args.nosyslog {
 			// Switch all of our logs and the generic logger to syslog
-			tlog.Info.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_INFO)
-			tlog.Debug.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_DEBUG)
-			tlog.Warn.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
-			tlog.Fatal.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_CRIT)
-			tlog.SwitchLoggerToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
-			// Daemons should redirect stdin, stdout and stderr
-			redirectStdFds()
+			tlog.Info.SwitchToSyslog(syslog.LOG_USER|syslog.LOG_INFO, args.mountpoint)
+			tlog.Debug.SwitchToSyslog(syslog.LOG_USER|syslog.LOG_DEBUG, args.mountpoint)
+			tlog.Warn.SwitchToSyslog(syslog.LOG_USER|syslog.LOG_WARNING, args.mountpoint)
+			tlog.Fatal.SwitchToSyslog(syslog.LOG_USER|syslog.LOG_CRIT, args.mountpoint)
+			tlog.SwitchLoggerToSyslog(syslog.LOG_USER|syslog.LOG_WARNING, args.mountpoint)
+			// Daemons should redirect stdin, stdout and stderr to /dev/null to work properly.
+			redirectStdFds(args.mountpoint)
+			// Report logging having moved to syslog TO syslog
+			tlog.Info.Println("gocryptfs starting.  Logging to syslog.")
 		}
 		// Disconnect from the controlling terminal by creating a new session.
 		// This prevents us from getting SIGINT when the user presses Ctrl-C
