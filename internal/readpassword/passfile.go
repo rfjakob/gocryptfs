@@ -10,6 +10,19 @@ import (
 
 func readPassFile(passfile string) []byte {
 	tlog.Info.Printf("passfile: reading from file %q", passfile)
+
+	// Check file permissions on passfile, only user access permitted
+	fileInfo, err := os.Stat(passfile)
+	if err != nil {
+		tlog.Fatal.Printf("fatal: passfile: could not stat %q: %v", passfile, err)
+		os.Exit(exitcodes.ReadPassword)
+	}
+	md := fileInfo.Mode().String()
+	if md != "-rw-------" {
+		tlog.Fatal.Printf("fatal: passfile: invalid file permissions on %q(%v), expected -rw-------",passfile,md)
+		os.Exit(exitcodes.ReadPassword)
+	}
+
 	f, err := os.Open(passfile)
 	if err != nil {
 		tlog.Fatal.Printf("fatal: passfile: could not open %q: %v", passfile, err)
