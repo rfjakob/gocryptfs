@@ -288,11 +288,6 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 		// Read the DirIV from disk
 		cachedIV, err = nametransform.ReadDirIVAt(fd)
 		if err != nil {
-			// The directory itself does not exist
-			if err == syscall.ENOENT {
-				return nil, fuse.ENOENT
-			}
-			// Any other problem warrants an error message
 			tlog.Warn.Printf("OpenDir %q: could not read %s: %v", cDirName, nametransform.DirIVFilename, err)
 			return nil, fuse.EIO
 		}
