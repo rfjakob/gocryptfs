@@ -41,6 +41,11 @@ mkdir $MNT
 # Set the GOPATH variable to the default if it is empty
 GOPATH=$(go env GOPATH)
 
+# Clean up old mounts
+for i in $(mount | cut -d" " -f3 | grep $TMPDIR/$MYNAME) ; do
+	fusermount -u $i
+done
+
 # FS-specific compile and mount
 if [ $MYNAME = fsstress-loopback.bash ]; then
 	echo "Recompile go-fuse loopback"
