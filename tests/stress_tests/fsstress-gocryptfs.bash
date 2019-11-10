@@ -46,7 +46,7 @@ if [ $MYNAME = fsstress-loopback.bash ]; then
 	echo "Recompile go-fuse loopback"
 	cd $GOPATH/src/github.com/hanwen/go-fuse/example/loopback
 	go build -race && go install
-	$GOPATH/bin/loopback -l $MNT $DIR &
+	$GOPATH/bin/loopback -q $MNT $DIR &
 	disown
 elif [ $MYNAME = fsstress-gocryptfs.bash ]; then
 	echo "Recompile gocryptfs"
