@@ -171,21 +171,41 @@ func Md5hex(buf []byte) string {
 }
 
 // VerifySize checks that the file size equals "want". This checks:
-// 1) Size reported by Stat()
-// 2) Number of bytes returned when reading the whole file
+// 1) Number of bytes returned when reading the whole file
+// 2) Size reported by Stat()
+// 3) Size reported by Fstat()
 func VerifySize(t *testing.T, path string, want int) {
+	// Read whole file
 	buf, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Errorf("ReadFile failed: %v", err)
 	} else if len(buf) != want {
 		t.Errorf("wrong read size: got=%d want=%d", len(buf), want)
 	}
-
-	fi, err := os.Stat(path)
+	// Stat()
+	var st syscall.Stat_t
+	err = syscall.Stat(path, &st)
 	if err != nil {
 		t.Errorf("Stat failed: %v", err)
-	} else if fi.Size() != int64(want) {
-		t.Errorf("wrong stat file size, got=%d want=%d", fi.Size(), want)
+	} else if st.Size != int64(want) {
+		t.Errorf("wrong stat file size, got=%d want=%d", st.Size, want)
+	}
+	// Fstat()
+	fd, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fd.Close()
+	var st2 syscall.Stat_t
+	err = syscall.Fstat(int(fd.Fd()), &st2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st2.Size != int64(want) {
+		t.Errorf("wrong fstat file size, got=%d want=%d", st2.Size, want)
+	}
+	if st != st2 {
+		t.Errorf("Stat vs Fstat mismatch:\nst= %v\nst2=%v", st, st2)
 	}
 }
 
