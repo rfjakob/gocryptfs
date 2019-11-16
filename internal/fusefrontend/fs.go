@@ -85,7 +85,7 @@ func NewFS(args Args, c *contentenc.ContentEnc, n nametransform.NameTransformer)
 		args:          args,
 		nameTransform: n,
 		contentEnc:    c,
-		inumMap:       openfiletable.NewInumMap(st.Dev),
+		inumMap:       openfiletable.NewInumMap(uint64(st.Dev)), // cast is needed for Darwin
 	}
 }
 
