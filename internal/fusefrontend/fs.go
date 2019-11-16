@@ -19,6 +19,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
+	"github.com/rfjakob/gocryptfs/internal/openfiletable"
 	"github.com/rfjakob/gocryptfs/internal/serialize_reads"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
@@ -56,8 +57,11 @@ type FS struct {
 	// When -idle was used when mounting, idleMonitor() sets it to 1
 	// periodically.
 	IsIdle uint32
-
+	// dirCache caches directory fds
 	dirCache dirCacheStruct
+	// inumMap translates inode numbers from different devices to unique inode
+	// numbers.
+	inumMap *openfiletable.InumMap
 }
 
 //var _ pathfs.FileSystem = &FS{} // Verify that interface is implemented.
@@ -70,11 +74,18 @@ func NewFS(args Args, c *contentenc.ContentEnc, n nametransform.NameTransformer)
 	if len(args.Exclude) > 0 {
 		tlog.Warn.Printf("Forward mode does not support -exclude")
 	}
+	var st syscall.Stat_t
+	err := syscall.Stat(args.Cipherdir, &st)
+	if err != nil {
+		tlog.Warn.Printf("NewFS: could not stat cipherdir: %v", err)
+		st.Dev = 0
+	}
 	return &FS{
 		FileSystem:    pathfs.NewDefaultFileSystem(),
 		args:          args,
 		nameTransform: n,
 		contentEnc:    c,
+		inumMap:       openfiletable.NewInumMap(st.Dev),
 	}
 }
 
@@ -98,6 +109,7 @@ func (fs *FS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.S
 	}
 	a := &fuse.Attr{}
 	st2 := syscallcompat.Unix2syscall(st)
+	fs.inumMap.TranslateStat(&st2)
 	a.FromStat(&st2)
 	if a.IsRegular() {
 		a.Size = fs.contentEnc.CipherSizeToPlainSize(a.Size)

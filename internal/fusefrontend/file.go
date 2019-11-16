@@ -462,6 +462,7 @@ func (f *File) GetAttr(a *fuse.Attr) fuse.Status {
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
+	f.fs.inumMap.TranslateStat(&st)
 	a.FromStat(&st)
 	a.Size = f.contentEnc.CipherSizeToPlainSize(a.Size)
 	if f.fs.args.ForceOwner != nil {
