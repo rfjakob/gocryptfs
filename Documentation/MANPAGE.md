@@ -10,11 +10,14 @@ gocryptfs - create or mount an encrypted filesystem
 SYNOPSIS
 ========
 
-#### Initialize encrypted filesystem
+#### Initialize new encrypted filesystem
 `gocryptfs -init [OPTIONS] CIPHERDIR`
 
 #### Mount
 `gocryptfs [OPTIONS] CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]`
+
+#### Unmount
+`fusermount -u MOUNTPOINT`
 
 #### Change password
 `gocryptfs -passwd [OPTIONS] CIPHERDIR`
@@ -35,7 +38,8 @@ security issues while providing good performance.
 OPTIONS
 =======
 
-Available options are listed below.
+Available options are listed below. Usually, you don't need any.
+Defaults are fine.
 
 #### -aessiv
 Use the AES-SIV encryption mode. This is slower than GCM but is
@@ -494,11 +498,12 @@ In short:
 EXAMPLES
 ========
 
-Create an encrypted filesystem in directory "g1" and mount it on "g2":
+Create an encrypted filesystem in directory "g1", mount it on "g2",
+look at the contents, and umount again:
 
-	mkdir g1 g2
-	gocryptfs -init g1
-	gocryptfs g1 g2
+	mkdir cipher mnt
+	gocryptfs -init cipher
+	gocryptfs cipher mnt
 
 Mount an ecrypted view of joe's home directory using reverse mode:
 
