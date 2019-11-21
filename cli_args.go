@@ -33,9 +33,9 @@ type argContainer struct {
 	// Mount options with opposites
 	dev, nodev, suid, nosuid, exec, noexec, rw, ro bool
 	masterkey, mountpoint, cipherdir, cpuprofile,
-	memprofile, ko, passfile, ctlsock, fsname, force_owner, trace, namedecr string
-	// -extpass can be passed multiple times
-	extpass multipleStrings
+	memprofile, ko, passfile, ctlsock, fsname, force_owner, trace string
+	// -extpass and -namedecr can be passed multiple times
+	extpass, namedecr multipleStrings
 	// For reverse mode, several ways to specify exclusions. All can be specified multiple times.
 	exclude, excludeWildcard, excludeFrom multipleStrings
 	// Configuration file name override
@@ -194,7 +194,6 @@ func parseCliOpts() (args argContainer) {
 	flagSet.StringVar(&args.fsname, "fsname", "", "Override the filesystem name")
 	flagSet.StringVar(&args.force_owner, "force_owner", "", "uid:gid pair to coerce ownership")
 	flagSet.StringVar(&args.trace, "trace", "", "Write execution trace to file")
-  flagSet.StringVar(&args.namedecr, "namedecr", "", "Regex for valid invalid file names")
 
 	// Exclusion options
 	flagSet.Var(&args.exclude, "e", "Alias for -exclude")
@@ -205,6 +204,7 @@ func parseCliOpts() (args argContainer) {
 
 	// -extpass
 	flagSet.Var(&args.extpass, "extpass", "Use external program for the password prompt")
+	flagSet.Var(&args.namedecr, "namedecr", "Regex for valid invalid file names")
 
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")

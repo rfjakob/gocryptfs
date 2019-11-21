@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"encoding/base64"
-  "regexp"
+  "path/filepath"
 	"syscall"
 
 	"github.com/rfjakob/eme"
@@ -36,8 +36,8 @@ type NameTransform struct {
 	// B64 = either base64.URLEncoding or base64.RawURLEncoding, depending
 	// on the Raw64 feature flag
 	B64 *base64.Encoding
-  // Regex to bypass decruption
-  BypassRegex *regexp.Regexp
+  // Patterns to bypass decryption
+  BypassPatterns []string
 }
 
 // New returns a new NameTransform instance.
@@ -53,13 +53,24 @@ func New(e *eme.EMECipher, longNames bool, raw64 bool) *NameTransform {
 	}
 }
 
-// DecryptName decrypts a base64-encoded encrypted filename "cipherName" using the
-// initialization vector "iv".
+// DecryptName calls decryptName to try and decrypt a base64-encoded encrypted 
+// filename "cipherName", and failing that checks if it can be bypassed
 func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error) {
-  if n.BypassRegex != nil && n.BypassRegex.MatchString(cipherName) {
-    return "INVALID_GOCRYPTFS_NAME " + cipherName, nil
+  res, err := n.decryptName(cipherName, iv)
+  if err != nil {
+    for _, pattern := range n.BypassPatterns {
+      match, err := filepath.Match(pattern, cipherName)
+      if err != nil && match { // Pattern should have been validated already
+        return "INVALID_GOCRYPTFS_NAME " + cipherName, nil
+      }
+    }
   }
+  return res, err
+}
 
+// decryptName decrypts a base64-encoded encrypted filename "cipherName" using the
+// initialization vector "iv".
+func (n *NameTransform) decryptName(cipherName string, iv []byte) (string, error) {
 	bin, err := n.B64.DecodeString(cipherName)
 	if err != nil {
 		return "", err

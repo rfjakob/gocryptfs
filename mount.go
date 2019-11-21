@@ -12,7 +12,6 @@ import (
 	"os/signal"
 	"path"
 	"path/filepath"
-  "regexp"
 	"runtime"
 	"runtime/debug"
 	"strings"
@@ -286,14 +285,17 @@ func initFuseFrontend(args *argContainer) (pfs pathfs.FileSystem, wipeKeys func(
 	cCore := cryptocore.New(masterkey, cryptoBackend, contentenc.DefaultIVBits, args.hkdf, args.forcedecode)
 	cEnc := contentenc.New(cCore, contentenc.DefaultBS, args.forcedecode)
 	nameTransform := nametransform.New(cCore.EMECipher, frontendArgs.LongNames, args.raw64)
-  // Init bypass regex
-  if args.namedecr != "" {
-    var err error
-    nameTransform.BypassRegex, err = regexp.Compile(args.namedecr);
-    if err != nil {
-      log.Panic("Invalid regex given for bypass")
-    }
-  }
+	// Init bypass patterns
+	nameTransform.BypassPatterns = make([]string, 0)
+	for _, pattern := range args.namedecr {
+		_, err := filepath.Match(pattern, "") // Make sure pattern is valid
+		if err != nil {
+			tlog.Fatal.Printf("Invalid pattern %s supplied", pattern)
+			os.Exit(exitcodes.Usage)
+		} else {
+			nameTransform.BypassPatterns = append(nameTransform.BypassPatterns, pattern)
+		}
+	}
 	// After the crypto backend is initialized,
 	// we can purge the master key from memory.
 	for i := range masterkey {
