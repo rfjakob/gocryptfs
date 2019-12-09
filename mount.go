@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -12,6 +13,8 @@ import (
 	"os/signal"
 	"path"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"runtime"
 	"runtime/debug"
 	"strings"
@@ -61,7 +64,12 @@ func doMount(args *argContainer) {
 			args.mountpoint, args.cipherdir)
 		os.Exit(exitcodes.MountPoint)
 	}
+	major, _, err := ProgramVersion("fusermount")
+	os.Exit(exitcodes.Usage)
 	if args.nonempty {
+		if major > 2 {
+			tlog.Warn.Printf("The option \"nonempty\" was deprecated with fusermount version >= 3.0")
+		}
 		err = isDir(args.mountpoint)
 	} else {
 		err = isEmptyDir(args.mountpoint)
@@ -70,7 +78,12 @@ func doMount(args *argContainer) {
 			tlog.Info.Printf("Mountpoint %q does not exist, but should be created by OSXFuse",
 				args.mountpoint)
 			err = nil
+			goto End
 		}
+		if major > 2 {
+			err = isDir(args.mountpoint)
+		}
+		End:
 	}
 	if err != nil {
 		tlog.Fatal.Printf("Invalid mountpoint: %v", err)
@@ -363,7 +376,12 @@ func initGoFuse(fs pathfs.FileSystem, args *argContainer) *fuse.Server {
 			tlog.ColorReset)
 	}
 	if args.nonempty {
-		mOpts.Options = append(mOpts.Options, "nonempty")
+		major, _, _ := ProgramVersion("fusermount")
+		if major > 2 {
+			tlog.Warn.Printf("The option \"nonempty\" was deprecated with fusermount version >= 3.0")
+		} else {
+			mOpts.Options = append(mOpts.Options, "nonempty")
+		}
 	}
 	// Set values shown in "df -T" and friends
 	// First column, "Filesystem"
@@ -460,4 +478,33 @@ func unmount(srv *fuse.Server, mountpoint string) {
 			cmd.Run()
 		}
 	}
+}
+
+// This code was copied from
+// https://github.com/hanwen/go-fuse/blob/d4b28605b58e1da41383c1f1874f897f44591d24/unionfs/unionfs_test.go#L897
+func ProgramVersion(bin string) (major, minor int64, err error) {
+	cmd := exec.Command(bin, "--version")
+	buf := &bytes.Buffer{}
+	cmd.Stdout = buf
+	if err := cmd.Run(); err != nil {
+		return 0, 0, err
+	}
+	lines := strings.Split(buf.String(), "\n")
+	if len(lines) < 1 {
+		return 0, 0, fmt.Errorf("no output")
+	}
+	matches := regexp.MustCompile(".* ([0-9]+)\\.([0-9]+)").FindStringSubmatch(lines[0])
+
+	if matches == nil {
+		return 0, 0, fmt.Errorf("no match for %q", lines[0])
+	}
+	major, err = strconv.ParseInt(matches[1], 10, 64)
+	if err != nil {
+		return 0, 0, err
+	}
+	minor, err = strconv.ParseInt(matches[2], 10, 64)
+	if err != nil {
+		return 0, 0, err
+	}
+	return major, minor, nil
 }
