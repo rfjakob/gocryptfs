@@ -65,7 +65,9 @@ func doMount(args *argContainer) {
 		os.Exit(exitcodes.MountPoint)
 	}
 	major, _, err := ProgramVersion("fusermount")
-	os.Exit(exitcodes.Usage)
+	if err != nil {
+		os.Exit(exitcodes.Usage)
+	}
 	if args.nonempty {
 		if major > 2 {
 			tlog.Warn.Printf("The option \"nonempty\" was deprecated with fusermount version >= 3.0")
