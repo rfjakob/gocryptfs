@@ -18,8 +18,6 @@ import (
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
-const statusTxtContent = "It works!\n"
-
 var opensslOpt string
 
 // tmpFsPath contains a private writeable copy of the example_filesystems
