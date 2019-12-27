@@ -34,8 +34,7 @@ var raceDetector bool
 
 // loadConfig loads the config file "args.config", prompting the user for the password
 func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, err error) {
-	// First check if the file can be read at all, and find out if a Trezor should
-	// be used instead of a password.
+	// First check if the file can be read at all.
 	cf, err = configfile.Load(args.config)
 	if err != nil {
 		tlog.Fatal.Printf("Cannot open config file: %v", err)
@@ -47,14 +46,7 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 		masterkey = parseMasterKey(args.masterkey, false)
 		return masterkey, cf, nil
 	}
-	var pw []byte
-	if cf.IsFeatureFlagSet(configfile.FlagTrezor) {
-		// Get binary data from Trezor
-		pw = readpassword.Trezor(cf.TrezorPayload)
-	} else {
-		// Normal password entry
-		pw = readpassword.Once([]string(args.extpass), args.passfile, "")
-	}
+	pw := readpassword.Once([]string(args.extpass), args.passfile, "")
 	tlog.Info.Println("Decrypting master key")
 	masterkey, err = cf.DecryptMasterKey(pw)
 	for i := range pw {
@@ -71,20 +63,10 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 // changePassword - change the password of config file "filename"
 // Does not return (calls os.Exit both on success and on error).
 func changePassword(args *argContainer) {
-	// Parse the config file, but do not unlock the master key. We only want to
-	// know if the Trezor flag is set.
-	cf1, err := configfile.Load(args.config)
-	if err != nil {
-		tlog.Fatal.Printf("Cannot open config file: %v", err)
-		os.Exit(exitcodes.LoadConf)
-	}
-	if cf1.IsFeatureFlagSet(configfile.FlagTrezor) {
-		tlog.Fatal.Printf("Password change is not supported on Trezor-enabled filesystems.")
-		os.Exit(exitcodes.Usage)
-	}
 	var confFile *configfile.ConfFile
 	{
 		var masterkey []byte
+		var err error
 		masterkey, confFile, err = loadConfig(args)
 		if err != nil {
 			exitcodes.Exit(err)
@@ -111,7 +93,7 @@ func changePassword(args *argContainer) {
 	// "-masterkey"?
 	if args.masterkey != "" {
 		bak := args.config + ".bak"
-		err = os.Link(args.config, bak)
+		err := os.Link(args.config, bak)
 		if err != nil {
 			tlog.Fatal.Printf("Could not create backup file: %v", err)
 			os.Exit(exitcodes.Init)
@@ -121,7 +103,7 @@ func changePassword(args *argContainer) {
 			"Delete it after you have verified that you can access your files with the new password."+
 			tlog.ColorReset, bak)
 	}
-	err = confFile.WriteFile()
+	err := confFile.WriteFile()
 	if err != nil {
 		tlog.Fatal.Println(err)
 		os.Exit(exitcodes.WriteConf)
@@ -135,9 +117,6 @@ func printVersion() {
 	var tagsSlice []string
 	if stupidgcm.BuiltWithoutOpenssl {
 		tagsSlice = append(tagsSlice, "without_openssl")
-	}
-	if readpassword.TrezorSupport {
-		tagsSlice = append(tagsSlice, "enable_trezor")
 	}
 	tags := ""
 	if tagsSlice != nil {

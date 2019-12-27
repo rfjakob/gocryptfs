@@ -9,7 +9,6 @@ import (
 	"syscall"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
-	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
@@ -72,19 +71,10 @@ func initDir(args *argContainer) {
 		tlog.Info.Printf("Choose a password for protecting your files.")
 	}
 	{
-		var password []byte
-		var trezorPayload []byte
-		if args.trezor {
-			trezorPayload = cryptocore.RandBytes(readpassword.TrezorPayloadLen)
-			// Get binary data from from Trezor
-			password = readpassword.Trezor(trezorPayload)
-		} else {
-			// Normal password entry
-			password = readpassword.Twice([]string(args.extpass), args.passfile)
-		}
+		password := readpassword.Twice([]string(args.extpass), args.passfile)
 		creator := tlog.ProgramName + " " + GitVersion
 		err = configfile.Create(args.config, password, args.plaintextnames,
-			args.scryptn, creator, args.aessiv, args.devrandom, trezorPayload)
+			args.scryptn, creator, args.aessiv, args.devrandom)
 		if err != nil {
 			tlog.Fatal.Println(err)
 			os.Exit(exitcodes.WriteConf)

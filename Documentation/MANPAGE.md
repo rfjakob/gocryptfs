@@ -405,16 +405,6 @@ You need root permissions to use `-suid`.
 #### -trace string
 Write execution trace to file. View the trace using "go tool trace FILE".
 
-#### -trezor
-With `-init`: Protect the masterkey using a SatoshiLabs Trezor instead of a password.
-
-This feature is disabled by default and must be enabled at compile time using:
-
-    ./build.bash -tags enable_trezor
-
-You can determine if your gocryptfs binary has Trezor support enabled checking
-if the `gocryptfs -version` output contains the string `enable_trezor`.
-
 #### -version
 Print version and exit. The output contains three fields separated by ";".
 Example: "gocryptfs v1.1.1-5-g75b776c; go-fuse 6b801d3; 2016-11-01 go1.7.3".
