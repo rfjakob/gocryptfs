@@ -65,9 +65,7 @@ const (
 	FsckErrors = 26
 	// DeprecatedFS - this filesystem is deprecated
 	DeprecatedFS = 27
-	// TrezorError - an error was encountered while interacting with a Trezor
-	// device
-	TrezorError = 28
+	// skip 28
 	// ExcludeError - an error occurred while processing "-exclude"
 	ExcludeError = 29
 	// DevNull means that /dev/null could not be opened
