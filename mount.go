@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -362,7 +363,9 @@ func initGoFuse(fs pathfs.FileSystem, args *argContainer) *fuse.Server {
 		tlog.Info.Printf(tlog.ColorYellow + "THE OPTION \"-forcedecode\" IS ACTIVE. GOCRYPTFS WILL RETURN CORRUPT DATA!" +
 			tlog.ColorReset)
 	}
-	if args.nonempty {
+	// fusermount from libfuse 3.x removed the "nonempty" option and exits
+	// with an error if it sees it. Only add it to the options on libfuse 2.x.
+	if args.nonempty && haveFusermount2() {
 		mOpts.Options = append(mOpts.Options, "nonempty")
 	}
 	// Set values shown in "df -T" and friends
@@ -434,6 +437,25 @@ func initGoFuse(fs pathfs.FileSystem, args *argContainer) *fuse.Server {
 	syscall.Umask(0000)
 
 	return srv
+}
+
+// haveFusermount2 finds out if the "fusermount" binary is from libfuse 2.x.
+func haveFusermount2() bool {
+	cmd := exec.Command("/bin/fusermount", "-V")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		tlog.Warn.Printf("warning: haveFusermount2: %v", err)
+		return false
+	}
+	// libfuse 2: fusermount version: 2.9.9
+	// libfuse 3: fusermount3 version: 3.9.0
+	v := out.String()
+	if strings.HasPrefix(v, "fusermount version") {
+		return true
+	}
+	return false
 }
 
 func handleSigint(srv *fuse.Server, mountpoint string) {
