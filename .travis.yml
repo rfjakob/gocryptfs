@@ -2,7 +2,7 @@ language: go
 
 # fuse on travis
 sudo: required
-dist: xenial
+dist: bionic # Ubuntu 18.04 "Bionic", https://docs.travis-ci.com/user/reference/bionic/
 
 git:
   depth: 300
