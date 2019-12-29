@@ -7,14 +7,15 @@ dist: xenial
 git:
   depth: 300
 
-# Build with the lastest versions of Go 1.7 and later
-# See https://golang.org/dl/
+# Build with the lastest relevant Go versions
+# Relevance is determined from:
+# * https://golang.org/dl/
+# * https://packages.debian.org/search?keywords=golang&searchon=names&exact=1&suite=all&section=all
+# * https://packages.ubuntu.com/search?keywords=golang&searchon=names&exact=1&suite=all&section=all
 go:
-  - 1.9.x
-  - 1.10.x
-  - 1.11.x
-  - 1.12.x
-  - 1.12.x
+  - 1.11.x # Debian 10 "Buster"
+  - 1.12.x # Ubuntu 19.10
+  - 1.13.x # Debian 11 "Bullseye"
   - stable
 
 before_install:

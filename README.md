@@ -93,7 +93,7 @@ as well as in the go-fuse library.
 Compile
 -------
 
-With [go 1.7 or higher](.travis.yml#L12):
+With [go 1.11 or higher](.travis.yml#L12):
 
 	$ go get -d github.com/rfjakob/gocryptfs
 	$ cd $(go env GOPATH)/src/github.com/rfjakob/gocryptfs
