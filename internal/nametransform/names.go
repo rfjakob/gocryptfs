@@ -60,7 +60,7 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
   if err != nil {
     for _, pattern := range n.BypassPatterns {
       match, err := filepath.Match(pattern, cipherName)
-      if err != nil && match { // Pattern should have been validated already
+      if err == nil && match { // Pattern should have been validated already
         return "INVALID_GOCRYPTFS_NAME " + cipherName, nil
       }
     }
