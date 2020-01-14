@@ -441,10 +441,14 @@ func initGoFuse(fs pathfs.FileSystem, args *argContainer) *fuse.Server {
 
 // haveFusermount2 finds out if the "fusermount" binary is from libfuse 2.x.
 func haveFusermount2() bool {
-	cmd := exec.Command("/bin/fusermount", "-V")
+	path, err := exec.LookPath("fusermount")
+	if err != nil {
+		path = "/bin/fusermount"
+	}
+	cmd := exec.Command(path, "-V")
 	var out bytes.Buffer
 	cmd.Stdout = &out
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		tlog.Warn.Printf("warning: haveFusermount2: %v", err)
 		return false
