@@ -609,3 +609,38 @@ func TestNotIdle(t *testing.T) {
 	// All good.
 	test_helpers.UnmountPanic(mnt)
 }
+
+// TestSymlinkedCipherdir checks that if CIPHERDIR itself is a symlink, it is
+// followed.
+// https://github.com/rfjakob/gocryptfs/issues/450
+func TestSymlinkedCipherdir(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	dirSymlink := dir + ".symlink"
+	err := os.Symlink(dir, dirSymlink)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mnt := dir + ".mnt"
+	test_helpers.MountOrFatal(t, dirSymlink, mnt, "-extpass=echo test")
+	defer test_helpers.UnmountPanic(mnt)
+
+	file := mnt + "/file"
+	f, err := os.Create(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+
+	f, err = os.Open(mnt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	names, err := f.Readdirnames(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(names) != 1 || names[0] != "file" {
+		t.Errorf("wrong Readdirnames result: %v", names)
+	}
+}
