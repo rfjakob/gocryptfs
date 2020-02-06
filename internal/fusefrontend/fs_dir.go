@@ -288,18 +288,12 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 		// Read the DirIV from disk
 		cachedIV, err = nametransform.ReadDirIVAt(fd)
 		if err != nil {
-			// The directory itself does not exist
-			if err == syscall.ENOENT {
-				return nil, fuse.ENOENT
-			}
-			// Any other problem warrants an error message
 			tlog.Warn.Printf("OpenDir %q: could not read %s: %v", cDirName, nametransform.DirIVFilename, err)
 			return nil, fuse.EIO
 		}
 	}
 	// Decrypted directory entries
 	var plain []fuse.DirEntry
-	var errorCount int
 	// Filter and decrypt filenames
 	for i := range cipherEntries {
 		cName := cipherEntries[i].Name
@@ -326,7 +320,6 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 				tlog.Warn.Printf("OpenDir %q: invalid entry %q: Could not read .name: %v",
 					cDirName, cName, err)
 				fs.reportMitigatedCorruption(cName)
-				errorCount++
 				continue
 			}
 			cName = cNameLong
@@ -339,26 +332,12 @@ func (fs *FS) OpenDir(dirName string, context *fuse.Context) ([]fuse.DirEntry, f
 			tlog.Warn.Printf("OpenDir %q: invalid entry %q: %v",
 				cDirName, cName, err)
 			fs.reportMitigatedCorruption(cName)
-			if runtime.GOOS == "darwin" && cName == dsStoreName {
-				// MacOS creates lots of these files. Log the warning but don't
-				// increment errorCount - does not warrant returning EIO.
-				continue
-			}
-			errorCount++
 			continue
 		}
 		// Override the ciphertext name with the plaintext name but reuse the rest
 		// of the structure
 		cipherEntries[i].Name = name
 		plain = append(plain, cipherEntries[i])
-	}
-
-	if errorCount > 0 && len(plain) == 0 {
-		// Don't let the user stare on an empty directory. Report that things went
-		// wrong.
-		tlog.Warn.Printf("OpenDir %q: all %d entries were invalid, returning EIO",
-			cDirName, errorCount)
-		status = fuse.EIO
 	}
 
 	return plain, status

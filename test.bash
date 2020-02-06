@@ -1,7 +1,8 @@
 #!/bin/bash
 
 if [[ -z $TMPDIR ]]; then
-	TMPDIR=/tmp
+	TMPDIR=/var/tmp
+	export TMPDIR
 else
 	echo "Using TMPDIR=$TMPDIR"
 fi

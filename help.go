@@ -24,6 +24,7 @@ Common Options (use -hh to show all):
   -ctlsock           Create control socket at location
   -extpass           Call external program to prompt for the password
   -fg                Stay in the foreground
+  -fsck              Check filesystem integrity
   -fusedebug         Debug FUSE calls
   -h, -help          This short help text
   -hh                Long help text with all options

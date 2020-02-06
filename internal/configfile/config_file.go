@@ -46,10 +46,6 @@ type ConfFile struct {
 	// mounting. This mechanism is analogous to the ext4 feature flags that are
 	// stored in the superblock.
 	FeatureFlags []string
-	// TrezorPayload stores 32 random bytes used for unlocking the master key using
-	// a Trezor security module. The randomness makes sure that a unique unlock
-	// value is used for each gocryptfs filesystem.
-	TrezorPayload []byte `json:",omitempty"`
 	// Filename is the name of the config file. Not exported to JSON.
 	filename string
 }
@@ -73,7 +69,7 @@ func randBytesDevRandom(n int) []byte {
 // "password" and write it to "filename".
 // Uses scrypt with cost parameter logN.
 func Create(filename string, password []byte, plaintextNames bool,
-	logN int, creator string, aessiv bool, devrandom bool, trezorPayload []byte) error {
+	logN int, creator string, aessiv bool, devrandom bool) error {
 	var cf ConfFile
 	cf.filename = filename
 	cf.Creator = creator
@@ -92,10 +88,6 @@ func Create(filename string, password []byte, plaintextNames bool,
 	}
 	if aessiv {
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagAESSIV])
-	}
-	if len(trezorPayload) > 0 {
-		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagTrezor])
-		cf.TrezorPayload = trezorPayload
 	}
 	{
 		// Generate new random master key

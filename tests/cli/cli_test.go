@@ -23,11 +23,11 @@ var testPw = []byte("test")
 
 func TestMain(m *testing.M) {
 	test_helpers.ResetTmpDir(false)
-	before := test_helpers.ListFds(0)
+	before := test_helpers.ListFds(0, "")
 	r := m.Run()
-	after := test_helpers.ListFds(0)
+	after := test_helpers.ListFds(0, "")
 	if len(before) != len(after) {
-		fmt.Printf("fd leak? before, after:\n%v\n%v\n", before, after)
+		fmt.Printf("fd leak in test process? before, after:\n%v\n%v\n", before, after)
 		os.Exit(1)
 	}
 	os.Exit(r)
@@ -632,12 +632,12 @@ func TestBypass(t *testing.T) {
   }
 
 	f, err := os.Open(mnt)
-	if err != nil {
+  if err != nil {
 		t.Fatal(err)
 	}
 	defer f.Close()
 
-	names, err := f.Readdirnames(0)
+  names, err := f.Readdirnames(0)
 	found := false
 	for _, name := range names {
 		if strings.Contains(name, invalid_file_name) {
@@ -650,3 +650,40 @@ func TestBypass(t *testing.T) {
 		t.Errorf("did not find invalid name %s in %v", invalid_file_name, names)
 	}
 }
+
+// TestSymlinkedCipherdir checks that if CIPHERDIR itself is a symlink, it is
+// followed.
+// https://github.com/rfjakob/gocryptfs/issues/450
+func TestSymlinkedCipherdir(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	dirSymlink := dir + ".symlink"
+	err := os.Symlink(dir, dirSymlink)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mnt := dir + ".mnt"
+	test_helpers.MountOrFatal(t, dirSymlink, mnt, "-extpass=echo test")
+	defer test_helpers.UnmountPanic(mnt)
+
+	file := mnt + "/file"
+	f, err := os.Create(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+
+	f, err = os.Open(mnt)
+  if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+  
+  names, err := f.Readdirnames(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(names) != 1 || names[0] != "file" {
+		t.Errorf("wrong Readdirnames result: %v", names)
+  }
+}
+

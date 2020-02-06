@@ -10,11 +10,14 @@ gocryptfs - create or mount an encrypted filesystem
 SYNOPSIS
 ========
 
-#### Initialize encrypted filesystem
+#### Initialize new encrypted filesystem
 `gocryptfs -init [OPTIONS] CIPHERDIR`
 
 #### Mount
 `gocryptfs [OPTIONS] CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]`
+
+#### Unmount
+`fusermount -u MOUNTPOINT`
 
 #### Change password
 `gocryptfs -passwd [OPTIONS] CIPHERDIR`
@@ -35,7 +38,8 @@ security issues while providing good performance.
 OPTIONS
 =======
 
-Available options are listed below.
+Available options are listed below. Usually, you don't need any.
+Defaults are fine.
 
 #### -aessiv
 Use the AES-SIV encryption mode. This is slower than GCM but is
@@ -401,16 +405,6 @@ You need root permissions to use `-suid`.
 #### -trace string
 Write execution trace to file. View the trace using "go tool trace FILE".
 
-#### -trezor
-With `-init`: Protect the masterkey using a SatoshiLabs Trezor instead of a password.
-
-This feature is disabled by default and must be enabled at compile time using:
-
-    ./build.bash -tags enable_trezor
-
-You can determine if your gocryptfs binary has Trezor support enabled checking
-if the `gocryptfs -version` output contains the string `enable_trezor`.
-
 #### -version
 Print version and exit. The output contains three fields separated by ";".
 Example: "gocryptfs v1.1.1-5-g75b776c; go-fuse 6b801d3; 2016-11-01 go1.7.3".
@@ -494,11 +488,12 @@ In short:
 EXAMPLES
 ========
 
-Create an encrypted filesystem in directory "g1" and mount it on "g2":
+Create an encrypted filesystem in directory "g1", mount it on "g2",
+look at the contents, and umount again:
 
-	mkdir g1 g2
-	gocryptfs -init g1
-	gocryptfs g1 g2
+	mkdir cipher mnt
+	gocryptfs -init cipher
+	gocryptfs cipher mnt
 
 Mount an ecrypted view of joe's home directory using reverse mode:
 

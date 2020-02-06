@@ -4,6 +4,7 @@ package fusefrontend
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -158,7 +159,12 @@ func (f *File) doRead(dst []byte, off uint64, length uint64) ([]byte, fuse.Statu
 				// Empty file
 				return nil, fuse.OK
 			}
-			tlog.Warn.Printf("doRead %d: corrupt header: %v", f.qIno.Ino, err)
+			buf := make([]byte, 100)
+			n, _ := f.fd.ReadAt(buf, 0)
+			buf = buf[:n]
+			hexdump := hex.EncodeToString(buf)
+			tlog.Warn.Printf("doRead %d: corrupt header: %v\nFile hexdump (%d bytes): %s",
+				f.qIno.Ino, err, n, hexdump)
 			return nil, fuse.EIO
 		}
 		// Save into the file table
@@ -395,11 +401,10 @@ func (f *File) Release() {
 	if f.released {
 		log.Panicf("ino%d fh%d: double release", f.qIno.Ino, f.intFd())
 	}
-	f.fd.Close()
 	f.released = true
-	f.fdLock.Unlock()
-
 	openfiletable.Unregister(f.qIno)
+	f.fd.Close()
+	f.fdLock.Unlock()
 }
 
 // Flush - FUSE call
@@ -457,6 +462,7 @@ func (f *File) GetAttr(a *fuse.Attr) fuse.Status {
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
+	f.fs.inumMap.TranslateStat(&st)
 	a.FromStat(&st)
 	a.Size = f.contentEnc.CipherSizeToPlainSize(a.Size)
 	if f.fs.args.ForceOwner != nil {

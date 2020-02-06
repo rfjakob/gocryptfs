@@ -11,6 +11,11 @@
 #
 # See Documentation/extractloop.md for example output.
 
+if [[ -z $TMPDIR ]]; then
+	TMPDIR=/var/tmp
+	export TMPDIR
+fi
+
 set -eu
 
 # Run at low priority to not annoy the user too much
@@ -23,8 +28,8 @@ source ../fuse-unmount.bash
 
 # Setup dirs
 ../dl-linux-tarball.bash
-cd /tmp
-EXTRACTLOOP_TMPDIR=/tmp/extractloop_tmpdir
+cd $TMPDIR
+EXTRACTLOOP_TMPDIR=$TMPDIR/extractloop_tmpdir
 mkdir -p $EXTRACTLOOP_TMPDIR
 CRYPT=$(mktemp -d $EXTRACTLOOP_TMPDIR/XXX)
 CSV=$CRYPT.csv
@@ -43,16 +48,20 @@ function check_md5sums {
 
 # Mount
 FSPID=0
+FS=""
 if [ $# -eq 1 ] && [ "$1" == "-encfs" ]; then
+	FS=encfs
 	echo "Testing EncFS"
 	encfs --extpass="echo test" --standard $CRYPT $MNT > /dev/null
 elif [ $# -eq 1 ] && [ "$1" == "-loopback" ]; then
+	FS=loopback
 	echo "Testing go-fuse loopback"
 	rm -f /tmp/loopback*.memprof
-	loopback -l -memprofile=/tmp/loopback $MNT $CRYPT &
+	loopback -memprofile=/tmp/loopback $MNT $CRYPT &
 	FSPID=$(jobs -p)
 	disown
 else
+	FS=gocryptfs
 	echo "Testing gocryptfs"
 	gocryptfs -q -init -extpass="echo test" -scryptn=10 $CRYPT
 	gocryptfs -q -extpass="echo test" -nosyslog -fg $CRYPT $MNT &
@@ -70,7 +79,18 @@ ln -v -sTf $CSV /tmp/extractloop.csv 2> /dev/null || true # fails on MacOS, igno
 # Cleanup trap
 # Note: gocryptfs may have already umounted itself because bash relays SIGINT
 # Just ignore unmount errors.
-trap "cd / ; rm -Rf $CRYPT ; fuse-unmount -z $MNT || true ; rmdir $MNT" EXIT
+trap cleanup_exit EXIT
+
+function cleanup_exit {
+	if [[ $FS == loopback ]]; then
+		# SIGUSR1 causes loopback to write the memory profile to disk
+		kill -USR1 $FSPID
+	fi
+	cd /
+	rm -Rf $CRYPT
+	fuse-unmount -z $MNT || true
+	rmdir $MNT
+}
 
 function loop {
 	ID=$1
@@ -88,7 +108,7 @@ function loop {
 		#                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 		# Exclude the one symlink in the tarball - causes problems on MacOS: "Can't set permissions to 0755"
 		check_md5sums $MD5
-		rm -Rf linux-3.0
+		rm -R linux-3.0
 		t2=$SECONDS
 		delta=$((t2-t1))
 		if [[ $FSPID -gt 0 && -d /proc ]]; then
@@ -109,5 +129,7 @@ function memprof {
 
 loop 1 &
 loop 2 &
-#memprof &
+if [[ $FS == loopback ]]; then
+	memprof &
+fi
 wait

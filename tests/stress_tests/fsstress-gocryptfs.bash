@@ -12,6 +12,11 @@
 #
 # Nowadays it should pass an indefinite number of iterations.
 
+if [[ -z $TMPDIR ]]; then
+	TMPDIR=/var/tmp
+	export TMPDIR
+fi
+
 set -eu
 
 cd "$(dirname "$0")"
@@ -28,7 +33,7 @@ then
 fi
 
 # Backing directory
-DIR=$(mktemp -d /tmp/$MYNAME.XXX)
+DIR=$(mktemp -d $TMPDIR/$MYNAME.XXX)
 # Mountpoint
 MNT="$DIR.mnt"
 mkdir $MNT
@@ -36,12 +41,17 @@ mkdir $MNT
 # Set the GOPATH variable to the default if it is empty
 GOPATH=$(go env GOPATH)
 
+# Clean up old mounts
+for i in $(mount | cut -d" " -f3 | grep $TMPDIR/$MYNAME) ; do
+	fusermount -u $i
+done
+
 # FS-specific compile and mount
 if [ $MYNAME = fsstress-loopback.bash ]; then
 	echo "Recompile go-fuse loopback"
 	cd $GOPATH/src/github.com/hanwen/go-fuse/example/loopback
 	go build -race && go install
-	$GOPATH/bin/loopback -l $MNT $DIR &
+	$GOPATH/bin/loopback -q $MNT $DIR &
 	disown
 elif [ $MYNAME = fsstress-gocryptfs.bash ]; then
 	echo "Recompile gocryptfs"

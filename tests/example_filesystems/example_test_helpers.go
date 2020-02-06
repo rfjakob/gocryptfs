@@ -9,6 +9,8 @@ import (
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
+const statusTxtContent = "It works!\n"
+
 // checkExampleFS - verify that "dir" contains the expected test files
 func checkExampleFS(t *testing.T, dir string, rw bool) {
 	// Read regular file

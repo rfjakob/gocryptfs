@@ -93,7 +93,7 @@ as well as in the go-fuse library.
 Compile
 -------
 
-With [go 1.7 or higher](.travis.yml#L12):
+With [go 1.11 or higher](.travis.yml#L12):
 
 	$ go get -d github.com/rfjakob/gocryptfs
 	$ cd $(go env GOPATH)/src/github.com/rfjakob/gocryptfs
@@ -187,7 +187,7 @@ RM:    3.379
 Changelog
 ---------
 
-vNEXT, in progress
+v1.7.1, in progress
 * Support wild cards in reverse mode via `--exclude-wildcard`
   ([#367](https://github.com/rfjakob/gocryptfs/pull/367)). Thanks @ekalin!
 * Create `gocryptfs.diriv` files with 0440 permissions to make it easier to
@@ -200,6 +200,11 @@ vNEXT, in progress
   ([#400](https://github.com/rfjakob/gocryptfs/issues/400))
 * Fix `-idle` unmounting the filesystem despite recent activity
   ([#421](https://github.com/rfjakob/gocryptfs/issues/421))
+* **Fix a race condition related to inode number reuse
+  ([#363](https://github.com/rfjakob/gocryptfs/issues/363))**.
+  It could be triggered by concurrently creating and deleting files and can lead to data loss
+  in the affected file. This bug was found by the automated tests on Travis
+  and was very hard to trigger locally.
 
 v1.7, 2019-03-17
 * **Fix possible symlink race attacks in forward mode** when using allow_other + plaintextnames

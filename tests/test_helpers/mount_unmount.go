@@ -91,7 +91,7 @@ func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 	}
 
 	// Save PID and open FDs
-	MountInfo[p] = mountInfo{pid, ListFds(pid)}
+	MountInfo[p] = mountInfo{pid, ListFds(pid, "")}
 	return nil
 }
 
@@ -160,13 +160,13 @@ func UnmountErr(dir string) (err error) {
 				// when testing "-ctlsock" is as well. Wait a little and
 				// hope that all close commands get through to the gocryptfs
 				// process.
-				fdsNow = ListFds(pid)
+				fdsNow = ListFds(pid, "")
 				if len(fdsNow) <= len(fds)+maxCacheFds {
 					break
 				}
 				fmt.Printf("UnmountErr: fdsOld=%d fdsNow=%d, retrying\n", len(fds), len(fdsNow))
 				time.Sleep(10 * time.Millisecond)
-				fdsNow = ListFds(pid)
+				fdsNow = ListFds(pid, "")
 			}
 		}
 		cmd := exec.Command(UnmountScript, "-u", dir)
@@ -175,7 +175,7 @@ func UnmountErr(dir string) (err error) {
 		err = cmd.Run()
 		if err == nil {
 			if len(fdsNow) > len(fds)+maxCacheFds {
-				return fmt.Errorf("FD leak? pid=%d dir=%q, fds:\nold=%v \nnew=%v\n", pid, dir, fds, fdsNow)
+				return fmt.Errorf("fd leak in gocryptfs process? pid=%d dir=%q, fds:\nold=%v \nnew=%v\n", pid, dir, fds, fdsNow)
 			}
 			return nil
 		}
@@ -187,8 +187,8 @@ func UnmountErr(dir string) (err error) {
 }
 
 // ListFds lists the open file descriptors for process "pid". Pass pid=0 for
-// ourselves.
-func ListFds(pid int) []string {
+// ourselves. Pass a prefix to ignore all paths that do not start with "prefix".
+func ListFds(pid int, prefix string) []string {
 	// We need /proc to get the list of fds for other processes. Only exists
 	// on Linux.
 	if runtime.GOOS != "linux" && pid > 0 {
@@ -211,7 +211,7 @@ func ListFds(pid int) []string {
 		log.Panic(err)
 	}
 	var out []string
-	hidden := 0
+	var filtered []string
 	for _, n := range names {
 		fdPath := dir + "/" + n
 		fi, err := os.Lstat(fdPath)
@@ -235,11 +235,15 @@ func ListFds(pid int) []string {
 			// creates spurious test failures. Ignore all pipes.
 			// Also get rid of the "eventpoll" fd that is always there and not
 			// interesting.
-			hidden++
+			filtered = append(filtered, target)
+			continue
+		}
+		if prefix != "" && !strings.HasPrefix(target, prefix) {
+			filtered = append(filtered, target)
 			continue
 		}
 		out = append(out, n+"="+target)
 	}
-	out = append(out, fmt.Sprintf("(hidden:%d)", hidden))
+	out = append(out, fmt.Sprintf("(filtered: %s)", strings.Join(filtered, ", ")))
 	return out
 }
