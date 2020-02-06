@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
-	// "strings"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -616,6 +616,7 @@ func TestBypass(t *testing.T) {
   mnt := dir + ".mnt"
 
   test_helpers.MountOrFatal(t, dir, mnt, "-namedecr=*", "-extpass=echo test")
+	defer test_helpers.UnmountPanic(mnt)
 
   file := mnt + "/file"
 	err := ioutil.WriteFile(file, []byte("somecontent"), 0600)
@@ -623,39 +624,29 @@ func TestBypass(t *testing.T) {
     t.Fatal(err)
   }
 
-	/*
-  err = test_helpers.UnmountErr(mnt)
-  if err != nil {
-    t.Fatal(err)
-  }
-	*/
-
-  file1 := dir + "/file1"
-	err = ioutil.WriteFile(file1, []byte("somecontent"), 0600)
+	invalid_file_name := "invalid_file"
+  invalid_file := dir + "/" + invalid_file_name
+	err = ioutil.WriteFile(invalid_file, []byte("somecontent"), 0600)
   if err != nil {
     t.Fatal(err)
   }
 
-	files, err := ioutil.ReadDir(mnt + "/")
+	f, err := os.Open(mnt)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer f.Close()
 
-	/*
-	fileNames := make([]string, 0)
-	for _, file := range files {
-		fileNames = append(fileNames, file.Name())
+	names, err := f.Readdirnames(0)
+	found := false
+	for _, name := range names {
+		if strings.Contains(name, invalid_file_name) {
+			found = true
+			break
+		}
 	}
-	*/
 
-	test_helpers.UnmountPanic(mnt)
-	// t.Fatal(fileNames)
-	t.Fatal(files)
-
-	/*
-	if !strings.Contains(string(output), "INVALID_GOCRYPTFS_NAME") {
-		// t.Fatal(string(output))
-		// t.Fatal("bypassed filename not printed")
+	if !found {
+		t.Errorf("did not find invalid name %s in %v", invalid_file_name, names)
 	}
-	*/
 }
