@@ -371,7 +371,9 @@ v1.3, 2017-04-29
   * New feature flag: `HKDF` (enabled by default)
   * This is a forwards-compatible change. gocryptfs v1.3 can mount
    filesystems created by earlier versions but not the other way round.
-* Enable Raw64 filename encoding by default (gets rid of trailing `==` characters)
+* **Enable Raw64 filename encoding by default (gets rid of trailing `==` characters)**
+  * This is a forwards-compatible change. gocryptfs v1.3 can mount
+   filesystems created by earlier versions but not the other way round.
 * Drop Go 1.4 compatibility. You now need Go 1.5 (released 2015-08-19)
   or higher to build gocryptfs.
 * Add `-serialize_reads` command-line option
