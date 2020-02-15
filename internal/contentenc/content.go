@@ -219,7 +219,11 @@ func (be *ContentEnc) encryptBlocksParallel(plaintextBlocks [][]byte, ciphertext
 			low := i * groupSize
 			high := (i + 1) * groupSize
 			if i == ncpu-1 {
-				// Last group, pick up any left-over blocks
+				// Last part picks up any left-over blocks
+				//
+				// The last part could run in the original goroutine, but
+				// doing that complicates the code, and, surprisingly,
+				// incurs a 1 % performance penalty.
 				high = len(plaintextBlocks)
 			}
 			be.doEncryptBlocks(plaintextBlocks[low:high], ciphertextBlocks[low:high], firstBlockNo+uint64(low), fileID)
