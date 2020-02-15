@@ -187,7 +187,12 @@ RM:    3.379
 Changelog
 ---------
 
-v1.7.1, in progress
+vNEXT, in progress
+* Fix [#367](https://github.com/rfjakob/gocryptfs/issues/431)
+* Fix [#435](https://github.com/rfjakob/gocryptfs/issues/435)
+* Fix [#440](https://github.com/rfjakob/gocryptfs/pull/440)
+
+v1.7.1, 2019-10-06
 * Support wild cards in reverse mode via `--exclude-wildcard`
   ([#367](https://github.com/rfjakob/gocryptfs/pull/367)). Thanks @ekalin!
 * Create `gocryptfs.diriv` files with 0440 permissions to make it easier to
