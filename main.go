@@ -133,8 +133,9 @@ func printVersion() {
 
 func main() {
 	mxp := runtime.GOMAXPROCS(0)
-	if mxp < 4 {
-		// On a 2-core machine, setting maxprocs to 4 gives 10% better performance
+	if mxp < 4 && os.Getenv("GOMAXPROCS") == "" {
+		// On a 2-core machine, setting maxprocs to 4 gives 10% better performance.
+		// But don't override an explicitely set GOMAXPROCS env variable.
 		runtime.GOMAXPROCS(4)
 	}
 	// mount(1) unsets PATH. Since exec.Command does not handle this case, we set
