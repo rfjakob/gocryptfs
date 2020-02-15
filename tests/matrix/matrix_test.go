@@ -16,6 +16,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
 	"runtime"
@@ -96,7 +97,7 @@ func TestMain(m *testing.M) {
 	os.Exit(0)
 }
 
-// Write "n" zero bytes to filename "fn", read again, compare hash
+// Write `n` random bytes to filename `fn`, read again, compare hash
 func testWriteN(t *testing.T, fn string, n int) string {
 	file, err := os.Create(test_helpers.DefaultPlainDir + "/" + fn)
 	if err != nil {
@@ -104,6 +105,10 @@ func testWriteN(t *testing.T, fn string, n int) string {
 	}
 
 	d := make([]byte, n)
+	for i := range d {
+		// Fill with pattern
+		d[i] = byte(rand.Int())
+	}
 	_, err = file.Write(d)
 	if err != nil {
 		t.Fatal(err)
@@ -143,9 +148,9 @@ func TestWrite100x100(t *testing.T) {
 	// Read and check 100 times to catch race conditions
 	var i int
 	for i = 0; i < 100; i++ {
-		hashActual := test_helpers.Md5fn(test_helpers.DefaultPlainDir + "/100")
+		hashActual := test_helpers.Md5fn(test_helpers.DefaultPlainDir + "/100x100")
 		if hashActual != hashWant {
-			fmt.Printf("Read corruption in loop #%d\n", i)
+			fmt.Printf("Read corruption in loop #%d: have=%s want=%s\n", i, hashActual, hashWant)
 			t.FailNow()
 		} else {
 			//fmt.Print(".")
