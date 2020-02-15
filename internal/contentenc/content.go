@@ -204,33 +204,39 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileID []b
 // 2 seems to work ok for now.
 const encryptMaxSplit = 2
 
+// encryptBlocksParallel splits the plaintext into parts and encrypts them
+// in parallel.
+func (be *ContentEnc) encryptBlocksParallel(plaintextBlocks [][]byte, ciphertextBlocks [][]byte, firstBlockNo uint64, fileID []byte) {
+	ncpu := runtime.NumCPU()
+	if ncpu > encryptMaxSplit {
+		ncpu = encryptMaxSplit
+	}
+	groupSize := len(plaintextBlocks) / ncpu
+	var wg sync.WaitGroup
+	for i := 0; i < ncpu; i++ {
+		wg.Add(1)
+		go func(i int) {
+			low := i * groupSize
+			high := (i + 1) * groupSize
+			if i == ncpu-1 {
+				// Last group, pick up any left-over blocks
+				high = len(plaintextBlocks)
+			}
+			be.doEncryptBlocks(plaintextBlocks[low:high], ciphertextBlocks[low:high], firstBlockNo+uint64(low), fileID)
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+}
+
 // EncryptBlocks is like EncryptBlock but takes multiple plaintext blocks.
 // Returns a byte slice from CReqPool - so don't forget to return it
 // to the pool.
 func (be *ContentEnc) EncryptBlocks(plaintextBlocks [][]byte, firstBlockNo uint64, fileID []byte) []byte {
 	ciphertextBlocks := make([][]byte, len(plaintextBlocks))
 	// For large writes, we parallelize encryption.
-	if len(plaintextBlocks) >= 32 {
-		ncpu := runtime.NumCPU()
-		if ncpu > encryptMaxSplit {
-			ncpu = encryptMaxSplit
-		}
-		groupSize := len(plaintextBlocks) / ncpu
-		var wg sync.WaitGroup
-		for i := 0; i < ncpu; i++ {
-			wg.Add(1)
-			go func(i int) {
-				low := i * groupSize
-				high := (i + 1) * groupSize
-				if i == ncpu-1 {
-					// Last group, pick up any left-over blocks
-					high = len(plaintextBlocks)
-				}
-				be.doEncryptBlocks(plaintextBlocks[low:high], ciphertextBlocks[low:high], firstBlockNo+uint64(low), fileID)
-				wg.Done()
-			}(i)
-		}
-		wg.Wait()
+	if len(plaintextBlocks) >= 32 && runtime.NumCPU() >= 2 {
+		be.encryptBlocksParallel(plaintextBlocks, ciphertextBlocks, firstBlockNo, fileID)
 	} else {
 		be.doEncryptBlocks(plaintextBlocks, ciphertextBlocks, firstBlockNo, fileID)
 	}
