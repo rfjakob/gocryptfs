@@ -12,7 +12,6 @@ import (
 	"log"
 	"testing"
 
-	"github.com/rfjakob/gocryptfs/internal/prefer_openssl"
 	"github.com/rfjakob/gocryptfs/internal/siv_aead"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 )
@@ -24,8 +23,8 @@ func Run() {
 		f         func(*testing.B)
 		preferred bool
 	}{
-		{name: "AES-GCM-256-OpenSSL", f: bStupidGCM, preferred: prefer_openssl.PreferOpenSSL()},
-		{name: "AES-GCM-256-Go", f: bGoGCM, preferred: !prefer_openssl.PreferOpenSSL()},
+		{name: "AES-GCM-256-OpenSSL", f: bStupidGCM, preferred: stupidgcm.PreferOpenSSL()},
+		{name: "AES-GCM-256-Go", f: bGoGCM, preferred: !stupidgcm.PreferOpenSSL()},
 		{name: "AES-SIV-512-Go", f: bAESSIV, preferred: false},
 	}
 	for _, b := range bTable {

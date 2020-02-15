@@ -17,7 +17,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
-	"github.com/rfjakob/gocryptfs/internal/prefer_openssl"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -232,7 +231,7 @@ func parseCliOpts() (args argContainer) {
 	}
 	// "-openssl" needs some post-processing
 	if opensslAuto == "auto" {
-		args.openssl = prefer_openssl.PreferOpenSSL()
+		args.openssl = stupidgcm.PreferOpenSSL()
 	} else {
 		args.openssl, err = strconv.ParseBool(opensslAuto)
 		if err != nil {
