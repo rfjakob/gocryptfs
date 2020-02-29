@@ -27,10 +27,6 @@ func (fs *FS) GetXAttr(relPath string, attr string, context *fuse.Context) ([]by
 	if fs.isFiltered(relPath) {
 		return nil, fuse.EPERM
 	}
-	if disallowedXAttrName(attr) {
-		return nil, _EOPNOTSUPP
-	}
-
 	cAttr := fs.encryptXattrName(attr)
 
 	cData, status := fs.getXAttr(relPath, cAttr, context)
@@ -53,10 +49,6 @@ func (fs *FS) SetXAttr(relPath string, attr string, data []byte, flags int, cont
 	if fs.isFiltered(relPath) {
 		return fuse.EPERM
 	}
-	if disallowedXAttrName(attr) {
-		return _EOPNOTSUPP
-	}
-
 	flags = filterXattrSetFlags(flags)
 	cAttr := fs.encryptXattrName(attr)
 	cData := fs.encryptXattrValue(data)
@@ -70,10 +62,6 @@ func (fs *FS) RemoveXAttr(relPath string, attr string, context *fuse.Context) fu
 	if fs.isFiltered(relPath) {
 		return fuse.EPERM
 	}
-	if disallowedXAttrName(attr) {
-		return _EOPNOTSUPP
-	}
-
 	cAttr := fs.encryptXattrName(attr)
 	return fs.removeXAttr(relPath, cAttr, context)
 }

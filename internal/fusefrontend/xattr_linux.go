@@ -5,7 +5,6 @@ package fusefrontend
 
 import (
 	"fmt"
-	"strings"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -14,15 +13,6 @@ import (
 
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 )
-
-// Only allow the "user" namespace, block "trusted" and "security", as
-// these may be interpreted by the system, and we don't want to cause
-// trouble with our encrypted garbage.
-const xattrUserPrefix = "user."
-
-func disallowedXAttrName(attr string) bool {
-	return !strings.HasPrefix(attr, xattrUserPrefix)
-}
 
 func filterXattrSetFlags(flags int) int {
 	return flags
