@@ -191,6 +191,7 @@ vNEXT, in progress
 * Fix [#367](https://github.com/rfjakob/gocryptfs/issues/431)
 * Fix [#435](https://github.com/rfjakob/gocryptfs/issues/435)
 * Fix [#440](https://github.com/rfjakob/gocryptfs/pull/440)
+* Enable ACL support ([#453](https://github.com/rfjakob/gocryptfs/issues/453))
 
 v1.7.1, 2019-10-06
 * Support wild cards in reverse mode via `--exclude-wildcard`

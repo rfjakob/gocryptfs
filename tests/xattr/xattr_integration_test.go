@@ -44,6 +44,10 @@ func TestMain(m *testing.M) {
 }
 
 func setGetRmList(fn string) error {
+	return setGetRmList3(fn, "user.foo", []byte("123456789"))
+}
+
+func setGetRmList3(fn string, attr string, val []byte) error {
 	// List
 	list, err := xattr.LList(fn)
 	if err != nil {
@@ -52,10 +56,7 @@ func setGetRmList(fn string) error {
 	if len(list) > 0 {
 		return fmt.Errorf("Should have gotten empty result, got %v", list)
 	}
-	attr := "user.foo"
-	// Set
-	val1 := []byte("123456789")
-	err = xattr.LSet(fn, attr, val1)
+	err = xattr.LSet(fn, attr, val)
 	if err != nil {
 		return err
 	}
@@ -64,8 +65,8 @@ func setGetRmList(fn string) error {
 	if err != nil {
 		return err
 	}
-	if !bytes.Equal(val1, val2) {
-		return fmt.Errorf("wrong readback value: %v != %v", val1, val2)
+	if !bytes.Equal(val, val2) {
+		return fmt.Errorf("wrong readback value: %v != %v", val, val2)
 	}
 	// Remove
 	err = xattr.LRemove(fn, attr)
@@ -334,6 +335,27 @@ func TestSet0200Dir(t *testing.T) {
 	}
 	err = xattr.LSet(fn, "user.foo", []byte("bar"))
 	os.Chmod(fn, 0700)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestAcl(t *testing.T) {
+	fn := test_helpers.DefaultPlainDir + "/TestAcl"
+	err := ioutil.WriteFile(fn, nil, 0600)
+	if err != nil {
+		t.Fatalf("creating empty file failed: %v", err)
+	}
+	// ACLs are blobs generated in userspace, let's steal a valid ACL from
+	// setfacl using strace:
+	//
+	//   $ strace -e setxattr setfacl -m u:root:r file
+	//   setxattr("file", "system.posix_acl_access", "\2\0\0\0\1\0\6\0\377\377\377\377\2\0\4\0\0\0\0\0\4\0\4\0\377\377\377\377\20\0\4", 44, 0) = 0
+	//
+	// The ACL gives user root additional read rights, in other words, it should
+	// have no effect at all.
+	acl := "\002\000\000\000\001\000\006\000\377\377\377\377\002\000\004\000\000\000\000\000\004\000\004\000\377\377\377\377\020\000\004"
+	err = setGetRmList3(fn, "system.posix_acl_access", []byte(acl))
 	if err != nil {
 		t.Error(err)
 	}
