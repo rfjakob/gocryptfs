@@ -16,6 +16,12 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 )
 
+// 128-bit file ID + 64 bit block number = 192 bits = 24 bytes
+const adLen = 24
+
+// gocryptfs uses fixed-size 4 kiB blocks
+const blockSize = 4096
+
 // Run - run the speed the test and print the results.
 func Run() {
 	bTable := []struct {
@@ -60,14 +66,13 @@ func randBytes(n int) []byte {
 	return b
 }
 
-const blockSize = 4096
-
+// bStupidGCM benchmarks stupidgcm's openssl GCM
 func bStupidGCM(b *testing.B) {
 	if stupidgcm.BuiltWithoutOpenssl {
 		b.Skip("openssl has been disabled at compile-time")
 	}
 	key := randBytes(32)
-	authData := randBytes(24)
+	authData := randBytes(adLen)
 	iv := randBytes(16)
 	in := make([]byte, blockSize)
 	b.SetBytes(int64(len(in)))
@@ -81,9 +86,10 @@ func bStupidGCM(b *testing.B) {
 	}
 }
 
+// bGoGCM benchmarks Go stdlib GCM
 func bGoGCM(b *testing.B) {
 	key := randBytes(32)
-	authData := randBytes(24)
+	authData := randBytes(adLen)
 	iv := randBytes(16)
 	in := make([]byte, blockSize)
 	b.SetBytes(int64(len(in)))
@@ -104,9 +110,10 @@ func bGoGCM(b *testing.B) {
 	}
 }
 
+// bAESSIV benchmarks AES-SIV from github.com/jacobsa/crypto/siv
 func bAESSIV(b *testing.B) {
 	key := randBytes(64)
-	authData := randBytes(24)
+	authData := randBytes(adLen)
 	iv := randBytes(16)
 	in := make([]byte, blockSize)
 	b.SetBytes(int64(len(in)))
