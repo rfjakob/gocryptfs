@@ -19,6 +19,7 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+    "regexp"
 
 	"golang.org/x/sys/unix"
 
@@ -287,14 +288,14 @@ func initFuseFrontend(args *argContainer) (pfs pathfs.FileSystem, wipeKeys func(
 	cEnc := contentenc.New(cCore, contentenc.DefaultBS, args.forcedecode)
 	nameTransform := nametransform.New(cCore.EMECipher, frontendArgs.LongNames, args.raw64)
 	// Init badname patterns
-	nameTransform.BadnamePatterns = make([]string, 0)
+	nameTransform.BadnamePatterns = make([]*regexp.Regexp, 0)
 	for _, pattern := range args.badname {
-		_, err := filepath.Match(pattern, "") // Make sure pattern is valid
+		compPattern, err := regexp.Compile(pattern) // Make sure pattern is valid
 		if err != nil {
 			tlog.Fatal.Printf("-badname: invalid pattern %q supplied", pattern)
 			os.Exit(exitcodes.Usage)
 		} else {
-			nameTransform.BadnamePatterns = append(nameTransform.BadnamePatterns, pattern)
+			nameTransform.BadnamePatterns = append(nameTransform.BadnamePatterns, compPattern)
 		}
 	}
 	// After the crypto backend is initialized,
