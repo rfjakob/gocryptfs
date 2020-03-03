@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"encoding/base64"
-	"path/filepath"
+	"regexp"
 	"syscall"
 
 	"github.com/rfjakob/eme"
@@ -37,7 +37,7 @@ type NameTransform struct {
 	// on the Raw64 feature flag
 	B64 *base64.Encoding
 	// Patterns to bypass decryption
-	BadnamePatterns []string
+	BadnamePatterns []*regexp.Regexp
 }
 
 // New returns a new NameTransform instance.
@@ -59,10 +59,16 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 	res, err := n.decryptName(cipherName, iv)
 	if err != nil {
 		for _, pattern := range n.BadnamePatterns {
-			match, err := filepath.Match(pattern, cipherName)
-			if err == nil && match { // Pattern should have been validated already
-				return "GOCRYPTFS_BAD_NAME " + cipherName, nil
-			}
+            pos := pattern.FindStringIndex(cipherName)
+            if pos != nil {
+                // concat cipherName without pattern match
+                concatCipherName := cipherName[0:pos[0]] + cipherName[pos[1]:len(cipherName)]
+                res, err := n.decryptName(concatCipherName, iv)
+                // Add pattern always at end
+                if err == nil { // Pattern should have been validated already
+                    return res + cipherName[pos[0]:pos[1]] + "(GOCRYPTFS_BAD_NAME)", nil
+                }
+            }
 		}
 	}
 	return res, err
