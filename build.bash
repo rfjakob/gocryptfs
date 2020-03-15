@@ -67,8 +67,8 @@ if [[ -n ${SOURCE_DATE_EPOCH:-} ]] ; then
 	BUILDDATE=$(date --utc --date="@${SOURCE_DATE_EPOCH}" +%Y-%m-%d)
 fi
 
-export GOFLAGS="-buildmode=pie -trimpath"
-export CGO_LDFLAGS="$LDFLAGS"
+export GOFLAGS="${GOFLAGS:--buildmode=pie -trimpath}"
+export CGO_LDFLAGS="${CGO_LDFLAGS:-$LDFLAGS}"
 GO_LDFLAGS="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildDate=$BUILDDATE"
 
 # Actual "go build" call for gocryptfs
