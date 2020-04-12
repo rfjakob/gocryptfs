@@ -1,4 +1,4 @@
-package openfiletable
+package inomap
 
 import (
 	"sync"
@@ -8,25 +8,25 @@ import (
 // UINT64_MAX           = 18446744073709551615
 const inumTranslateBase = 10000000000000000000
 
-// InumMap ... see NewInumMap() for description.
-type InumMap struct {
+// InoMap ... see New() for description.
+type InoMap struct {
 	sync.Mutex
 	baseDev       uint64
 	translate     map[QIno]uint64
 	translateNext uint64
 }
 
-// NewInumMap returns a new inumMap.
+// New returns a new InoMap.
 //
-// inumMap translates (device uint64, inode uint64) pairs to unique uint64
+// InoMap translates (device uint64, inode uint64) pairs to unique uint64
 // inode numbers.
 // Inode numbers on the "baseDev" are passed through unchanged (as long as they
 // are not higher than inumTranslateBase).
 // Inode numbers on other devices are remapped to the number space above
 // 10000000000000000000. The mapping is stored in a simple Go map. Entries
 // can only be added and are never removed.
-func NewInumMap(baseDev uint64) *InumMap {
-	return &InumMap{
+func New(baseDev uint64) *InoMap {
+	return &InoMap{
 		baseDev:       baseDev,
 		translate:     make(map[QIno]uint64),
 		translateNext: inumTranslateBase,
@@ -34,7 +34,7 @@ func NewInumMap(baseDev uint64) *InumMap {
 }
 
 // Translate maps the passed-in (device, inode) pair to a unique inode number.
-func (m *InumMap) Translate(in QIno) (out uint64) {
+func (m *InoMap) Translate(in QIno) (out uint64) {
 	if in.Dev == m.baseDev && in.Ino < inumTranslateBase {
 		return in.Ino
 	}
@@ -52,12 +52,12 @@ func (m *InumMap) Translate(in QIno) (out uint64) {
 
 // TranslateStat translates the inode number contained in "st" if neccessary.
 // Convience wrapper around Translate().
-func (m *InumMap) TranslateStat(st *syscall.Stat_t) {
+func (m *InoMap) TranslateStat(st *syscall.Stat_t) {
 	in := QInoFromStat(st)
 	st.Ino = m.Translate(in)
 }
 
 // Count returns the number of entries in the translation table.
-func (m *InumMap) Count() int {
+func (m *InoMap) Count() int {
 	return len(m.translate)
 }

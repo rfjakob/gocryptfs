@@ -1,4 +1,4 @@
-package openfiletable
+package inomap
 
 import (
 	"sync"
@@ -7,7 +7,7 @@ import (
 
 func TestTranslate(t *testing.T) {
 	const baseDev = 12345
-	m := NewInumMap(baseDev)
+	m := New(baseDev)
 
 	q := QIno{Dev: baseDev, Ino: 1}
 	out := m.Translate(q)
@@ -27,7 +27,7 @@ func TestTranslate(t *testing.T) {
 
 func TestTranslateStress(t *testing.T) {
 	const baseDev = 12345
-	m := NewInumMap(baseDev)
+	m := New(baseDev)
 	var wg sync.WaitGroup
 	wg.Add(4)
 	go func() {

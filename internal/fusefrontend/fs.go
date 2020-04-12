@@ -18,8 +18,8 @@ import (
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/internal/inomap"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
-	"github.com/rfjakob/gocryptfs/internal/openfiletable"
 	"github.com/rfjakob/gocryptfs/internal/serialize_reads"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
@@ -59,9 +59,9 @@ type FS struct {
 	IsIdle uint32
 	// dirCache caches directory fds
 	dirCache dirCacheStruct
-	// inumMap translates inode numbers from different devices to unique inode
+	// inoMap translates inode numbers from different devices to unique inode
 	// numbers.
-	inumMap *openfiletable.InumMap
+	inoMap *inomap.InoMap
 }
 
 //var _ pathfs.FileSystem = &FS{} // Verify that interface is implemented.
@@ -85,7 +85,7 @@ func NewFS(args Args, c *contentenc.ContentEnc, n nametransform.NameTransformer)
 		args:          args,
 		nameTransform: n,
 		contentEnc:    c,
-		inumMap:       openfiletable.NewInumMap(uint64(st.Dev)), // cast is needed for Darwin
+		inoMap:        inomap.New(uint64(st.Dev)), // cast is needed for Darwin
 	}
 }
 
@@ -109,7 +109,7 @@ func (fs *FS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr, fuse.S
 	}
 	a := &fuse.Attr{}
 	st2 := syscallcompat.Unix2syscall(st)
-	fs.inumMap.TranslateStat(&st2)
+	fs.inoMap.TranslateStat(&st2)
 	a.FromStat(&st2)
 	if a.IsRegular() {
 		a.Size = fs.contentEnc.CipherSizeToPlainSize(a.Size)

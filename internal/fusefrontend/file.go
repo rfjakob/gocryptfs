@@ -17,6 +17,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/internal/inomap"
 	"github.com/rfjakob/gocryptfs/internal/openfiletable"
 	"github.com/rfjakob/gocryptfs/internal/serialize_reads"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
@@ -42,7 +43,7 @@ type File struct {
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
 	// Device and inode number uniquely identify the backing file
-	qIno openfiletable.QIno
+	qIno inomap.QIno
 	// Entry in the open file table
 	fileTableEntry *openfiletable.Entry
 	// Store where the last byte was written
@@ -66,7 +67,7 @@ func NewFile(fd *os.File, fs *FS) (*File, fuse.Status) {
 		tlog.Warn.Printf("NewFile: Fstat on fd %d failed: %v\n", fd.Fd(), err)
 		return nil, fuse.ToStatus(err)
 	}
-	qi := openfiletable.QInoFromStat(&st)
+	qi := inomap.QInoFromStat(&st)
 	e := openfiletable.Register(qi)
 
 	return &File{
@@ -462,7 +463,7 @@ func (f *File) GetAttr(a *fuse.Attr) fuse.Status {
 	if err != nil {
 		return fuse.ToStatus(err)
 	}
-	f.fs.inumMap.TranslateStat(&st)
+	f.fs.inoMap.TranslateStat(&st)
 	a.FromStat(&st)
 	a.Size = f.contentEnc.CipherSizeToPlainSize(a.Size)
 	if f.fs.args.ForceOwner != nil {
