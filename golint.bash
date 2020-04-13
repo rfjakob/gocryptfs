@@ -8,10 +8,10 @@ OUTPUT=$(
 )
 
 # No output --> all good
-if [[ -z "$OUTPUT" ]] ; then
+if [[ -z $OUTPUT ]] ; then
 	exit 0
 fi
 
 echo "golint.bash:"
-echo $OUTPUT
+echo "$OUTPUT"
 exit 1

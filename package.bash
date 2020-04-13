@@ -27,7 +27,7 @@ cp -a ./Documentation/gocryptfs.1 .
 
 TARGZ=gocryptfs_${GITVERSION}_${ID}${VERSION_ID}_${ARCH}.tar.gz
 
-tar --owner=root --group=root -czf $TARGZ gocryptfs gocryptfs.1
+tar --owner=root --group=root -czf "$TARGZ" gocryptfs gocryptfs.1
 
 echo "Tar created."
 echo "Hint for signing: gpg -u 23A02740 --armor --detach-sig $TARGZ"

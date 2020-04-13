@@ -30,10 +30,10 @@ gocryptfs -q -init -reverse -extpass="echo test" -scryptn=10 $PLAIN
 MNT=$(mktemp -d /tmp/linux-3.0.reverse.mnt.XXX)
 
 # Cleanup trap
-trap "rm -f $PLAIN/.gocryptfs.reverse.conf ; fuse-unmount -z $MNT ; rmdir $MNT" EXIT
+trap 'rm -f "$PLAIN/.gocryptfs.reverse.conf" ; fuse-unmount -z "$MNT" ; rmdir "$MNT"' EXIT
 
 # Mount
-gocryptfs -q -reverse -extpass="echo test" $PLAIN $MNT
+gocryptfs -q -reverse -extpass="echo test" "$PLAIN" "$MNT"
 
 # Execute command, discard all stdout output, print elapsed time
 # (to stderr, unfortunately).
@@ -45,6 +45,6 @@ function etime {
 }
 
 echo -n "LS:  "
-etime ls -lR $MNT
+etime ls -lR "$MNT"
 echo -n "CAT: "
-etime find $MNT -type f -exec cat {} +
+etime find "$MNT" -type f -exec cat {} +

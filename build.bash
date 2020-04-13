@@ -47,7 +47,7 @@ else
 	# go-fuse version according to git
 	# Note: git in CentOS 7 does not have "git -C" yet, so we use plain "cd".
 	FAIL=0
-	cd $GOPATH1/src/github.com/hanwen/go-fuse
+	cd "$GOPATH1/src/github.com/hanwen/go-fuse"
 	OUT=$(git describe --tags --dirty 2>&1) || FAIL=1
 	if [[ $FAIL -eq 0 ]]; then
 		GITVERSIONFUSE=$OUT
@@ -99,5 +99,5 @@ go build "-ldflags=$GO_LDFLAGS" "-gcflags=$TRIM" "-asmflags=$TRIM" "$@"
 
 ./gocryptfs -version
 
-mkdir -p $GOPATH1/bin
-cp -af gocryptfs $GOPATH1/bin
+mkdir -p "$GOPATH1/bin"
+cp -af gocryptfs "$GOPATH1/bin"

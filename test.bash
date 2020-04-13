@@ -12,14 +12,14 @@ set -eu
 cd "$(dirname "$0")"
 MYNAME=$(basename "$0")
 TESTDIR=$TMPDIR/gocryptfs-test-parent-$UID
-mkdir -p $TESTDIR
+mkdir -p "$TESTDIR"
 LOCKFILE=$TESTDIR/$MYNAME.lock
 
 function unmount_leftovers {
 	RET=0
-	for i in $(mount | grep $TESTDIR | cut -f3 -d" "); do
+	for i in $(mount | grep "$TESTDIR" | cut -f3 -d" "); do
 		echo "Warning: unmounting leftover filesystem: $i"
-		tests/fuse-unmount.bash $i
+		tests/fuse-unmount.bash "$i"
 		RET=1
 	done
 	return $RET
@@ -40,7 +40,7 @@ unmount_leftovers || true
 
 ./build-without-openssl.bash
 # Don't build with openssl if we were passed "-tags without_openssl"
-if [[ "$@" != *without_openssl* ]] ; then
+if [[ "$*" != *without_openssl* ]] ; then
 	./build.bash
 fi
 
@@ -50,6 +50,13 @@ elif [[ -d vendor ]] ; then
 	echo "vendor directory exists, skipping 'go tool vet'"
 else
 	go vet "$@" .
+fi
+
+if command -v shellcheck > /dev/null ; then
+	# SC2002 = useless cat. Does no harm, disable the check.
+	shellcheck -x -e SC2002 ./*.bash
+else
+	echo "shellcheck not installed - skipping"
 fi
 
 #            We don't want all the subprocesses
@@ -65,15 +72,15 @@ unmount_leftovers || { echo "Error: the tests left mounted filesystems behind" ;
 # The tests cannot to this themselves as they are run in parallel.
 # Don't descend into possibly still mounted example filesystems.
 if [[ $OSTYPE == *linux* ]] ; then
-	rm -Rf --one-file-system $TESTDIR
+	rm -Rf --one-file-system "$TESTDIR"
 else
 	# MacOS "rm" does not understand "--one-file-system"
-	rm -Rf $TESTDIR
+	rm -Rf "$TESTDIR"
 fi
 
-if grep -R "panic(" *.go internal ; then
+if grep -R "panic(" ./*.go internal ; then
 	echo "Please use log.Panic instead of naked panic!"
 	exit 1
 fi
 
-) 200> $LOCKFILE
+) 200> "$LOCKFILE"
