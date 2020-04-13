@@ -170,6 +170,7 @@ func main() {
 	}
 	// "-speed"
 	if args.speed {
+		printVersion()
 		speed.Run()
 		os.Exit(0)
 	}
