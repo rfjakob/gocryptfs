@@ -29,6 +29,10 @@ fi
 # gocryptfs version according to git or a VERSION file
 if [[ -d .git ]] ; then
 	GITVERSION=$(git describe --tags --dirty)
+	GITBRANCH=$(git rev-parse --abbrev-ref HEAD)
+	if [[ -n $GITBRANCH && $GITBRANCH != master ]] ; then
+		GITVERSION="$GITVERSION.$GITBRANCH"
+	fi
 elif [[ -f VERSION ]] ; then
 	GITVERSION=$(cat VERSION)
 else
