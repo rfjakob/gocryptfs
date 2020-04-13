@@ -15,7 +15,7 @@ cd "$(dirname "$0")"
 # Make sure we have the go binary
 go version > /dev/null
 
-# Make it work on Go 1.11 and 1.12
+# Enable Go Modules on Go 1.11 and 1.12
 # https://dev.to/maelvls/why-is-go111module-everywhere-and-everything-about-go-modules-24k#-raw-go111module-endraw-with-go-111-and-112
 export GO111MODULE=on
 
@@ -68,7 +68,12 @@ fi
 # Also, Fedora and Arch want pie enabled, so enable it.
 # * https://fedoraproject.org/wiki/Changes/golang-buildmode-pie
 # * https://github.com/rfjakob/gocryptfs/pull/460
-export GOFLAGS="${GOFLAGS:--trimpath -buildmode=pie}"
+# However, -trimpath needs Go 1.13+, and we support Go 1.11 and Go 1.12
+# too. So don't add it there.
+GV=$(go version)
+if [[ $GV != *"1.11"* && $GV != *"1.12"* ]] ; then
+    export GOFLAGS="${GOFLAGS:--trimpath -buildmode=pie}"
+fi
 
 GO_LDFLAGS="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildDate=$BUILDDATE"
 

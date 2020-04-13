@@ -1,8 +1,12 @@
 language: go
+os: linux
 
 # fuse on travis
 sudo: required
 dist: bionic # Ubuntu 18.04 "Bionic", https://docs.travis-ci.com/user/reference/bionic/
+
+env:
+  - GO111MODULE=on
 
 git:
   depth: 300
@@ -27,7 +31,7 @@ before_install:
 script:
   - openssl version
   - df -Th / /tmp
-  - go build
+  - env GO111MODULE=on go build
   - ./build-without-openssl.bash
   - ./build.bash
   - ./gocryptfs -speed
