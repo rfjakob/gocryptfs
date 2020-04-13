@@ -11,20 +11,16 @@
 # .
 
 cd "$(dirname "$0")"
-MYDIR=$PWD
 
 # Make sure we have the go binary
 go version > /dev/null
 
+# Make it work on Go 1.11 and 1.12
+# https://dev.to/maelvls/why-is-go111module-everywhere-and-everything-about-go-modules-24k#-raw-go111module-endraw-with-go-111-and-112
+export GO111MODULE=on
+
 # GOPATH may contain multiple paths separated by ":"
 GOPATH1=$(go env GOPATH | cut -f1 -d:)
-
-if [[ $PWD != *"/src/github.com/rfjakob/gocryptfs" ]] ; then
-	echo "Warning: Building outside of GOPATH will most likely fail."
-	echo "         Please rename $PWD to $GOPATH1/src/github.com/rfjakob/gocryptfs ."
-	sleep 5
-	echo
-fi
 
 # gocryptfs version according to git or a VERSION file
 if [[ -d .git ]] ; then
@@ -44,19 +40,15 @@ fi
 if [[ -d vendor/github.com/hanwen/go-fuse ]] ; then
 	GITVERSIONFUSE="[vendored]"
 else
-	# go-fuse version according to git
-	# Note: git in CentOS 7 does not have "git -C" yet, so we use plain "cd".
+	# go-fuse version according to Go Modules
 	FAIL=0
-	cd "$GOPATH1/src/github.com/hanwen/go-fuse"
-	OUT=$(git describe --tags --dirty 2>&1) || FAIL=1
+	OUT=$(go list -m github.com/hanwen/go-fuse | cut -d' ' -f2) || FAIL=1
 	if [[ $FAIL -eq 0 ]]; then
 		GITVERSIONFUSE=$OUT
 	else
-		echo "$PWD: git describe: $OUT"
 		echo "Warning: could not determine go-fuse version"
 		GITVERSIONFUSE="[unknown]"
 	fi
-	cd "$MYDIR"
 fi
 
 # Build date, something like "2017-09-06". Don't override BUILDDATE

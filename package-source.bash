@@ -27,7 +27,7 @@ PREFIX_SRC_ONLY=gocryptfs_${GITVERSION}_src
 git_archive_extra "$PREFIX_SRC_ONLY" VERSION Documentation/*.1
 
 # gocryptfs source + dependencies tarball
-dep ensure
+go mod vendor
 PREFIX_SRC_DEPS=gocryptfs_${GITVERSION}_src-deps
 git_archive_extra "$PREFIX_SRC_DEPS" VERSION Documentation/*.1 vendor
 
