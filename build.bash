@@ -65,16 +65,10 @@ fi
 
 # For reproducible builds, we get rid of $HOME references in the binary
 # using "-trimpath".
-# Note: we have to set both -gcflags and -asmflags because otherwise
-# "$HOME/go/src/golang.org/x/sys/unix/asm_linux_amd64.s" stays in the binary.
-GV=$(go version)
-if [[ $GV == *"1.7"* ]] || [[ $GV == *"1.8"* ]] || [[ $GV == *"1.9"* ]] ; then
-	TRIM="-trimpath=${GOPATH1}/src"
-else
-	# Go 1.10 changed the syntax. You now have to prefix "all=" to affect
-	# all compiled packages.
-	TRIM="all=-trimpath=${GOPATH1}/src"
-fi
+# Also, Fedora and Arch want pie enabled, so enable it.
+# * https://fedoraproject.org/wiki/Changes/golang-buildmode-pie
+# * https://github.com/rfjakob/gocryptfs/pull/460
+export GOFLAGS="${GOFLAGS:--trimpath -buildmode=pie}"
 
 GO_LDFLAGS="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildDate=$BUILDDATE"
 
@@ -84,10 +78,10 @@ if [[ -n ${LDFLAGS:-} ]] ; then
 fi
 
 # Actual "go build" call for gocryptfs
-go build "-ldflags=$GO_LDFLAGS" "-gcflags=$TRIM" "-asmflags=$TRIM" "$@"
+go build "-ldflags=$GO_LDFLAGS" "$@"
 # Additional binaries
-(cd gocryptfs-xray; go build "-ldflags=$GO_LDFLAGS" "-gcflags=$TRIM" "-asmflags=$TRIM" "$@")
-(cd contrib/statfs; go build "-ldflags=$GO_LDFLAGS" "-gcflags=$TRIM" "-asmflags=$TRIM" "$@")
+(cd gocryptfs-xray; go build "-ldflags=$GO_LDFLAGS" "$@")
+(cd contrib/statfs; go build "-ldflags=$GO_LDFLAGS" "$@")
 
 ./gocryptfs -version
 
