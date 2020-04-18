@@ -29,3 +29,8 @@ jobs:
       env:
         GO111MODULE: on
       run: go build -v .
+
+    - name: Test
+      env:
+        GO111MODULE: on
+      run: ./test.bash
