@@ -24,7 +24,7 @@ GOPATH1=$(go env GOPATH | cut -f1 -d:)
 
 # gocryptfs version according to git or a VERSION file
 if [[ -d .git ]] ; then
-	GITVERSION=$(git describe --tags --dirty)
+	GITVERSION=$(git describe --tags --dirty || echo "[no_tags_found]")
 	GITBRANCH=$(git rev-parse --abbrev-ref HEAD)
 	if [[ -n $GITBRANCH && $GITBRANCH != master ]] ; then
 		GITVERSION="$GITVERSION.$GITBRANCH"
