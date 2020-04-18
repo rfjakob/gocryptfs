@@ -63,16 +63,25 @@ if [[ -n ${SOURCE_DATE_EPOCH:-} ]] ; then
 	BUILDDATE=$(date --utc --date="@${SOURCE_DATE_EPOCH}" +%Y-%m-%d)
 fi
 
-# For reproducible builds, we get rid of $HOME references in the binary
-# using "-trimpath".
-# Also, Fedora and Arch want pie enabled, so enable it.
-# * https://fedoraproject.org/wiki/Changes/golang-buildmode-pie
-# * https://github.com/rfjakob/gocryptfs/pull/460
-# However, -trimpath needs Go 1.13+, and we support Go 1.11 and Go 1.12
-# too. So don't add it there.
-GV=$(go version)
-if [[ $GV != *"1.11"* && $GV != *"1.12"* ]] ; then
-    export GOFLAGS="${GOFLAGS:--trimpath -buildmode=pie}"
+# Only set GOFLAGS if it is not already set by the user
+if [[ -z ${GOFLAGS:-} ]] ; then
+	GOFLAGS=""
+	# For reproducible builds, we get rid of $HOME references in the
+	# binary using "-trimpath".
+	# However, -trimpath needs Go 1.13+, and we support Go 1.11 and Go 1.12
+	# too. So don't add it there.
+	GV=$(go version)
+	if [[ $GV != *"1.11"* && $GV != *"1.12"* ]] ; then
+		GOFLAGS="-trimpath"
+	fi
+	# Also, Fedora and Arch want pie enabled, so enable it.
+	# * https://fedoraproject.org/wiki/Changes/golang-buildmode-pie
+	# * https://github.com/rfjakob/gocryptfs/pull/460
+	# But not with CGO_ENABLED=0 (https://github.com/golang/go/issues/30986)!
+	if [[ ${CGO_ENABLED:-1} -ne 0 ]] ; then
+		GOFLAGS="$GOFLAGS -buildmode=pie"
+	fi
+	export GOFLAGS
 fi
 
 GO_LDFLAGS="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildDate=$BUILDDATE"
