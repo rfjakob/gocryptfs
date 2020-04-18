@@ -25,10 +25,13 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
 
-    - name: Build
+    - name: go build
       env:
         GO111MODULE: on
       run: go build -v .
+
+    - name: build.bash
+      run: ./build.bash
 
     - name: Test
       env:
