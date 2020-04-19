@@ -1,53 +1,91 @@
+// inomap translates (Dev, Flags, Ino) tuples to unique uint64
+// inode numbers.
+//
+// Format of the returned inode numbers:
+//
+//   [spill bit = 0][15 bit namespace id][48 bit passthru inode number]
+//   [spill bit = 1][63 bit spill inode number                        ]
+//
+// Each (Dev, Flags) tuple gets a namespace id assigned. The original inode
+// number is then passed through in the lower 48 bits.
+//
+// If namespace ids are exhaused, or the original id is larger than 48 bits,
+// the whole (Dev, Flags, Ino) tuple gets mapped in the spill map, and the
+// spill bit is set to 1.
 package inomap
 
 import (
+	"log"
 	"sync"
 	"syscall"
 )
 
-// UINT64_MAX           = 18446744073709551615
-const inumTranslateBase = 10000000000000000000
+const (
+	maxNamespaceId = 1<<15 - 1
+	maxPassthruIno = 1<<48 - 1
+	maxSpillIno    = 1<<63 - 1
+)
 
-// InoMap ... see New() for description.
+// InoMap stores the maps using for inode number translation.
+// See package comment for details.
 type InoMap struct {
 	sync.Mutex
-	baseDev       uint64
-	translate     map[QIno]uint64
-	translateNext uint64
+	// namespaces keeps the mapping of (Dev,Flags) tuples to
+	// uint16 identifiers
+	namespaceMap map[namespaceData]uint16
+	// spillNext is the next free namespace number in the namespaces map
+	namespaceNext uint16
+	// spill is used once the namespaces map is full
+	spillMap map[QIno]uint64
+	// spillNext is the next free inode number in the spill map
+	spillNext uint64
 }
 
 // New returns a new InoMap.
-//
-// InoMap translates (device uint64, inode uint64) pairs to unique uint64
-// inode numbers.
-// Inode numbers on the "baseDev" are passed through unchanged (as long as they
-// are not higher than inumTranslateBase).
-// Inode numbers on other devices are remapped to the number space above
-// 10000000000000000000. The mapping is stored in a simple Go map. Entries
-// can only be added and are never removed.
-func New(baseDev uint64) *InoMap {
+func New() *InoMap {
 	return &InoMap{
-		baseDev:       baseDev,
-		translate:     make(map[QIno]uint64),
-		translateNext: inumTranslateBase,
+		namespaceMap:  make(map[namespaceData]uint16),
+		namespaceNext: 0,
+		spillMap:      make(map[QIno]uint64),
+		spillNext:     0,
 	}
+}
+
+func (m *InoMap) spill(in QIno) (out uint64) {
+	out, found := m.spillMap[in]
+	if found {
+		return out
+	}
+	if m.spillNext >= maxSpillIno {
+		log.Panicf("spillMap overflow: spillNext = 0x%x", m.spillNext)
+	}
+	out = m.spillNext
+	m.spillNext++
+	m.spillMap[in] = out
+	return 1<<63 | out
 }
 
 // Translate maps the passed-in (device, inode) pair to a unique inode number.
 func (m *InoMap) Translate(in QIno) (out uint64) {
-	if in.Dev == m.baseDev && in.Ino < inumTranslateBase {
-		return in.Ino
-	}
 	m.Lock()
 	defer m.Unlock()
-	out = m.translate[in]
-	if out != 0 {
-		return out
+
+	if in.Ino > maxPassthruIno {
+		return m.spill(in)
 	}
-	out = m.translateNext
-	m.translate[in] = m.translateNext
-	m.translateNext++
-	return out
+	ns, found := m.namespaceMap[in.namespaceData]
+	// Use existing namespace
+	if found {
+		return uint64(ns)<<48 | in.Ino
+	}
+	// No free namespace slots?
+	if m.namespaceNext >= maxNamespaceId {
+		return m.spill(in)
+	}
+	ns = m.namespaceNext
+	m.namespaceNext++
+	m.namespaceMap[in.namespaceData] = ns
+	return uint64(ns)<<48 | in.Ino
 }
 
 // TranslateStat translates the inode number contained in "st" if neccessary.
@@ -55,9 +93,4 @@ func (m *InoMap) Translate(in QIno) (out uint64) {
 func (m *InoMap) TranslateStat(st *syscall.Stat_t) {
 	in := QInoFromStat(st)
 	st.Ino = m.Translate(in)
-}
-
-// Count returns the number of entries in the translation table.
-func (m *InoMap) Count() int {
-	return len(m.translate)
 }

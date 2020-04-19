@@ -6,17 +6,15 @@ import (
 )
 
 func TestTranslate(t *testing.T) {
-	const baseDev = 12345
-	m := New(baseDev)
-
-	q := QIno{Dev: baseDev, Ino: 1}
+	m := New()
+	q := QIno{Ino: 1}
 	out := m.Translate(q)
 	if out != 1 {
 		t.Errorf("expected 1, got %d", out)
 	}
-	q.Ino = inumTranslateBase
+	q.Ino = maxPassthruIno
 	out = m.Translate(q)
-	if out < inumTranslateBase {
+	if out < maxPassthruIno {
 		t.Errorf("got %d", out)
 	}
 	out2 := m.Translate(q)
@@ -27,61 +25,106 @@ func TestTranslate(t *testing.T) {
 
 func TestTranslateStress(t *testing.T) {
 	const baseDev = 12345
-	m := New(baseDev)
+	m := New()
+
+	// Make sure baseDev gets namespace id zero
+	var q QIno
+	q.Dev = baseDev
+	m.Translate(q)
+
 	var wg sync.WaitGroup
 	wg.Add(4)
 	go func() {
-		q := QIno{Dev: baseDev}
+		// Some normal inode numbers on baseDev
+		var q QIno
+		q.Dev = baseDev
 		for i := uint64(1); i <= 10000; i++ {
 			q.Ino = i
 			out := m.Translate(q)
 			if out != i {
-				t.Fail()
+				t.Errorf("i=%d out=%d", i, out)
+				break
 			}
 		}
 		wg.Done()
 	}()
 	go func() {
-		q := QIno{Dev: baseDev}
+		// Very high (>maxPassthruIno) inode numbers on baseDev
+		var q QIno
+		q.Dev = baseDev
 		for i := uint64(1); i <= 10000; i++ {
-			q.Ino = inumTranslateBase + i
+			q.Ino = maxPassthruIno + i
 			out := m.Translate(q)
-			if out < inumTranslateBase {
-				t.Fail()
+			if out < maxPassthruIno {
+				t.Errorf("out=%d", out)
+				break
 			}
 		}
 		wg.Done()
 	}()
 	go func() {
-		q := QIno{Dev: 9999999}
-		for i := uint64(1); i <= 10000; i++ {
-			q.Ino = i
-			out := m.Translate(q)
-			if out < inumTranslateBase {
-				t.Fail()
-			}
-		}
-		wg.Done()
-	}()
-	go func() {
-		q := QIno{Dev: 4444444}
+		// Device 9999999
+		var q QIno
+		q.Dev = 9999999
 		for i := uint64(1); i <= 10000; i++ {
 			q.Ino = i
 			out := m.Translate(q)
-			if out < inumTranslateBase {
-				t.Fail()
+			if out < maxPassthruIno {
+				t.Errorf("out=%d", out)
+				break
+			}
+		}
+		wg.Done()
+	}()
+	go func() {
+		// Device 4444444
+		var q QIno
+		q.Dev = 4444444
+		for i := uint64(1); i <= 10000; i++ {
+			q.Ino = i
+			out := m.Translate(q)
+			if out < maxPassthruIno {
+				t.Errorf("out=%d", out)
+				break
 			}
 		}
 		wg.Done()
 	}()
 	wg.Wait()
-	if m.Count() != 30000 {
-		t.Fail()
+	if len(m.spillMap) != 10000 {
+		t.Errorf("len=%d", len(m.spillMap))
+	}
+	if len(m.namespaceMap) != 3 {
+		t.Errorf("len=%d", len(m.namespaceMap))
+	}
+}
+
+// TestUniqueness checks that unique (Dev, Flags, Ino) tuples get unique inode
+// numbers
+func TestUniqueness(t *testing.T) {
+	m := New()
+	var q QIno
+	outMap := make(map[uint64]struct{})
+	for q.Dev = 0; q.Dev < 10; q.Dev++ {
+		for q.Flags = 0; q.Flags < 10; q.Flags++ {
+			// some go into spill
+			for q.Ino = maxPassthruIno - 100; q.Ino < maxPassthruIno+100; q.Ino++ {
+				out := m.Translate(q)
+				_, found := outMap[out]
+				if found {
+					t.Fatalf("inode number %d already used", out)
+				}
+				outMap[out] = struct{}{}
+			}
+		}
+	}
+	if len(outMap) != 10*10*200 {
+		t.Errorf("%d", len(outMap))
 	}
 }
 
 func BenchmarkTranslateSingleDev(b *testing.B) {
-	m := New(0)
+	m := New()
 	var q QIno
 	for n := 0; n < b.N; n++ {
 		q.Ino = uint64(n % 1000)
@@ -90,7 +133,7 @@ func BenchmarkTranslateSingleDev(b *testing.B) {
 }
 
 func BenchmarkTranslateManyDevs(b *testing.B) {
-	m := New(0)
+	m := New()
 	var q QIno
 	for n := 0; n < b.N; n++ {
 		q.Dev = uint64(n % 10)
