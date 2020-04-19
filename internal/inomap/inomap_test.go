@@ -79,3 +79,22 @@ func TestTranslateStress(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func BenchmarkTranslateSingleDev(b *testing.B) {
+	m := New(0)
+	var q QIno
+	for n := 0; n < b.N; n++ {
+		q.Ino = uint64(n % 1000)
+		m.Translate(q)
+	}
+}
+
+func BenchmarkTranslateManyDevs(b *testing.B) {
+	m := New(0)
+	var q QIno
+	for n := 0; n < b.N; n++ {
+		q.Dev = uint64(n % 10)
+		q.Ino = uint64(n % 1000)
+		m.Translate(q)
+	}
+}
