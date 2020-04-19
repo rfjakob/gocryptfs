@@ -21,9 +21,12 @@ import (
 )
 
 const (
+	// max value of 15 bit namespace id
 	maxNamespaceId = 1<<15 - 1
+	// max value of 48 bit passthru inode number
 	maxPassthruIno = 1<<48 - 1
-	maxSpillIno    = 1<<63 - 1
+	// max value of 63 bit spill inode number
+	maxSpillIno = 1<<63 - 1
 )
 
 // InoMap stores the maps using for inode number translation.
@@ -31,7 +34,7 @@ const (
 type InoMap struct {
 	sync.Mutex
 	// namespaces keeps the mapping of (Dev,Flags) tuples to
-	// uint16 identifiers
+	// 15-bit identifiers (stored in an uint16 with the high bit always zero)
 	namespaceMap map[namespaceData]uint16
 	// spillNext is the next free namespace number in the namespaces map
 	namespaceNext uint16
