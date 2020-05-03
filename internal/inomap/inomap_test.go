@@ -99,6 +99,23 @@ func TestTranslateStress(t *testing.T) {
 	}
 }
 
+func TestSpill(t *testing.T) {
+	m := New()
+	var q QIno
+	q.Ino = maxPassthruIno + 1
+	out1 := m.Translate(q)
+	if out1|spillBit == 0 {
+		t.Error("spill bit not set")
+	}
+	out2 := m.Translate(q)
+	if out2|spillBit == 0 {
+		t.Error("spill bit not set")
+	}
+	if out1 != out2 {
+		t.Errorf("unstable mapping: %d vs %d", out1, out2)
+	}
+}
+
 // TestUniqueness checks that unique (Dev, Flags, Ino) tuples get unique inode
 // numbers
 func TestUniqueness(t *testing.T) {

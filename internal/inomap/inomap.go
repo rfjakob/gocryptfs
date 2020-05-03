@@ -27,6 +27,8 @@ const (
 	maxPassthruIno = 1<<48 - 1
 	// max value of 63 bit spill inode number
 	maxSpillIno = 1<<63 - 1
+	// bit 63 is used as the spill bit
+	spillBit = 1 << 63
 )
 
 // InoMap stores the maps using for inode number translation.
@@ -57,7 +59,7 @@ func New() *InoMap {
 func (m *InoMap) spill(in QIno) (out uint64) {
 	out, found := m.spillMap[in]
 	if found {
-		return out
+		return out | spillBit
 	}
 	if m.spillNext >= maxSpillIno {
 		log.Panicf("spillMap overflow: spillNext = 0x%x", m.spillNext)
@@ -65,7 +67,7 @@ func (m *InoMap) spill(in QIno) (out uint64) {
 	out = m.spillNext
 	m.spillNext++
 	m.spillMap[in] = out
-	return 1<<63 | out
+	return out | spillBit
 }
 
 // Translate maps the passed-in (device, inode) pair to a unique inode number.
