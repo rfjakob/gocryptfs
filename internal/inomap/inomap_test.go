@@ -106,7 +106,7 @@ func TestUniqueness(t *testing.T) {
 	var q QIno
 	outMap := make(map[uint64]struct{})
 	for q.Dev = 0; q.Dev < 10; q.Dev++ {
-		for q.Flags = 0; q.Flags < 10; q.Flags++ {
+		for q.Tag = 0; q.Tag < 10; q.Tag++ {
 			// some go into spill
 			for q.Ino = maxPassthruIno - 100; q.Ino < maxPassthruIno+100; q.Ino++ {
 				out := m.Translate(q)

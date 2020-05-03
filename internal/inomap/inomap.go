@@ -15,6 +15,7 @@
 package inomap
 
 import (
+	"fmt"
 	"log"
 	"sync"
 	"syscall"
@@ -72,23 +73,30 @@ func (m *InoMap) spill(in QIno) (out uint64) {
 func (m *InoMap) Translate(in QIno) (out uint64) {
 	m.Lock()
 	defer m.Unlock()
+	defer func() {
+		fmt.Printf("Translate: %v -> %d\n", in, out)
+	}()
 
 	if in.Ino > maxPassthruIno {
-		return m.spill(in)
+		out = m.spill(in)
+		return out
 	}
 	ns, found := m.namespaceMap[in.namespaceData]
 	// Use existing namespace
 	if found {
-		return uint64(ns)<<48 | in.Ino
+		out = uint64(ns)<<48 | in.Ino
+		return out
 	}
 	// No free namespace slots?
 	if m.namespaceNext >= maxNamespaceId {
-		return m.spill(in)
+		out = m.spill(in)
+		return out
 	}
 	ns = m.namespaceNext
 	m.namespaceNext++
 	m.namespaceMap[in.namespaceData] = ns
-	return uint64(ns)<<48 | in.Ino
+	out = uint64(ns)<<48 | in.Ino
+	return out
 }
 
 // TranslateStat translates the inode number contained in "st" if neccessary.
