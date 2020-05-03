@@ -15,7 +15,6 @@
 package inomap
 
 import (
-	"fmt"
 	"log"
 	"sync"
 	"syscall"
@@ -73,9 +72,6 @@ func (m *InoMap) spill(in QIno) (out uint64) {
 func (m *InoMap) Translate(in QIno) (out uint64) {
 	m.Lock()
 	defer m.Unlock()
-	defer func() {
-		fmt.Printf("Translate: %v -> %d\n", in, out)
-	}()
 
 	if in.Ino > maxPassthruIno {
 		out = m.spill(in)
