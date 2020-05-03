@@ -104,11 +104,11 @@ func TestSpill(t *testing.T) {
 	var q QIno
 	q.Ino = maxPassthruIno + 1
 	out1 := m.Translate(q)
-	if out1|spillBit == 0 {
+	if out1&spillBit == 0 {
 		t.Error("spill bit not set")
 	}
 	out2 := m.Translate(q)
-	if out2|spillBit == 0 {
+	if out2&spillBit == 0 {
 		t.Error("spill bit not set")
 	}
 	if out1 != out2 {
