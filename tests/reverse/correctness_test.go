@@ -201,6 +201,13 @@ func TestTooLongSymlink(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// save later tests the trouble of dealing with ENAMETOOLONG errors
+	defer func() {
+		os.Remove(fn)
+		// immediately create a new symlink so the inode number is not
+		// reused for something else
+		os.Symlink("/tmp", fn)
+	}()
 	t.Logf("Created symlink of length %d", l)
 	_, err = os.Readlink(dirC + "/TooLongSymlink")
 	if err == nil {
