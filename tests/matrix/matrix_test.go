@@ -822,9 +822,7 @@ func TestMagicNames(t *testing.T) {
 
 // Test that chmod works correctly
 func TestChmod(t *testing.T) {
-	// Note: t.Name() is not available before in Go 1.8
-	tName := "TestChmod"
-	path := test_helpers.DefaultPlainDir + "/" + tName
+	path := test_helpers.DefaultPlainDir + "/" + t.Name()
 	file, err := os.Create(path)
 	if err != nil {
 		t.Fatal(err)
@@ -854,9 +852,7 @@ func TestChmod(t *testing.T) {
 
 // Test that access(2) works correctly
 func TestAccess(t *testing.T) {
-	// Note: t.Name() is not available before in Go 1.8
-	tName := "TestAccess"
-	path := test_helpers.DefaultPlainDir + "/" + tName
+	path := test_helpers.DefaultPlainDir + "/" + t.Name()
 	file, err := os.Create(path)
 	if err != nil {
 		t.Fatal(err)

@@ -125,7 +125,11 @@ func ResetTmpDir(createDirIV bool) {
 //
 // It returns cipherdir without a trailing slash.
 func InitFS(t *testing.T, extraArgs ...string) string {
-	dir, err := ioutil.TempDir(TmpDir, "")
+	prefix := "x."
+	if t != nil {
+		prefix = t.Name() + "."
+	}
+	dir, err := ioutil.TempDir(TmpDir, prefix)
 	if err != nil {
 		if t != nil {
 			t.Fatal(err)
