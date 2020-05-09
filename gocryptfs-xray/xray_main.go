@@ -46,7 +46,8 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "\n"+
 		"Examples:\n"+
 		"  gocryptfs-xray myfs/mCXnISiv7nEmyc0glGuhTQ\n"+
-		"  gocryptfs-xray -dumpmasterkey myfs/gocryptfs.conf\n")
+		"  gocryptfs-xray -dumpmasterkey myfs/gocryptfs.conf\n"+
+		"  gocryptfs-xray -encrypt-paths myfs.sock\n")
 }
 
 // sum counts the number of true values
