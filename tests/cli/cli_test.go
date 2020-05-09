@@ -646,7 +646,8 @@ func TestSymlinkedCipherdir(t *testing.T) {
 	}
 }
 
-func TestBypass(t *testing.T) {
+// TestBadname tests the `-badname` option
+func TestBadname(t *testing.T) {
 	dir := test_helpers.InitFS(t)
 	mnt := dir + ".mnt"
 
