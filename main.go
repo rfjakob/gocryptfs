@@ -32,7 +32,8 @@ var BuildDate = "0000-00-00"
 // raceDetector is set to true by race.go if we are compiled with "go build -race"
 var raceDetector bool
 
-// loadConfig loads the config file "args.config", prompting the user for the password
+// loadConfig loads the config file `args.config` and decrypts the masterkey,
+// or gets via the `-masterkey` or `-zerokey` command line options, if specified.
 func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, err error) {
 	// First check if the file can be read at all.
 	cf, err = configfile.Load(args.config)
@@ -40,10 +41,10 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 		tlog.Fatal.Printf("Cannot open config file: %v", err)
 		return nil, nil, err
 	}
-	// The user has passed the master key on the command line (probably because
+	// The user may have passed the master key on the command line (probably because
 	// he forgot the password).
-	if args.masterkey != "" {
-		masterkey = unhexMasterKey(args.masterkey, false)
+	masterkey = handleArgsMasterkey(args)
+	if masterkey != nil {
 		return masterkey, cf, nil
 	}
 	pw := readpassword.Once([]string(args.extpass), args.passfile, "")

@@ -232,8 +232,22 @@ type ctlsockFs interface {
 // initFuseFrontend - initialize gocryptfs/fusefrontend
 // Calls os.Exit on errors
 func initFuseFrontend(args *argContainer) (pfs pathfs.FileSystem, wipeKeys func()) {
-	// Get master key (may prompt for the password) and read config file
-	masterkey, confFile := getMasterKey(args)
+	var err error
+	var confFile *configfile.ConfFile
+	// Get the masterkey from the command line if it was specified
+	masterkey := handleArgsMasterkey(args)
+	// Otherwise, load masterkey from config file (normal operation).
+	// Prompts the user for the password.
+	if masterkey == nil {
+		masterkey, confFile, err = loadConfig(args)
+		if err != nil {
+			if args._ctlsockFd != nil {
+				// Close the socket file (which also deletes it)
+				args._ctlsockFd.Close()
+			}
+			exitcodes.Exit(err)
+		}
+	}
 	// Reconciliate CLI and config file arguments into a fusefrontend.Args struct
 	// that is passed to the filesystem implementation
 	cryptoBackend := cryptocore.BackendGoGCM
