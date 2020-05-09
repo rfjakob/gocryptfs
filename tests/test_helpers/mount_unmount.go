@@ -126,7 +126,13 @@ func UnmountPanic(dir string) {
 		cmd := exec.Command("lsof", dir)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		cmd.Run()
+		cmd.Start()
+		timer := time.AfterFunc(1*time.Second, func() {
+			fmt.Printf("timeout!")
+			cmd.Process.Kill()
+		})
+		cmd.Wait()
+		timer.Stop()
 		panic("UnmountPanic: unmount failed: " + err.Error())
 	}
 }
