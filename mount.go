@@ -29,7 +29,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
-	"github.com/rfjakob/gocryptfs/internal/ctlsock"
+	"github.com/rfjakob/gocryptfs/internal/ctlsocksrv"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend_reverse"
@@ -222,11 +222,11 @@ func setOpenFileLimit() {
 	}
 }
 
-// ctlsockFs satisfies both the pathfs.FileSystem and the ctlsock.Interface
+// ctlsockFs satisfies both the pathfs.FileSystem and the ctlsocksrv.Interface
 // interfaces
 type ctlsockFs interface {
 	pathfs.FileSystem
-	ctlsock.Interface
+	ctlsocksrv.Interface
 }
 
 // initFuseFrontend - initialize gocryptfs/fusefrontend
@@ -331,7 +331,7 @@ func initFuseFrontend(args *argContainer) (pfs pathfs.FileSystem, wipeKeys func(
 	// We have opened the socket early so that we cannot fail here after
 	// asking the user for the password
 	if args._ctlsockFd != nil {
-		go ctlsock.Serve(args._ctlsockFd, fs)
+		go ctlsocksrv.Serve(args._ctlsockFd, fs)
 	}
 	return fs, func() { cCore.Wipe() }
 }

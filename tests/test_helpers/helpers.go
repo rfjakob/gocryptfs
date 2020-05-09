@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rfjakob/gocryptfs/internal/ctlsock"
+	"github.com/rfjakob/gocryptfs/ctlsock"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 )
@@ -362,7 +362,7 @@ func QueryCtlSock(t *testing.T, socketPath string, req ctlsock.RequestStruct) (r
 	if err != nil {
 		t.Fatal(err)
 	}
-	buf := make([]byte, ctlsock.ReadBufSize)
+	buf := make([]byte, 5000)
 	n, err := conn.Read(buf)
 	if err != nil {
 		t.Fatal(err)
