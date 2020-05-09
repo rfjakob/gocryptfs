@@ -97,7 +97,7 @@ func (m *InoMap) Translate(in QIno) (out uint64) {
 	return out
 }
 
-// TranslateStat translates the inode number contained in "st" if neccessary.
+// TranslateStat translates the inode number contained in "st" if necessary.
 // Convience wrapper around Translate().
 func (m *InoMap) TranslateStat(st *syscall.Stat_t) {
 	in := QInoFromStat(st)

@@ -37,7 +37,7 @@ type ReverseFS struct {
 	nameTransform nametransform.NameTransformer
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
-	// Tests wheter a path is excluded (hiden) from the user. Used by -exclude.
+	// Tests whether a path is excluded (hiden) from the user. Used by -exclude.
 	excluder ignore.IgnoreParser
 	// inoMap translates inode numbers from different devices to unique inode
 	// numbers.
