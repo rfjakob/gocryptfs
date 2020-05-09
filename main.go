@@ -43,7 +43,7 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 	// The user has passed the master key on the command line (probably because
 	// he forgot the password).
 	if args.masterkey != "" {
-		masterkey = parseMasterKey(args.masterkey, false)
+		masterkey = unhexMasterKey(args.masterkey, false)
 		return masterkey, cf, nil
 	}
 	pw := readpassword.Once([]string(args.extpass), args.passfile, "")

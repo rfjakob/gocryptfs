@@ -12,9 +12,9 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-// parseMasterKey - Parse a hex-encoded master key that was passed on the command line
-// Calls os.Exit on failure
-func parseMasterKey(masterkey string, fromStdin bool) []byte {
+// unhexMasterKey - Convert a hex-encoded master key to binary.
+// Calls os.Exit on failure.
+func unhexMasterKey(masterkey string, fromStdin bool) []byte {
 	masterkey = strings.Replace(masterkey, "-", "", -1)
 	key, err := hex.DecodeString(masterkey)
 	if err != nil {
@@ -48,7 +48,7 @@ func getMasterKey(args *argContainer) (masterkey []byte, confFile *configfile.Co
 	}
 	// "-masterkey=941a6029-3adc6a1c-..."
 	if args.masterkey != "" {
-		return parseMasterKey(args.masterkey, masterkeyFromStdin), nil
+		return unhexMasterKey(args.masterkey, masterkeyFromStdin), nil
 	}
 	// "-zerokey"
 	if args.zerokey {
