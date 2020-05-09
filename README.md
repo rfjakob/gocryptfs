@@ -187,11 +187,25 @@ RM:    3.379
 Changelog
 ---------
 
-vNEXT, in progress
-* Fix [#367](https://github.com/rfjakob/gocryptfs/issues/431)
-* Fix [#435](https://github.com/rfjakob/gocryptfs/issues/435)
-* Fix [#440](https://github.com/rfjakob/gocryptfs/pull/440)
-* Enable ACL support ([#453](https://github.com/rfjakob/gocryptfs/issues/453))
+v1.8.0, 2020-05-09
+* **Enable ACL support ([#453](https://github.com/rfjakob/gocryptfs/issues/453))**
+* Ignore `.nfsXXX` temporary files
+  ([#367](https://github.com/rfjakob/gocryptfs/issues/431))
+* Handle inode number collisions from multiple devices
+  ([#435](https://github.com/rfjakob/gocryptfs/issues/435))
+* Drop `-nonempty` for fusermount3
+  ([#440](https://github.com/rfjakob/gocryptfs/pull/440))
+* Reverse mode: improve inode number mapping and max=1000000000000000000 limitation
+  ([#457](https://github.com/rfjakob/gocryptfs/issues/457))
+* Enable `--buildmode=pie` ([#460](https://github.com/rfjakob/gocryptfs/pull/460))
+* Migrate from dep to Go Modules
+  ([commit cad711993](https://github.com/rfjakob/gocryptfs/commit/cad711993d67dd920f9749a09414dbbba6ab8136))
+* go mod: update dependencies
+  ([commit b23f77c](https://github.com/rfjakob/gocryptfs/commit/b23f77c8ead0dbb5ed59dd50e94f13aacf7dbaf1))
+* `gocryptfs -speed`: add XChaCha20-Poly1305-Go
+  ([#452](https://github.com/rfjakob/gocryptfs/issues/452))
+* Respect `GOMAXPROCS` environment variable
+  ([commit ff210a06f](https://github.com/rfjakob/gocryptfs/commit/ff210a06fb3097eecd5668ddb3ace9c76873eb00)
 
 v1.7.1, 2019-10-06
 * Support wild cards in reverse mode via `--exclude-wildcard`
@@ -211,6 +225,8 @@ v1.7.1, 2019-10-06
   It could be triggered by concurrently creating and deleting files and can lead to data loss
   in the affected file. This bug was found by the automated tests on Travis
   and was very hard to trigger locally.
+* tests: use /var/tmp instead of /tmp by default
+  ([commit 8c4429](https://github.com/rfjakob/gocryptfs/commit/8c4429408716d9890a98a48c246d616dbfea7e31))
 
 v1.7, 2019-03-17
 * **Fix possible symlink race attacks in forward mode** when using allow_other + plaintextnames
