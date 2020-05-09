@@ -26,7 +26,7 @@ var testParentDir = ""
 const GocryptfsBinary = "../../gocryptfs"
 
 // UnmountScript is the fusermount/umount compatibility wrapper script
-const UnmountScript = "../fuse-unmount.bash"
+const UnmountScript = "../../tests/fuse-unmount.bash"
 
 // X255 contains 255 uppercase "X". This can be used as a maximum-length filename.
 var X255 string

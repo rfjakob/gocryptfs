@@ -65,10 +65,12 @@ func main() {
 		decryptPaths  *bool
 		encryptPaths  *bool
 		aessiv        *bool
+		sep0          *bool
 	}
 	args.dumpmasterkey = flag.Bool("dumpmasterkey", false, "Decrypt and dump the master key")
 	args.decryptPaths = flag.Bool("decrypt-paths", false, "Decrypt file paths using gocryptfs control socket")
 	args.encryptPaths = flag.Bool("encrypt-paths", false, "Encrypt file paths using gocryptfs control socket")
+	args.sep0 = flag.Bool("0", false, "Use \\0 instead of \\n as separator")
 	args.aessiv = flag.Bool("aessiv", false, "Assume AES-SIV mode instead of AES-GCM")
 	flag.Usage = usage
 	flag.Parse()
@@ -83,10 +85,10 @@ func main() {
 	}
 	fn := flag.Arg(0)
 	if *args.decryptPaths {
-		decryptPaths(fn)
+		decryptPaths(fn, *args.sep0)
 	}
 	if *args.encryptPaths {
-		encryptPaths(fn)
+		encryptPaths(fn, *args.sep0)
 	}
 	fd, err := os.Open(fn)
 	if err != nil {
