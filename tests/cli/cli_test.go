@@ -678,9 +678,9 @@ func TestBypass(t *testing.T) {
 	}
 
     //usie valid cipher name + suffix
-	invalid_file_name := encryptedfilename + "_invalid_file"
-	invalid_file := dir + "/" + invalid_file_name
-	err = ioutil.WriteFile(invalid_file, []byte("somecontent"), 0600)
+	invalidFileName := encryptedfilename + "_invalid_file"
+	invalidFile := dir + "/" + invalidFileName
+	err = ioutil.WriteFile(invalidFile, []byte("somecontent"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -701,6 +701,6 @@ func TestBypass(t *testing.T) {
 	}
 
 	if !found {
-		t.Errorf("did not find invalid name %s in %v", invalid_file_name, names)
+		t.Errorf("did not find invalid name %s in %v", invalidFileName, names)
 	}
 }
