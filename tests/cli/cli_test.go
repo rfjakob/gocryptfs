@@ -649,13 +649,13 @@ func TestSymlinkedCipherdir(t *testing.T) {
 func TestBypass(t *testing.T) {
 	dir := test_helpers.InitFS(t)
 	mnt := dir + ".mnt"
-    validfilename = "file"
+    validFileName := "file"
 
     //use static suffix for testing
 	test_helpers.MountOrFatal(t, dir, mnt, "-badname=_invalid_file", "-extpass=echo test")
 	defer test_helpers.UnmountPanic(mnt)
 
-	file := mnt + "/" + validfilename
+	file := mnt + "/" + validFileName
 	err := ioutil.WriteFile(file, []byte("somecontent"), 0600)
 	if err != nil {
 		t.Fatal(err)
@@ -679,8 +679,8 @@ func TestBypass(t *testing.T) {
 
     //usie valid cipher name + suffix
 	invalidFileName := encryptedfilename + "_invalid_file"
-	invalidFile := dir + "/" + invalidFileName
-	err = ioutil.WriteFile(invalidFile, []byte("somecontent"), 0600)
+	invalidFilePath := dir + "/" + invalidFileName
+	err = ioutil.WriteFile(invalidFilePath, []byte("somecontent"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -694,7 +694,7 @@ func TestBypass(t *testing.T) {
 	names, err := f.Readdirnames(0)
 	found := false
 	for _, name := range names {
-		if strings.Contains(name, validfilename + "_invalid_file(GOCRYPTFS_BAD_NAME)") {
+		if strings.Contains(name, validFileName + "_invalid_file(GOCRYPTFS_BAD_NAME)") {
 			found = true
 			break
 		}
