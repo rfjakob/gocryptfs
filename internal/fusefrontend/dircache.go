@@ -21,6 +21,8 @@ const (
 	enableDebugMessages = false
 	// Enable hit rate statistics printing
 	enableStats = false
+
+	pathFmt = "%-40q"
 )
 
 type dirCacheEntryStruct struct {
@@ -64,6 +66,7 @@ type dirCacheStruct struct {
 
 // Clear clears the cache contents.
 func (d *dirCacheStruct) Clear() {
+	d.dbg("Clear\n")
 	d.Lock()
 	defer d.Unlock()
 	for i := range d.entries {
@@ -91,7 +94,7 @@ func (d *dirCacheStruct) Store(dirRelPath string, fd int, iv []byte) {
 		tlog.Warn.Printf("dirCache.Store: Dup failed: %v", err)
 		return
 	}
-	d.dbg("Store: %q %d %x\n", dirRelPath, fd2, iv)
+	d.dbg("Store  "+pathFmt+" fd=%d iv=%x\n", dirRelPath, fd2, iv)
 	e.fd = fd2
 	e.dirRelPath = dirRelPath
 	e.iv = iv
@@ -111,8 +114,9 @@ func (d *dirCacheStruct) Lookup(dirRelPath string) (fd int, iv []byte) {
 	if enableStats {
 		d.lookups++
 	}
+	var e *dirCacheEntryStruct
 	for i := range d.entries {
-		e := &d.entries[i]
+		e = &d.entries[i]
 		if e.fd <= 0 {
 			// Cache slot is empty
 			continue
@@ -131,7 +135,7 @@ func (d *dirCacheStruct) Lookup(dirRelPath string) (fd int, iv []byte) {
 		break
 	}
 	if fd == 0 {
-		d.dbg("Lookup %q: miss\n", dirRelPath)
+		d.dbg("Lookup "+pathFmt+" miss\n", dirRelPath)
 		return -1, nil
 	}
 	if enableStats {
@@ -140,7 +144,7 @@ func (d *dirCacheStruct) Lookup(dirRelPath string) (fd int, iv []byte) {
 	if fd <= 0 || len(iv) != nametransform.DirIVLen {
 		log.Panicf("Lookup sanity check failed: fd=%d len=%d", fd, len(iv))
 	}
-	d.dbg("Lookup %q: hit %d %x\n", dirRelPath, fd, iv)
+	d.dbg("Lookup "+pathFmt+" hit fd=%d dup=%d iv=%x\n", dirRelPath, e.fd, fd, iv)
 	return fd, iv
 }
 
