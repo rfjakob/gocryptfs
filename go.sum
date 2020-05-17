@@ -1,7 +1,9 @@
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/hanwen/go-fuse v1.0.1-0.20190319092520-161a16484456 h1:Fqq26zPAvGcgDPCm9Oq3rNc/Ye6P9It+3P+7tiMxcEs=
-github.com/hanwen/go-fuse v1.0.1-0.20190319092520-161a16484456/go.mod h1:unqXarDXqzAk0rt98O2tVndEPIpUgLD9+rwFisZH3Ok=
+github.com/hanwen/go-fuse v1.0.0 h1:GxS9Zrn6c35/BnfiVsZVWmsG803xwE7eVRDvcf/BEVc=
+github.com/hanwen/go-fuse v1.0.0/go.mod h1:unqXarDXqzAk0rt98O2tVndEPIpUgLD9+rwFisZH3Ok=
+github.com/hanwen/go-fuse/v2 v2.0.3 h1:kpV28BKeSyVgZREItBLnaVBvOEwv2PuhNdKetwnvNHo=
+github.com/hanwen/go-fuse/v2 v2.0.3/go.mod h1:0EQM6aH2ctVpvZ6a+onrQ/vaykxh2GH7hy3e13vzTUY=
 github.com/jacobsa/crypto v0.0.0-20190317225127-9f44e2d11115 h1:YuDUUFNM21CAbyPOpOP8BicaTD/0klJEKt5p8yuw+uY=
 github.com/jacobsa/crypto v0.0.0-20190317225127-9f44e2d11115/go.mod h1:LadVJg0XuawGk+8L1rYnIED8451UyNxEMdTWCEt5kmU=
 github.com/jacobsa/oglematchers v0.0.0-20150720000706-141901ea67cd h1:9GCSedGjMcLZCrusBZuo4tyKLpKUPenUUqi34AkuFmA=
@@ -12,6 +14,7 @@ github.com/jacobsa/ogletest v0.0.0-20170503003838-80d50a735a11 h1:BMb8s3ENQLt5ul
 github.com/jacobsa/ogletest v0.0.0-20170503003838-80d50a735a11/go.mod h1:+DBdDyfoO2McrOyDemRBq0q9CMEByef7sYl7JH5Q3BI=
 github.com/jacobsa/reqtrace v0.0.0-20150505043853-245c9e0234cb h1:uSWBjJdMf47kQlXMwWEfmc864bA1wAC+Kl3ApryuG9Y=
 github.com/jacobsa/reqtrace v0.0.0-20150505043853-245c9e0234cb/go.mod h1:ivcmUvxXWjb27NsPEaiYK7AidlZXS7oQ5PowUS9z3I4=
+github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348/go.mod h1:B69LEHPfb2qLo0BaaOLcbitczOKLWTsrBG9LczfCD4k=
 github.com/pkg/xattr v0.4.1 h1:dhclzL6EqOXNaPDWqoeb9tIxATfBSmjqL0b4DpSjwRw=
 github.com/pkg/xattr v0.4.1/go.mod h1:W2cGD0TBEus7MkUgv0tNZ9JutLtVO3cXu+IBRuHqnFs=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
