@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	// Number of entries in the dirCache. Three entries work well for two
-	// (probably also three) parallel tar extracts (hit rate around 92%).
+	// Number of entries in the dirCache.
+	// 20 entries work well for "git stat" on a small git repo on sshfs.
 	// Keep in sync with test_helpers.maxCacheFds !
 	// TODO: How to share this constant without causing an import cycle?
-	dirCacheSize = 3
+	dirCacheSize = 20
 	// Enable Lookup/Store/Clear debug messages
 	enableDebugMessages = false
 	// Enable hit rate statistics printing
@@ -151,7 +151,7 @@ func (d *dirCacheStruct) Lookup(dirRelPath string) (fd int, iv []byte) {
 // expireThread is started on the first Lookup()
 func (d *dirCacheStruct) expireThread() {
 	for {
-		time.Sleep(1 * time.Second)
+		time.Sleep(60 * time.Second)
 		d.Clear()
 		if enableStats {
 			d.Lock()
