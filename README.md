@@ -187,6 +187,17 @@ RM:    3.379
 Changelog
 ---------
 
+vNEXT, in progress
+* Add `-encrypt-paths` / `-decrypt-paths` functionality to `gocryptfs-xray`
+  ([#416](https://github.com/rfjakob/gocryptfs/issues/416))
+* Accept multiple `-passfile`s
+  ([#288](https://github.com/rfjakob/gocryptfs/issues/288))
+* Make `-masterkey=stdin` work together with `-passwd`
+  ([#461](https://github.com/rfjakob/gocryptfs/issues/461))
+* Fix `Unknown opcode 2016` crash on Google Cloud
+  ([go-fuse #276](https://github.com/hanwen/go-fuse/issues/276),
+  [gocryptfs commit ec74d1d](https://github.com/rfjakob/gocryptfs/commit/ec74d1d2f4217a9a337d1db9902f32ae2aecaf33))
+
 v1.8.0, 2020-05-09
 * **Enable ACL support ([#453](https://github.com/rfjakob/gocryptfs/issues/453))**
 * Ignore `.nfsXXX` temporary files
