@@ -1,7 +1,7 @@
 package fusefrontend
 
 import (
-	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
 // Args is a container for arguments that are passed from main() to fusefrontend
