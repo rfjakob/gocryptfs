@@ -46,28 +46,60 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "\n"+
 		"Examples:\n"+
 		"  gocryptfs-xray myfs/mCXnISiv7nEmyc0glGuhTQ\n"+
-		"  gocryptfs-xray -dumpmasterkey myfs/gocryptfs.conf\n")
+		"  gocryptfs-xray -dumpmasterkey myfs/gocryptfs.conf\n"+
+		"  gocryptfs-xray -encrypt-paths myfs.sock\n")
+}
+
+// sum counts the number of true values
+func sum(x ...*bool) (s int) {
+	for _, v := range x {
+		if *v {
+			s++
+		}
+	}
+	return s
 }
 
 func main() {
-	dumpmasterkey := flag.Bool("dumpmasterkey", false, "Decrypt and dump the master key")
-	aessiv := flag.Bool("aessiv", false, "Assume AES-SIV mode instead of AES-GCM")
+	var args struct {
+		dumpmasterkey *bool
+		decryptPaths  *bool
+		encryptPaths  *bool
+		aessiv        *bool
+		sep0          *bool
+	}
+	args.dumpmasterkey = flag.Bool("dumpmasterkey", false, "Decrypt and dump the master key")
+	args.decryptPaths = flag.Bool("decrypt-paths", false, "Decrypt file paths using gocryptfs control socket")
+	args.encryptPaths = flag.Bool("encrypt-paths", false, "Encrypt file paths using gocryptfs control socket")
+	args.sep0 = flag.Bool("0", false, "Use \\0 instead of \\n as separator")
+	args.aessiv = flag.Bool("aessiv", false, "Assume AES-SIV mode instead of AES-GCM")
 	flag.Usage = usage
 	flag.Parse()
+	s := sum(args.dumpmasterkey, args.decryptPaths, args.encryptPaths)
+	if s > 1 {
+		fmt.Printf("fatal: %d operations were requested\n", s)
+		os.Exit(1)
+	}
 	if flag.NArg() != 1 {
 		usage()
 		os.Exit(1)
 	}
 	fn := flag.Arg(0)
+	if *args.decryptPaths {
+		decryptPaths(fn, *args.sep0)
+	}
+	if *args.encryptPaths {
+		encryptPaths(fn, *args.sep0)
+	}
 	fd, err := os.Open(fn)
 	if err != nil {
 		errExit(err)
 	}
 	defer fd.Close()
-	if *dumpmasterkey {
+	if *args.dumpmasterkey {
 		dumpMasterKey(fn)
 	} else {
-		inspectCiphertext(fd, *aessiv)
+		inspectCiphertext(fd, *args.aessiv)
 	}
 }
 

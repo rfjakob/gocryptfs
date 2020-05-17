@@ -105,8 +105,8 @@ func (n *NameTransform) decryptName(cipherName string, iv []byte) (string, error
 	return plain, err
 }
 
-// EncryptName encrypts "plainName", returns a base64-encoded "cipherName64".
-// The encryption is either CBC or EME, depending on "useEME".
+// EncryptName encrypts "plainName", returns a base64-encoded "cipherName64",
+// encrypted using EME (https://github.com/rfjakob/eme).
 //
 // This function is exported because in some cases, fusefrontend needs access
 // to the full (not hashed) name if longname is used.

@@ -7,13 +7,13 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/rfjakob/gocryptfs/internal/ctlsock"
+	"github.com/rfjakob/gocryptfs/internal/ctlsocksrv"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-var _ ctlsock.Interface = &FS{} // Verify that interface is implemented.
+var _ ctlsocksrv.Interface = &FS{} // Verify that interface is implemented.
 
 // EncryptPath implements ctlsock.Backend
 //

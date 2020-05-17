@@ -29,7 +29,7 @@ func (rfs *ReverseFS) prepareExcluder(args fusefrontend.Args) {
 // Patterns passed in the -exclude command line option are prefixed
 // with a leading '/' to preserve backwards compatibility (before
 // wildcard matching was implemented, exclusions always were matched
-// agains the full path).
+// against the full path).
 func getExclusionPatterns(args fusefrontend.Args) []string {
 	patterns := make([]string, len(args.Exclude)+len(args.ExcludeWildcard))
 	// add -exclude

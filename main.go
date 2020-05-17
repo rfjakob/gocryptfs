@@ -1,3 +1,6 @@
+// gocryptfs is an encrypted overlay filesystem written in Go.
+// See README.md ( https://github.com/rfjakob/gocryptfs/blob/master/README.md )
+// and the official website ( https://nuetzlich.net/gocryptfs/ ) for details.
 package main
 
 import (
@@ -32,7 +35,8 @@ var BuildDate = "0000-00-00"
 // raceDetector is set to true by race.go if we are compiled with "go build -race"
 var raceDetector bool
 
-// loadConfig loads the config file "args.config", prompting the user for the password
+// loadConfig loads the config file `args.config` and decrypts the masterkey,
+// or gets via the `-masterkey` or `-zerokey` command line options, if specified.
 func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, err error) {
 	// First check if the file can be read at all.
 	cf, err = configfile.Load(args.config)
@@ -40,10 +44,10 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 		tlog.Fatal.Printf("Cannot open config file: %v", err)
 		return nil, nil, err
 	}
-	// The user has passed the master key on the command line (probably because
+	// The user may have passed the master key on the command line (probably because
 	// he forgot the password).
-	if args.masterkey != "" {
-		masterkey = parseMasterKey(args.masterkey, false)
+	masterkey = handleArgsMasterkey(args)
+	if masterkey != nil {
 		return masterkey, cf, nil
 	}
 	pw := readpassword.Once([]string(args.extpass), args.passfile, "")
@@ -135,7 +139,7 @@ func main() {
 	mxp := runtime.GOMAXPROCS(0)
 	if mxp < 4 && os.Getenv("GOMAXPROCS") == "" {
 		// On a 2-core machine, setting maxprocs to 4 gives 10% better performance.
-		// But don't override an explicitely set GOMAXPROCS env variable.
+		// But don't override an explicitly set GOMAXPROCS env variable.
 		runtime.GOMAXPROCS(4)
 	}
 	// mount(1) unsets PATH. Since exec.Command does not handle this case, we set
@@ -170,6 +174,7 @@ func main() {
 	}
 	// "-speed"
 	if args.speed {
+		printVersion()
 		speed.Run()
 		os.Exit(0)
 	}

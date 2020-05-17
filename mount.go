@@ -29,7 +29,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
-	"github.com/rfjakob/gocryptfs/internal/ctlsock"
+	"github.com/rfjakob/gocryptfs/internal/ctlsocksrv"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend_reverse"
@@ -222,18 +222,32 @@ func setOpenFileLimit() {
 	}
 }
 
-// ctlsockFs satisfies both the pathfs.FileSystem and the ctlsock.Interface
+// ctlsockFs satisfies both the pathfs.FileSystem and the ctlsocksrv.Interface
 // interfaces
 type ctlsockFs interface {
 	pathfs.FileSystem
-	ctlsock.Interface
+	ctlsocksrv.Interface
 }
 
 // initFuseFrontend - initialize gocryptfs/fusefrontend
 // Calls os.Exit on errors
 func initFuseFrontend(args *argContainer) (pfs pathfs.FileSystem, wipeKeys func()) {
-	// Get master key (may prompt for the password) and read config file
-	masterkey, confFile := getMasterKey(args)
+	var err error
+	var confFile *configfile.ConfFile
+	// Get the masterkey from the command line if it was specified
+	masterkey := handleArgsMasterkey(args)
+	// Otherwise, load masterkey from config file (normal operation).
+	// Prompts the user for the password.
+	if masterkey == nil {
+		masterkey, confFile, err = loadConfig(args)
+		if err != nil {
+			if args._ctlsockFd != nil {
+				// Close the socket file (which also deletes it)
+				args._ctlsockFd.Close()
+			}
+			exitcodes.Exit(err)
+		}
+	}
 	// Reconciliate CLI and config file arguments into a fusefrontend.Args struct
 	// that is passed to the filesystem implementation
 	cryptoBackend := cryptocore.BackendGoGCM
@@ -317,7 +331,7 @@ func initFuseFrontend(args *argContainer) (pfs pathfs.FileSystem, wipeKeys func(
 	// We have opened the socket early so that we cannot fail here after
 	// asking the user for the password
 	if args._ctlsockFd != nil {
-		go ctlsock.Serve(args._ctlsockFd, fs)
+		go ctlsocksrv.Serve(args._ctlsockFd, fs)
 	}
 	return fs, func() { cCore.Wipe() }
 }

@@ -82,7 +82,7 @@ func TestConcurrentReadCreate(t *testing.T) {
 	content := []byte("1234567890")
 	loops := 100
 	var wg sync.WaitGroup
-	// "Creater" thread
+	// "Create()" thread
 	wg.Add(1)
 	go func() {
 		for i := 0; i < loops; i++ {

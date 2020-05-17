@@ -6,11 +6,11 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/rfjakob/gocryptfs/internal/ctlsock"
+	"github.com/rfjakob/gocryptfs/internal/ctlsocksrv"
 	"github.com/rfjakob/gocryptfs/internal/pathiv"
 )
 
-var _ ctlsock.Interface = &ReverseFS{} // Verify that interface is implemented.
+var _ ctlsocksrv.Interface = &ReverseFS{} // Verify that interface is implemented.
 
 // EncryptPath implements ctlsock.Backend.
 // This is used for the control socket and for the "-exclude" logic.

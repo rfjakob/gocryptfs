@@ -5,16 +5,15 @@ import (
 	"os"
 	"strings"
 
-	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-// parseMasterKey - Parse a hex-encoded master key that was passed on the command line
-// Calls os.Exit on failure
-func parseMasterKey(masterkey string, fromStdin bool) []byte {
+// unhexMasterKey - Convert a hex-encoded master key to binary.
+// Calls os.Exit on failure.
+func unhexMasterKey(masterkey string, fromStdin bool) []byte {
 	masterkey = strings.Replace(masterkey, "-", "", -1)
 	key, err := hex.DecodeString(masterkey)
 	if err != nil {
@@ -34,21 +33,18 @@ func parseMasterKey(masterkey string, fromStdin bool) []byte {
 	return key
 }
 
-// getMasterKey looks at "args" to determine where the master key should come
-// from (-masterkey=a-b-c-d or stdin or from the config file).
-// If it comes from the config file, the user is prompted for the password
-// and a ConfFile instance is returned.
-// Calls os.Exit on failure.
-func getMasterKey(args *argContainer) (masterkey []byte, confFile *configfile.ConfFile) {
-	masterkeyFromStdin := false
+// handleArgsMasterkey looks at `args.masterkey` and `args.zerokey`, gets the
+// masterkey from the source the user wanted (string on the command line, stdin, all-zero),
+// and returns it in binary. Returns nil if no masterkey source was specified.
+func handleArgsMasterkey(args *argContainer) (masterkey []byte) {
 	// "-masterkey=stdin"
 	if args.masterkey == "stdin" {
-		args.masterkey = string(readpassword.Once(nil, "", "Masterkey"))
-		masterkeyFromStdin = true
+		in := string(readpassword.Once(nil, "", "Masterkey"))
+		return unhexMasterKey(in, true)
 	}
 	// "-masterkey=941a6029-3adc6a1c-..."
 	if args.masterkey != "" {
-		return parseMasterKey(args.masterkey, masterkeyFromStdin), nil
+		return unhexMasterKey(args.masterkey, false)
 	}
 	// "-zerokey"
 	if args.zerokey {
@@ -56,18 +52,9 @@ func getMasterKey(args *argContainer) (masterkey []byte, confFile *configfile.Co
 		tlog.Info.Printf(tlog.ColorYellow +
 			"ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING." +
 			tlog.ColorReset)
-		return make([]byte, cryptocore.KeyLen), nil
+		return make([]byte, cryptocore.KeyLen)
 	}
-	var err error
-	// Load master key from config file (normal operation).
-	// Prompts the user for the password.
-	masterkey, confFile, err = loadConfig(args)
-	if err != nil {
-		if args._ctlsockFd != nil {
-			// Close the socket file (which also deletes it)
-			args._ctlsockFd.Close()
-		}
-		exitcodes.Exit(err)
-	}
-	return masterkey, confFile
+	// No master key source specified on the command line. Caller must parse
+	// the config file.
+	return nil
 }

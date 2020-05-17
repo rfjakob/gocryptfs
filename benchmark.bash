@@ -44,7 +44,7 @@ while [[ $# -gt 0 ]] ; do
 			exit 2
 			;;
 		*)
-			if [[ ! -z $OPT_DIR ]] ; then
+			if [[ -n $OPT_DIR ]] ; then
 				echo "Duplicate DIR argument: $1"
 				usage
 				exit 3
@@ -62,42 +62,42 @@ fi
 # Create directories
 CRYPT=$(mktemp -d "$OPT_DIR/$MYNAME.XXX")
 MNT=$CRYPT.mnt
-mkdir $MNT
+mkdir "$MNT"
 
 # Mount
 if [[ $OPT_ENCFS -eq 1 ]]; then
-	if [[ ! -z $OPT_OPENSSL ]] ; then
+	if [[ -n $OPT_OPENSSL ]] ; then
 		echo "The option $OPT_OPENSSL only works with gocryptfs"
 		exit 1
 	fi
 	echo -n "Testing EncFS at $CRYPT: "
 	encfs --version
-	encfs --extpass="echo test" --standard $CRYPT $MNT > /dev/null
+	encfs --extpass="echo test" --standard "$CRYPT" "$MNT" > /dev/null
 elif [[ $OPT_LOOPBACK -eq 1 ]]; then
 	echo "Testing go-fuse loopback"
-	$HOME/go/src/github.com/hanwen/go-fuse/example/loopback/loopback $MNT $CRYPT &
+	"$HOME/go/src/github.com/hanwen/go-fuse/example/loopback/loopback" "$MNT" "$CRYPT" &
 	sleep 0.5
 else
 	echo -n "Testing gocryptfs at $CRYPT: "
 	gocryptfs -version
-	gocryptfs -q -init -extpass="echo test" -scryptn=10 $CRYPT
-	gocryptfs -q -extpass="echo test" $OPT_OPENSSL $CRYPT $MNT
+	gocryptfs -q -init -extpass="echo test" -scryptn=10 "$CRYPT"
+	gocryptfs -q -extpass="echo test" $OPT_OPENSSL "$CRYPT" "$MNT"
 fi
 
 # Make sure we have actually mounted something
-if ! mountpoint $MNT ; then
+if ! mountpoint "$MNT" ; then
 	exit 1
 fi
 
 # Cleanup trap
-trap "cd /; fuse-unmount -z $MNT; rm -rf $CRYPT $MNT" EXIT
+trap 'cd /; fuse-unmount -z "$MNT"; rm -rf "$CRYPT" "$MNT"' EXIT
 
 # Benchmarks
 if [[ $DD_ONLY -eq 1 ]]; then
 	echo -n "WRITE: "
-	dd if=/dev/zero of=$MNT/zero bs=131072 count=20000 2>&1 | tail -n 1
-	rm $MNT/zero
+	dd if=/dev/zero "of=$MNT/zero" bs=131072 count=20000 2>&1 | tail -n 1
+	rm "$MNT/zero"
 else
-	./tests/canonical-benchmarks.bash $MNT
+	./tests/canonical-benchmarks.bash "$MNT"
 fi
 

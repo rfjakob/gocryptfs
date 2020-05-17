@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os/exec"
 	"testing"
+
+	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
 func TestAesgcmXray(t *testing.T) {
@@ -56,5 +58,53 @@ func TestDumpmasterkey(t *testing.T) {
 		t.Errorf("Wrong output")
 		fmt.Printf("expected: %s\n", expected)
 		fmt.Printf("have: %s\n", out)
+	}
+}
+
+func TestEncryptPaths(t *testing.T) {
+	cDir := test_helpers.InitFS(t)
+	pDir := cDir + ".mnt"
+	sock := cDir + ".sock"
+	test_helpers.MountOrFatal(t, cDir, pDir, "-ctlsock="+sock, "-extpass", "echo test")
+	defer test_helpers.UnmountPanic(pDir)
+
+	testCases := []struct {
+		in   []string
+		sep0 bool
+	}{
+		{
+			[]string{
+				"test1",
+				"test1\n",
+				"test1\ntest2",
+				"test1\ntest2\n",
+			},
+			false,
+		},
+		{
+			[]string{
+				"test1",
+				"test1\000",
+				"test1\000test2",
+				"test1\000test2\000",
+			},
+			true,
+		},
+	}
+
+	for _, tc := range testCases {
+		for _, in := range tc.in {
+			sepArg := "-0=false"
+			if tc.sep0 {
+				sepArg = "-0=true"
+			}
+			cmd := exec.Command("../gocryptfs-xray", "-encrypt-paths", sepArg, sock)
+			cmd.Stdin = bytes.NewBuffer([]byte(in))
+			out, err := cmd.CombinedOutput()
+			t.Logf("%q", string(out))
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
 	}
 }

@@ -1,6 +1,6 @@
-// Package ctlsock implements the control socket interface that can be
+// Package ctlsocksrv implements the control socket interface that can be
 // activated by passing "-ctlsock" on the command line.
-package ctlsock
+package ctlsocksrv
 
 import (
 	"encoding/json"
@@ -11,6 +11,7 @@ import (
 	"os"
 	"syscall"
 
+	"github.com/rfjakob/gocryptfs/ctlsock"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -18,27 +19,6 @@ import (
 type Interface interface {
 	EncryptPath(string) (string, error)
 	DecryptPath(string) (string, error)
-}
-
-// RequestStruct is sent by a client
-type RequestStruct struct {
-	EncryptPath string
-	DecryptPath string
-}
-
-// ResponseStruct is sent by us as response to a request
-type ResponseStruct struct {
-	// Result is the resulting decrypted or encrypted path. Empty on error.
-	Result string
-	// ErrNo is the error number as defined in errno.h.
-	// 0 means success and -1 means that the error number is not known
-	// (look at ErrText in this case).
-	ErrNo int32
-	// ErrText is a detailed error message.
-	ErrText string
-	// WarnText contains warnings that may have been encountered while
-	// processing the message.
-	WarnText string
 }
 
 type ctlSockHandler struct {
@@ -97,7 +77,7 @@ func (ch *ctlSockHandler) handleConnection(conn *net.UnixConn) {
 			return
 		}
 		data := buf[:n]
-		var in RequestStruct
+		var in ctlsock.RequestStruct
 		err = json.Unmarshal(data, &in)
 		if err != nil {
 			tlog.Warn.Printf("ctlsock: JSON Unmarshal error: %#v", err)
@@ -110,7 +90,7 @@ func (ch *ctlSockHandler) handleConnection(conn *net.UnixConn) {
 }
 
 // handleRequest handles an already-unmarshaled JSON request
-func (ch *ctlSockHandler) handleRequest(in *RequestStruct, conn *net.UnixConn) {
+func (ch *ctlSockHandler) handleRequest(in *ctlsock.RequestStruct, conn *net.UnixConn) {
 	var err error
 	var inPath, outPath, clean, warnText string
 	// You cannot perform both decryption and encryption in one request
@@ -153,7 +133,7 @@ func (ch *ctlSockHandler) handleRequest(in *RequestStruct, conn *net.UnixConn) {
 
 // sendResponse sends a JSON response message
 func sendResponse(conn *net.UnixConn, err error, result string, warnText string) {
-	msg := ResponseStruct{
+	msg := ctlsock.ResponseStruct{
 		Result:   result,
 		WarnText: warnText,
 	}

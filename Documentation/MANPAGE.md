@@ -488,14 +488,13 @@ In short:
 EXAMPLES
 ========
 
-Create an encrypted filesystem in directory "g1", mount it on "g2",
-look at the contents, and umount again:
+Create an encrypted filesystem in directory "mydir.crypt", mount it on "mydir":
 
-	mkdir cipher mnt
-	gocryptfs -init cipher
-	gocryptfs cipher mnt
+	mkdir mydir.crypt mydir
+	gocryptfs -init mydir.crypt
+	gocryptfs mydir.crypt mydir
 
-Mount an ecrypted view of joe's home directory using reverse mode:
+Mount an encrypted view of joe's home directory using reverse mode:
 
 	mkdir /home/joe.crypt
 	gocryptfs -init -reverse /home/joe

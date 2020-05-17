@@ -1,4 +1,4 @@
-package ctlsock
+package ctlsocksrv
 
 import (
 	"testing"

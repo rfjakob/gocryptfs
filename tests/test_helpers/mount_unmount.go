@@ -28,7 +28,7 @@ type mountInfo struct {
 // Creates "p" if it does not exist.
 //
 // Contrary to InitFS(), you MUST passt "-extpass=echo test" (or another way for
-// getting the master key) explicitely.
+// getting the master key) explicitly.
 func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 	args := []string{"-q", "-wpanic", "-nosyslog", "-fg", fmt.Sprintf("-notifypid=%d", os.Getpid())}
 	args = append(args, extraArgs...)
@@ -98,7 +98,7 @@ func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 // MountOrExit calls Mount() and exits on failure.
 //
 // Contrary to InitFS(), you MUST passt "-extpass=echo test" (or another way for
-// getting the master key) explicitely.
+// getting the master key) explicitly.
 func MountOrExit(c string, p string, extraArgs ...string) {
 	err := Mount(c, p, true, extraArgs...)
 	if err != nil {
@@ -110,7 +110,7 @@ func MountOrExit(c string, p string, extraArgs ...string) {
 // MountOrFatal calls Mount() and calls t.Fatal() on failure.
 //
 // Contrary to InitFS(), you MUST passt "-extpass=echo test" (or another way for
-// getting the master key) explicitely.
+// getting the master key) explicitly.
 func MountOrFatal(t *testing.T, c string, p string, extraArgs ...string) {
 	err := Mount(c, p, true, extraArgs...)
 	if err != nil {
@@ -126,7 +126,13 @@ func UnmountPanic(dir string) {
 		cmd := exec.Command("lsof", dir)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		cmd.Run()
+		cmd.Start()
+		timer := time.AfterFunc(1*time.Second, func() {
+			fmt.Printf("timeout!")
+			cmd.Process.Kill()
+		})
+		cmd.Wait()
+		timer.Stop()
 		panic("UnmountPanic: unmount failed: " + err.Error())
 	}
 }

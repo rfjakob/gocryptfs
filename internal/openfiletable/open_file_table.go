@@ -7,28 +7,9 @@ package openfiletable
 import (
 	"sync"
 	"sync/atomic"
-	"syscall"
+
+	"github.com/rfjakob/gocryptfs/internal/inomap"
 )
-
-// QIno = Qualified Inode number.
-// Uniquely identifies a backing file through the device number,
-// inode number pair.
-type QIno struct {
-	// Stat_t.{Dev,Ino} is uint64 on 32- and 64-bit Linux
-	Dev uint64
-	Ino uint64
-}
-
-// QInoFromStat fills a new QIno struct with the passed Stat_t info.
-func QInoFromStat(st *syscall.Stat_t) QIno {
-	return QIno{
-		// There are some architectures that use 32-bit values here
-		// (darwin, freebsd-32, maybe others). Add and explicit cast to make
-		// this function work everywhere.
-		Dev: uint64(st.Dev),
-		Ino: uint64(st.Ino),
-	}
-}
 
 // wlock - serializes write accesses to each file (identified by inode number)
 // Writing partial blocks means we have to do read-modify-write cycles. We
@@ -38,7 +19,7 @@ func QInoFromStat(st *syscall.Stat_t) QIno {
 var t table
 
 func init() {
-	t.entries = make(map[QIno]*Entry)
+	t.entries = make(map[inomap.QIno]*Entry)
 }
 
 type table struct {
@@ -52,7 +33,7 @@ type table struct {
 	// Protects map access
 	sync.Mutex
 	// Table entries
-	entries map[QIno]*Entry
+	entries map[inomap.QIno]*Entry
 }
 
 // Entry is an entry in the open file table
@@ -71,7 +52,7 @@ type Entry struct {
 
 // Register creates an open file table entry for "qi" (or incrementes the
 // reference count if the entry already exists) and returns the entry.
-func Register(qi QIno) *Entry {
+func Register(qi inomap.QIno) *Entry {
 	t.Lock()
 	defer t.Unlock()
 
@@ -86,7 +67,7 @@ func Register(qi QIno) *Entry {
 
 // Unregister decrements the reference count for "qi" and deletes the entry from
 // the open file table if the reference count reaches 0.
-func Unregister(qi QIno) {
+func Unregister(qi inomap.QIno) {
 	t.Lock()
 	defer t.Unlock()
 

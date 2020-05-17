@@ -66,7 +66,7 @@ func WriteDirIVAt(dirfd int) error {
 	// https://github.com/rfjakob/gocryptfs/issues/387 ).
 	//
 	// Note that gocryptfs.conf is still created with 0400 permissions so the
-	// owner must explicitely chmod it to permit access.
+	// owner must explicitly chmod it to permit access.
 	const dirivPerms = 0440
 
 	iv := cryptocore.RandBytes(DirIVLen)

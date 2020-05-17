@@ -4,19 +4,16 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"syscall"
 	"testing"
-	"time"
 
-	"github.com/rfjakob/gocryptfs/internal/ctlsock"
+	"github.com/rfjakob/gocryptfs/ctlsock"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 )
@@ -29,7 +26,7 @@ var testParentDir = ""
 const GocryptfsBinary = "../../gocryptfs"
 
 // UnmountScript is the fusermount/umount compatibility wrapper script
-const UnmountScript = "../fuse-unmount.bash"
+const UnmountScript = "../../tests/fuse-unmount.bash"
 
 // X255 contains 255 uppercase "X". This can be used as a maximum-length filename.
 var X255 string
@@ -125,7 +122,11 @@ func ResetTmpDir(createDirIV bool) {
 //
 // It returns cipherdir without a trailing slash.
 func InitFS(t *testing.T, extraArgs ...string) string {
-	dir, err := ioutil.TempDir(TmpDir, "")
+	prefix := "x."
+	if t != nil {
+		prefix = t.Name() + "."
+	}
+	dir, err := ioutil.TempDir(TmpDir, prefix)
 	if err != nil {
 		if t != nil {
 			t.Fatal(err)
@@ -343,29 +344,24 @@ func Du(t *testing.T, fd int) (nBytes int64) {
 
 // QueryCtlSock sends a request to the control socket at "socketPath" and
 // returns the response.
-func QueryCtlSock(t *testing.T, socketPath string, req ctlsock.RequestStruct) (response ctlsock.ResponseStruct) {
-	conn, err := net.DialTimeout("unix", socketPath, 1*time.Second)
+func QueryCtlSock(t *testing.T, socketPath string, req ctlsock.RequestStruct) ctlsock.ResponseStruct {
+	c, err := ctlsock.New(socketPath)
 	if err != nil {
+		// Connecting to the socket failed already. This is fatal.
 		t.Fatal(err)
 	}
-	defer conn.Close()
-	conn.SetDeadline(time.Now().Add(time.Second))
-	msg, err := json.Marshal(req)
+	defer c.Close()
+	resp, err := c.Query(&req)
 	if err != nil {
+		// If we got a response, try to extract it. This is not fatal here
+		// as the tests may expect error responses.
+		if resp2, ok := err.(*ctlsock.ResponseStruct); ok {
+			return *resp2
+		}
+		// Another error means that we did not even get a response. This is fatal.
 		t.Fatal(err)
 	}
-	_, err = conn.Write(msg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	buf := make([]byte, ctlsock.ReadBufSize)
-	n, err := conn.Read(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
-	buf = buf[:n]
-	json.Unmarshal(buf, &response)
-	return response
+	return *resp
 }
 
 // ExtractCmdExitCode extracts the exit code from an error value that was

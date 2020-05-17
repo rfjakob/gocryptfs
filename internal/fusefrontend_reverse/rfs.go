@@ -15,6 +15,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
+	"github.com/rfjakob/gocryptfs/internal/inomap"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/pathiv"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
@@ -36,8 +37,11 @@ type ReverseFS struct {
 	nameTransform nametransform.NameTransformer
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
-	// Tests wheter a path is excluded (hiden) from the user. Used by -exclude.
+	// Tests whether a path is excluded (hiden) from the user. Used by -exclude.
 	excluder ignore.IgnoreParser
+	// inoMap translates inode numbers from different devices to unique inode
+	// numbers.
+	inoMap *inomap.InoMap
 }
 
 var _ pathfs.FileSystem = &ReverseFS{}
@@ -54,6 +58,7 @@ func NewFS(args fusefrontend.Args, c *contentenc.ContentEnc, n nametransform.Nam
 		args:          args,
 		nameTransform: n,
 		contentEnc:    c,
+		inoMap:        inomap.New(),
 	}
 	fs.prepareExcluder(args)
 	return fs
@@ -180,6 +185,7 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 		if err != nil {
 			return nil, fuse.ToStatus(err)
 		}
+		rfs.inoMap.TranslateStat(&st)
 		var a fuse.Attr
 		a.FromStat(&st)
 		if rfs.args.ForceOwner != nil {
@@ -211,26 +217,25 @@ func (rfs *ReverseFS) GetAttr(relPath string, context *fuse.Context) (*fuse.Attr
 		}
 		return &a, status
 	}
+	// Normal file / directory
 	dirfd, name, err := rfs.openBackingDir(pPath)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
 	// Stat the backing file/dir using Fstatat
-	var st unix.Stat_t
-	err = syscallcompat.Fstatat(dirfd, name, &st, unix.AT_SYMLINK_NOFOLLOW)
-	syscall.Close(dirfd)
-	if err != nil {
-		return nil, fuse.ToStatus(err)
+	var st syscall.Stat_t
+	{
+		var st2 unix.Stat_t
+		err = syscallcompat.Fstatat(dirfd, name, &st2, unix.AT_SYMLINK_NOFOLLOW)
+		syscall.Close(dirfd)
+		if err != nil {
+			return nil, fuse.ToStatus(err)
+		}
+		st = syscallcompat.Unix2syscall(st2)
 	}
-	// Instead of risking an inode number collision, we return an error.
-	if st.Ino > inoBaseMin {
-		tlog.Warn.Printf("GetAttr %q: backing file inode number %d crosses reserved space, max=%d. Returning EOVERFLOW.",
-			relPath, st.Ino, inoBaseMin)
-		return nil, fuse.ToStatus(syscall.EOVERFLOW)
-	}
+	rfs.inoMap.TranslateStat(&st)
 	var a fuse.Attr
-	st2 := syscallcompat.Unix2syscall(st)
-	a.FromStat(&st2)
+	a.FromStat(&st)
 	// Calculate encrypted file size
 	if a.IsRegular() {
 		a.Size = rfs.contentEnc.PlainSizeToCipherSize(a.Size)

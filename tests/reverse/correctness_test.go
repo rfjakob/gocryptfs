@@ -10,7 +10,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/rfjakob/gocryptfs/internal/ctlsock"
+	"github.com/rfjakob/gocryptfs/ctlsock"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
@@ -201,6 +201,13 @@ func TestTooLongSymlink(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// save later tests the trouble of dealing with ENAMETOOLONG errors
+	defer func() {
+		os.Remove(fn)
+		// immediately create a new symlink so the inode number is not
+		// reused for something else
+		os.Symlink("/tmp", fn)
+	}()
 	t.Logf("Created symlink of length %d", l)
 	_, err = os.Readlink(dirC + "/TooLongSymlink")
 	if err == nil {
@@ -218,9 +225,7 @@ func TestTooLongSymlink(t *testing.T) {
 // all directories in the path with O_RDONLY. Now it uses O_PATH, which only needs
 // the executable bit.
 func Test0100Dir(t *testing.T) {
-	// Note: t.Name() is not available before in Go 1.8
-	tName := "Test0100Dir"
-	dir := dirA + "/" + tName
+	dir := dirA + "/" + t.Name()
 	err := os.Mkdir(dir, 0700)
 	if err != nil {
 		t.Fatal(err)
@@ -235,7 +240,7 @@ func Test0100Dir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fileReverse := dirC + "/" + tName + "/hello"
+	fileReverse := dirC + "/" + t.Name() + "/hello"
 	fd, err := os.Open(fileReverse)
 	// Make sure the dir can be removed after the test is done
 	os.Chmod(dir, 0700)

@@ -1,1 +1,0 @@
-ctlsock-encrypt.bash

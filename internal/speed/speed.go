@@ -12,6 +12,8 @@ import (
 	"log"
 	"testing"
 
+	"golang.org/x/crypto/chacha20poly1305"
+
 	"github.com/rfjakob/gocryptfs/internal/siv_aead"
 	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 )
@@ -32,6 +34,7 @@ func Run() {
 		{name: "AES-GCM-256-OpenSSL", f: bStupidGCM, preferred: stupidgcm.PreferOpenSSL()},
 		{name: "AES-GCM-256-Go", f: bGoGCM, preferred: !stupidgcm.PreferOpenSSL()},
 		{name: "AES-SIV-512-Go", f: bAESSIV, preferred: false},
+		{name: "XChaCha20-Poly1305-Go", f: bChacha20poly1305, preferred: false},
 	}
 	for _, b := range bTable {
 		fmt.Printf("%-20s\t", b.name)
@@ -123,5 +126,21 @@ func bAESSIV(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		// Encrypt and append to nonce
 		gGCM.Seal(iv, iv, in, authData)
+	}
+}
+
+// bChacha20poly1305 benchmarks XChaCha20 from golang.org/x/crypto/chacha20poly1305
+func bChacha20poly1305(b *testing.B) {
+	key := randBytes(32)
+	authData := randBytes(adLen)
+	iv := randBytes(chacha20poly1305.NonceSizeX)
+	in := make([]byte, blockSize)
+	b.SetBytes(int64(len(in)))
+	c, _ := chacha20poly1305.NewX(key)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		// Encrypt and append to nonce
+		c.Seal(iv, iv, in, authData)
 	}
 }
