@@ -741,3 +741,25 @@ func TestBadname(t *testing.T) {
 		t.Errorf("did not find invalid name %s in %v", invalid_file_name, names)
 	}
 }
+
+// TestPassfile tests the `-passfile` option
+func TestPassfile(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	mnt := dir + ".mnt"
+	passfile1 := mnt + ".1.txt"
+	ioutil.WriteFile(passfile1, []byte("test"), 0600)
+	test_helpers.MountOrFatal(t, dir, mnt, "-passfile="+passfile1)
+	defer test_helpers.UnmountPanic(mnt)
+}
+
+// TestPassfileX2 tests that the `-passfile` option can be passed twice
+func TestPassfileX2(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	mnt := dir + ".mnt"
+	passfile1 := mnt + ".1.txt"
+	passfile2 := mnt + ".2.txt"
+	ioutil.WriteFile(passfile1, []byte("te"), 0600)
+	ioutil.WriteFile(passfile2, []byte("st"), 0600)
+	test_helpers.MountOrFatal(t, dir, mnt, "-passfile="+passfile1, "-passfile="+passfile2)
+	defer test_helpers.UnmountPanic(mnt)
+}

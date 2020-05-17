@@ -26,7 +26,7 @@ func TestExtpass(t *testing.T) {
 
 func TestOnceExtpass(t *testing.T) {
 	p1 := "lkadsf0923rdfi48rqwhdsf"
-	p2 := string(Once([]string{"echo " + p1}, "", ""))
+	p2 := string(Once([]string{"echo " + p1}, nil, ""))
 	if p1 != p2 {
 		t.Errorf("p1=%q != p2=%q", p1, p2)
 	}
@@ -35,7 +35,7 @@ func TestOnceExtpass(t *testing.T) {
 // extpass with two arguments
 func TestOnceExtpass2(t *testing.T) {
 	p1 := "foo"
-	p2 := string(Once([]string{"echo", p1}, "", ""))
+	p2 := string(Once([]string{"echo", p1}, nil, ""))
 	if p1 != p2 {
 		t.Errorf("p1=%q != p2=%q", p1, p2)
 	}
@@ -44,7 +44,7 @@ func TestOnceExtpass2(t *testing.T) {
 // extpass with three arguments
 func TestOnceExtpass3(t *testing.T) {
 	p1 := "foo bar baz"
-	p2 := string(Once([]string{"echo", "foo", "bar", "baz"}, "", ""))
+	p2 := string(Once([]string{"echo", "foo", "bar", "baz"}, nil, ""))
 	if p1 != p2 {
 		t.Errorf("p1=%q != p2=%q", p1, p2)
 	}
@@ -52,7 +52,7 @@ func TestOnceExtpass3(t *testing.T) {
 
 func TestOnceExtpassSpaces(t *testing.T) {
 	p1 := "mypassword"
-	p2 := string(Once([]string{"cat", "passfile_test_files/file with spaces.txt"}, "", ""))
+	p2 := string(Once([]string{"cat", "passfile_test_files/file with spaces.txt"}, nil, ""))
 	if p1 != p2 {
 		t.Errorf("p1=%q != p2=%q", p1, p2)
 	}
@@ -60,7 +60,7 @@ func TestOnceExtpassSpaces(t *testing.T) {
 
 func TestTwiceExtpass(t *testing.T) {
 	p1 := "w5w44t3wfe45srz434"
-	p2 := string(Once([]string{"echo " + p1}, "", ""))
+	p2 := string(Once([]string{"echo " + p1}, nil, ""))
 	if p1 != p2 {
 		t.Errorf("p1=%q != p2=%q", p1, p2)
 	}

@@ -109,7 +109,7 @@ See also `-exclude`, `-exclude-wildcard` and the [EXCLUDING FILES](#excluding-fi
 Enable (`-exec`) or disable (`-noexec`) executables in a gocryptfs mount
 (default: `-exec`). If both are specified, `-noexec` takes precedence.
 
-#### -extpass string
+#### -extpass CMD [-extpass ARG1 ...]
 Use an external program (like ssh-askpass) for the password prompt.
 The program should return the password on stdout, a trailing newline is
 stripped by gocryptfs. If you just want to read from a password file, see `-passfile`.
@@ -302,14 +302,23 @@ built-in crypto is 4x slower unless your CPU has AES instructions and
 you are using Go 1.6+. In mode "auto", gocrypts chooses the faster
 option.
 
-#### -passfile string
-Read password from the specified file. A warning will be printed if there
-is more than one line, and only the first line will be used. A single
+#### -passfile FILE [-passfile FILE2 ...]
+Read password from the specified plain text file. The file should contain exactly
+one line (do not use binary files!).
+A warning will be printed if there is more than one line, and only
+the first line will be used. A single
 trailing newline is allowed and does not cause a warning.
 
-Before gocryptfs v1.7, using `-passfile` was equivant to writing
-`-extpass="/bin/cat -- FILE"`.
-gocryptfs v1.7 and later directly read the file without invoking `cat`.
+Pass this option multiple times to read the first line from multiple
+files. They are concatenated for the effective password.
+
+Example:
+
+    echo hello > hello.txt
+    echo word > world.txt
+    gocryptfs -passfile hello.txt -passfile world.txt
+
+The effective password will be "helloworld".
 
 #### -passwd
 Change the password. Will ask for the old password, check if it is

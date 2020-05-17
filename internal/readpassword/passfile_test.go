@@ -21,13 +21,20 @@ func TestPassfile(t *testing.T) {
 		if string(pw) != tc.want {
 			t.Errorf("Wrong result: want=%q have=%q", tc.want, pw)
 		}
+		// Calling readPassFileConcatenate with only one element should give the
+		// same result
+		pw = readPassFileConcatenate([]string{"passfile_test_files/" + tc.file})
+		if string(pw) != tc.want {
+			t.Errorf("Wrong result: want=%q have=%q", tc.want, pw)
+		}
 	}
 }
 
 // readPassFile() should exit instead of returning an empty string.
 //
 // The TEST_SLAVE magic is explained at
-// https://talks.golang.org/2014/testing.slide#23 .
+// https://talks.golang.org/2014/testing.slide#23 , mirror:
+// http://web.archive.org/web/20200426174352/https://talks.golang.org/2014/testing.slide#23
 func TestPassfileEmpty(t *testing.T) {
 	if os.Getenv("TEST_SLAVE") == "1" {
 		readPassFile("passfile_test_files/empty.txt")
@@ -46,7 +53,8 @@ func TestPassfileEmpty(t *testing.T) {
 // readPassFile() should exit instead of returning an empty string.
 //
 // The TEST_SLAVE magic is explained at
-// https://talks.golang.org/2014/testing.slide#23 .
+// https://talks.golang.org/2014/testing.slide#23 , mirror:
+// http://web.archive.org/web/20200426174352/https://talks.golang.org/2014/testing.slide#23
 func TestPassfileNewline(t *testing.T) {
 	if os.Getenv("TEST_SLAVE") == "1" {
 		readPassFile("passfile_test_files/newline.txt")
@@ -65,7 +73,8 @@ func TestPassfileNewline(t *testing.T) {
 // readPassFile() should exit instead of returning an empty string.
 //
 // The TEST_SLAVE magic is explained at
-// https://talks.golang.org/2014/testing.slide#23 .
+// https://talks.golang.org/2014/testing.slide#23 , mirror:
+// http://web.archive.org/web/20200426174352/https://talks.golang.org/2014/testing.slide#23
 func TestPassfileEmptyFirstLine(t *testing.T) {
 	if os.Getenv("TEST_SLAVE") == "1" {
 		readPassFile("passfile_test_files/empty_first_line.txt")
@@ -78,4 +87,16 @@ func TestPassfileEmptyFirstLine(t *testing.T) {
 		return
 	}
 	t.Fatal("should have exited")
+}
+
+// TestPassFileConcatenate tests readPassFileConcatenate
+func TestPassFileConcatenate(t *testing.T) {
+	files := []string{
+		"passfile_test_files/file with spaces.txt",
+		"passfile_test_files/mypassword_garbage.txt",
+	}
+	res := string(readPassFileConcatenate(files))
+	if res != "mypasswordmypassword" {
+		t.Errorf("wrong result: %q", res)
+	}
 }

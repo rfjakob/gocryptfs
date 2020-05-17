@@ -33,7 +33,7 @@ Common Options (use -hh to show all):
   -masterkey         Mount with explicit master key instead of password
   -nonempty          Allow mounting over non-empty directory
   -nosyslog          Do not redirect log messages to syslog
-  -passfile          Read password from file
+  -passfile          Read password from plain text file(s)
   -passwd            Change password
   -plaintextnames    Do not encrypt file names (with -init)
   -q, -quiet         Silence informational messages

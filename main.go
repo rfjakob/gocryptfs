@@ -50,7 +50,7 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 	if masterkey != nil {
 		return masterkey, cf, nil
 	}
-	pw := readpassword.Once([]string(args.extpass), args.passfile, "")
+	pw := readpassword.Once([]string(args.extpass), []string(args.passfile), "")
 	tlog.Info.Println("Decrypting master key")
 	masterkey, err = cf.DecryptMasterKey(pw)
 	for i := range pw {
@@ -79,7 +79,7 @@ func changePassword(args *argContainer) {
 			log.Panic("empty masterkey")
 		}
 		tlog.Info.Println("Please enter your new password.")
-		newPw := readpassword.Twice([]string(args.extpass), args.passfile)
+		newPw := readpassword.Twice([]string(args.extpass), []string(args.passfile))
 		logN := confFile.ScryptObject.LogN()
 		if args._explicitScryptn {
 			logN = args.scryptn

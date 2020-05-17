@@ -39,7 +39,7 @@ func unhexMasterKey(masterkey string, fromStdin bool) []byte {
 func handleArgsMasterkey(args *argContainer) (masterkey []byte) {
 	// "-masterkey=stdin"
 	if args.masterkey == "stdin" {
-		in := string(readpassword.Once(nil, "", "Masterkey"))
+		in := string(readpassword.Once(nil, nil, "Masterkey"))
 		return unhexMasterKey(in, true)
 	}
 	// "-masterkey=941a6029-3adc6a1c-..."

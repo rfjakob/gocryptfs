@@ -8,6 +8,16 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
+// readPassFileConcatenate reads the first line from each file name and
+// concatenates the results. The result does not contain any newlines.
+func readPassFileConcatenate(passfileSlice []string) (result []byte) {
+	for _, e := range passfileSlice {
+		result = append(result, readPassFile(e)...)
+	}
+	return result
+}
+
+// readPassFile reads the first line from the passed file name.
 func readPassFile(passfile string) []byte {
 	tlog.Info.Printf("passfile: reading from file %q", passfile)
 	f, err := os.Open(passfile)
@@ -36,7 +46,7 @@ func readPassFile(passfile string) []byte {
 		os.Exit(exitcodes.ReadPassword)
 	}
 	if len(lines) > 1 && len(lines[1]) > 0 {
-		tlog.Warn.Printf("passfile: ignoring trailing garbage (%d bytes) after first line",
+		tlog.Warn.Printf("warning: passfile: ignoring trailing garbage (%d bytes) after first line",
 			len(lines[1]))
 	}
 	return lines[0]

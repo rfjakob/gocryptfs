@@ -20,11 +20,11 @@ const (
 	maxPasswordLen = 2048
 )
 
-// Once tries to get a password from the user, either from the terminal, extpass
+// Once tries to get a password from the user, either from the terminal, extpass, passfile
 // or stdin. Leave "prompt" empty to use the default "Password: " prompt.
-func Once(extpass []string, passfile string, prompt string) []byte {
-	if passfile != "" {
-		return readPassFile(passfile)
+func Once(extpass []string, passfile []string, prompt string) []byte {
+	if len(passfile) != 0 {
+		return readPassFileConcatenate(passfile)
 	}
 	if len(extpass) != 0 {
 		return readPasswordExtpass(extpass)
@@ -40,9 +40,9 @@ func Once(extpass []string, passfile string, prompt string) []byte {
 
 // Twice is the same as Once but will prompt twice if we get the password from
 // the terminal.
-func Twice(extpass []string, passfile string) []byte {
-	if passfile != "" {
-		return readPassFile(passfile)
+func Twice(extpass []string, passfile []string) []byte {
+	if len(passfile) != 0 {
+		return readPassFileConcatenate(passfile)
 	}
 	if len(extpass) != 0 {
 		return readPasswordExtpass(extpass)

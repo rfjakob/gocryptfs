@@ -105,7 +105,7 @@ func main() {
 
 func dumpMasterKey(fn string) {
 	tlog.Info.Enabled = false
-	pw := readpassword.Once(nil, "", "")
+	pw := readpassword.Once(nil, nil, "")
 	masterkey, _, err := configfile.LoadAndDecrypt(fn, pw)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

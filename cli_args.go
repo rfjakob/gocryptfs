@@ -32,9 +32,9 @@ type argContainer struct {
 	// Mount options with opposites
 	dev, nodev, suid, nosuid, exec, noexec, rw, ro bool
 	masterkey, mountpoint, cipherdir, cpuprofile,
-	memprofile, ko, passfile, ctlsock, fsname, force_owner, trace string
-	// -extpass and -badname can be passed multiple times
-	extpass, badname multipleStrings
+	memprofile, ko, ctlsock, fsname, force_owner, trace string
+	// -extpass, -badname, -passfile can be passed multiple times
+	extpass, badname, passfile multipleStrings
 	// For reverse mode, several ways to specify exclusions. All can be specified multiple times.
 	exclude, excludeWildcard, excludeFrom multipleStrings
 	// Configuration file name override
@@ -184,7 +184,6 @@ func parseCliOpts() (args argContainer) {
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
 	flagSet.StringVar(&args.memprofile, "memprofile", "", "Write memory profile to specified file")
 	flagSet.StringVar(&args.config, "config", "", "Use specified config file instead of CIPHERDIR/gocryptfs.conf")
-	flagSet.StringVar(&args.passfile, "passfile", "", "Read password from file")
 	flagSet.StringVar(&args.ko, "ko", "", "Pass additional options directly to the kernel, comma-separated list")
 	flagSet.StringVar(&args.ctlsock, "ctlsock", "", "Create control socket at specified path")
 	flagSet.StringVar(&args.fsname, "fsname", "", "Override the filesystem name")
@@ -198,9 +197,10 @@ func parseCliOpts() (args argContainer) {
 	flagSet.Var(&args.excludeWildcard, "exclude-wildcard", "Exclude path from reverse view, supporting wildcards")
 	flagSet.Var(&args.excludeFrom, "exclude-from", "File from which to read exclusion patterns (with -exclude-wildcard syntax)")
 
-	// -extpass
+	// multipleStrings options ([]string)
 	flagSet.Var(&args.extpass, "extpass", "Use external program for the password prompt")
 	flagSet.Var(&args.badname, "badname", "Glob pattern invalid file names that should be shown")
+	flagSet.Var(&args.passfile, "passfile", "Read password from file")
 
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")
@@ -267,11 +267,11 @@ func parseCliOpts() (args argContainer) {
 		args.allow_other = false
 		args.ko = "noexec"
 	}
-	if !args.extpass.Empty() && args.passfile != "" {
+	if !args.extpass.Empty() && len(args.passfile) != 0 {
 		tlog.Fatal.Printf("The options -extpass and -passfile cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
-	if args.passfile != "" && args.masterkey != "" {
+	if len(args.passfile) != 0 && args.masterkey != "" {
 		tlog.Fatal.Printf("The options -passfile and -masterkey cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
