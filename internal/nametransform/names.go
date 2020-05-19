@@ -61,7 +61,14 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 		for _, pattern := range n.BadnamePatterns {
 			match, err := filepath.Match(pattern, cipherName)
 			if err == nil && match { // Pattern should have been validated already
-				return "GOCRYPTFS_BAD_NAME " + cipherName, nil
+				//find longest decryptable substring
+				for charpos := len(cipherName) - 1; charpos > 0; charpos-- {
+					res, err = n.decryptName(cipherName[:charpos], iv)
+					if err == nil {
+						return res + cipherName[charpos:] + " GOCRYPTFS_BAD_NAME", nil
+					}
+				}
+				return cipherName + " GOCRYPTFS_BAD_NAME", nil
 			}
 		}
 	}
