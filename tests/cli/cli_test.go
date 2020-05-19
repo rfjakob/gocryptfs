@@ -705,39 +705,85 @@ func TestSymlinkedCipherdir(t *testing.T) {
 func TestBadname(t *testing.T) {
 	dir := test_helpers.InitFS(t)
 	mnt := dir + ".mnt"
+	validFileName := "file"
+	invalidSuffix := ".invalid_file"
 
+	//use static suffix for testing
 	test_helpers.MountOrFatal(t, dir, mnt, "-badname=*", "-extpass=echo test")
 	defer test_helpers.UnmountPanic(mnt)
 
-	file := mnt + "/file"
+	//write one valid file
+	file := mnt + "/" + validFileName
 	err := ioutil.WriteFile(file, []byte("somecontent"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	invalid_file_name := "invalid_file"
-	invalid_file := dir + "/" + invalid_file_name
-	err = ioutil.WriteFile(invalid_file, []byte("somecontent"), 0600)
+	//read encrypted file name
+	fread, err := os.Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fread.Close()
+
+	encryptedfilename := ""
+	ciphernames, err := fread.Readdirnames(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, ciphername := range ciphernames {
+		if ciphername != "gocryptfs.conf" && ciphername != "gocryptfs.diriv" {
+			encryptedfilename = ciphername
+			//found cipher name of "file"
+		}
+	}
+
+	//Read encrypted file name to generated invalid filenames
+	fsource, err := os.Open(dir + "/" + encryptedfilename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content, err := ioutil.ReadAll(fsource)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fsource.Close()
+	//write invalid file which should be decodable
+	err = ioutil.WriteFile(dir+"/"+encryptedfilename+invalidSuffix, content, 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	//write invalid file which is not decodable (cropping the encrpyted file name)
+	err = ioutil.WriteFile(dir+"/"+encryptedfilename[:len(encryptedfilename)-2]+invalidSuffix, content, 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	//check for filenames
 	f, err := os.Open(mnt)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer f.Close()
-
 	names, err := f.Readdirnames(0)
-	found := false
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundDecodable := false
+	foundUndecodable := false
 	for _, name := range names {
-		if strings.Contains(name, invalid_file_name) {
-			found = true
-			break
+		if strings.Contains(name, validFileName+invalidSuffix+" GOCRYPTFS_BAD_NAME") {
+			foundDecodable = true
+		} else if strings.Contains(name, encryptedfilename[:len(encryptedfilename)-2]+invalidSuffix+" GOCRYPTFS_BAD_NAME") {
+			foundUndecodable = true
 		}
 	}
 
-	if !found {
-		t.Errorf("did not find invalid name %s in %v", invalid_file_name, names)
+	if !foundDecodable {
+		t.Errorf("did not find invalid name %s in %v", validFileName+invalidSuffix+" GOCRYPTFS_BAD_NAME", names)
+	}
+
+	if !foundUndecodable {
+		t.Errorf("did not find invalid name %s in %v", encryptedfilename[:len(encryptedfilename)-2]+invalidSuffix+" GOCRYPTFS_BAD_NAME", names)
 	}
 }
