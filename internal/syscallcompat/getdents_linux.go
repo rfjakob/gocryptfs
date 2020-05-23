@@ -35,7 +35,13 @@ func getdents(fd int) ([]fuse.DirEntry, error) {
 	tmp := make([]byte, 10000)
 	for {
 		n, err := unix.Getdents(fd, tmp)
-		if err != nil {
+		// unix.Getdents has been observed to return EINTR on cifs mounts
+		if err == unix.EINTR {
+			if n > 0 {
+				smartBuf.Write(tmp[:n])
+			}
+			continue
+		} else if err != nil {
 			return nil, err
 		}
 		if n == 0 {
