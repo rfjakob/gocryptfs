@@ -533,7 +533,6 @@ func (fs *FS) Symlink(target string, linkName string, context *fuse.Context) (co
 //
 // Symlink-safe through Renameat().
 func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (code fuse.Status) {
-	defer fs.dirCache.Clear()
 	if fs.isFiltered(newPath) {
 		return fuse.EPERM
 	}
@@ -549,6 +548,9 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 	defer syscall.Close(newDirfd)
 	// Easy case.
 	if fs.args.PlaintextNames {
+		// The rename may replace another directory. Make sure we drop the
+		// deleted directory from the cache.
+		defer fs.dirCache.Clear()
 		return fuse.ToStatus(syscallcompat.Renameat(oldDirfd, oldCName, newDirfd, newCName))
 	}
 	// Long destination file name: create .name file
@@ -575,6 +577,11 @@ func (fs *FS) Rename(oldPath string, newPath string, context *fuse.Context) (cod
 		// again.
 		tlog.Debug.Printf("Rename: Handling ENOTEMPTY")
 		if fs.Rmdir(newPath, context) == fuse.OK {
+			// The rename replaced another directory. Make sure we drop the
+			// deleted directory from the cache (note: fs.Rmdir also clears it,
+			// but this is not guaranteed forever, and a double clear does no
+			// harm).
+			defer fs.dirCache.Clear()
 			err = syscallcompat.Renameat(oldDirfd, oldCName, newDirfd, newCName)
 		}
 	}
