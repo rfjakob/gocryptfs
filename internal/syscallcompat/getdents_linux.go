@@ -42,6 +42,10 @@ func getdents(fd int) ([]fuse.DirEntry, error) {
 			}
 			continue
 		} else if err != nil {
+			if smartBuf.Len() > 0 {
+				tlog.Warn.Printf("warning: unix.Getdents returned errno %d in the middle of data", err.(syscall.Errno))
+				return nil, syscall.EIO
+			}
 			return nil, err
 		}
 		if n == 0 {
