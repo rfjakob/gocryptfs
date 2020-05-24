@@ -54,7 +54,6 @@ func (fs *FS) mkdirWithIv(dirfd int, cName string, mode uint32, context *fuse.Co
 //
 // Symlink-safe through use of Mkdirat().
 func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fuse.Status) {
-	defer fs.dirCache.Clear()
 	if fs.isFiltered(newPath) {
 		return fuse.EPERM
 	}
