@@ -27,6 +27,11 @@ unix.Getdents fd3: n=4176, err=<nil>
 unix.Getdents fd3: n=3192, err=<nil>
 unix.Getdents fd3: n=0, err=<nil>
 total 24072 bytes
+
+
+Failure looks like this in strace:
+
+[pid 189974] getdents64(6, 0xc000105808, 10000) = -1 ENOENT (No such file or directory)
 */
 
 package main
@@ -34,7 +39,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 
 	"golang.org/x/sys/unix"
@@ -46,30 +50,41 @@ const (
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s PATH\n", myName)
+		fmt.Fprintf(os.Stderr, "Usage: %s [-loop] PATH\n", myName)
 		fmt.Fprintf(os.Stderr, "Run getdents(2) on PATH\n")
 		os.Exit(1)
 	}
+	loop := flag.Bool("loop", false, "Run in a loop")
 	flag.Parse()
 	if flag.NArg() != 1 {
 		flag.Usage()
 	}
 	path := flag.Arg(0)
 
-	fd, err := unix.Open(path, unix.O_RDONLY, 0)
-	if err != nil {
-		log.Fatalf("unix.Open returned err=%v", err)
-	}
-
 	tmp := make([]byte, 10000)
-	sum := 0
 	for {
-		n, err := unix.Getdents(fd, tmp)
-		fmt.Printf("unix.Getdents fd%d: n=%d, err=%v\n", fd, n, err)
-		if n <= 0 {
-			fmt.Printf("total %d bytes\n", sum)
+		sum := 0
+		fd, err := unix.Open(path, unix.O_RDONLY, 0)
+		if err != nil {
+			fmt.Printf("unix.Open returned err=%v\n", err)
+			continue
+		}
+		fmt.Printf("unix.Getdents: ")
+		for {
+			n, err := unix.Getdents(fd, tmp)
+			fmt.Printf("n=%d; ", n)
+			if n <= 0 {
+				fmt.Printf("err=%v; total %d bytes\n", err, sum)
+				if err != nil {
+					os.Exit(1)
+				}
+				break
+			}
+			sum += n
+		}
+		unix.Close(fd)
+		if !*loop {
 			break
 		}
-		sum += n
 	}
 }
