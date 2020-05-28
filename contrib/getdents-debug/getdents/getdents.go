@@ -40,6 +40,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"golang.org/x/sys/unix"
 )
@@ -50,11 +51,10 @@ const (
 
 func main() {
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [-loop] PATH\n", myName)
-		fmt.Fprintf(os.Stderr, "Run getdents(2) on PATH\n")
+		fmt.Fprintf(os.Stderr, "Usage: %s PATH\n", myName)
+		fmt.Fprintf(os.Stderr, "Run getdents(2) on PATH in a 100ms loop until we hit an error\n")
 		os.Exit(1)
 	}
-	loop := flag.Bool("loop", false, "Run in a loop")
 	flag.Parse()
 	if flag.NArg() != 1 {
 		flag.Usage()
@@ -62,14 +62,14 @@ func main() {
 	path := flag.Arg(0)
 
 	tmp := make([]byte, 10000)
-	for {
+	for i := 1; ; i++ {
 		sum := 0
 		fd, err := unix.Open(path, unix.O_RDONLY, 0)
 		if err != nil {
-			fmt.Printf("unix.Open returned err=%v\n", err)
-			continue
+			fmt.Printf("%3d: unix.Open returned err=%v\n", err)
+			os.Exit(1)
 		}
-		fmt.Printf("unix.Getdents: ")
+		fmt.Printf("%3d: unix.Getdents: ", i)
 		for {
 			n, err := unix.Getdents(fd, tmp)
 			fmt.Printf("n=%d; ", n)
@@ -83,8 +83,6 @@ func main() {
 			sum += n
 		}
 		unix.Close(fd)
-		if !*loop {
-			break
-		}
+		time.Sleep(100 * time.Millisecond)
 	}
 }

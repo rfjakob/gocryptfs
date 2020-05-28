@@ -12,28 +12,37 @@
 
 int main(int argc, char *argv[])
 {
-    if(argc < 2) {
+    if(argc != 2) {
         printf("Usage: %s PATH\n", argv[0]);
-        printf("Run getdents(2) on PATH\n");
+        printf("Run getdents(2) on PATH in a 100ms loop\n");
         exit(1);
     }
 
     const char *path = argv[1];
-    int fd = open(path, O_RDONLY);
-    if (fd == -1) {
-        perror("open");
-        exit(1);
-    }
 
-    char tmp[10000];
-    int sum = 0;
-    for ( ; ; ) {
-        int n = syscall(SYS_getdents64, fd, tmp, sizeof(tmp));
-        printf("getdents64 fd%d: n=%d, errno=%d\n", fd, n, errno);
-        if (n <= 0) {
-            printf("total %d bytes\n", sum);
-            break;
+    for (int i = 1 ; ; i ++ ) {
+        int fd = open(path, O_RDONLY);
+        if (fd == -1) {
+            perror("open");
+            exit(1);
         }
-        sum += n;
+
+        char tmp[10000];
+        int sum = 0;
+        printf("%3d: getdents64: ", i);
+        for ( ; ; ) {
+            int n = syscall(SYS_getdents64, fd, tmp, sizeof(tmp));
+            printf("n=%d; ", n);
+            if (n <= 0) {
+                printf("errno=%d total %d bytes\n", errno, sum);
+                if (n < 0) {
+                    exit(1);
+                }
+                break;
+            }
+            sum += n;
+        }
+        close(fd);
+        usleep(100000);
     }
 }
