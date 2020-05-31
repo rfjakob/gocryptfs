@@ -66,7 +66,7 @@ func main() {
 		sum := 0
 		fd, err := unix.Open(path, unix.O_RDONLY, 0)
 		if err != nil {
-			fmt.Printf("%3d: unix.Open returned err=%v\n", err)
+			fmt.Printf("%3d: unix.Open returned err=%v\n", i, err)
 			os.Exit(1)
 		}
 		fmt.Printf("%3d: unix.Getdents: ", i)
