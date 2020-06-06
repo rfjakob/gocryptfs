@@ -708,18 +708,18 @@ func TestBadname(t *testing.T) {
 	validFileName := "file"
 	invalidSuffix := ".invalid_file"
 
-	//use static suffix for testing
+	// use static suffix for testing
 	test_helpers.MountOrFatal(t, dir, mnt, "-badname=*", "-extpass=echo test")
 	defer test_helpers.UnmountPanic(mnt)
 
-	//write one valid file
+	// write one valid filename (empty content)
 	file := mnt + "/" + validFileName
-	err := ioutil.WriteFile(file, []byte("somecontent"), 0600)
+	err := ioutil.WriteFile(file, nil, 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	//read encrypted file name
+	// read encrypted file name
 	fread, err := os.Open(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -734,32 +734,23 @@ func TestBadname(t *testing.T) {
 	for _, ciphername := range ciphernames {
 		if ciphername != "gocryptfs.conf" && ciphername != "gocryptfs.diriv" {
 			encryptedfilename = ciphername
-			//found cipher name of "file"
+			// found cipher name of "file"
+			break
 		}
 	}
 
-	//Read encrypted file name to generated invalid filenames
-	fsource, err := os.Open(dir + "/" + encryptedfilename)
+	// write invalid file which should be decodable
+	err = ioutil.WriteFile(dir+"/"+encryptedfilename+invalidSuffix, nil, 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
-	content, err := ioutil.ReadAll(fsource)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fsource.Close()
-	//write invalid file which should be decodable
-	err = ioutil.WriteFile(dir+"/"+encryptedfilename+invalidSuffix, content, 0600)
-	if err != nil {
-		t.Fatal(err)
-	}
-	//write invalid file which is not decodable (cropping the encrpyted file name)
-	err = ioutil.WriteFile(dir+"/"+encryptedfilename[:len(encryptedfilename)-2]+invalidSuffix, content, 0600)
+	// write invalid file which is not decodable (cropping the encrpyted file name)
+	err = ioutil.WriteFile(dir+"/"+encryptedfilename[:len(encryptedfilename)-2]+invalidSuffix, nil, 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	//check for filenames
+	// check for filenames
 	f, err := os.Open(mnt)
 	if err != nil {
 		t.Fatal(err)
