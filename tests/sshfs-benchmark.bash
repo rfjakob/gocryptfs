@@ -28,7 +28,7 @@ function prepare_mounts {
 
 function etime {
 	T=$(/usr/bin/time -f %e -o /dev/stdout "$@")
-	printf %20.2f "$T"
+	LC_ALL=C printf %20.2f "$T"
 }
 
 MYNAME=$(basename "$0")
