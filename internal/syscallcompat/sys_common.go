@@ -107,6 +107,18 @@ func Fstatat(dirfd int, path string, stat *unix.Stat_t, flags int) (err error) {
 	return unix.Fstatat(dirfd, path, stat, flags)
 }
 
+// Fstatat2 is a more convenient version of Fstatat. It allocates a Stat_t
+// for you and also handles the Unix2syscall conversion.
+func Fstatat2(dirfd int, path string, flags int) (*syscall.Stat_t, error) {
+	var stUnix unix.Stat_t
+	err := Fstatat(dirfd, path, &stUnix, flags)
+	if err != nil {
+		return nil, err
+	}
+	st := Unix2syscall(stUnix)
+	return &st, nil
+}
+
 const XATTR_SIZE_MAX = 65536
 
 // Make the buffer 1kB bigger so we can detect overflows
