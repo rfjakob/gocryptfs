@@ -22,8 +22,8 @@ import (
 
 	"golang.org/x/sys/unix"
 
+	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
-	"github.com/hanwen/go-fuse/v2/fuse/nodefs"
 	"github.com/hanwen/go-fuse/v2/fuse/pathfs"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
@@ -162,7 +162,7 @@ func doMount(args *argContainer) {
 	// Set up autounmount, if requested.
 	if args.idle > 0 && !args.reverse {
 		// Not being in reverse mode means we always have a forward file system.
-		fwdFs := fs.(*fusefrontend.FS)
+		fwdFs := fs.(*fusefrontend.RootNode)
 		go idleMonitor(args.idle, fwdFs, srv, args.mountpoint)
 	}
 	// Jump into server loop. Returns when it gets an umount request from the kernel.
@@ -175,7 +175,7 @@ func doMount(args *argContainer) {
 // filesystem idleness and unmounts if we've been idle for long enough.
 const checksDuringTimeoutPeriod = 4
 
-func idleMonitor(idleTimeout time.Duration, fs *fusefrontend.FS, srv *fuse.Server, mountpoint string) {
+func idleMonitor(idleTimeout time.Duration, fs *fusefrontend.RootNode, srv *fuse.Server, mountpoint string) {
 	sleepTimeBetweenChecks := contentenc.MinUint64(
 		uint64(idleTimeout/checksDuringTimeoutPeriod),
 		uint64(2*time.Minute))
@@ -222,16 +222,9 @@ func setOpenFileLimit() {
 	}
 }
 
-// ctlsockFs satisfies both the pathfs.FileSystem and the ctlsocksrv.Interface
-// interfaces
-type ctlsockFs interface {
-	pathfs.FileSystem
-	ctlsocksrv.Interface
-}
-
 // initFuseFrontend - initialize gocryptfs/fusefrontend
 // Calls os.Exit on errors
-func initFuseFrontend(args *argContainer) (pfs pathfs.FileSystem, wipeKeys func()) {
+func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys func()) {
 	var err error
 	var confFile *configfile.ConfFile
 	// Get the masterkey from the command line if it was specified
@@ -318,25 +311,24 @@ func initFuseFrontend(args *argContainer) (pfs pathfs.FileSystem, wipeKeys func(
 	}
 	masterkey = nil
 	// Spawn fusefrontend
-	var fs ctlsockFs
 	if args.reverse {
 		if cryptoBackend != cryptocore.BackendAESSIV {
 			log.Panic("reverse mode must use AES-SIV, everything else is insecure")
 		}
-		fs = fusefrontend_reverse.NewFS(frontendArgs, cEnc, nameTransform)
+		rootNode = fusefrontend_reverse.NewRootNode(frontendArgs, cEnc, nameTransform)
 
 	} else {
-		fs = fusefrontend.NewFS(frontendArgs, cEnc, nameTransform)
+		rootNode = fusefrontend.NewRootNode(frontendArgs, cEnc, nameTransform)
 	}
 	// We have opened the socket early so that we cannot fail here after
 	// asking the user for the password
 	if args._ctlsockFd != nil {
-		go ctlsocksrv.Serve(args._ctlsockFd, fs)
+		go ctlsocksrv.Serve(args._ctlsockFd, rootNode.(ctlsocksrv.Interface))
 	}
-	return fs, func() { cCore.Wipe() }
+	return rootNode, func() { cCore.Wipe() }
 }
 
-func initGoFuse(fs pathfs.FileSystem, args *argContainer) *fuse.Server {
+func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 	// pathFsOpts are passed into go-fuse/pathfs
 	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
 	if args.sharedstorage {
@@ -351,23 +343,22 @@ func initGoFuse(fs pathfs.FileSystem, args *argContainer) *fuse.Server {
 		// inode numbers ( https://github.com/rfjakob/gocryptfs/issues/149 ).
 		pathFsOpts.ClientInodes = false
 	}
-	pathFs := pathfs.NewPathNodeFs(fs, pathFsOpts)
-	var fuseOpts *nodefs.Options
+	var fuseOpts *fs.Options
+	sec := time.Second
 	if args.sharedstorage {
 		// sharedstorage mode sets all cache timeouts to zero so changes to the
 		// backing shared storage show up immediately.
-		fuseOpts = &nodefs.Options{}
+		fuseOpts = &fs.Options{}
 	} else {
-		fuseOpts = &nodefs.Options{
+		fuseOpts = &fs.Options{
 			// These options are to be compatible with libfuse defaults,
 			// making benchmarking easier.
-			NegativeTimeout: time.Second,
-			AttrTimeout:     time.Second,
-			EntryTimeout:    time.Second,
+			NegativeTimeout: &sec,
+			AttrTimeout:     &sec,
+			EntryTimeout:    &sec,
 		}
 	}
-	conn := nodefs.NewFileSystemConnector(pathFs.Root(), fuseOpts)
-	mOpts := fuse.MountOptions{
+	fuseOpts.MountOptions = fuse.MountOptions{
 		// Writes and reads are usually capped at 128kiB on Linux through
 		// the FUSE_MAX_PAGES_PER_REQ kernel constant in fuse_i.h. Our
 		// sync.Pool buffer pools are sized acc. to the default. Users may set
@@ -377,6 +368,7 @@ func initGoFuse(fs pathfs.FileSystem, args *argContainer) *fuse.Server {
 		MaxWrite: fuse.MAX_KERNEL_WRITE,
 		Options:  []string{fmt.Sprintf("max_read=%d", fuse.MAX_KERNEL_WRITE)},
 	}
+	mOpts := &fuseOpts.MountOptions
 	if args.allow_other {
 		tlog.Info.Printf(tlog.ColorYellow + "The option \"-allow_other\" is set. Make sure the file " +
 			"permissions protect your data from unwanted access." + tlog.ColorReset)
@@ -446,9 +438,9 @@ func initGoFuse(fs pathfs.FileSystem, args *argContainer) *fuse.Server {
 		tlog.Debug.Printf("Adding -ko mount options: %v", parts)
 		mOpts.Options = append(mOpts.Options, parts...)
 	}
-	srv, err := fuse.NewServer(conn.RawFS(), args.mountpoint, &mOpts)
+	srv, err := fs.Mount(args.mountpoint, rootNode, fuseOpts)
 	if err != nil {
-		tlog.Fatal.Printf("fuse.NewServer failed: %s", strings.TrimSpace(err.Error()))
+		tlog.Fatal.Printf("fs.Mount failed: %s", strings.TrimSpace(err.Error()))
 		if runtime.GOOS == "darwin" {
 			tlog.Info.Printf("Maybe you should run: /Library/Filesystems/osxfuse.fs/Contents/Resources/load_osxfuse")
 		}

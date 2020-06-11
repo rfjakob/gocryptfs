@@ -313,7 +313,8 @@ func main() {
 	}
 	// "-fsck"
 	if args.fsck {
-		fsck(&args)
+		// TODO
+		//fsck(&args)
 		os.Exit(0)
 	}
 }
