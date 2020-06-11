@@ -35,7 +35,7 @@ const (
 // See package comment for details.
 type InoMap struct {
 	sync.Mutex
-	// namespaces keeps the mapping of (Dev,Flags) tuples to
+	// namespaceMap keeps the mapping of (Dev,Flags) tuples to
 	// 15-bit identifiers (stored in an uint16 with the high bit always zero)
 	namespaceMap map[namespaceData]uint16
 	// spillNext is the next free namespace number in the namespaces map
@@ -97,7 +97,8 @@ func (m *InoMap) Translate(in QIno) (out uint64) {
 	return out
 }
 
-// TranslateStat translates the inode number contained in "st" if necessary.
+// TranslateStat translates (device, ino) pair contained in "st" into a unique
+// inode number and overwrites the ino in "st" with it.
 // Convience wrapper around Translate().
 func (m *InoMap) TranslateStat(st *syscall.Stat_t) {
 	in := QInoFromStat(st)
