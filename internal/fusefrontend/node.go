@@ -31,6 +31,15 @@ type RootNode struct {
 	nameTransform nametransform.NameTransformer
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
+	// MitigatedCorruptions is used to report data corruption that is internally
+	// mitigated by ignoring the corrupt item. For example, when OpenDir() finds
+	// a corrupt filename, we still return the other valid filenames.
+	// The corruption is logged to syslog to inform the user,	and in addition,
+	// the corrupt filename is logged to this channel via
+	// reportMitigatedCorruption().
+	// "gocryptfs -fsck" reads from the channel to also catch these transparently-
+	// mitigated corruptions.
+	MitigatedCorruptions chan string
 	// IsIdle flag is set to zero each time fs.isFiltered() is called
 	// (uint32 so that it can be reset with CompareAndSwapUint32).
 	// When -idle was used when mounting, idleMonitor() sets it to 1
@@ -68,6 +77,7 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs
 	if err != nil {
 		return nil, fs.ToErrno(err)
 	}
+	defer syscall.Close(dirfd)
 	// Get device number and inode number into `st`
 	st, err := syscallcompat.Fstatat2(dirfd, cName, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
@@ -88,9 +98,18 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs
 }
 
 func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
-	return 1
-}
+	rn := n.rootNode()
+	dirfd, cName, err := rn.openBackingDir(n.path())
+	if err != nil {
+		return fs.ToErrno(err)
+	}
+	defer syscall.Close(dirfd)
 
-func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
-	return nil, 1
+	st, err := syscallcompat.Fstatat2(dirfd, cName, unix.AT_SYMLINK_NOFOLLOW)
+	if err != nil {
+		return fs.ToErrno(err)
+	}
+	rn.inoMap.TranslateStat(st)
+	out.Attr.FromStat(st)
+	return 0
 }
