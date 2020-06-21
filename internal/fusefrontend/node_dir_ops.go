@@ -139,6 +139,10 @@ func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.En
 	return ch, 0
 }
 
+// Readdir - FUSE call.
+//
+// This function is symlink-safe through use of openBackingDir() and
+// ReadDirIVAt().
 func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 	rn := n.rootNode()
 	p := n.path()

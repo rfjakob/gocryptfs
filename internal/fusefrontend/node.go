@@ -31,6 +31,7 @@ func (n *Node) rootNode() *RootNode {
 	return n.Root().Operations().(*RootNode)
 }
 
+// Lookup - FUSE call for discovering a file.
 func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
 	rn := n.rootNode()
 	p := filepath.Join(n.path(), name)
@@ -61,6 +62,9 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs
 	return ch, 0
 }
 
+// GetAttr - FUSE call for stat()ing a file.
+//
+// GetAttr is symlink-safe through use of openBackingDir() and Fstatat().
 func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	rn := n.rootNode()
 	dirfd, cName, err := rn.openBackingDir(n.path())
@@ -78,6 +82,9 @@ func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) 
 	return 0
 }
 
+// Create - FUSE call. Creates a new file.
+//
+// Symlink-safe through the use of Openat().
 func (n *Node) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (inode *fs.Inode, fh fs.FileHandle, fuseFlags uint32, errno syscall.Errno) {
 	rn := n.rootNode()
 	path := filepath.Join(n.path(), name)
@@ -141,4 +148,33 @@ func (n *Node) Create(ctx context.Context, name string, flags uint32, mode uint3
 
 	f := os.NewFile(uintptr(fd), cName)
 	return ch, NewFile2(f, rn, st), 0, 0
+}
+
+// Unlink - FUSE call. Delete a file.
+//
+// Symlink-safe through use of Unlinkat().
+func (n *Node) Unlink(ctx context.Context, name string) syscall.Errno {
+	rn := n.rootNode()
+	p := filepath.Join(n.path(), name)
+	if rn.isFiltered(p) {
+		return syscall.EPERM
+	}
+	dirfd, cName, err := rn.openBackingDir(p)
+	if err != nil {
+		return fs.ToErrno(err)
+	}
+	defer syscall.Close(dirfd)
+	// Delete content
+	err = syscallcompat.Unlinkat(dirfd, cName, 0)
+	if err != nil {
+		return fs.ToErrno(err)
+	}
+	// Delete ".name" file
+	if !rn.args.PlaintextNames && nametransform.IsLongContent(cName) {
+		err = nametransform.DeleteLongNameAt(dirfd, cName)
+		if err != nil {
+			tlog.Warn.Printf("Unlink: could not delete .name file: %v", err)
+		}
+	}
+	return fs.ToErrno(err)
 }
