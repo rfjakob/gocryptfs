@@ -2,6 +2,7 @@
 package syscallcompat
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"runtime"
@@ -86,6 +87,20 @@ func getSupplementaryGroups(pid uint32) (gids []int) {
 	}
 
 	return nil
+}
+
+// OpenatUserCtx is a tries to extract a fuse.Context from the generic ctx and
+// calls OpenatUser.
+func OpenatUserCtx(dirfd int, path string, flags int, mode uint32, ctx context.Context) (fd int, err error) {
+	var ctx2 *fuse.Context
+	if ctx != nil {
+		if caller, ok := fuse.FromContext(ctx); ok {
+			ctx2 = &fuse.Context{
+				Caller: *caller,
+			}
+		}
+	}
+	return OpenatUser(dirfd, path, flags, mode, ctx2)
 }
 
 // OpenatUser runs the Openat syscall in the context of a different user.

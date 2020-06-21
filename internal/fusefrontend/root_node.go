@@ -1,11 +1,16 @@
 package fusefrontend
 
 import (
+	"os"
+	"sync/atomic"
+	"syscall"
 	"time"
 
+	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/inomap"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -47,6 +52,30 @@ func NewRootNode(args Args, c *contentenc.ContentEnc, n nametransform.NameTransf
 	}
 }
 
+// mangleOpenFlags is used by Create() and Open() to convert the open flags the user
+// wants to the flags we internally use to open the backing file.
+// The returned flags always contain O_NOFOLLOW.
+func (rn *RootNode) mangleOpenFlags(flags uint32) (newFlags int) {
+	newFlags = int(flags)
+	// Convert WRONLY to RDWR. We always need read access to do read-modify-write cycles.
+	if (newFlags & syscall.O_ACCMODE) == syscall.O_WRONLY {
+		newFlags = newFlags ^ os.O_WRONLY | os.O_RDWR
+	}
+	// We also cannot open the file in append mode, we need to seek back for RMW
+	newFlags = newFlags &^ os.O_APPEND
+	// O_DIRECT accesses must be aligned in both offset and length. Due to our
+	// crypto header, alignment will be off, even if userspace makes aligned
+	// accesses. Running xfstests generic/013 on ext4 used to trigger lots of
+	// EINVAL errors due to missing alignment. Just fall back to buffered IO.
+	newFlags = newFlags &^ syscallcompat.O_DIRECT
+	// Create and Open are two separate FUSE operations, so O_CREAT should not
+	// be part of the open flags.
+	newFlags = newFlags &^ syscall.O_CREAT
+	// We always want O_NOFOLLOW to be safe against symlink races
+	newFlags |= syscall.O_NOFOLLOW
+	return newFlags
+}
+
 // reportMitigatedCorruption is used to report a corruption that was transparently
 // mitigated and did not return an error to the user. Pass the name of the corrupt
 // item (filename for OpenDir(), xattr name for ListXAttr() etc).
@@ -62,4 +91,24 @@ func (rn *RootNode) reportMitigatedCorruption(item string) {
 		//debug.PrintStack()
 		return
 	}
+}
+
+// isFiltered - check if plaintext "path" should be forbidden
+//
+// Prevents name clashes with internal files when file names are not encrypted
+func (rn *RootNode) isFiltered(path string) bool {
+	atomic.StoreUint32(&rn.IsIdle, 0)
+
+	if !rn.args.PlaintextNames {
+		return false
+	}
+	// gocryptfs.conf in the root directory is forbidden
+	if path == configfile.ConfDefaultName {
+		tlog.Info.Printf("The name /%s is reserved when -plaintextnames is used\n",
+			configfile.ConfDefaultName)
+		return true
+	}
+	// Note: gocryptfs.diriv is NOT forbidden because diriv and plaintextnames
+	// are exclusive
+	return false
 }
