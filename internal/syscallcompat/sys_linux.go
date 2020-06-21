@@ -233,24 +233,24 @@ func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.C
 }
 
 // MkdiratUser runs the Mkdirat syscall in the context of a different user.
-func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
-	if context != nil {
+func MkdiratUser(dirfd int, path string, mode uint32, caller *fuse.Caller) (err error) {
+	if caller != nil {
 		runtime.LockOSThread()
 		defer runtime.UnlockOSThread()
 
-		err = syscall.Setgroups(getSupplementaryGroups(context.Pid))
+		err = syscall.Setgroups(getSupplementaryGroups(caller.Pid))
 		if err != nil {
 			return err
 		}
 		defer syscall.Setgroups(nil)
 
-		err = syscall.Setregid(-1, int(context.Owner.Gid))
+		err = syscall.Setregid(-1, int(caller.Gid))
 		if err != nil {
 			return err
 		}
 		defer syscall.Setregid(-1, 0)
 
-		err = syscall.Setreuid(-1, int(context.Owner.Uid))
+		err = syscall.Setreuid(-1, int(caller.Uid))
 		if err != nil {
 			return err
 		}

@@ -2,6 +2,7 @@ package fusefrontend
 
 import (
 	"os"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -19,6 +20,10 @@ type RootNode struct {
 	Node
 	// args stores configuration arguments
 	args Args
+	// dirIVLock: Lock()ed if any "gocryptfs.diriv" file is modified
+	// Readers must RLock() it to prevent them from seeing intermediate
+	// states
+	dirIVLock sync.RWMutex
 	// Filename encryption helper
 	nameTransform nametransform.NameTransformer
 	// Content encryption helper

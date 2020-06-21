@@ -30,7 +30,7 @@ func (fs *FS) mkdirWithIv(dirfd int, cName string, mode uint32, context *fuse.Co
 	// from seeing it.
 	fs.dirIVLock.Lock()
 	defer fs.dirIVLock.Unlock()
-	err := syscallcompat.MkdiratUser(dirfd, cName, mode, context)
+	err := syscallcompat.MkdiratUser(dirfd, cName, mode, &context.Caller)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func (fs *FS) Mkdir(newPath string, mode uint32, context *fuse.Context) (code fu
 		context = nil
 	}
 	if fs.args.PlaintextNames {
-		err = syscallcompat.MkdiratUser(dirfd, cName, mode, context)
+		err = syscallcompat.MkdiratUser(dirfd, cName, mode, &context.Caller)
 		return fuse.ToStatus(err)
 	}
 
