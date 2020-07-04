@@ -27,29 +27,50 @@ func (n *Node) path() string {
 	return n.Path(n.Root())
 }
 
+// rootNode returns the Root Node of the filesystem.
 func (n *Node) rootNode() *RootNode {
 	return n.Root().Operations().(*RootNode)
 }
 
-// Lookup - FUSE call for discovering a file.
-func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
+// prepareAtSyscall returns a (dirfd, cName) pair that can be used
+// with the "___at" family of system calls (openat, fstatat, unlinkat...) to
+// access the backing encrypted directory.
+//
+// If you pass a `child` file name, the (dirfd, cName) pair will refer to
+// a child of this node.
+// If `child` is empty, the (dirfd, cName) pair refers to this node itself.
+func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno syscall.Errno) {
+	p := n.path()
+	if child != "" {
+		p = filepath.Join(p, child)
+	}
 	rn := n.rootNode()
-	p := filepath.Join(n.path(), name)
 	if rn.isFiltered(p) {
-		return nil, syscall.EPERM
+		errno = syscall.EPERM
+		return
 	}
 	dirfd, cName, err := rn.openBackingDir(p)
 	if err != nil {
-		return nil, fs.ToErrno(err)
+		errno = fs.ToErrno(err)
+	}
+	return
+}
+
+// Lookup - FUSE call for discovering a file.
+func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (ch *fs.Inode, errno syscall.Errno) {
+	dirfd, cName, errno := n.prepareAtSyscall(name)
+	if errno != 0 {
+		return
 	}
 	defer syscall.Close(dirfd)
+
 	// Get device number and inode number into `st`
 	st, err := syscallcompat.Fstatat2(dirfd, cName, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		return nil, fs.ToErrno(err)
 	}
 	// Get unique inode number
-	rn.inoMap.TranslateStat(st)
+	n.rootNode().inoMap.TranslateStat(st)
 	out.Attr.FromStat(st)
 	// Create child node
 	id := fs.StableAttr{
@@ -58,18 +79,17 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs
 		Ino:  st.Ino,
 	}
 	node := &Node{}
-	ch := n.NewInode(ctx, node, id)
+	ch = n.NewInode(ctx, node, id)
 	return ch, 0
 }
 
 // GetAttr - FUSE call for stat()ing a file.
 //
 // GetAttr is symlink-safe through use of openBackingDir() and Fstatat().
-func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
-	rn := n.rootNode()
-	dirfd, cName, err := rn.openBackingDir(n.path())
-	if err != nil {
-		return fs.ToErrno(err)
+func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) (errno syscall.Errno) {
+	dirfd, cName, errno := n.prepareAtSyscall("")
+	if errno != 0 {
+		return
 	}
 	defer syscall.Close(dirfd)
 
@@ -77,7 +97,7 @@ func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) 
 	if err != nil {
 		return fs.ToErrno(err)
 	}
-	rn.inoMap.TranslateStat(st)
+	n.rootNode().inoMap.TranslateStat(st)
 	out.Attr.FromStat(st)
 	return 0
 }
@@ -86,19 +106,16 @@ func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) 
 //
 // Symlink-safe through the use of Openat().
 func (n *Node) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (inode *fs.Inode, fh fs.FileHandle, fuseFlags uint32, errno syscall.Errno) {
-	rn := n.rootNode()
-	path := filepath.Join(n.path(), name)
-	if rn.isFiltered(path) {
-		return nil, nil, 0, syscall.EPERM
-	}
-	dirfd, cName, err := rn.openBackingDir(path)
-	if err != nil {
-		return nil, nil, 0, fs.ToErrno(err)
+	dirfd, cName, errno := n.prepareAtSyscall(name)
+	if errno != 0 {
+		return
 	}
 	defer syscall.Close(dirfd)
 
+	var err error
 	fd := -1
 	// Make sure context is nil if we don't want to preserve the owner
+	rn := n.rootNode()
 	if !rn.args.PreserveOwner {
 		ctx = nil
 	}
@@ -106,7 +123,7 @@ func (n *Node) Create(ctx context.Context, name string, flags uint32, mode uint3
 	// Handle long file name
 	if !rn.args.PlaintextNames && nametransform.IsLongContent(cName) {
 		// Create ".name"
-		err = rn.nameTransform.WriteLongNameAt(dirfd, cName, path)
+		err = rn.nameTransform.WriteLongNameAt(dirfd, cName, name)
 		if err != nil {
 			return nil, nil, 0, fs.ToErrno(err)
 		}
@@ -153,24 +170,20 @@ func (n *Node) Create(ctx context.Context, name string, flags uint32, mode uint3
 // Unlink - FUSE call. Delete a file.
 //
 // Symlink-safe through use of Unlinkat().
-func (n *Node) Unlink(ctx context.Context, name string) syscall.Errno {
-	rn := n.rootNode()
-	p := filepath.Join(n.path(), name)
-	if rn.isFiltered(p) {
-		return syscall.EPERM
-	}
-	dirfd, cName, err := rn.openBackingDir(p)
-	if err != nil {
-		return fs.ToErrno(err)
+func (n *Node) Unlink(ctx context.Context, name string) (errno syscall.Errno) {
+	dirfd, cName, errno := n.prepareAtSyscall(name)
+	if errno != 0 {
+		return
 	}
 	defer syscall.Close(dirfd)
+
 	// Delete content
-	err = syscallcompat.Unlinkat(dirfd, cName, 0)
+	err := syscallcompat.Unlinkat(dirfd, cName, 0)
 	if err != nil {
 		return fs.ToErrno(err)
 	}
 	// Delete ".name" file
-	if !rn.args.PlaintextNames && nametransform.IsLongContent(cName) {
+	if !n.rootNode().args.PlaintextNames && nametransform.IsLongContent(cName) {
 		err = nametransform.DeleteLongNameAt(dirfd, cName)
 		if err != nil {
 			tlog.Warn.Printf("Unlink: could not delete .name file: %v", err)
@@ -182,15 +195,10 @@ func (n *Node) Unlink(ctx context.Context, name string) syscall.Errno {
 // Readlink - FUSE call.
 //
 // Symlink-safe through openBackingDir() + Readlinkat().
-func (n *Node) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
-	rn := n.rootNode()
-	p := n.path()
-	if rn.isFiltered(p) {
-		return nil, syscall.EPERM
-	}
-	dirfd, cName, err := rn.openBackingDir(p)
-	if err != nil {
-		return nil, fs.ToErrno(err)
+func (n *Node) Readlink(ctx context.Context) (out []byte, errno syscall.Errno) {
+	dirfd, cName, errno := n.prepareAtSyscall("")
+	if errno != 0 {
+		return
 	}
 	defer syscall.Close(dirfd)
 
@@ -198,6 +206,7 @@ func (n *Node) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
 	if err != nil {
 		return nil, fs.ToErrno(err)
 	}
+	rn := n.rootNode()
 	if rn.args.PlaintextNames {
 		return []byte(cTarget), 0
 	}
