@@ -117,3 +117,23 @@ func (rn *RootNode) isFiltered(path string) bool {
 	// are exclusive
 	return false
 }
+
+// decryptSymlinkTarget: "cData64" is base64-decoded and decrypted
+// like file contents (GCM).
+// The empty string decrypts to the empty string.
+//
+// This function does not do any I/O and is hence symlink-safe.
+func (rn *RootNode) decryptSymlinkTarget(cData64 string) (string, error) {
+	if cData64 == "" {
+		return "", nil
+	}
+	cData, err := rn.nameTransform.B64DecodeString(cData64)
+	if err != nil {
+		return "", err
+	}
+	data, err := rn.contentEnc.DecryptBlock([]byte(cData), 0, nil)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}

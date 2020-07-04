@@ -178,3 +178,34 @@ func (n *Node) Unlink(ctx context.Context, name string) syscall.Errno {
 	}
 	return fs.ToErrno(err)
 }
+
+// Readlink - FUSE call.
+//
+// Symlink-safe through openBackingDir() + Readlinkat().
+func (n *Node) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
+	rn := n.rootNode()
+	p := n.path()
+	if rn.isFiltered(p) {
+		return nil, syscall.EPERM
+	}
+	dirfd, cName, err := rn.openBackingDir(p)
+	if err != nil {
+		return nil, fs.ToErrno(err)
+	}
+	defer syscall.Close(dirfd)
+
+	cTarget, err := syscallcompat.Readlinkat(dirfd, cName)
+	if err != nil {
+		return nil, fs.ToErrno(err)
+	}
+	if rn.args.PlaintextNames {
+		return []byte(cTarget), 0
+	}
+	// Symlinks are encrypted like file contents (GCM) and base64-encoded
+	target, err := rn.decryptSymlinkTarget(cTarget)
+	if err != nil {
+		tlog.Warn.Printf("Readlink %q: decrypting target failed: %v", cName, err)
+		return nil, syscall.EIO
+	}
+	return []byte(target), 0
+}
