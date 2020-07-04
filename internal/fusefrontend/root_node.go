@@ -28,6 +28,9 @@ type RootNode struct {
 	nameTransform nametransform.NameTransformer
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
+	// This lock is used by openWriteOnlyFile() to block concurrent opens while
+	// it relaxes the permissions on a file.
+	openWriteOnlyLock sync.RWMutex
 	// MitigatedCorruptions is used to report data corruption that is internally
 	// mitigated by ignoring the corrupt item. For example, when OpenDir() finds
 	// a corrupt filename, we still return the other valid filenames.
@@ -136,4 +139,49 @@ func (rn *RootNode) decryptSymlinkTarget(cData64 string) (string, error) {
 		return "", err
 	}
 	return string(data), nil
+}
+
+// Due to RMW, we always need read permissions on the backing file. This is a
+// problem if the file permissions do not allow reading (i.e. 0200 permissions).
+// This function works around that problem by chmod'ing the file, obtaining a fd,
+// and chmod'ing it back.
+func (rn *RootNode) openWriteOnlyFile(dirfd int, cName string, newFlags int) (rwFd int, err error) {
+	woFd, err := syscallcompat.Openat(dirfd, cName, syscall.O_WRONLY|syscall.O_NOFOLLOW, 0)
+	if err != nil {
+		return
+	}
+	defer syscall.Close(woFd)
+	var st syscall.Stat_t
+	err = syscall.Fstat(woFd, &st)
+	if err != nil {
+		return
+	}
+	// The cast to uint32 fixes a build failure on Darwin, where st.Mode is uint16.
+	perms := uint32(st.Mode)
+	// Verify that we don't have read permissions
+	if perms&0400 != 0 {
+		tlog.Warn.Printf("openWriteOnlyFile: unexpected permissions %#o, returning EPERM", perms)
+		err = syscall.EPERM
+		return
+	}
+	// Upgrade the lock to block other Open()s and downgrade again on return
+	rn.openWriteOnlyLock.RUnlock()
+	rn.openWriteOnlyLock.Lock()
+	defer func() {
+		rn.openWriteOnlyLock.Unlock()
+		rn.openWriteOnlyLock.RLock()
+	}()
+	// Relax permissions and revert on return
+	err = syscall.Fchmod(woFd, perms|0400)
+	if err != nil {
+		tlog.Warn.Printf("openWriteOnlyFile: changing permissions failed: %v", err)
+		return
+	}
+	defer func() {
+		err2 := syscall.Fchmod(woFd, perms)
+		if err2 != nil {
+			tlog.Warn.Printf("openWriteOnlyFile: reverting permissions failed: %v", err2)
+		}
+	}()
+	return syscallcompat.Openat(dirfd, cName, newFlags, 0)
 }

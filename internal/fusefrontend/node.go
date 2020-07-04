@@ -147,13 +147,15 @@ func (n *Node) Create(ctx context.Context, name string, flags uint32, mode uint3
 	}
 
 	// Get device number and inode number into `st`
-	st, err := syscallcompat.Fstatat2(dirfd, cName, unix.AT_SYMLINK_NOFOLLOW)
+	var st syscall.Stat_t
+	err = syscall.Fstat(fd, &st)
 	if err != nil {
-		return nil, nil, 0, fs.ToErrno(err)
+		errno = fs.ToErrno(err)
+		return
 	}
 	// Get unique inode number
-	rn.inoMap.TranslateStat(st)
-	out.Attr.FromStat(st)
+	rn.inoMap.TranslateStat(&st)
+	out.Attr.FromStat(&st)
 	// Create child node
 	id := fs.StableAttr{
 		Mode: uint32(st.Mode),
@@ -164,7 +166,7 @@ func (n *Node) Create(ctx context.Context, name string, flags uint32, mode uint3
 	ch := n.NewInode(ctx, node, id)
 
 	f := os.NewFile(uintptr(fd), cName)
-	return ch, NewFile2(f, rn, st), 0, 0
+	return ch, NewFile2(f, rn, &st), 0, 0
 }
 
 // Unlink - FUSE call. Delete a file.
@@ -217,4 +219,50 @@ func (n *Node) Readlink(ctx context.Context) (out []byte, errno syscall.Errno) {
 		return nil, syscall.EIO
 	}
 	return []byte(target), 0
+}
+
+// Open - FUSE call. Open already-existing file.
+//
+// Symlink-safe through Openat().
+func (n *Node) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, fuseFlags uint32, errno syscall.Errno) {
+	dirfd, cName, errno := n.prepareAtSyscall("")
+	if errno != 0 {
+		return
+	}
+	defer syscall.Close(dirfd)
+
+	rn := n.rootNode()
+	newFlags := rn.mangleOpenFlags(flags)
+	// Taking this lock makes sure we don't race openWriteOnlyFile()
+	rn.openWriteOnlyLock.RLock()
+	defer rn.openWriteOnlyLock.RUnlock()
+
+	// Open backing file
+	fd, err := syscallcompat.Openat(dirfd, cName, newFlags, 0)
+	// Handle a few specific errors
+	if err != nil {
+		if err == syscall.EMFILE {
+			var lim syscall.Rlimit
+			syscall.Getrlimit(syscall.RLIMIT_NOFILE, &lim)
+			tlog.Warn.Printf("Open %q: too many open files. Current \"ulimit -n\": %d", cName, lim.Cur)
+		}
+		if err == syscall.EACCES && (int(flags)&syscall.O_ACCMODE) == syscall.O_WRONLY {
+			fd, err = rn.openWriteOnlyFile(dirfd, cName, newFlags)
+		}
+	}
+	// Could not handle the error? Bail out
+	if err != nil {
+		errno = fs.ToErrno(err)
+		return
+	}
+
+	var st syscall.Stat_t
+	err = syscall.Fstat(fd, &st)
+	if err != nil {
+		errno = fs.ToErrno(err)
+		return
+	}
+	f := os.NewFile(uintptr(fd), cName)
+	fh = NewFile2(f, rn, &st)
+	return
 }
