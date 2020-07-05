@@ -348,3 +348,20 @@ retry:
 	}
 	return 0
 }
+
+// Opendir is a FUSE call to check if the directory can be opened.
+func (n *Node) Opendir(ctx context.Context) (errno syscall.Errno) {
+	dirfd, cName, errno := n.prepareAtSyscall("")
+	if errno != 0 {
+		return
+	}
+	defer syscall.Close(dirfd)
+
+	// Open backing directory
+	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
+	if err != nil {
+		return fs.ToErrno(err)
+	}
+	syscall.Close(fd)
+	return 0
+}
