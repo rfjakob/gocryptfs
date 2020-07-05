@@ -266,3 +266,19 @@ func (n *Node) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, fuseFl
 	fh = NewFile2(f, rn, &st)
 	return
 }
+
+// Setattr - FUSE call. Called for chmod, truncate, utimens, ...
+func (n *Node) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) (errno syscall.Errno) {
+	var f2 *File2
+	if f != nil {
+		f2 = f.(*File2)
+	} else {
+		f, _, errno := n.Open(ctx, syscall.O_RDWR)
+		if errno != 0 {
+			return errno
+		}
+		f2 = f.(*File2)
+		defer f2.Release()
+	}
+	return f2.Setattr(ctx, in, out)
+}

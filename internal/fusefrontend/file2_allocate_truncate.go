@@ -81,8 +81,8 @@ func (f *File2) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
 	return f.truncateGrowFile(oldPlainSz, newPlainSz)
 }
 
-// Truncate - FUSE call
-func (f *File2) Truncate(newSize uint64) fuse.Status {
+// truncate - called from Setattr.
+func (f *File2) truncate(newSize uint64) fuse.Status {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 	if f.released {

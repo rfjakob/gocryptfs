@@ -4,6 +4,7 @@ package fusefrontend
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -11,10 +12,9 @@ import (
 	"os"
 	"sync"
 	"syscall"
-	"time"
 
+	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
-	"github.com/hanwen/go-fuse/v2/fuse/nodefs"
 
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/inomap"
@@ -25,9 +25,6 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-var _ nodefs.File = &File{} // Verify that interface is implemented.
-
-// File - based on loopbackFile in go-fuse/fuse/nodefs/files.go
 type File2 struct {
 	fd *os.File
 	// Has Release() already been called on this file? This also means that the
@@ -53,10 +50,6 @@ type File2 struct {
 	lastOpCount uint64
 	// Parent filesystem
 	rootNode *RootNode
-	// We embed a nodefs.NewDefaultFile() that returns ENOSYS for every operation we
-	// have not implemented. This prevents build breakage when the go-fuse library
-	// adds new methods to the nodefs.File interface.
-	nodefs.File
 }
 
 // NewFile returns a new go-fuse File instance.
@@ -70,7 +63,6 @@ func NewFile2(fd *os.File, rn *RootNode, st *syscall.Stat_t) *File2 {
 		qIno:           qi,
 		fileTableEntry: e,
 		rootNode:       rn,
-		File:           nodefs.NewDefaultFile(),
 	}
 }
 
@@ -427,27 +419,8 @@ func (f *File2) Fsync(flags int) (code fuse.Status) {
 	return fuse.ToStatus(syscall.Fsync(f.intFd()))
 }
 
-// Chmod FUSE call
-func (f *File2) Chmod(mode uint32) fuse.Status {
-	f.fdLock.RLock()
-	defer f.fdLock.RUnlock()
-
-	// os.File.Chmod goes through the "syscallMode" translation function that messes
-	// up the suid and sgid bits. So use syscall.Fchmod directly.
-	err := syscall.Fchmod(f.intFd(), mode)
-	return fuse.ToStatus(err)
-}
-
-// Chown FUSE call
-func (f *File2) Chown(uid uint32, gid uint32) fuse.Status {
-	f.fdLock.RLock()
-	defer f.fdLock.RUnlock()
-
-	return fuse.ToStatus(f.fd.Chown(int(uid), int(gid)))
-}
-
-// GetAttr FUSE call (like stat)
-func (f *File2) GetAttr(a *fuse.Attr) fuse.Status {
+// Getattr FUSE call (like stat)
+func (f *File2) Getattr(ctx context.Context, a *fuse.AttrOut) syscall.Errno {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 
@@ -455,7 +428,7 @@ func (f *File2) GetAttr(a *fuse.Attr) fuse.Status {
 	st := syscall.Stat_t{}
 	err := syscall.Fstat(f.intFd(), &st)
 	if err != nil {
-		return fuse.ToStatus(err)
+		return fs.ToErrno(err)
 	}
 	f.rootNode.inoMap.TranslateStat(&st)
 	a.FromStat(&st)
@@ -464,13 +437,5 @@ func (f *File2) GetAttr(a *fuse.Attr) fuse.Status {
 		a.Owner = *f.rootNode.args.ForceOwner
 	}
 
-	return fuse.OK
-}
-
-// Utimens FUSE call
-func (f *File2) Utimens(a *time.Time, m *time.Time) fuse.Status {
-	f.fdLock.RLock()
-	defer f.fdLock.RUnlock()
-	err := syscallcompat.FutimesNano(f.intFd(), a, m)
-	return fuse.ToStatus(err)
+	return 0
 }
