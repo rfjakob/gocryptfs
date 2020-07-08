@@ -165,8 +165,8 @@ func doMount(args *argContainer) {
 		fwdFs := fs.(*fusefrontend.RootNode)
 		go idleMonitor(args.idle, fwdFs, srv, args.mountpoint)
 	}
-	// Jump into server loop. Returns when it gets an umount request from the kernel.
-	srv.Serve()
+	// Wait for unmount.
+	srv.Wait()
 }
 
 // Based on the EncFS idle monitor:
