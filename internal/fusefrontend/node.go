@@ -350,3 +350,53 @@ func (n *Node) Mknod(ctx context.Context, name string, mode, rdev uint32, out *f
 	inode = n.newChild(ctx, st, out)
 	return inode, 0
 }
+
+// Link - FUSE call. Creates a hard link at "newPath" pointing to file
+// "oldPath".
+//
+// Symlink-safe through use of Linkat().
+func (n *Node) Link(ctx context.Context, target fs.InodeEmbedder, name string, out *fuse.EntryOut) (inode *fs.Inode, errno syscall.Errno) {
+	dirfd, cName, errno := n.prepareAtSyscall(name)
+	if errno != 0 {
+		return
+	}
+	defer syscall.Close(dirfd)
+
+	n2 := target.(*Node)
+	dirfd2, cName2, errno := n2.prepareAtSyscall("")
+	if errno != 0 {
+		return
+	}
+	defer syscall.Close(dirfd2)
+
+	// Handle long file name (except in PlaintextNames mode)
+	rn := n.rootNode()
+	var err error
+	if !rn.args.PlaintextNames && nametransform.IsLongContent(cName) {
+		err = rn.nameTransform.WriteLongNameAt(dirfd, cName, name)
+		if err != nil {
+			errno = fs.ToErrno(err)
+			return
+		}
+		// Create "gocryptfs.longfile." link
+		err = syscallcompat.Linkat(dirfd2, cName2, dirfd, cName, 0)
+		if err != nil {
+			nametransform.DeleteLongNameAt(dirfd, cName)
+		}
+	} else {
+		// Create regular link
+		err = syscallcompat.Linkat(dirfd2, cName2, dirfd, cName, 0)
+	}
+	if err != nil {
+		errno = fs.ToErrno(err)
+		return
+	}
+
+	st, err := syscallcompat.Fstatat2(dirfd, cName, unix.AT_SYMLINK_NOFOLLOW)
+	if err != nil {
+		errno = fs.ToErrno(err)
+		return
+	}
+	inode = n.newChild(ctx, st, out)
+	return inode, 0
+}

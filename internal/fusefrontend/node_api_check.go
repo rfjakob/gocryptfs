@@ -18,6 +18,7 @@ var _ = (fs.NodeOpendirer)((*Node)(nil))
 var _ = (fs.NodeSetattrer)((*Node)(nil))
 var _ = (fs.NodeStatfser)((*Node)(nil))
 var _ = (fs.NodeMknoder)((*Node)(nil))
+var _ = (fs.NodeLinker)((*Node)(nil))
 
 /* TODO
 var _ = (fs.NodeGetxattrer)((*Node)(nil))
@@ -25,7 +26,6 @@ var _ = (fs.NodeSetxattrer)((*Node)(nil))
 var _ = (fs.NodeRemovexattrer)((*Node)(nil))
 var _ = (fs.NodeListxattrer)((*Node)(nil))
 var _ = (fs.NodeCopyFileRanger)((*Node)(nil))
-var _ = (fs.NodeLinker)((*Node)(nil))
 var _ = (fs.NodeSymlinker)((*Node)(nil))
 var _ = (fs.NodeRenamer)((*Node)(nil))
 */
