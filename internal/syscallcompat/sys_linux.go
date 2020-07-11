@@ -2,7 +2,6 @@
 package syscallcompat
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"runtime"
@@ -89,20 +88,6 @@ func getSupplementaryGroups(pid uint32) (gids []int) {
 	return nil
 }
 
-// OpenatUserCtx is a tries to extract a fuse.Context from the generic ctx and
-// calls OpenatUser.
-func OpenatUserCtx(dirfd int, path string, flags int, mode uint32, ctx context.Context) (fd int, err error) {
-	var ctx2 *fuse.Context
-	if ctx != nil {
-		if caller, ok := fuse.FromContext(ctx); ok {
-			ctx2 = &fuse.Context{
-				Caller: *caller,
-			}
-		}
-	}
-	return OpenatUser(dirfd, path, flags, mode, ctx2)
-}
-
 // OpenatUser runs the Openat syscall in the context of a different user.
 func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Context) (fd int, err error) {
 	if context != nil {
@@ -134,20 +119,6 @@ func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Co
 // Mknodat wraps the Mknodat syscall.
 func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 	return syscall.Mknodat(dirfd, path, mode, dev)
-}
-
-// MknodatUserCtx is a tries to extract a fuse.Context from the generic ctx and
-// calls OpenatUser.
-func MknodatUserCtx(dirfd int, path string, mode uint32, dev int, ctx context.Context) (err error) {
-	var ctx2 *fuse.Context
-	if ctx != nil {
-		if caller, ok := fuse.FromContext(ctx); ok {
-			ctx2 = &fuse.Context{
-				Caller: *caller,
-			}
-		}
-	}
-	return MknodatUser(dirfd, path, mode, dev, ctx2)
 }
 
 // MknodatUser runs the Mknodat syscall in the context of a different user.

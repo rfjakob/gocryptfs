@@ -138,6 +138,7 @@ func (n *Node) Create(ctx context.Context, name string, flags uint32, mode uint3
 	}
 	newFlags := rn.mangleOpenFlags(flags)
 	// Handle long file name
+	ctx2 := toFuseCtx(ctx)
 	if !rn.args.PlaintextNames && nametransform.IsLongContent(cName) {
 		// Create ".name"
 		err = rn.nameTransform.WriteLongNameAt(dirfd, cName, name)
@@ -145,13 +146,13 @@ func (n *Node) Create(ctx context.Context, name string, flags uint32, mode uint3
 			return nil, nil, 0, fs.ToErrno(err)
 		}
 		// Create content
-		fd, err = syscallcompat.OpenatUserCtx(dirfd, cName, newFlags|syscall.O_CREAT|syscall.O_EXCL, mode, ctx)
+		fd, err = syscallcompat.OpenatUser(dirfd, cName, newFlags|syscall.O_CREAT|syscall.O_EXCL, mode, ctx2)
 		if err != nil {
 			nametransform.DeleteLongNameAt(dirfd, cName)
 		}
 	} else {
 		// Create content, normal (short) file name
-		fd, err = syscallcompat.OpenatUserCtx(dirfd, cName, newFlags|syscall.O_CREAT|syscall.O_EXCL, mode, ctx)
+		fd, err = syscallcompat.OpenatUser(dirfd, cName, newFlags|syscall.O_CREAT|syscall.O_EXCL, mode, ctx2)
 	}
 	if err != nil {
 		// xfstests generic/488 triggers this
@@ -322,6 +323,7 @@ func (n *Node) Mknod(ctx context.Context, name string, mode, rdev uint32, out *f
 
 	// Create ".name" file to store long file name (except in PlaintextNames mode)
 	var err error
+	ctx2 := toFuseCtx(ctx)
 	if !rn.args.PlaintextNames && nametransform.IsLongContent(cName) {
 		err := rn.nameTransform.WriteLongNameAt(dirfd, cName, name)
 		if err != nil {
@@ -329,13 +331,13 @@ func (n *Node) Mknod(ctx context.Context, name string, mode, rdev uint32, out *f
 			return
 		}
 		// Create "gocryptfs.longfile." device node
-		err = syscallcompat.MknodatUserCtx(dirfd, cName, mode, int(rdev), ctx)
+		err = syscallcompat.MknodatUser(dirfd, cName, mode, int(rdev), ctx2)
 		if err != nil {
 			nametransform.DeleteLongNameAt(dirfd, cName)
 		}
 	} else {
 		// Create regular device node
-		err = syscallcompat.MknodatUserCtx(dirfd, cName, mode, int(rdev), ctx)
+		err = syscallcompat.MknodatUser(dirfd, cName, mode, int(rdev), ctx2)
 	}
 	if err != nil {
 		errno = fs.ToErrno(err)
