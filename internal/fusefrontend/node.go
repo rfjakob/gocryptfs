@@ -282,3 +282,17 @@ func (n *Node) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAttrIn,
 	}
 	return f2.Setattr(ctx, in, out)
 }
+
+// StatFs - FUSE call. Returns information about the filesystem.
+//
+// Symlink-safe because the path is ignored.
+func (n *Node) Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno {
+	p := n.rootNode().args.Cipherdir
+	var st syscall.Statfs_t
+	err := syscall.Statfs(p, &st)
+	if err != nil {
+		return fs.ToErrno(err)
+	}
+	out.FromStatfsT(&st)
+	return 0
+}

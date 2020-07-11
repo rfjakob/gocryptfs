@@ -16,9 +16,9 @@ var _ = (fs.NodeReadlinker)((*Node)(nil))
 var _ = (fs.NodeOpener)((*Node)(nil))
 var _ = (fs.NodeOpendirer)((*Node)(nil))
 var _ = (fs.NodeSetattrer)((*Node)(nil))
+var _ = (fs.NodeStatfser)((*Node)(nil))
 
 /* TODO
-var _ = (fs.NodeStatfser)((*Node)(nil))
 var _ = (fs.NodeGetxattrer)((*Node)(nil))
 var _ = (fs.NodeSetxattrer)((*Node)(nil))
 var _ = (fs.NodeRemovexattrer)((*Node)(nil))
