@@ -400,3 +400,52 @@ func (n *Node) Link(ctx context.Context, target fs.InodeEmbedder, name string, o
 	inode = n.newChild(ctx, st, out)
 	return inode, 0
 }
+
+// Symlink - FUSE call. Create a symlink.
+//
+// Symlink-safe through use of Symlinkat.
+func (n *Node) Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (inode *fs.Inode, errno syscall.Errno) {
+	dirfd, cName, errno := n.prepareAtSyscall(name)
+	if errno != 0 {
+		return
+	}
+	defer syscall.Close(dirfd)
+
+	// Make sure context is nil if we don't want to preserve the owner
+	rn := n.rootNode()
+	if !rn.args.PreserveOwner {
+		ctx = nil
+	}
+
+	cTarget := target
+	if !rn.args.PlaintextNames {
+		// Symlinks are encrypted like file contents (GCM) and base64-encoded
+		cTarget = rn.encryptSymlinkTarget(target)
+	}
+	// Create ".name" file to store long file name (except in PlaintextNames mode)
+	var err error
+	ctx2 := toFuseCtx(ctx)
+	if !rn.args.PlaintextNames && nametransform.IsLongContent(cName) {
+		err = rn.nameTransform.WriteLongNameAt(dirfd, cName, name)
+		if err != nil {
+			errno = fs.ToErrno(err)
+			return
+		}
+		// Create "gocryptfs.longfile." symlink
+		err = syscallcompat.SymlinkatUser(cTarget, dirfd, cName, ctx2)
+		if err != nil {
+			nametransform.DeleteLongNameAt(dirfd, cName)
+		}
+	} else {
+		// Create symlink
+		err = syscallcompat.SymlinkatUser(cTarget, dirfd, cName, ctx2)
+	}
+
+	st, err := syscallcompat.Fstatat2(dirfd, cName, unix.AT_SYMLINK_NOFOLLOW)
+	if err != nil {
+		errno = fs.ToErrno(err)
+		return
+	}
+	inode = n.newChild(ctx, st, out)
+	return inode, 0
+}

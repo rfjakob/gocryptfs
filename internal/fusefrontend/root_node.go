@@ -245,3 +245,17 @@ func (rn *RootNode) openBackingDir(relPath string) (dirfd int, cName string, err
 	}
 	return dirfd, cName, nil
 }
+
+// encryptSymlinkTarget: "data" is encrypted like file contents (GCM)
+// and base64-encoded.
+// The empty string encrypts to the empty string.
+//
+// Symlink-safe because it does not do any I/O.
+func (rn *RootNode) encryptSymlinkTarget(data string) (cData64 string) {
+	if data == "" {
+		return ""
+	}
+	cData := rn.contentEnc.EncryptBlock([]byte(data), 0, nil)
+	cData64 = rn.nameTransform.B64EncodeToString(cData)
+	return cData64
+}
