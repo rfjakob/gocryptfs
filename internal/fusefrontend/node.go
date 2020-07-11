@@ -102,6 +102,23 @@ func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) 
 	return 0
 }
 
+// newChild attaches a new child inode to n.
+// The passed-in `st` will be modified to get a unique inode number.
+func (n *Node) newChild(ctx context.Context, st *syscall.Stat_t, out *fuse.EntryOut) *fs.Inode {
+	// Get unique inode number
+	rn := n.rootNode()
+	rn.inoMap.TranslateStat(st)
+	out.Attr.FromStat(st)
+	// Create child node
+	id := fs.StableAttr{
+		Mode: uint32(st.Mode),
+		Gen:  1,
+		Ino:  st.Ino,
+	}
+	node := &Node{}
+	return n.NewInode(ctx, node, id)
+}
+
 // Create - FUSE call. Creates a new file.
 //
 // Symlink-safe through the use of Openat().
@@ -153,17 +170,7 @@ func (n *Node) Create(ctx context.Context, name string, flags uint32, mode uint3
 		errno = fs.ToErrno(err)
 		return
 	}
-	// Get unique inode number
-	rn.inoMap.TranslateStat(&st)
-	out.Attr.FromStat(&st)
-	// Create child node
-	id := fs.StableAttr{
-		Mode: uint32(st.Mode),
-		Gen:  1,
-		Ino:  st.Ino,
-	}
-	node := &Node{}
-	ch := n.NewInode(ctx, node, id)
+	ch := n.newChild(ctx, &st, out)
 
 	f := os.NewFile(uintptr(fd), cName)
 	return ch, NewFile2(f, rn, &st), 0, 0
@@ -295,4 +302,51 @@ func (n *Node) Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno {
 	}
 	out.FromStatfsT(&st)
 	return 0
+}
+
+// Mknod - FUSE call. Create a device file.
+//
+// Symlink-safe through use of Mknodat().
+func (n *Node) Mknod(ctx context.Context, name string, mode, rdev uint32, out *fuse.EntryOut) (inode *fs.Inode, errno syscall.Errno) {
+	dirfd, cName, errno := n.prepareAtSyscall("")
+	if errno != 0 {
+		return
+	}
+	defer syscall.Close(dirfd)
+
+	// Make sure context is nil if we don't want to preserve the owner
+	rn := n.rootNode()
+	if !rn.args.PreserveOwner {
+		ctx = nil
+	}
+
+	// Create ".name" file to store long file name (except in PlaintextNames mode)
+	var err error
+	if !rn.args.PlaintextNames && nametransform.IsLongContent(cName) {
+		err := rn.nameTransform.WriteLongNameAt(dirfd, cName, name)
+		if err != nil {
+			errno = fs.ToErrno(err)
+			return
+		}
+		// Create "gocryptfs.longfile." device node
+		err = syscallcompat.MknodatUserCtx(dirfd, cName, mode, int(rdev), ctx)
+		if err != nil {
+			nametransform.DeleteLongNameAt(dirfd, cName)
+		}
+	} else {
+		// Create regular device node
+		err = syscallcompat.MknodatUserCtx(dirfd, cName, mode, int(rdev), ctx)
+	}
+	if err != nil {
+		errno = fs.ToErrno(err)
+		return
+	}
+
+	st, err := syscallcompat.Fstatat2(dirfd, cName, unix.AT_SYMLINK_NOFOLLOW)
+	if err != nil {
+		errno = fs.ToErrno(err)
+		return
+	}
+	inode = n.newChild(ctx, st, out)
+	return inode, 0
 }

@@ -115,16 +115,8 @@ func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.En
 		tlog.Warn.Printf("Mkdir %q: Fstat failed: %v", cName, err)
 		return nil, fs.ToErrno(err)
 	}
-	rn.inoMap.TranslateStat(&st)
-	out.Attr.FromStat(&st)
 	// Create child node
-	id := fs.StableAttr{
-		Mode: uint32(st.Mode),
-		Gen:  1,
-		Ino:  st.Ino,
-	}
-	node := &Node{}
-	ch := n.NewInode(ctx, node, id)
+	ch := n.newChild(ctx, &st, out)
 
 	// Set mode
 	if origMode != mode {

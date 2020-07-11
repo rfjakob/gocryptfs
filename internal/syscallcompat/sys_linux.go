@@ -136,6 +136,20 @@ func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 	return syscall.Mknodat(dirfd, path, mode, dev)
 }
 
+// MknodatUserCtx is a tries to extract a fuse.Context from the generic ctx and
+// calls OpenatUser.
+func MknodatUserCtx(dirfd int, path string, mode uint32, dev int, ctx context.Context) (err error) {
+	var ctx2 *fuse.Context
+	if ctx != nil {
+		if caller, ok := fuse.FromContext(ctx); ok {
+			ctx2 = &fuse.Context{
+				Caller: *caller,
+			}
+		}
+	}
+	return MknodatUser(dirfd, path, mode, dev, ctx2)
+}
+
 // MknodatUser runs the Mknodat syscall in the context of a different user.
 func MknodatUser(dirfd int, path string, mode uint32, dev int, context *fuse.Context) (err error) {
 	if context != nil {
