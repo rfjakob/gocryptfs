@@ -3,6 +3,8 @@ package fusefrontend
 import (
 	"context"
 
+	"github.com/hanwen/go-fuse/v2/fs"
+
 	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
@@ -17,4 +19,13 @@ func toFuseCtx(ctx context.Context) (ctx2 *fuse.Context) {
 		}
 	}
 	return ctx2
+}
+
+// toNode casts a generic fs.InodeEmbedder into *Node. Also handles *RootNode
+// by return rn.Node.
+func toNode(op fs.InodeEmbedder) *Node {
+	if r, ok := op.(*RootNode); ok {
+		return &r.Node
+	}
+	return op.(*Node)
 }

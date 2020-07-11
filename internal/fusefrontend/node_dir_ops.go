@@ -350,7 +350,7 @@ func (n *Node) Opendir(ctx context.Context) (errno syscall.Errno) {
 	defer syscall.Close(dirfd)
 
 	// Open backing directory
-	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
+	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		return fs.ToErrno(err)
 	}

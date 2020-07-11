@@ -364,7 +364,7 @@ func (n *Node) Link(ctx context.Context, target fs.InodeEmbedder, name string, o
 	}
 	defer syscall.Close(dirfd)
 
-	n2 := target.(*Node)
+	n2 := toNode(target)
 	dirfd2, cName2, errno := n2.prepareAtSyscall("")
 	if errno != 0 {
 		return
@@ -462,7 +462,7 @@ func (n *Node) Rename(ctx context.Context, name string, newParent fs.InodeEmbedd
 	}
 	defer syscall.Close(dirfd)
 
-	n2 := newParent.(*Node)
+	n2 := toNode(newParent)
 	dirfd2, cName2, errno := n2.prepareAtSyscall("")
 	if errno != 0 {
 		return
