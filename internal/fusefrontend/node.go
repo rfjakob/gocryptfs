@@ -451,3 +451,66 @@ func (n *Node) Symlink(ctx context.Context, target, name string, out *fuse.Entry
 	inode = n.newChild(ctx, st, out)
 	return inode, 0
 }
+
+// Rename - FUSE call.
+//
+// Symlink-safe through Renameat().
+func (n *Node) Rename(ctx context.Context, name string, newParent fs.InodeEmbedder, newName string, flags uint32) (errno syscall.Errno) {
+	dirfd, cName, errno := n.prepareAtSyscall(name)
+	if errno != 0 {
+		return
+	}
+	defer syscall.Close(dirfd)
+
+	n2 := newParent.(*Node)
+	dirfd2, cName2, errno := n2.prepareAtSyscall("")
+	if errno != 0 {
+		return
+	}
+	defer syscall.Close(dirfd2)
+
+	// Easy case.
+	rn := n.rootNode()
+	if rn.args.PlaintextNames {
+		return fs.ToErrno(unix.Renameat2(dirfd, cName, dirfd2, cName2, uint(flags)))
+	}
+	// Long destination file name: create .name file
+	nameFileAlreadyThere := false
+	var err error
+	if nametransform.IsLongContent(cName2) {
+		err = rn.nameTransform.WriteLongNameAt(dirfd2, cName2, newName)
+		// Failure to write the .name file is expected when the target path already
+		// exists. Since hashes are pretty unique, there is no need to modify the
+		// .name file in this case, and we ignore the error.
+		if err == syscall.EEXIST {
+			nameFileAlreadyThere = true
+		} else if err != nil {
+			return fs.ToErrno(err)
+		}
+	}
+	// Actual rename
+	tlog.Debug.Printf("Renameat %d/%s -> %d/%s\n", dirfd, cName, dirfd2, cName2)
+	err = unix.Renameat2(dirfd, cName, dirfd2, cName2, uint(flags))
+	if err == syscall.ENOTEMPTY || err == syscall.EEXIST {
+		// If an empty directory is overwritten we will always get an error as
+		// the "empty" directory will still contain gocryptfs.diriv.
+		// Interestingly, ext4 returns ENOTEMPTY while xfs returns EEXIST.
+		// We handle that by trying to fs.Rmdir() the target directory and trying
+		// again.
+		tlog.Debug.Printf("Rename: Handling ENOTEMPTY")
+		if n2.Rmdir(ctx, newName) == 0 {
+			err = unix.Renameat2(dirfd, cName, dirfd2, cName2, uint(flags))
+		}
+	}
+	if err != nil {
+		if nametransform.IsLongContent(cName2) && nameFileAlreadyThere == false {
+			// Roll back .name creation unless the .name file was already there
+			nametransform.DeleteLongNameAt(dirfd2, cName2)
+		}
+		return fs.ToErrno(err)
+	}
+	if nametransform.IsLongContent(cName) {
+		nametransform.DeleteLongNameAt(dirfd, cName)
+	}
+	return 0
+}
