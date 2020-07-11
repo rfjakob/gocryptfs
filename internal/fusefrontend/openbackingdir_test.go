@@ -7,6 +7,8 @@ import (
 
 	"golang.org/x/sys/unix"
 
+	"github.com/hanwen/go-fuse/v2/fuse"
+
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
@@ -17,14 +19,15 @@ func TestOpenBackingDir(t *testing.T) {
 		Cipherdir: cipherdir,
 	}
 	fs := newTestFS(args)
+	out := &fuse.EntryOut{}
 
-	code := fs.Mkdir("dir1", 0700, nil)
-	if !code.Ok() {
-		t.Fatal(code)
+	_, errno := fs.Mkdir(nil, "dir1", 0700, out)
+	if errno != 0 {
+		t.Fatal(errno)
 	}
-	code = fs.Mkdir("dir1/dir2", 0700, nil)
-	if !code.Ok() {
-		t.Fatal(code)
+	_, errno = fs.Mkdir(nil, "dir1/dir2", 0700, out)
+	if errno != 0 {
+		t.Fatal(errno)
 	}
 
 	dirfd, cName, err := fs.openBackingDir("")
@@ -37,7 +40,7 @@ func TestOpenBackingDir(t *testing.T) {
 	syscall.Close(dirfd)
 
 	// Again, but populate the cache for "" by looking up a non-existing file
-	fs.GetAttr("xyz1234", nil)
+	fs.Getattr(nil, "xyz1234", &fuse.AttrOut{})
 	dirfd, cName, err = fs.openBackingDir("")
 	if err != nil {
 		t.Fatal(err)
@@ -84,7 +87,7 @@ func TestOpenBackingDir(t *testing.T) {
 
 	n255 := strings.Repeat("n", 255)
 	path := "dir1/" + n255
-	fs.Mkdir(path, 0700, nil)
+	fs.Mkdir(nil, path, 0700, out)
 	dirfd, cName, err = fs.openBackingDir(path)
 	if err != nil {
 		t.Fatal(err)
@@ -109,14 +112,15 @@ func TestOpenBackingDirPlaintextNames(t *testing.T) {
 		PlaintextNames: true,
 	}
 	fs := newTestFS(args)
+	out := &fuse.EntryOut{}
 
-	code := fs.Mkdir("dir1", 0700, nil)
-	if !code.Ok() {
-		t.Fatal(code)
+	_, errno := fs.Mkdir(nil, "dir1", 0700, out)
+	if errno != 0 {
+		t.Fatal(errno)
 	}
-	code = fs.Mkdir("dir1/dir2", 0700, nil)
-	if !code.Ok() {
-		t.Fatal(code)
+	_, errno = fs.Mkdir(nil, "dir1/dir2", 0700, out)
+	if errno != 0 {
+		t.Fatal(errno)
 	}
 
 	dirfd, cName, err := fs.openBackingDir("")
