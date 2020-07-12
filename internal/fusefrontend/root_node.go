@@ -13,6 +13,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/inomap"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
+	"github.com/rfjakob/gocryptfs/internal/serialize_reads"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -53,7 +54,12 @@ type RootNode struct {
 }
 
 func NewRootNode(args Args, c *contentenc.ContentEnc, n nametransform.NameTransformer) *RootNode {
-	// TODO
+	if args.SerializeReads {
+		serialize_reads.InitSerializer()
+	}
+	if len(args.Exclude) > 0 {
+		tlog.Warn.Printf("Forward mode does not support -exclude")
+	}
 	return &RootNode{
 		args:          args,
 		nameTransform: n,
