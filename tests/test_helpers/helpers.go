@@ -280,7 +280,7 @@ func TestRename(t *testing.T, plainDir string) {
 	}
 	err = syscall.Rename(file1, file2)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("Rename: %v", err)
 		return
 	}
 	syscall.Unlink(file2)

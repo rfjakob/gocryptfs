@@ -68,65 +68,75 @@ func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.En
 	if rn.args.PreserveOwner {
 		caller, _ = fuse.FromContext(ctx)
 	}
+
+	var st syscall.Stat_t
+
 	if rn.args.PlaintextNames {
 		err = syscallcompat.MkdiratUser(dirfd, cName, mode, caller)
-		return nil, fs.ToErrno(err)
-	}
-
-	// We need write and execute permissions to create gocryptfs.diriv.
-	// Also, we need read permissions to open the directory (to avoid
-	// race-conditions between getting and setting the mode).
-	origMode := mode
-	mode = mode | 0700
-
-	// Handle long file name
-	if nametransform.IsLongContent(cName) {
-		// Create ".name"
-		err = rn.nameTransform.WriteLongNameAt(dirfd, cName, newPath)
 		if err != nil {
 			return nil, fs.ToErrno(err)
 		}
-
-		// Create directory
-		err = rn.mkdirWithIv(dirfd, cName, mode, caller)
+		var ust unix.Stat_t
+		err = syscallcompat.Fstatat(dirfd, cName, &ust, unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
-			nametransform.DeleteLongNameAt(dirfd, cName)
 			return nil, fs.ToErrno(err)
 		}
+		st = syscallcompat.Unix2syscall(ust)
 	} else {
-		err = rn.mkdirWithIv(dirfd, cName, mode, caller)
+		// We need write and execute permissions to create gocryptfs.diriv.
+		// Also, we need read permissions to open the directory (to avoid
+		// race-conditions between getting and setting the mode).
+		origMode := mode
+		mode = mode | 0700
+
+		// Handle long file name
+		if nametransform.IsLongContent(cName) {
+			// Create ".name"
+			err = rn.nameTransform.WriteLongNameAt(dirfd, cName, newPath)
+			if err != nil {
+				return nil, fs.ToErrno(err)
+			}
+
+			// Create directory
+			err = rn.mkdirWithIv(dirfd, cName, mode, caller)
+			if err != nil {
+				nametransform.DeleteLongNameAt(dirfd, cName)
+				return nil, fs.ToErrno(err)
+			}
+		} else {
+			err = rn.mkdirWithIv(dirfd, cName, mode, caller)
+			if err != nil {
+				return nil, fs.ToErrno(err)
+			}
+		}
+
+		fd, err := syscallcompat.Openat(dirfd, cName,
+			syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
 		if err != nil {
+			tlog.Warn.Printf("Mkdir %q: Openat failed: %v", cName, err)
 			return nil, fs.ToErrno(err)
+		}
+		defer syscall.Close(fd)
+
+		err = syscall.Fstat(fd, &st)
+		if err != nil {
+			tlog.Warn.Printf("Mkdir %q: Fstat failed: %v", cName, err)
+			return nil, fs.ToErrno(err)
+		}
+
+		// Fix permissions
+		if origMode != mode {
+			// Preserve SGID bit if it was set due to inheritance.
+			origMode = uint32(st.Mode&^0777) | origMode
+			err = syscall.Fchmod(fd, origMode)
+			if err != nil {
+				tlog.Warn.Printf("Mkdir %q: Fchmod %#o -> %#o failed: %v", cName, mode, origMode, err)
+			}
 		}
 	}
 
-	fd, err := syscallcompat.Openat(dirfd, cName,
-		syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
-	if err != nil {
-		tlog.Warn.Printf("Mkdir %q: Openat failed: %v", cName, err)
-		return nil, fs.ToErrno(err)
-	}
-	defer syscall.Close(fd)
-
-	// Get unique inode number
-	var st syscall.Stat_t
-	err = syscall.Fstat(fd, &st)
-	if err != nil {
-		tlog.Warn.Printf("Mkdir %q: Fstat failed: %v", cName, err)
-		return nil, fs.ToErrno(err)
-	}
 	// Create child node
 	ch := n.newChild(ctx, &st, out)
-
-	// Set mode
-	if origMode != mode {
-		// Preserve SGID bit if it was set due to inheritance.
-		origMode = uint32(st.Mode&^0777) | origMode
-		err = syscall.Fchmod(fd, origMode)
-		if err != nil {
-			tlog.Warn.Printf("Mkdir %q: Fchmod %#o -> %#o failed: %v", cName, mode, origMode, err)
-		}
-	}
 
 	return ch, 0
 }
