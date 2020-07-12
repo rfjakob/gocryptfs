@@ -453,6 +453,7 @@ func (n *Node) Symlink(ctx context.Context, target, name string, out *fuse.Entry
 }
 
 // Rename - FUSE call.
+// This function is called on the PARENT DIRECTORY of `name`.
 //
 // Symlink-safe through Renameat().
 func (n *Node) Rename(ctx context.Context, name string, newParent fs.InodeEmbedder, newName string, flags uint32) (errno syscall.Errno) {
@@ -463,7 +464,7 @@ func (n *Node) Rename(ctx context.Context, name string, newParent fs.InodeEmbedd
 	defer syscall.Close(dirfd)
 
 	n2 := toNode(newParent)
-	dirfd2, cName2, errno := n2.prepareAtSyscall("")
+	dirfd2, cName2, errno := n2.prepareAtSyscall(newName)
 	if errno != 0 {
 		return
 	}
@@ -491,7 +492,7 @@ func (n *Node) Rename(ctx context.Context, name string, newParent fs.InodeEmbedd
 	// Actual rename
 	tlog.Debug.Printf("Renameat %d/%s -> %d/%s\n", dirfd, cName, dirfd2, cName2)
 	err = unix.Renameat2(dirfd, cName, dirfd2, cName2, uint(flags))
-	if err == syscall.ENOTEMPTY || err == syscall.EEXIST {
+	if (flags&unix.RENAME_NOREPLACE == 0) && (err == syscall.ENOTEMPTY || err == syscall.EEXIST) {
 		// If an empty directory is overwritten we will always get an error as
 		// the "empty" directory will still contain gocryptfs.diriv.
 		// Interestingly, ext4 returns ENOTEMPTY while xfs returns EEXIST.
