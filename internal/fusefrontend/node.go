@@ -361,12 +361,15 @@ func (n *Node) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAttrIn,
 			return errno
 		}
 		f2 := f.(*File2)
+		defer f2.Release(ctx)
 		errno = syscall.Errno(f2.truncate(sz))
 		if errno != 0 {
 			return errno
 		}
+		return f2.Getattr(ctx, out)
 	}
-	return 0
+
+	return n.Getattr(ctx, nil, out)
 }
 
 // StatFs - FUSE call. Returns information about the filesystem.
