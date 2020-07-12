@@ -358,6 +358,7 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 			EntryTimeout:    &sec,
 		}
 	}
+	fuseOpts.NullPermissions = true
 	fuseOpts.MountOptions = fuse.MountOptions{
 		// Writes and reads are usually capped at 128kiB on Linux through
 		// the FUSE_MAX_PAGES_PER_REQ kernel constant in fuse_i.h. Our
