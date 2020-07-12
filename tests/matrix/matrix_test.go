@@ -768,7 +768,7 @@ func TestMkfifo(t *testing.T) {
 // TestMagicNames verifies that "magic" names are handled correctly
 // https://github.com/rfjakob/gocryptfs/issues/174
 func TestMagicNames(t *testing.T) {
-	names := []string{"gocryptfs.longname.QhUr5d9FHerwEs--muUs6_80cy6JRp89c1otLwp92Cs", "gocryptfs.diriv"}
+	names := []string{"warmup1", "warmup2", "gocryptfs.longname.QhUr5d9FHerwEs--muUs6_80cy6JRp89c1otLwp92Cs", "gocryptfs.diriv"}
 	for _, n := range names {
 		t.Logf("Testing n=%q", n)
 		p := test_helpers.DefaultPlainDir + "/" + n
@@ -810,7 +810,7 @@ func TestMagicNames(t *testing.T) {
 		syscall.Unlink(p)
 		// Link
 		target := test_helpers.DefaultPlainDir + "/linktarget"
-		err = ioutil.WriteFile(target, []byte("yyyyy"), 0200)
+		err = ioutil.WriteFile(target, []byte("yyyyy"), 0600)
 		if err != nil {
 			t.Fatal(err)
 		}
