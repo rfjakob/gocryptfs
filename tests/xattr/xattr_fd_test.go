@@ -42,7 +42,10 @@ func TestFdXattr(t *testing.T) {
 	if sz != expectedSz {
 		t.Errorf("expected size %d, got %d", expectedSz, sz)
 	}
-	str := string(buf[:sz-1])
+	str := ""
+	if sz > 0 {
+		str = string(buf[:sz-1])
+	}
 	if str != attr {
 		t.Errorf("expected name %q, got %q", attr, str)
 	}
