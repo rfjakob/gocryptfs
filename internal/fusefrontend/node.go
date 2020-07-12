@@ -296,18 +296,77 @@ func (n *Node) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, fuseFl
 
 // Setattr - FUSE call. Called for chmod, truncate, utimens, ...
 func (n *Node) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) (errno syscall.Errno) {
-	var f2 *File2
+	// Use the fd if the kernel gave us one
 	if f != nil {
-		f2 = f.(*File2)
-	} else {
+		f2 := f.(*File2)
+		return f2.Setattr(ctx, in, out)
+	}
+
+	dirfd, cName, errno := n.prepareAtSyscall("")
+	if errno != 0 {
+		return
+	}
+	defer syscall.Close(dirfd)
+
+	// chmod(2)
+	if mode, ok := in.GetMode(); ok {
+		errno = fs.ToErrno(syscallcompat.FchmodatNofollow(dirfd, cName, mode))
+		if errno != 0 {
+			return errno
+		}
+	}
+
+	// chown(2)
+	uid32, uOk := in.GetUID()
+	gid32, gOk := in.GetGID()
+	if uOk || gOk {
+		uid := -1
+		gid := -1
+
+		if uOk {
+			uid = int(uid32)
+		}
+		if gOk {
+			gid = int(gid32)
+		}
+		errno = fs.ToErrno(syscallcompat.Fchownat(dirfd, cName, uid, gid, unix.AT_SYMLINK_NOFOLLOW))
+		if errno != 0 {
+			return errno
+		}
+	}
+
+	// utimens(2)
+	mtime, mok := in.GetMTime()
+	atime, aok := in.GetATime()
+	if mok || aok {
+		ap := &atime
+		mp := &mtime
+		if !aok {
+			ap = nil
+		}
+		if !mok {
+			mp = nil
+		}
+		errno = fs.ToErrno(syscallcompat.UtimesNanoAtNofollow(dirfd, cName, ap, mp))
+		if errno != 0 {
+			return errno
+		}
+	}
+
+	// For truncate, the user has to have write permissions. That means we can
+	// depend on opening a RDWR fd and letting the File handle truncate.
+	if sz, ok := in.GetSize(); ok {
 		f, _, errno := n.Open(ctx, syscall.O_RDWR)
 		if errno != 0 {
 			return errno
 		}
-		f2 = f.(*File2)
-		defer f2.Release(ctx)
+		f2 := f.(*File2)
+		errno = syscall.Errno(f2.truncate(sz))
+		if errno != 0 {
+			return errno
+		}
 	}
-	return f2.Setattr(ctx, in, out)
+	return 0
 }
 
 // StatFs - FUSE call. Returns information about the filesystem.

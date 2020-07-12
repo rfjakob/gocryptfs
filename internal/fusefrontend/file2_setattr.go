@@ -29,7 +29,7 @@ func (f *File2) setAttr(ctx context.Context, in *fuse.SetAttrIn) (errno syscall.
 	f.fileTableEntry.ContentLock.Lock()
 	defer f.fileTableEntry.ContentLock.Unlock()
 
-	// chmod(2) & fchmod(2)
+	// fchmod(2)
 	if mode, ok := in.GetMode(); ok {
 		errno = fs.ToErrno(syscall.Fchmod(f.intFd(), mode))
 		if errno != 0 {
@@ -37,7 +37,7 @@ func (f *File2) setAttr(ctx context.Context, in *fuse.SetAttrIn) (errno syscall.
 		}
 	}
 
-	// chown(2) & fchown(2)
+	// fchown(2)
 	uid32, uOk := in.GetUID()
 	gid32, gOk := in.GetGID()
 	if uOk || gOk {
