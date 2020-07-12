@@ -87,6 +87,11 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (ch 
 //
 // GetAttr is symlink-safe through use of openBackingDir() and Fstatat().
 func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) (errno syscall.Errno) {
+	// If the kernel gives us a file handle, use it.
+	if f != nil {
+		return f.(fs.FileGetattrer).Getattr(ctx, out)
+	}
+
 	dirfd, cName, errno := n.prepareAtSyscall("")
 	if errno != 0 {
 		return

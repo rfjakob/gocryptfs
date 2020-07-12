@@ -72,6 +72,7 @@ func TestMain(m *testing.M) {
 		}
 		test_helpers.ResetTmpDir(!testcase.plaintextnames)
 		opts := []string{"-zerokey"}
+		//opts = append(opts, "-fusedebug")
 		opts = append(opts, fmt.Sprintf("-openssl=%v", testcase.openssl))
 		opts = append(opts, fmt.Sprintf("-plaintextnames=%v", testcase.plaintextnames))
 		opts = append(opts, fmt.Sprintf("-aessiv=%v", testcase.aessiv))
