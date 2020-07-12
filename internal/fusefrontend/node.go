@@ -387,7 +387,7 @@ func (n *Node) Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno {
 //
 // Symlink-safe through use of Mknodat().
 func (n *Node) Mknod(ctx context.Context, name string, mode, rdev uint32, out *fuse.EntryOut) (inode *fs.Inode, errno syscall.Errno) {
-	dirfd, cName, errno := n.prepareAtSyscall("")
+	dirfd, cName, errno := n.prepareAtSyscall(name)
 	if errno != 0 {
 		return
 	}
