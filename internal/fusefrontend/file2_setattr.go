@@ -8,6 +8,7 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse"
 
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 func (f *File2) Setattr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) (errno syscall.Errno) {
@@ -22,6 +23,7 @@ func (f *File2) setAttr(ctx context.Context, in *fuse.SetAttrIn) (errno syscall.
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 	if f.released {
+		tlog.Warn.Printf("ino%d fh%d: Truncate on released file", f.qIno.Ino, f.intFd())
 		return syscall.EBADF
 	}
 	f.fileTableEntry.ContentLock.Lock()

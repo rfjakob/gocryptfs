@@ -84,15 +84,6 @@ func (f *File2) Allocate(ctx context.Context, off uint64, sz uint64, mode uint32
 
 // truncate - called from Setattr.
 func (f *File2) truncate(newSize uint64) (errno syscall.Errno) {
-	f.fdLock.RLock()
-	defer f.fdLock.RUnlock()
-	if f.released {
-		// The file descriptor has been closed concurrently.
-		tlog.Warn.Printf("ino%d fh%d: Truncate on released file", f.qIno.Ino, f.intFd())
-		return syscall.EBADF
-	}
-	f.fileTableEntry.ContentLock.Lock()
-	defer f.fileTableEntry.ContentLock.Unlock()
 	var err error
 	// Common case first: Truncate to zero
 	if newSize == 0 {
