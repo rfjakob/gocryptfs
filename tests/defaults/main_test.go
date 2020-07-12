@@ -195,6 +195,7 @@ func TestWrite0200File(t *testing.T) {
 	}
 }
 
+// TestMvWarnings:
 // When xattr support was introduced, mv threw warnings like these:
 //   mv: preserving permissions for ‘b/x’: Operation not permitted
 // because we returned EPERM when it tried to set system.posix_acl_access.
@@ -243,7 +244,7 @@ func TestMvWarningSymlink(t *testing.T) {
 	}
 }
 
-// See TestCpWarnings.
+// See TestMvWarnings.
 func TestCpWarnings(t *testing.T) {
 	fn := test_helpers.TmpDir + "/TestCpWarnings"
 	err := ioutil.WriteFile(fn, []byte("foo"), 0600)
