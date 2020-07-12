@@ -286,7 +286,7 @@ func (n *Node) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAttrIn,
 			return errno
 		}
 		f2 = f.(*File2)
-		defer f2.Release()
+		defer f2.Release(ctx)
 	}
 	return f2.Setattr(ctx, in, out)
 }

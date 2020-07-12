@@ -25,6 +25,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
+// File2 implements the go-fuse v2 API (github.com/hanwen/go-fuse/v2/fs)
 type File2 struct {
 	fd *os.File
 	// Has Release() already been called on this file? This also means that the
@@ -129,7 +130,7 @@ func (f *File2) createHeader() (fileID []byte, err error) {
 //
 // Called by Read() for normal reading,
 // by Write() and Truncate() via doWrite() for Read-Modify-Write.
-func (f *File2) doRead(dst []byte, off uint64, length uint64) ([]byte, fuse.Status) {
+func (f *File2) doRead(dst []byte, off uint64, length uint64) ([]byte, syscall.Errno) {
 	// Get the file ID, either from the open file table, or from disk.
 	var fileID []byte
 	f.fileTableEntry.IDLock.Lock()
@@ -144,7 +145,7 @@ func (f *File2) doRead(dst []byte, off uint64, length uint64) ([]byte, fuse.Stat
 			f.fileTableEntry.IDLock.Unlock()
 			if err == io.EOF {
 				// Empty file
-				return nil, fuse.OK
+				return nil, 0
 			}
 			buf := make([]byte, 100)
 			n, _ := f.fd.ReadAt(buf, 0)
@@ -152,7 +153,7 @@ func (f *File2) doRead(dst []byte, off uint64, length uint64) ([]byte, fuse.Stat
 			hexdump := hex.EncodeToString(buf)
 			tlog.Warn.Printf("doRead %d: corrupt header: %v\nFile hexdump (%d bytes): %s",
 				f.qIno.Ino, err, n, hexdump)
-			return nil, fuse.EIO
+			return nil, syscall.EIO
 		}
 		// Save into the file table
 		f.fileTableEntry.ID = fileID
@@ -173,12 +174,12 @@ func (f *File2) doRead(dst []byte, off uint64, length uint64) ([]byte, fuse.Stat
 	n, err := f.fd.ReadAt(ciphertext, int64(alignedOffset))
 	if err != nil && err != io.EOF {
 		tlog.Warn.Printf("read: ReadAt: %s", err.Error())
-		return nil, fuse.ToStatus(err)
+		return nil, fs.ToErrno(err)
 	}
 	// The ReadAt came back empty. We can skip all the decryption and return early.
 	if n == 0 {
 		f.rootNode.contentEnc.CReqPool.Put(ciphertext)
-		return dst, fuse.OK
+		return dst, 0
 	}
 	// Truncate ciphertext buffer down to actually read bytes
 	ciphertext = ciphertext[0:n]
@@ -198,7 +199,7 @@ func (f *File2) doRead(dst []byte, off uint64, length uint64) ([]byte, fuse.Stat
 		} else {
 			curruptBlockNo := firstBlockNo + f.contentEnc.PlainOffToBlockNo(uint64(len(plaintext)))
 			tlog.Warn.Printf("doRead %d: corrupt block #%d: %v", f.qIno.Ino, curruptBlockNo, err)
-			return nil, fuse.EIO
+			return nil, syscall.EIO
 		}
 	}
 
@@ -216,15 +217,15 @@ func (f *File2) doRead(dst []byte, off uint64, length uint64) ([]byte, fuse.Stat
 	out = append(dst, out...)
 	f.rootNode.contentEnc.PReqPool.Put(plaintext)
 
-	return out, fuse.OK
+	return out, 0
 }
 
 // Read - FUSE call
-func (f *File2) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fuse.Status) {
+func (f *File2) Read(ctx context.Context, buf []byte, off int64) (resultData fuse.ReadResult, errno syscall.Errno) {
 	if len(buf) > fuse.MAX_KERNEL_WRITE {
 		// This would crash us due to our fixed-size buffer pool
 		tlog.Warn.Printf("Read: rejecting oversized request with EMSGSIZE, len=%d", len(buf))
-		return nil, fuse.Status(syscall.EMSGSIZE)
+		return nil, syscall.EMSGSIZE
 	}
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
@@ -236,15 +237,15 @@ func (f *File2) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fu
 	if f.rootNode.args.SerializeReads {
 		serialize_reads.Wait(off, len(buf))
 	}
-	out, status := f.doRead(buf[:0], uint64(off), uint64(len(buf)))
+	out, errno := f.doRead(buf[:0], uint64(off), uint64(len(buf)))
 	if f.rootNode.args.SerializeReads {
 		serialize_reads.Done()
 	}
-	if status != fuse.OK {
-		return nil, status
+	if errno != 0 {
+		return nil, errno
 	}
-	tlog.Debug.Printf("ino%d: Read: status %v, returning %d bytes", f.qIno.Ino, status, len(out))
-	return fuse.ReadResultData(out), status
+	tlog.Debug.Printf("ino%d: Read: errno=%d, returning %d bytes", f.qIno.Ino, errno, len(out))
+	return fuse.ReadResultData(out), errno
 }
 
 // doWrite - encrypt "data" and write it to plaintext offset "off"
@@ -256,7 +257,7 @@ func (f *File2) Read(buf []byte, off int64) (resultData fuse.ReadResult, code fu
 // and by Truncate() to rewrite the last file block.
 //
 // Empty writes do nothing and are allowed.
-func (f *File2) doWrite(data []byte, off int64) (uint32, fuse.Status) {
+func (f *File2) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
 	fileWasEmpty := false
 	// Get the file ID, create a new one if it does not exist yet.
 	var fileID []byte
@@ -274,7 +275,7 @@ func (f *File2) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 			fileWasEmpty = true
 		}
 		if err != nil {
-			return 0, fuse.ToStatus(err)
+			return 0, fs.ToErrno(err)
 		}
 		f.fileTableEntry.ID = fileID
 	}
@@ -287,10 +288,10 @@ func (f *File2) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 		// Incomplete block -> Read-Modify-Write
 		if b.IsPartial() {
 			// Read
-			oldData, status := f.doRead(nil, b.BlockPlainOff(), f.contentEnc.PlainBS())
-			if status != fuse.OK {
-				tlog.Warn.Printf("ino%d fh%d: RMW read failed: %s", f.qIno.Ino, f.intFd(), status.String())
-				return 0, status
+			oldData, errno := f.doRead(nil, b.BlockPlainOff(), f.contentEnc.PlainBS())
+			if errno != 0 {
+				tlog.Warn.Printf("ino%d fh%d: RMW read failed: errno=%d", f.qIno.Ino, f.intFd(), errno)
+				return 0, errno
 			}
 			// Modify
 			blockData = f.contentEnc.MergeBlocks(oldData, blockData, int(b.Skip))
@@ -321,7 +322,7 @@ func (f *File2) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 					tlog.Warn.Printf("ino%d fh%d: doWrite: rollback failed: %v", f.qIno.Ino, f.intFd(), err2)
 				}
 			}
-			return 0, fuse.ToStatus(err)
+			return 0, fs.ToErrno(err)
 		}
 	}
 	// Write
@@ -331,9 +332,9 @@ func (f *File2) doWrite(data []byte, off int64) (uint32, fuse.Status) {
 	if err != nil {
 		tlog.Warn.Printf("ino%d fh%d: doWrite: WriteAt off=%d len=%d failed: %v",
 			f.qIno.Ino, f.intFd(), cOff, len(ciphertext), err)
-		return 0, fuse.ToStatus(err)
+		return 0, fs.ToErrno(err)
 	}
-	return uint32(len(data)), fuse.OK
+	return uint32(len(data)), 0
 }
 
 // isConsecutiveWrite returns true if the current write
@@ -349,18 +350,18 @@ func (f *File2) isConsecutiveWrite(off int64) bool {
 // Write - FUSE call
 //
 // If the write creates a hole, pads the file to the next block boundary.
-func (f *File2) Write(data []byte, off int64) (uint32, fuse.Status) {
+func (f *File2) Write(ctx context.Context, data []byte, off int64) (uint32, syscall.Errno) {
 	if len(data) > fuse.MAX_KERNEL_WRITE {
 		// This would crash us due to our fixed-size buffer pool
 		tlog.Warn.Printf("Write: rejecting oversized request with EMSGSIZE, len=%d", len(data))
-		return 0, fuse.Status(syscall.EMSGSIZE)
+		return 0, syscall.EMSGSIZE
 	}
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 	if f.released {
 		// The file descriptor has been closed concurrently
 		tlog.Warn.Printf("ino%d fh%d: Write on released file", f.qIno.Ino, f.intFd())
-		return 0, fuse.EBADF
+		return 0, syscall.EBADF
 	}
 	f.fileTableEntry.ContentLock.Lock()
 	defer f.fileTableEntry.ContentLock.Unlock()
@@ -369,21 +370,21 @@ func (f *File2) Write(data []byte, off int64) (uint32, fuse.Status) {
 	// But if the write directly follows an earlier write, it cannot create a
 	// hole, and we can save one Stat() call.
 	if !f.isConsecutiveWrite(off) {
-		status := f.writePadHole(off)
-		if !status.Ok() {
-			return 0, status
+		errno := f.writePadHole(off)
+		if errno != 0 {
+			return 0, errno
 		}
 	}
-	n, status := f.doWrite(data, off)
-	if status.Ok() {
+	n, errno := f.doWrite(data, off)
+	if errno != 0 {
 		f.lastOpCount = openfiletable.WriteOpCount()
 		f.lastWrittenOffset = off + int64(len(data)) - 1
 	}
-	return n, status
+	return n, errno
 }
 
 // Release - FUSE call, close file
-func (f *File2) Release() {
+func (f *File2) Release(ctx context.Context) syscall.Errno {
 	f.fdLock.Lock()
 	if f.released {
 		log.Panicf("ino%d fh%d: double release", f.qIno.Ino, f.intFd())
@@ -392,10 +393,11 @@ func (f *File2) Release() {
 	openfiletable.Unregister(f.qIno)
 	f.fd.Close()
 	f.fdLock.Unlock()
+	return 0
 }
 
 // Flush - FUSE call
-func (f *File2) Flush() fuse.Status {
+func (f *File2) Flush(ctx context.Context) syscall.Errno {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 
@@ -405,18 +407,18 @@ func (f *File2) Flush() fuse.Status {
 	newFd, err := syscall.Dup(f.intFd())
 
 	if err != nil {
-		return fuse.ToStatus(err)
+		return fs.ToErrno(err)
 	}
 	err = syscall.Close(newFd)
-	return fuse.ToStatus(err)
+	return fs.ToErrno(err)
 }
 
 // Fsync FUSE call
-func (f *File2) Fsync(flags int) (code fuse.Status) {
+func (f *File2) Fsync(ctx context.Context, flags uint32) (errno syscall.Errno) {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 
-	return fuse.ToStatus(syscall.Fsync(f.intFd()))
+	return fs.ToErrno(syscall.Fsync(f.intFd()))
 }
 
 // Getattr FUSE call (like stat)
