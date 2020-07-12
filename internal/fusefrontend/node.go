@@ -97,8 +97,22 @@ func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) 
 	if err != nil {
 		return fs.ToErrno(err)
 	}
-	n.rootNode().inoMap.TranslateStat(st)
+
+	// Fix inode number
+	rn := n.rootNode()
+	rn.inoMap.TranslateStat(st)
 	out.Attr.FromStat(st)
+
+	// Fix size
+	if out.IsRegular() {
+		out.Size = rn.contentEnc.CipherSizeToPlainSize(out.Size)
+	} else if out.IsSymlink() {
+		target, _ := n.Readlink(ctx)
+		out.Size = uint64(len(target))
+	}
+	if rn.args.ForceOwner != nil {
+		out.Owner = *rn.args.ForceOwner
+	}
 	return 0
 }
 
