@@ -40,7 +40,7 @@ func TestOpenBackingDir(t *testing.T) {
 	syscall.Close(dirfd)
 
 	// Again, but populate the cache for "" by looking up a non-existing file
-	fs.Getattr(nil, "xyz1234", &fuse.AttrOut{})
+	fs.Lookup(nil, "xyz1234", &fuse.EntryOut{})
 	dirfd, cName, err = fs.openBackingDir("")
 	if err != nil {
 		t.Fatal(err)

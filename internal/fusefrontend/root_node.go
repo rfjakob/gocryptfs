@@ -265,3 +265,55 @@ func (rn *RootNode) encryptSymlinkTarget(data string) (cData64 string) {
 	cData64 = rn.nameTransform.B64EncodeToString(cData)
 	return cData64
 }
+
+// encryptXattrValue encrypts the xattr value "data".
+// The data is encrypted like a file content block, but without binding it to
+// a file location (block number and file id are set to zero).
+// Special case: an empty value is encrypted to an empty value.
+func (rn *RootNode) encryptXattrValue(data []byte) (cData []byte) {
+	if len(data) == 0 {
+		return []byte{}
+	}
+	return rn.contentEnc.EncryptBlock(data, 0, nil)
+}
+
+// decryptXattrValue decrypts the xattr value "cData".
+func (rn *RootNode) decryptXattrValue(cData []byte) (data []byte, err error) {
+	if len(cData) == 0 {
+		return []byte{}, nil
+	}
+	data, err1 := rn.contentEnc.DecryptBlock([]byte(cData), 0, nil)
+	if err1 == nil {
+		return data, nil
+	}
+	// This backward compatibility is needed to support old
+	// file systems having xattr values base64-encoded.
+	cData, err2 := rn.nameTransform.B64DecodeString(string(cData))
+	if err2 != nil {
+		// Looks like the value was not base64-encoded, but just corrupt.
+		// Return the original decryption error: err1
+		return nil, err1
+	}
+	return rn.contentEnc.DecryptBlock([]byte(cData), 0, nil)
+}
+
+// encryptXattrName transforms "user.foo" to "user.gocryptfs.a5sAd4XAa47f5as6dAf"
+func (rn *RootNode) encryptXattrName(attr string) (cAttr string) {
+	// xattr names are encrypted like file names, but with a fixed IV.
+	cAttr = xattrStorePrefix + rn.nameTransform.EncryptName(attr, xattrNameIV)
+	return cAttr
+}
+
+func (rn *RootNode) decryptXattrName(cAttr string) (attr string, err error) {
+	// Reject anything that does not start with "user.gocryptfs."
+	if !strings.HasPrefix(cAttr, xattrStorePrefix) {
+		return "", syscall.EINVAL
+	}
+	// Strip "user.gocryptfs." prefix
+	cAttr = cAttr[len(xattrStorePrefix):]
+	attr, err = rn.nameTransform.DecryptName(cAttr, xattrNameIV)
+	if err != nil {
+		return "", err
+	}
+	return attr, nil
+}

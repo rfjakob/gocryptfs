@@ -12,14 +12,6 @@ import (
 
 const _EOPNOTSUPP = fuse.Status(syscall.EOPNOTSUPP)
 
-// xattr names are encrypted like file names, but with a fixed IV.
-// Padded with "_xx" for length 16.
-var xattrNameIV = []byte("xattr_name_iv_xx")
-
-// We store encrypted xattrs under this prefix plus the base64-encoded
-// encrypted original name.
-var xattrStorePrefix = "user.gocryptfs."
-
 // GetXAttr - FUSE call. Reads the value of extended attribute "attr".
 //
 // This function is symlink-safe through Fgetxattr.

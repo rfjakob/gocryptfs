@@ -14,10 +14,6 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 )
 
-func filterXattrSetFlags(flags int) int {
-	return flags
-}
-
 func (fs *FS) getXAttr(relPath string, cAttr string, context *fuse.Context) ([]byte, fuse.Status) {
 	dirfd, cName, err := fs.openBackingDir(relPath)
 	if err != nil {
