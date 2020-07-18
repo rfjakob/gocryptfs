@@ -55,7 +55,7 @@ func (n *Node) mkdirWithIv(dirfd int, cName string, mode uint32, caller *fuse.Ca
 // Symlink-safe through use of Mkdirat().
 func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
 	rn := n.rootNode()
-	newPath := filepath.Join(n.path(), name)
+	newPath := filepath.Join(n.Path(), name)
 	if rn.isFiltered(newPath) {
 		return nil, syscall.EPERM
 	}
@@ -147,7 +147,7 @@ func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.En
 // ReadDirIVAt().
 func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 	rn := n.rootNode()
-	p := n.path()
+	p := n.Path()
 	dirName := filepath.Base(p)
 	parentDirFd, cDirName, err := rn.openBackingDir(p)
 	if err != nil {
@@ -232,7 +232,7 @@ func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 // Symlink-safe through Unlinkat() + AT_REMOVEDIR.
 func (n *Node) Rmdir(ctx context.Context, name string) (code syscall.Errno) {
 	rn := n.rootNode()
-	p := filepath.Join(n.path(), name)
+	p := filepath.Join(n.Path(), name)
 	parentDirFd, cName, err := rn.openBackingDir(p)
 	if err != nil {
 		return fs.ToErrno(err)

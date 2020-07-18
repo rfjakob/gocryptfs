@@ -22,9 +22,9 @@ type Node struct {
 	fs.Inode
 }
 
-// path returns the relative plaintext path of this node
-func (n *Node) path() string {
-	return n.Path(n.Root())
+// Path returns the relative plaintext path of this node
+func (n *Node) Path() string {
+	return n.Inode.Path(n.Root())
 }
 
 // rootNode returns the Root Node of the filesystem.
@@ -40,7 +40,7 @@ func (n *Node) rootNode() *RootNode {
 // a child of this node.
 // If `child` is empty, the (dirfd, cName) pair refers to this node itself.
 func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno syscall.Errno) {
-	p := n.path()
+	p := n.Path()
 	if child != "" {
 		p = filepath.Join(p, child)
 	}
