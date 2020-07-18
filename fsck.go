@@ -1,6 +1,3 @@
-// +build ignore
-// TODO
-
 package main
 
 import (
@@ -8,13 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"syscall"
 
+	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
-	"github.com/hanwen/go-fuse/v2/fuse/nodefs"
 
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
@@ -22,7 +18,7 @@ import (
 )
 
 type fsckObj struct {
-	fs *fusefrontend.FS
+	rootNode *fusefrontend.RootNode
 	// List of corrupt files
 	corruptList []string
 	// List of skipped files
@@ -55,7 +51,7 @@ func (ck *fsckObj) markSkipped(path string) {
 func (ck *fsckObj) watchMitigatedCorruptionsOpenDir(path string) {
 	for {
 		select {
-		case item := <-ck.fs.MitigatedCorruptions:
+		case item := <-ck.rootNode.MitigatedCorruptions:
 			fmt.Printf("fsck: corrupt entry in dir %q: %q\n", path, item)
 			ck.markCorrupt(filepath.Join(path, item))
 		case <-ck.watchDone:
@@ -65,30 +61,39 @@ func (ck *fsckObj) watchMitigatedCorruptionsOpenDir(path string) {
 }
 
 // Recursively check dir for corruption
-func (ck *fsckObj) dir(path string) {
-	tlog.Debug.Printf("ck.dir %q\n", path)
-	ck.xattrs(path)
+func (ck *fsckObj) dir(n *fusefrontend.Node) {
+	path := n.Path()
+	tlog.Debug.Printf("ck.dir %q\n")
+	ck.xattrs(n)
 	// Run OpenDir and catch transparently mitigated corruptions
 	go ck.watchMitigatedCorruptionsOpenDir(path)
-	entries, status := ck.fs.OpenDir(path, nil)
+	entries, errno := n.Readdir(nil)
 	ck.watchDone <- struct{}{}
 	// Also catch non-mitigated corruptions
-	if !status.Ok() {
-		fmt.Printf("fsck: error opening dir %q: %v\n", path, status)
-		if status == fuse.EACCES && !runsAsRoot() {
+	if errno != 0 {
+		fmt.Printf("fsck: error opening dir %q: %v\n", n, errno)
+		if errno == syscall.EACCES && !runsAsRoot() {
 			ck.markSkipped(path)
 		} else {
 			ck.markCorrupt(path)
 		}
 		return
 	}
-	// Sort alphabetically
-	sort.Sort(sortableDirEntries(entries))
-	for _, entry := range entries {
+	for entries.HasNext() {
+		entry, errno := entries.Next()
+		if errno != 0 {
+			fmt.Printf("fsck: dirstream error: %v\n", errno)
+			break
+		}
 		if entry.Name == "." || entry.Name == ".." {
 			continue
 		}
-		nextPath := filepath.Join(path, entry.Name)
+		tmp, errno := n.Lookup(nil, entry.Name, &fuse.EntryOut{})
+		if errno != 0 {
+			ck.markCorrupt(filepath.Join(path, entry.Name))
+			continue
+		}
+		nextPath := tmp.Operations().(*fusefrontend.Node)
 		filetype := entry.Mode & syscall.S_IFMT
 		//fmt.Printf("  %q %x\n", entry.Name, entry.Mode)
 		switch filetype {
@@ -106,11 +111,12 @@ func (ck *fsckObj) dir(path string) {
 	}
 }
 
-func (ck *fsckObj) symlink(path string) {
-	_, status := ck.fs.Readlink(path, nil)
-	if !status.Ok() {
+func (ck *fsckObj) symlink(n *fusefrontend.Node) {
+	_, errno := n.Readlink(nil)
+	if errno != 0 {
+		path := n.Path()
 		ck.markCorrupt(path)
-		fmt.Printf("fsck: error reading symlink %q: %v\n", path, status)
+		fmt.Printf("fsck: error reading symlink %q: %v\n", path, errno)
 	}
 }
 
@@ -118,7 +124,7 @@ func (ck *fsckObj) symlink(path string) {
 func (ck *fsckObj) watchMitigatedCorruptionsRead(path string) {
 	for {
 		select {
-		case item := <-ck.fs.MitigatedCorruptions:
+		case item := <-ck.rootNode.MitigatedCorruptions:
 			fmt.Printf("fsck: corrupt file %q (inode %s)\n", path, item)
 			ck.markCorrupt(path)
 		case <-ck.watchDone:
@@ -128,12 +134,14 @@ func (ck *fsckObj) watchMitigatedCorruptionsRead(path string) {
 }
 
 // Check file for corruption
-func (ck *fsckObj) file(path string) {
+func (ck *fsckObj) file(n *fusefrontend.Node) {
+	path := n.Path()
 	tlog.Debug.Printf("ck.file %q\n", path)
-	attr, status := ck.fs.GetAttr(path, nil)
-	if !status.Ok() {
+	var attr fuse.AttrOut
+	errno := n.Getattr(nil, nil, &attr)
+	if errno != 0 {
 		ck.markCorrupt(path)
-		fmt.Printf("fsck: error stating file %q: %v\n", path, status)
+		fmt.Printf("fsck: error stating file %q: %v\n", path, errno)
 		return
 	}
 	if attr.Nlink > 1 {
@@ -144,18 +152,19 @@ func (ck *fsckObj) file(path string) {
 		}
 		ck.seenInodes[attr.Ino] = struct{}{}
 	}
-	ck.xattrs(path)
-	f, status := ck.fs.Open(path, syscall.O_RDONLY, nil)
-	if !status.Ok() {
-		fmt.Printf("fsck: error opening file %q: %v\n", path, status)
-		if status == fuse.EACCES && !runsAsRoot() {
+	ck.xattrs(n)
+	tmp, _, errno := n.Open(nil, syscall.O_RDONLY)
+	if errno != 0 {
+		fmt.Printf("fsck: error opening file %q: %v\n", path, errno)
+		if errno == syscall.EACCES && !runsAsRoot() {
 			ck.markSkipped(path)
 		} else {
 			ck.markCorrupt(path)
 		}
 		return
 	}
-	defer f.Release()
+	f := tmp.(*fusefrontend.File2)
+	defer f.Release(nil)
 	// 128 kiB of zeros
 	allZero := make([]byte, fuse.MAX_KERNEL_WRITE)
 	buf := make([]byte, fuse.MAX_KERNEL_WRITE)
@@ -165,10 +174,10 @@ func (ck *fsckObj) file(path string) {
 	defer func() { ck.watchDone <- struct{}{} }()
 	for {
 		tlog.Debug.Printf("ck.file: read %d bytes from offset %d\n", len(buf), off)
-		result, status := f.Read(buf, off)
-		if !status.Ok() {
+		result, errno := f.Read(nil, buf, off)
+		if errno != 0 {
 			ck.markCorrupt(path)
-			fmt.Printf("fsck: error reading file %q (inum %d): %v\n", path, inum(f), status)
+			fmt.Printf("fsck: error reading file %q (inum %d): %v\n", path, inum(f), errno)
 			return
 		}
 		n := result.Size()
@@ -182,8 +191,7 @@ func (ck *fsckObj) file(path string) {
 		data := buf[:n]
 		if bytes.Equal(data, allZero) {
 			tlog.Debug.Printf("ck.file: trying to skip file hole\n")
-			f2 := f.(*fusefrontend.File)
-			nextOff, err := f2.SeekData(off)
+			nextOff, err := f.SeekData(off)
 			if err == nil {
 				off = nextOff
 			}
@@ -195,7 +203,7 @@ func (ck *fsckObj) file(path string) {
 func (ck *fsckObj) watchMitigatedCorruptionsListXAttr(path string) {
 	for {
 		select {
-		case item := <-ck.fs.MitigatedCorruptions:
+		case item := <-ck.rootNode.MitigatedCorruptions:
 			fmt.Printf("fsck: corrupt xattr name on file %q: %q\n", path, item)
 			ck.markCorrupt(path + " xattr:" + item)
 		case <-ck.watchDone:
@@ -205,22 +213,32 @@ func (ck *fsckObj) watchMitigatedCorruptionsListXAttr(path string) {
 }
 
 // Check xattrs on file/dir at path
-func (ck *fsckObj) xattrs(path string) {
+func (ck *fsckObj) xattrs(n *fusefrontend.Node) {
 	// Run ListXAttr() and catch transparently mitigated corruptions
+	path := n.Path()
 	go ck.watchMitigatedCorruptionsListXAttr(path)
-	attrs, status := ck.fs.ListXAttr(path, nil)
+	listBuf := make([]byte, 1024*1024)
+	cnt, errno := n.Listxattr(nil, listBuf)
 	ck.watchDone <- struct{}{}
 	// Also catch non-mitigated corruptions
-	if !status.Ok() {
-		fmt.Printf("fsck: error listing xattrs on %q: %v\n", path, status)
+	if errno != 0 {
+		fmt.Printf("fsck: error listing xattrs on %q: %v\n", path, errno)
 		ck.markCorrupt(path)
 		return
 	}
+	if cnt == 0 {
+		return
+	}
+	// Drop final trailing NULL byte
+	cnt--
+	listBuf = listBuf[:cnt]
+	attrs := bytes.Split(listBuf, []byte{0})
 	for _, a := range attrs {
-		_, status := ck.fs.GetXAttr(path, a, nil)
-		if !status.Ok() {
-			fmt.Printf("fsck: error reading xattr %q from %q: %v\n", a, path, status)
-			if status == fuse.EACCES && !runsAsRoot() {
+		getBuf := make([]byte, 1024*1024)
+		_, errno := n.Getxattr(nil, string(a), getBuf)
+		if errno != 0 {
+			fmt.Printf("fsck: error reading xattr %q from %q: %v\n", a, path, errno)
+			if errno == syscall.EACCES && !runsAsRoot() {
 				ck.markSkipped(path)
 			} else {
 				ck.markCorrupt(path)
@@ -236,14 +254,15 @@ func fsck(args *argContainer) {
 	}
 	args.allow_other = false
 	pfs, wipeKeys := initFuseFrontend(args)
-	fs := pfs.(*fusefrontend.FS)
-	fs.MitigatedCorruptions = make(chan string)
+	fs.NewNodeFS(pfs, &fs.Options{})
+	rn := pfs.(*fusefrontend.RootNode)
+	rn.MitigatedCorruptions = make(chan string)
 	ck := fsckObj{
-		fs:         fs,
+		rootNode:   rn,
 		watchDone:  make(chan struct{}),
 		seenInodes: make(map[uint64]struct{}),
 	}
-	ck.dir("")
+	ck.dir(&rn.Node)
 	wipeKeys()
 	if len(ck.corruptList) == 0 && len(ck.skippedList) == 0 {
 		tlog.Info.Printf("fsck summary: no problems found\n")
@@ -270,8 +289,8 @@ func (s sortableDirEntries) Less(i, j int) bool {
 	return strings.Compare(s[i].Name, s[j].Name) < 0
 }
 
-func inum(f nodefs.File) uint64 {
-	var a fuse.Attr
-	f.GetAttr(&a)
+func inum(f *fusefrontend.File2) uint64 {
+	var a fuse.AttrOut
+	f.Getattr(nil, &a)
 	return a.Ino
 }

@@ -316,7 +316,6 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 			log.Panic("reverse mode must use AES-SIV, everything else is insecure")
 		}
 		rootNode = fusefrontend_reverse.NewRootNode(frontendArgs, cEnc, nameTransform)
-
 	} else {
 		rootNode = fusefrontend.NewRootNode(frontendArgs, cEnc, nameTransform)
 	}
