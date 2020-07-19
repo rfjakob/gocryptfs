@@ -69,17 +69,7 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (ch 
 	if err != nil {
 		return nil, fs.ToErrno(err)
 	}
-	// Get unique inode number
-	n.rootNode().inoMap.TranslateStat(st)
-	out.Attr.FromStat(st)
-	// Create child node
-	id := fs.StableAttr{
-		Mode: uint32(st.Mode),
-		Gen:  1,
-		Ino:  st.Ino,
-	}
-	node := &Node{}
-	ch = n.NewInode(ctx, node, id)
+	ch = n.newChild(ctx, st, out)
 	return ch, 0
 }
 
