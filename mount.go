@@ -24,7 +24,6 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
-	"github.com/hanwen/go-fuse/v2/fuse/pathfs"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
@@ -328,20 +327,6 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 }
 
 func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
-	// pathFsOpts are passed into go-fuse/pathfs
-	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: true}
-	if args.sharedstorage {
-		// shared storage mode disables hard link tracking as the backing inode
-		// numbers may change behind our back:
-		// https://github.com/rfjakob/gocryptfs/issues/156
-		pathFsOpts.ClientInodes = false
-	}
-	if args.reverse {
-		// Reverse mode is read-only, so we don't need a working link().
-		// Disable hard link tracking to avoid strange breakage on duplicate
-		// inode numbers ( https://github.com/rfjakob/gocryptfs/issues/149 ).
-		pathFsOpts.ClientInodes = false
-	}
 	var fuseOpts *fs.Options
 	sec := time.Second
 	if args.sharedstorage {
@@ -358,6 +343,8 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 		}
 	}
 	fuseOpts.NullPermissions = true
+	// Enable go-fuse warnings
+	fuseOpts.Logger = log.New(os.Stderr, "go-fuse: ", 0)
 	fuseOpts.MountOptions = fuse.MountOptions{
 		// Writes and reads are usually capped at 128kiB on Linux through
 		// the FUSE_MAX_PAGES_PER_REQ kernel constant in fuse_i.h. Our
@@ -368,6 +355,7 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 		MaxWrite: fuse.MAX_KERNEL_WRITE,
 		Options:  []string{fmt.Sprintf("max_read=%d", fuse.MAX_KERNEL_WRITE)},
 	}
+
 	mOpts := &fuseOpts.MountOptions
 	if args.allow_other {
 		tlog.Info.Printf(tlog.ColorYellow + "The option \"-allow_other\" is set. Make sure the file " +

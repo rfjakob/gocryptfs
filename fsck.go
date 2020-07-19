@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -254,7 +255,11 @@ func fsck(args *argContainer) {
 	}
 	args.allow_other = false
 	pfs, wipeKeys := initFuseFrontend(args)
-	fs.NewNodeFS(pfs, &fs.Options{})
+	opts := fs.Options{
+		// Enable go-fuse warnings
+		Logger: log.New(os.Stderr, "go-fuse: ", 0),
+	}
+	fs.NewNodeFS(pfs, &opts)
 	rn := pfs.(*fusefrontend.RootNode)
 	rn.MitigatedCorruptions = make(chan string)
 	ck := fsckObj{
