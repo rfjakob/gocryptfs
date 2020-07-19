@@ -221,7 +221,7 @@ func setOpenFileLimit() {
 	}
 }
 
-// initFuseFrontend - initialize gocryptfs/fusefrontend
+// initFuseFrontend - initialize gocryptfs/internal/fusefrontend
 // Calls os.Exit on errors
 func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys func()) {
 	var err error
@@ -326,6 +326,9 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 	return rootNode, func() { cCore.Wipe() }
 }
 
+// initGoFuse calls into go-fuse to mount `rootNode` on `args.mountpoint`.
+// The mountpoint is ready to use when the functions returns.
+// On error, it calls os.Exit and does not return.
 func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 	var fuseOpts *fs.Options
 	sec := time.Second

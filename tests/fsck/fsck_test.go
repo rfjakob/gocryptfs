@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -98,8 +99,8 @@ func TestTerabyteFile(t *testing.T) {
 	pDir := cDir + ".mnt"
 	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test")
 	defer test_helpers.UnmountErr(pDir)
-	exabyteFile := pDir + "/exabyteFile"
-	fd, err := os.Create(exabyteFile)
+	veryBigFile := pDir + "/veryBigFile"
+	fd, err := os.Create(veryBigFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,8 +120,8 @@ func TestTerabyteFile(t *testing.T) {
 	cmd.Stdout = os.Stdout
 	cmd.Start()
 	timer := time.AfterFunc(10*time.Second, func() {
-		cmd.Process.Kill()
-		t.Fatalf("timeout")
+		t.Error("timeout, sending SIGINT")
+		syscall.Kill(cmd.Process.Pid, syscall.SIGINT)
 	})
 	cmd.Wait()
 	timer.Stop()
