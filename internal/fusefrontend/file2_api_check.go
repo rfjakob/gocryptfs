@@ -13,11 +13,11 @@ var _ = (fs.FileWriter)((*File2)(nil))
 var _ = (fs.FileFsyncer)((*File2)(nil))
 var _ = (fs.FileFlusher)((*File2)(nil))
 var _ = (fs.FileAllocater)((*File2)(nil))
+var _ = (fs.FileLseeker)((*File2)(nil))
 
 /* TODO
 var _ = (fs.FileHandle)((*File2)(nil))
 var _ = (fs.FileGetlker)((*File2)(nil))
 var _ = (fs.FileSetlker)((*File2)(nil))
 var _ = (fs.FileSetlkwer)((*File2)(nil))
-var _ = (fs.FileLseeker)((*File2)(nil))
 */

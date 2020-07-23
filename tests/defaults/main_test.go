@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -260,4 +261,35 @@ func TestCpWarnings(t *testing.T) {
 	if len(out) != 0 {
 		t.Fatalf("Got warnings from cp -a:\n%s", string(out))
 	}
+}
+
+func TestSeekData(t *testing.T) {
+	fn := filepath.Join(test_helpers.DefaultPlainDir, t.Name())
+	f, err := os.Create(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var oneTiB int64 = 1024 * 1024 * 1024 * 1024
+	if _, err = f.Seek(oneTiB, 0); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.Write([]byte("foo")); err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+
+	const SEEK_DATA = 3
+
+	f, err = os.Open(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	off, err := f.Seek(1024*1024, SEEK_DATA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if off < oneTiB-1024*1024 {
+		t.Errorf("off=%d, expected=%d\n", off, oneTiB)
+	}
+	f.Close()
 }
