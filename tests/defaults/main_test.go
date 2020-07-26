@@ -293,3 +293,79 @@ func TestSeekData(t *testing.T) {
 	}
 	f.Close()
 }
+
+/*
+TestMd5sumMaintainers tries to repro this interesting
+bug that was seen during gocryptfs v2.0 development:
+
+$ md5sum linux-3.0/MAINTAINERS linux-3.0/MAINTAINERS linux-3.0/MAINTAINERS linux-3.0/MAINTAINERS
+279b6ab0491e7532132e8f32afe6c04d  linux-3.0/MAINTAINERS <-- WRONG!!!!
+99cc9f0dfd86e63231b94edd43a43e02  linux-3.0/MAINTAINERS <-- correct
+99cc9f0dfd86e63231b94edd43a43e02  linux-3.0/MAINTAINERS
+99cc9f0dfd86e63231b94edd43a43e02  linux-3.0/MAINTAINERS
+
+strace shows:
+
+Bad
+---
+fstat(3, {st_mode=S_IFREG|0644, st_size=196745, ...}) = 0
+read(3, "\n\tList of maintainers and how to"..., 32768) = 32768
+read(3, "M:\tSylwester Nawrocki <s.nawrock"..., 32768) = 32768
+read(3, "rs/scsi/eata*\n\nEATA ISA/EISA/PCI"..., 32768) = 32768
+read(3, "F:\tDocumentation/isapnp.txt\nF:\td"..., 32768) = 32768
+read(3, "hunkeey@googlemail.com>\nL:\tlinux"..., 32768) = 32768
+read(3, "ach-spear3xx/\n\nSPEAR6XX MACHINE "..., 32768) = 32768
+read(3, "", 32768)                      = 0
+lseek(3, 0, SEEK_CUR)                   = 196608
+close(3)                                = 0
+fstat(1, {st_mode=S_IFCHR|0620, st_rdev=makedev(0x88, 0x2), ...}) = 0
+write(1, "279b6ab0491e7532132e8f32afe6c04d"..., 56279b6ab0491e7532132e8f32afe6c04d  linux-3.0/MAINTAINERS
+
+Good
+----
+fstat(3, {st_mode=S_IFREG|0644, st_size=195191, ...}) = 0
+read(3, "\n\tList of maintainers and how to"..., 32768) = 32768
+read(3, "M:\tSylwester Nawrocki <s.nawrock"..., 32768) = 32768
+read(3, "rs/scsi/eata*\n\nEATA ISA/EISA/PCI"..., 32768) = 32768
+read(3, "F:\tDocumentation/isapnp.txt\nF:\td"..., 32768) = 32768
+read(3, "hunkeey@googlemail.com>\nL:\tlinux"..., 32768) = 32768
+read(3, "ach-spear3xx/\n\nSPEAR6XX MACHINE "..., 32768) = 31351
+read(3, "", 4096)                       = 0
+lseek(3, 0, SEEK_CUR)                   = 195191
+close(3)                                = 0
+fstat(1, {st_mode=S_IFCHR|0620, st_rdev=makedev(0x88, 0x2), ...}) = 0
+write(1, "99cc9f0dfd86e63231b94edd43a43e02"..., 5699cc9f0dfd86e63231b94edd43a43e02  linux-3.0/MAINTAINERS
+*/
+func TestMd5sumMaintainers(t *testing.T) {
+	fn := filepath.Join(test_helpers.DefaultPlainDir, t.Name())
+	f, err := os.Create(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Size of the MAINTAINERS file = 195191
+	const sizeWant = 195191
+	content := make([]byte, sizeWant)
+	_, err = f.Write(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+
+	// Remount to clear the linux kernel attr cache
+	// (otherwise we would have to wait 2 seconds for the entry to expire)
+	test_helpers.UnmountPanic(test_helpers.DefaultPlainDir)
+	test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, "-zerokey")
+
+	cmd := exec.Command("md5sum", fn, fn, fn, fn)
+	out2, err := cmd.CombinedOutput()
+	out := string(out2)
+
+	// 195191 zero bytes have this md5sum
+	const md5Want = "b99bf6917f688068acd49126f3b1b005"
+
+	n := strings.Count(out, md5Want)
+	if n != 4 {
+		t.Errorf("found %d instead of %d instances of %q", n, 4, md5Want)
+		t.Logf("full output:\n%s", out)
+	}
+}

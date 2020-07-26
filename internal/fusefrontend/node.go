@@ -69,7 +69,13 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (ch 
 	if err != nil {
 		return nil, fs.ToErrno(err)
 	}
+
+	// Create new inode and fill `out`
 	ch = n.newChild(ctx, st, out)
+
+	// Translate ciphertext size in `out.Attr.Size` to plaintext size
+	n.translateSize(dirfd, cName, &out.Attr)
+
 	return ch, 0
 }
 
@@ -98,13 +104,9 @@ func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) 
 	rn.inoMap.TranslateStat(st)
 	out.Attr.FromStat(st)
 
-	// Fix size
-	if out.IsRegular() {
-		out.Size = rn.contentEnc.CipherSizeToPlainSize(out.Size)
-	} else if out.IsSymlink() {
-		target, _ := n.Readlink(ctx)
-		out.Size = uint64(len(target))
-	}
+	// Translate ciphertext size in `out.Attr.Size` to plaintext size
+	n.translateSize(dirfd, cName, &out.Attr)
+
 	if rn.args.ForceOwner != nil {
 		out.Owner = *rn.args.ForceOwner
 	}
@@ -221,21 +223,7 @@ func (n *Node) Readlink(ctx context.Context) (out []byte, errno syscall.Errno) {
 	}
 	defer syscall.Close(dirfd)
 
-	cTarget, err := syscallcompat.Readlinkat(dirfd, cName)
-	if err != nil {
-		return nil, fs.ToErrno(err)
-	}
-	rn := n.rootNode()
-	if rn.args.PlaintextNames {
-		return []byte(cTarget), 0
-	}
-	// Symlinks are encrypted like file contents (GCM) and base64-encoded
-	target, err := rn.decryptSymlinkTarget(cTarget)
-	if err != nil {
-		tlog.Warn.Printf("Readlink %q: decrypting target failed: %v", cName, err)
-		return nil, syscall.EIO
-	}
-	return []byte(target), 0
+	return n.readlink(dirfd, cName)
 }
 
 // Open - FUSE call. Open already-existing file.
