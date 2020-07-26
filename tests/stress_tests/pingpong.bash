@@ -8,6 +8,9 @@
 
 set -eu
 
+# Run at low priority to not annoy the user too much
+renice 19 $$
+
 cd "$(dirname "$0")"
 MD5="$PWD/linux-3.0.md5sums"
 MYNAME=$(basename $0)
