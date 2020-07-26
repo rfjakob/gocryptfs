@@ -6,6 +6,7 @@ package fusefrontend
 import (
 	"context"
 	"log"
+	"sync"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fs"
@@ -13,6 +14,15 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
+
+// FALLOC_DEFAULT is a "normal" fallocate operation
+const FALLOC_DEFAULT = 0x00
+
+// FALLOC_FL_KEEP_SIZE allocates disk space while not modifying the file size
+const FALLOC_FL_KEEP_SIZE = 0x01
+
+// Only warn once
+var allocateWarnOnce sync.Once
 
 // Allocate - FUSE call for fallocate(2)
 //

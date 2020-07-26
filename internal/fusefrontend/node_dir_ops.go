@@ -20,6 +20,18 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
+const dsStoreName = ".DS_Store"
+
+// haveDsstore return true if one of the entries in "names" is ".DS_Store".
+func haveDsstore(entries []fuse.DirEntry) bool {
+	for _, e := range entries {
+		if e.Name == dsStoreName {
+			return true
+		}
+	}
+	return false
+}
+
 // mkdirWithIv - create a new directory and corresponding diriv file. dirfd
 // should be a handle to the parent directory, cName is the name of the new
 // directory and mode specifies the access permissions to use.
