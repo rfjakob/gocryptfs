@@ -357,6 +357,7 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 		// the kernel to limit the size explicitly.
 		MaxWrite: fuse.MAX_KERNEL_WRITE,
 		Options:  []string{fmt.Sprintf("max_read=%d", fuse.MAX_KERNEL_WRITE)},
+		Debug:    args.fusedebug,
 	}
 
 	mOpts := &fuseOpts.MountOptions
@@ -437,7 +438,6 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 		}
 		os.Exit(exitcodes.FuseNewServer)
 	}
-	srv.SetDebug(args.fusedebug)
 
 	// All FUSE file and directory create calls carry explicit permission
 	// information. We need an unrestricted umask to create the files and
