@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <errno.h>
+#include <string.h>
 
 int main(int argc, char *argv[])
 {
@@ -23,7 +24,10 @@ int main(int argc, char *argv[])
     for (int i = 1 ; ; i ++ ) {
         int fd = open(path, O_RDONLY);
         if (fd == -1) {
-            perror("open");
+            printf("%3d: open: %s\n", i, strerror(errno));
+            if(errno == EINTR) {
+                continue;
+            }
             exit(1);
         }
 
@@ -31,6 +35,7 @@ int main(int argc, char *argv[])
         int sum = 0;
         printf("%3d: getdents64: ", i);
         for ( ; ; ) {
+            errno = 0;
             int n = syscall(SYS_getdents64, fd, tmp, sizeof(tmp));
             printf("n=%d; ", n);
             if (n <= 0) {
