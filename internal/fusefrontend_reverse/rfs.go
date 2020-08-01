@@ -115,42 +115,29 @@ const (
 	typeRegular fileType = iota
 	// A DirIV (gocryptfs.diriv) file
 	typeDiriv
-	// A .name file for a file with a long name
+	// A gocryptfs.longname.*.name file for a file with a long name
 	typeName
-	// The config file
+	// The config file gocryptfs.conf
 	typeConfig
 )
 
-// getFileType returns the type of file. Only the name is checked
+// getFileType returns the type of file (one of the fileType constants above).
 func (rfs *ReverseFS) getFileType(cPath string) fileType {
-	if rfs.isDirIV(cPath) {
-		return typeDiriv
-	}
-	if rfs.isNameFile(cPath) {
-		return typeName
+	if !rfs.args.PlaintextNames {
+		cName := filepath.Base(cPath)
+		// Is it a gocryptfs.diriv file?
+		if cName == nametransform.DirIVFilename {
+			return typeDiriv
+		}
+		// Is it a gocryptfs.longname.*.name file?
+		if t := nametransform.NameType(cName); t == nametransform.LongNameFilename {
+			return typeName
+		}
 	}
 	if rfs.isTranslatedConfig(cPath) {
 		return typeConfig
 	}
 	return typeRegular
-}
-
-// isDirIV determines if the path points to a gocryptfs.diriv file
-func (rfs *ReverseFS) isDirIV(relPath string) bool {
-	if rfs.args.PlaintextNames {
-		return false
-	}
-	return filepath.Base(relPath) == nametransform.DirIVFilename
-}
-
-// isNameFile determines if the path points to a gocryptfs.longname.*.name
-// file
-func (rfs *ReverseFS) isNameFile(relPath string) bool {
-	if rfs.args.PlaintextNames {
-		return false
-	}
-	fileType := nametransform.NameType(filepath.Base(relPath))
-	return fileType == nametransform.LongNameFilename
 }
 
 // isTranslatedConfig returns true if the default config file name is in use
