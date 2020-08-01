@@ -21,14 +21,14 @@ type Node struct {
 // Lookup - FUSE call for discovering a file.
 // TODO handle virtual files
 func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (ch *fs.Inode, errno syscall.Errno) {
-	dirfd, cName, errno := n.prepareAtSyscall(name)
+	dirfd, pName, errno := n.prepareAtSyscall(name)
 	if errno != 0 {
 		return
 	}
 	defer syscall.Close(dirfd)
 
 	// Get device number and inode number into `st`
-	st, err := syscallcompat.Fstatat2(dirfd, cName, unix.AT_SYMLINK_NOFOLLOW)
+	st, err := syscallcompat.Fstatat2(dirfd, pName, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		return nil, fs.ToErrno(err)
 	}
@@ -37,7 +37,7 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (ch 
 	ch = n.newChild(ctx, st, out)
 
 	// Translate ciphertext size in `out.Attr.Size` to plaintext size
-	n.translateSize(dirfd, cName, &out.Attr)
+	n.translateSize(dirfd, pName, &out.Attr)
 
 	return ch, 0
 }
@@ -51,13 +51,13 @@ func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) 
 		return f.(fs.FileGetattrer).Getattr(ctx, out)
 	}
 
-	dirfd, cName, errno := n.prepareAtSyscall("")
+	dirfd, pName, errno := n.prepareAtSyscall("")
 	if errno != 0 {
 		return
 	}
 	defer syscall.Close(dirfd)
 
-	st, err := syscallcompat.Fstatat2(dirfd, cName, unix.AT_SYMLINK_NOFOLLOW)
+	st, err := syscallcompat.Fstatat2(dirfd, pName, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		return fs.ToErrno(err)
 	}
@@ -68,7 +68,7 @@ func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) 
 	out.Attr.FromStat(st)
 
 	// Translate ciphertext size in `out.Attr.Size` to plaintext size
-	n.translateSize(dirfd, cName, &out.Attr)
+	n.translateSize(dirfd, pName, &out.Attr)
 
 	if rn.args.ForceOwner != nil {
 		out.Owner = *rn.args.ForceOwner
