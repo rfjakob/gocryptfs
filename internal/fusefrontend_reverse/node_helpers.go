@@ -65,3 +65,9 @@ func (n *Node) newChild(ctx context.Context, st *syscall.Stat_t, out *fuse.Entry
 	node := &Node{}
 	return n.NewInode(ctx, node, id)
 }
+
+// isRoot returns true if this node is the root node
+func (n *Node) isRoot() bool {
+	rn := n.rootNode()
+	return &rn.Node == n
+}
