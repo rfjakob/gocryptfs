@@ -47,10 +47,19 @@ func (rfs *RootNode) rDecryptName(cName string, dirIV []byte, pDir string) (pNam
 			return "", err
 		}
 	} else if nameType == nametransform.LongNameContent {
-		panic("todo")
-		//pName, err = rfs.findLongnameParent(pDir, dirIV, cName)
+		dirfd, err := syscallcompat.OpenDirNofollow(rfs.args.Cipherdir, filepath.Dir(pDir))
 		if err != nil {
 			return "", err
+		}
+		defer syscall.Close(dirfd)
+		fd, err := syscallcompat.Openat(dirfd, filepath.Base(pDir), syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
+		if err != nil {
+			return "", err
+		}
+		var errno syscall.Errno
+		pName, _, errno = rfs.findLongnameParent(fd, dirIV, cName)
+		if errno != 0 {
+			return "", errno
 		}
 	} else {
 		// It makes no sense to decrypt a ".name" file. This is a virtual file

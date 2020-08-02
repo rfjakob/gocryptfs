@@ -5,8 +5,24 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
+
+	"github.com/rfjakob/gocryptfs/internal/pathiv"
+	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
+)
+
+const (
+	// File names are padded to 16-byte multiples, encrypted and
+	// base64-encoded. We can encode at most 176 bytes to stay below the 255
+	// bytes limit:
+	// * base64(176 bytes) = 235 bytes
+	// * base64(192 bytes) = 256 bytes (over 255!)
+	// But the PKCS#7 padding is at least one byte. This means we can only use
+	// 175 bytes for the file name.
+	shortNameMax = 175
 )
 
 // translateSize translates the ciphertext size in `out` into plaintext size.
@@ -36,13 +52,13 @@ func (n *Node) rootNode() *RootNode {
 // If you pass a `child` file name, the (dirfd, cName) pair will refer to
 // a child of this node.
 // If `child` is empty, the (dirfd, cName) pair refers to this node itself.
-func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno syscall.Errno) {
+func (n *Node) prepareAtSyscall(child string) (dirfd int, pName string, errno syscall.Errno) {
 	p := n.Path()
 	if child != "" {
 		p = filepath.Join(p, child)
 	}
 	rn := n.rootNode()
-	dirfd, cName, err := rn.openBackingDir(p)
+	dirfd, pName, err := rn.openBackingDir(p)
 	if err != nil {
 		errno = fs.ToErrno(err)
 	}
@@ -70,4 +86,68 @@ func (n *Node) newChild(ctx context.Context, st *syscall.Stat_t, out *fuse.Entry
 func (n *Node) isRoot() bool {
 	rn := n.rootNode()
 	return &rn.Node == n
+}
+
+func (n *Node) lookupLongnameName(ctx context.Context, nameFile string, out *fuse.EntryOut) (ch *fs.Inode, errno syscall.Errno) {
+	dirfd, pName1, errno := n.prepareAtSyscall("")
+	if errno != 0 {
+		return
+	}
+	defer syscall.Close(dirfd)
+
+	// Find the file the gocryptfs.longname.XYZ.name file belongs to in the
+	// directory listing
+	fd, err := syscallcompat.Openat(dirfd, pName1, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
+	if err != nil {
+		errno = fs.ToErrno(err)
+		return
+	}
+	diriv := pathiv.Derive(n.Path(), pathiv.PurposeDirIV)
+	rn := n.rootNode()
+	pName, cFullname, errno := rn.findLongnameParent(fd, diriv, nameFile)
+	if errno != 0 {
+		return
+	}
+	// Get attrs from parent file
+	st, err := syscallcompat.Fstatat2(dirfd, pName, unix.AT_SYMLINK_NOFOLLOW)
+	if err != nil {
+		errno = fs.ToErrno(err)
+		return
+	}
+	var vf *virtualFile
+	vf, errno = n.newVirtualFile([]byte(cFullname), st, inoTagNameFile)
+	if errno != 0 {
+		return nil, errno
+	}
+	out.Attr = vf.attr
+	// Create child node
+	id := fs.StableAttr{Mode: uint32(vf.attr.Mode), Gen: 1, Ino: vf.attr.Ino}
+	ch = n.NewInode(ctx, vf, id)
+	return
+
+}
+
+// lookupDiriv returns a new Inode for a gocryptfs.diriv file inside `n`.
+func (n *Node) lookupDiriv(ctx context.Context, out *fuse.EntryOut) (ch *fs.Inode, errno syscall.Errno) {
+	dirfd, pName, errno := n.prepareAtSyscall("")
+	if errno != 0 {
+		return
+	}
+	defer syscall.Close(dirfd)
+	st, err := syscallcompat.Fstatat2(dirfd, pName, unix.AT_SYMLINK_NOFOLLOW)
+	if err != nil {
+		errno = fs.ToErrno(err)
+		return
+	}
+	content := pathiv.Derive(n.Path(), pathiv.PurposeDirIV)
+	var vf *virtualFile
+	vf, errno = n.newVirtualFile(content, st, inoTagDirIV)
+	if errno != 0 {
+		return nil, errno
+	}
+	out.Attr = vf.attr
+	// Create child node
+	id := fs.StableAttr{Mode: uint32(vf.attr.Mode), Gen: 1, Ino: vf.attr.Ino}
+	ch = n.NewInode(ctx, vf, id)
+	return
 }

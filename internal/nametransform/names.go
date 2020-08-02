@@ -23,6 +23,10 @@ type NameTransformer interface {
 	DecryptName(cipherName string, iv []byte) (string, error)
 	EncryptName(plainName string, iv []byte) string
 	EncryptAndHashName(name string, iv []byte) (string, error)
+	// HashLongName - take the hash of a long string "name" and return
+	// "gocryptfs.longname.[sha256]"
+	//
+	// This function does not do any I/O.
 	HashLongName(name string) string
 	WriteLongNameAt(dirfd int, hashName string, plainName string) error
 	B64EncodeToString(src []byte) string
