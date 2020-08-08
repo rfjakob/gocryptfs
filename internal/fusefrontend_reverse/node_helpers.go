@@ -26,12 +26,13 @@ const (
 )
 
 // translateSize translates the ciphertext size in `out` into plaintext size.
-func (n *Node) translateSize(dirfd int, cName string, out *fuse.Attr) {
+func (n *Node) translateSize(dirfd int, cName string, pName string, out *fuse.Attr) {
 	if out.IsRegular() {
 		rn := n.rootNode()
 		out.Size = rn.contentEnc.PlainSizeToCipherSize(out.Size)
 	} else if out.IsSymlink() {
-		panic("todo: call readlink once it is implemented")
+		cLink, _ := n.readlink(dirfd, cName, pName)
+		out.Size = uint64(len(cLink))
 	}
 }
 
@@ -150,4 +151,30 @@ func (n *Node) lookupDiriv(ctx context.Context, out *fuse.EntryOut) (ch *fs.Inod
 	id := fs.StableAttr{Mode: uint32(vf.attr.Mode), Gen: 1, Ino: vf.attr.Ino}
 	ch = n.NewInode(ctx, vf, id)
 	return
+}
+
+// readlink reads and encrypts a symlink. Used by Readlink, Getattr, Lookup.
+func (n *Node) readlink(dirfd int, cName string, pName string) (out []byte, errno syscall.Errno) {
+	plainTarget, err := syscallcompat.Readlinkat(dirfd, pName)
+	if err != nil {
+		errno = fs.ToErrno(err)
+		return
+	}
+	rn := n.rootNode()
+	if rn.args.PlaintextNames {
+		return []byte(plainTarget), 0
+	}
+	// Nonce is derived from the relative *ciphertext* path
+	p := filepath.Join(n.Path(), cName)
+	nonce := pathiv.Derive(p, pathiv.PurposeSymlinkIV)
+	// Symlinks are encrypted like file contents and base64-encoded
+	cBinTarget := rn.contentEnc.EncryptBlockNonce([]byte(plainTarget), 0, nil, nonce)
+	cTarget := rn.nameTransform.B64EncodeToString(cBinTarget)
+	// The kernel will reject a symlink target above 4096 chars and return
+	// and I/O error to the user. Better emit the proper error ourselves.
+	if len(cTarget) > syscallcompat.PATH_MAX {
+		errno = syscall.ENAMETOOLONG
+		return
+	}
+	return []byte(cTarget), 0
 }

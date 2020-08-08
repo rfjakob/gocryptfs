@@ -2,6 +2,7 @@ package fusefrontend_reverse
 
 import (
 	"context"
+	"path/filepath"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -20,16 +21,16 @@ type Node struct {
 }
 
 // Lookup - FUSE call for discovering a file.
-func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (ch *fs.Inode, errno syscall.Errno) {
+func (n *Node) Lookup(ctx context.Context, cName string, out *fuse.EntryOut) (ch *fs.Inode, errno syscall.Errno) {
 	dirfd := int(-1)
 	pName := ""
-	t := n.lookupFileType(name)
+	t := n.lookupFileType(cName)
 	if t == typeDiriv {
 		// gocryptfs.diriv
 		return n.lookupDiriv(ctx, out)
 	} else if t == typeName {
 		// gocryptfs.longname.*.name
-		return n.lookupLongnameName(ctx, name, out)
+		return n.lookupLongnameName(ctx, cName, out)
 	} else if t == typeConfig {
 		// gocryptfs.conf
 		var err error
@@ -43,7 +44,7 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (ch 
 		defer syscall.Close(dirfd)
 	} else if t == typeReal {
 		// real file
-		dirfd, pName, errno = n.prepareAtSyscall(name)
+		dirfd, pName, errno = n.prepareAtSyscall(cName)
 		if errno != 0 {
 			return
 		}
@@ -58,7 +59,7 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (ch 
 	ch = n.newChild(ctx, st, out)
 	// Translate ciphertext size in `out.Attr.Size` to plaintext size
 	if t == typeReal {
-		n.translateSize(dirfd, pName, &out.Attr)
+		n.translateSize(dirfd, cName, pName, &out.Attr)
 	}
 	return ch, 0
 }
@@ -89,10 +90,25 @@ func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) 
 	out.Attr.FromStat(st)
 
 	// Translate ciphertext size in `out.Attr.Size` to plaintext size
-	n.translateSize(dirfd, pName, &out.Attr)
+	cName := filepath.Base(n.Path())
+	n.translateSize(dirfd, cName, pName, &out.Attr)
 
 	if rn.args.ForceOwner != nil {
 		out.Owner = *rn.args.ForceOwner
 	}
 	return 0
+}
+
+// Readlink - FUSE call.
+//
+// Symlink-safe through openBackingDir() + Readlinkat().
+func (n *Node) Readlink(ctx context.Context) (out []byte, errno syscall.Errno) {
+	dirfd, pName, errno := n.prepareAtSyscall("")
+	if errno != 0 {
+		return
+	}
+	defer syscall.Close(dirfd)
+
+	cName := filepath.Base(n.Path())
+	return n.readlink(dirfd, cName, pName)
 }
