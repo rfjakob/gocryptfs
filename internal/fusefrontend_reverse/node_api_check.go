@@ -9,11 +9,10 @@ var _ = (fs.NodeGetattrer)((*Node)(nil))
 var _ = (fs.NodeLookuper)((*Node)(nil))
 var _ = (fs.NodeReaddirer)((*Node)(nil))
 var _ = (fs.NodeReadlinker)((*Node)(nil))
-
-/* TODO
 var _ = (fs.NodeOpener)((*Node)(nil))
+
+/*
 var _ = (fs.NodeStatfser)((*Node)(nil))
-var _ = (fs.NodeMknoder)((*Node)(nil))
 var _ = (fs.NodeGetxattrer)((*Node)(nil))
 var _ = (fs.NodeListxattrer)((*Node)(nil))
 */
@@ -23,6 +22,7 @@ var _ = (fs.NodeOpendirer)((*Node)(nil))
 */
 
 /* Will not implement these - reverse mode is read-only!
+var _ = (fs.NodeMknoder)((*Node)(nil))
 var _ = (fs.NodeCreater)((*Node)(nil))
 var _ = (fs.NodeMkdirer)((*Node)(nil))
 var _ = (fs.NodeRmdirer)((*Node)(nil))

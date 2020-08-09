@@ -10,6 +10,7 @@ import (
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 
+	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/pathiv"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 )
@@ -115,8 +116,8 @@ func (n *Node) lookupLongnameName(ctx context.Context, nameFile string, out *fus
 		errno = fs.ToErrno(err)
 		return
 	}
-	var vf *virtualFile
-	vf, errno = n.newVirtualFile([]byte(cFullname), st, inoTagNameFile)
+	var vf *VirtualMemNode
+	vf, errno = n.newVirtualMemNode([]byte(cFullname), st, inoTagNameFile)
 	if errno != 0 {
 		return nil, errno
 	}
@@ -141,8 +142,8 @@ func (n *Node) lookupDiriv(ctx context.Context, out *fuse.EntryOut) (ch *fs.Inod
 		return
 	}
 	content := pathiv.Derive(n.Path(), pathiv.PurposeDirIV)
-	var vf *virtualFile
-	vf, errno = n.newVirtualFile(content, st, inoTagDirIV)
+	var vf *VirtualMemNode
+	vf, errno = n.newVirtualMemNode(content, st, inoTagDirIV)
 	if errno != 0 {
 		return nil, errno
 	}
@@ -150,6 +151,30 @@ func (n *Node) lookupDiriv(ctx context.Context, out *fuse.EntryOut) (ch *fs.Inod
 	// Create child node
 	id := fs.StableAttr{Mode: uint32(vf.attr.Mode), Gen: 1, Ino: vf.attr.Ino}
 	ch = n.NewInode(ctx, vf, id)
+	return
+}
+
+// lookupConf returns a new Inode for the gocryptfs.conf file
+func (n *Node) lookupConf(ctx context.Context, out *fuse.EntryOut) (ch *fs.Inode, errno syscall.Errno) {
+	rn := n.rootNode()
+	p := filepath.Join(rn.args.Cipherdir, configfile.ConfReverseName)
+	var st syscall.Stat_t
+	err := syscall.Stat(p, &st)
+	if err != nil {
+		errno = fs.ToErrno(err)
+		return
+	}
+	// Get unique inode number
+	rn.inoMap.TranslateStat(&st)
+	out.Attr.FromStat(&st)
+	// Create child node
+	id := fs.StableAttr{
+		Mode: uint32(st.Mode),
+		Gen:  1,
+		Ino:  st.Ino,
+	}
+	node := &VirtualConfNode{path: p}
+	ch = n.NewInode(ctx, node, id)
 	return
 }
 

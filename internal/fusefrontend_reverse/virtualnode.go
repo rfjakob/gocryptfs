@@ -60,7 +60,9 @@ func (n *Node) lookupFileType(cName string) fileType {
 	return typeReal
 }
 
-type virtualFile struct {
+// VirtualMemNode is an in-memory node that does not have a representation
+// on disk.
+type VirtualMemNode struct {
 	fs.Inode
 
 	// file content
@@ -69,12 +71,12 @@ type virtualFile struct {
 	attr fuse.Attr
 }
 
-// newVirtualFile creates a new in-memory file that does not have a representation
+// newVirtualMemNode creates a new in-memory file that does not have a representation
 // on disk. "content" is the file content. Timestamps and file owner are copied
 // from "parentFile" (file descriptor).
 // For a "gocryptfs.diriv" file, you would use the parent directory as
 // "parentFile".
-func (n *Node) newVirtualFile(content []byte, parentStat *syscall.Stat_t, inoTag uint8) (vf *virtualFile, errno syscall.Errno) {
+func (n *Node) newVirtualMemNode(content []byte, parentStat *syscall.Stat_t, inoTag uint8) (vf *VirtualMemNode, errno syscall.Errno) {
 	if inoTag == 0 {
 		log.Panicf("BUG: inoTag for virtual file is zero - this will cause ino collisions!")
 	}
@@ -90,23 +92,23 @@ func (n *Node) newVirtualFile(content []byte, parentStat *syscall.Stat_t, inoTag
 	var a fuse.Attr
 	a.FromStat(st)
 
-	vf = &virtualFile{content: content, attr: a}
+	vf = &VirtualMemNode{content: content, attr: a}
 	return
 }
 
 // Open - FUSE call
-func (f *virtualFile) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, fuseFlags uint32, errno syscall.Errno) {
+func (f *VirtualMemNode) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, fuseFlags uint32, errno syscall.Errno) {
 	return nil, fuse.FOPEN_KEEP_CACHE, 0
 }
 
 // GetAttr - FUSE call
-func (f *virtualFile) Getattr(ctx context.Context, fh fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
+func (f *VirtualMemNode) Getattr(ctx context.Context, fh fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	out.Attr = f.attr
 	return 0
 }
 
 // Read - FUSE call
-func (f *virtualFile) Read(ctx context.Context, fh fs.FileHandle, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
+func (f *VirtualMemNode) Read(ctx context.Context, fh fs.FileHandle, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
 	end := int(off) + len(dest)
 	if end > len(f.content) {
 		end = len(f.content)

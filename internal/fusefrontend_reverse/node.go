@@ -2,6 +2,8 @@ package fusefrontend_reverse
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"path/filepath"
 	"syscall"
 
@@ -10,8 +12,10 @@ import (
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 
-	"github.com/rfjakob/gocryptfs/internal/configfile"
+	"github.com/rfjakob/gocryptfs/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/internal/pathiv"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 // Node is a file or directory in the filesystem tree
@@ -33,15 +37,7 @@ func (n *Node) Lookup(ctx context.Context, cName string, out *fuse.EntryOut) (ch
 		return n.lookupLongnameName(ctx, cName, out)
 	} else if t == typeConfig {
 		// gocryptfs.conf
-		var err error
-		pName = configfile.ConfReverseName
-		rn := n.rootNode()
-		dirfd, err = syscallcompat.OpenDirNofollow(rn.args.Cipherdir, "")
-		if err != nil {
-			errno = fs.ToErrno(err)
-			return
-		}
-		defer syscall.Close(dirfd)
+		return n.lookupConf(ctx, out)
 	} else if t == typeReal {
 		// real file
 		dirfd, pName, errno = n.prepareAtSyscall(cName)
@@ -111,4 +107,74 @@ func (n *Node) Readlink(ctx context.Context) (out []byte, errno syscall.Errno) {
 
 	cName := filepath.Base(n.Path())
 	return n.readlink(dirfd, cName, pName)
+}
+
+// Open - FUSE call. Open already-existing file.
+//
+// Symlink-safe through Openat().
+func (n *Node) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, fuseFlags uint32, errno syscall.Errno) {
+	dirfd, pName, errno := n.prepareAtSyscall("")
+	if errno != 0 {
+		return
+	}
+	defer syscall.Close(dirfd)
+
+	fd, err := syscallcompat.Openat(dirfd, pName, syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
+	if err != nil {
+		errno = fs.ToErrno(err)
+		return
+	}
+
+	// Reject access if the file descriptor does not refer to a regular file.
+	var st syscall.Stat_t
+	err = syscall.Fstat(fd, &st)
+	if err != nil {
+		tlog.Warn.Printf("Open: Fstat error: %v", err)
+		syscall.Close(fd)
+		errno = fs.ToErrno(err)
+		return
+	}
+	var a fuse.Attr
+	a.FromStat(&st)
+	if !a.IsRegular() {
+		tlog.Warn.Printf("ino%d: newFile: not a regular file", st.Ino)
+		syscall.Close(fd)
+		errno = syscall.EACCES
+		return
+	}
+	// See if we have that inode number already in the table
+	// (even if Nlink has dropped to 1)
+	var derivedIVs pathiv.FileIVs
+	v, found := inodeTable.Load(st.Ino)
+	if found {
+		tlog.Debug.Printf("ino%d: newFile: found in the inode table", st.Ino)
+		derivedIVs = v.(pathiv.FileIVs)
+	} else {
+		p := n.Path()
+		derivedIVs = pathiv.DeriveFile(p)
+		// Nlink > 1 means there is more than one path to this file.
+		// Store the derived values so we always return the same data,
+		// regardless of the path that is used to access the file.
+		// This means that the first path wins.
+		if st.Nlink > 1 {
+			v, found = inodeTable.LoadOrStore(st.Ino, derivedIVs)
+			if found {
+				// Another thread has stored a different value before we could.
+				derivedIVs = v.(pathiv.FileIVs)
+			} else {
+				tlog.Debug.Printf("ino%d: newFile: Nlink=%d, stored in the inode table", st.Ino, st.Nlink)
+			}
+		}
+	}
+	header := contentenc.FileHeader{
+		Version: contentenc.CurrentVersion,
+		ID:      derivedIVs.ID,
+	}
+	fh = &File{
+		fd:         os.NewFile(uintptr(fd), fmt.Sprintf("fd%d", fd)),
+		header:     header,
+		block0IV:   derivedIVs.Block0IV,
+		contentEnc: n.rootNode().contentEnc,
+	}
+	return
 }
