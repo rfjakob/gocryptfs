@@ -2,6 +2,7 @@ package fusefrontend_reverse
 
 import (
 	"context"
+	"fmt"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -10,9 +11,11 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
+	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/pathiv"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 // Readdir - FUSE call.
@@ -40,7 +43,7 @@ func (n *Node) Readdir(ctx context.Context) (stream fs.DirStream, errno syscall.
 
 	rn := n.rootNode()
 	if rn.args.PlaintextNames {
-		panic("todo")
+		return n.readdirPlaintextnames(entries)
 	}
 
 	// Filter out excluded entries
@@ -77,5 +80,32 @@ func (n *Node) Readdir(ctx context.Context) (stream fs.DirStream, errno syscall.
 
 	// Add virtual files
 	entries = append(entries, virtualFiles...)
+	return fs.NewListDirStream(entries), 0
+}
+
+func (n *Node) readdirPlaintextnames(entries []fuse.DirEntry) (stream fs.DirStream, errno syscall.Errno) {
+	rn := n.rootNode()
+	// If we are not the root dir or a custom config path was used, we don't
+	// need to map anything
+	if !n.isRoot() || rn.args.ConfigCustom {
+		return fs.NewListDirStream(entries), 0
+	}
+	// We are in the root dir and the default config file name
+	// ".gocryptfs.reverse.conf" is used. We map it to "gocryptfs.conf".
+	dupe := -1
+	for i := range entries {
+		if entries[i].Name == configfile.ConfReverseName {
+			entries[i].Name = configfile.ConfDefaultName
+		} else if entries[i].Name == configfile.ConfDefaultName {
+			dupe = i
+		}
+	}
+	if dupe >= 0 {
+		// Warn the user loudly: The gocryptfs.conf_NAME_COLLISION file will
+		// throw ENOENT errors that are hard to miss.
+		tlog.Warn.Printf("The file %q is mapped to %q and shadows another file. Please rename %q in directory %q.",
+			configfile.ConfReverseName, configfile.ConfDefaultName, configfile.ConfDefaultName, rn.args.Cipherdir)
+		entries[dupe].Name = "gocryptfs.conf_NAME_COLLISION_" + fmt.Sprintf("%d", cryptocore.RandUint64())
+	}
 	return fs.NewListDirStream(entries), 0
 }
