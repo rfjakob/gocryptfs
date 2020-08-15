@@ -27,8 +27,8 @@ type RootNode struct {
 	nameTransform nametransform.NameTransformer
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
-	// Tests whether a path is excluded (hiden) from the user. Used by -exclude.
-	excluder ignore.IgnoreParser
+	// Tests whether a path is excluded (hidden) from the user. Used by -exclude.
+	excluder *ignore.GitIgnore
 	// inoMap translates inode numbers from different devices to unique inode
 	// numbers.
 	inoMap *inomap.InoMap
@@ -77,4 +77,10 @@ func (rn *RootNode) findLongnameParent(fd int, diriv []byte, longname string) (p
 		return
 	}
 	return
+}
+
+// isExcludedPlain finds out if the plaintext path "pPath" is
+// excluded (used when -exclude is passed by the user).
+func (rn *RootNode) isExcludedPlain(pPath string) bool {
+	return rn.excluder != nil && rn.excluder.MatchesPath(pPath)
 }
