@@ -104,6 +104,7 @@ func (n *Node) lookupLongnameName(ctx context.Context, nameFile string, out *fus
 		errno = fs.ToErrno(err)
 		return
 	}
+	defer syscall.Close(fd)
 	diriv := pathiv.Derive(n.Path(), pathiv.PurposeDirIV)
 	rn := n.rootNode()
 	pName, cFullname, errno := rn.findLongnameParent(fd, diriv, nameFile)

@@ -56,6 +56,7 @@ func (rfs *RootNode) rDecryptName(cName string, dirIV []byte, pDir string) (pNam
 		if err != nil {
 			return "", err
 		}
+		defer syscall.Close(fd)
 		var errno syscall.Errno
 		pName, _, errno = rfs.findLongnameParent(fd, dirIV, cName)
 		if errno != 0 {
