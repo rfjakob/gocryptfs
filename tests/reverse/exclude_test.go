@@ -118,7 +118,7 @@ func testExclude(t *testing.T, flag string) {
 	cExclude := encryptExcludeTestPaths(t, sock, pExclude)
 	// Check that "excluded" paths are not there and "ok" paths are there
 	for _, v := range cExclude {
-		if test_helpers.VerifyExistence(mnt + "/" + v) {
+		if test_helpers.VerifyExistence(t, mnt+"/"+v) {
 			t.Errorf("File %q is visible, but should be excluded", v)
 		}
 		if nametransform.IsLongContent(filepath.Base(v)) {
@@ -126,7 +126,7 @@ func testExclude(t *testing.T, flag string) {
 		}
 	}
 	for _, v := range cOk {
-		if !test_helpers.VerifyExistence(mnt + "/" + v) {
+		if !test_helpers.VerifyExistence(t, mnt+"/"+v) {
 			t.Errorf("File %q is hidden, but should be visible", v)
 		}
 	}

@@ -493,7 +493,7 @@ func TestLongNames(t *testing.T) {
 		t.Fatalf("Could not create n255x: %v", err)
 	}
 	f.Close()
-	if !test_helpers.VerifyExistence(wd + n255x) {
+	if !test_helpers.VerifyExistence(t, wd+n255x) {
 		t.Errorf("n255x is not in directory listing")
 	}
 	// Rename long to long (target does not exist)
@@ -502,7 +502,7 @@ func TestLongNames(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not rename n255x to n255y: %v", err)
 	}
-	if !test_helpers.VerifyExistence(wd + n255y) {
+	if !test_helpers.VerifyExistence(t, wd+n255y) {
 		t.Errorf("n255y is not in directory listing")
 	}
 	// Rename long to long (target exists)
@@ -515,7 +515,7 @@ func TestLongNames(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not rename n255x to n255y: %v", err)
 	}
-	if !test_helpers.VerifyExistence(wd + n255y) {
+	if !test_helpers.VerifyExistence(t, wd+n255y) {
 		t.Errorf("n255y is not in directory listing")
 	}
 	// Rename long to short (target does not exist)
@@ -523,7 +523,7 @@ func TestLongNames(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not rename n255y to short: %v", err)
 	}
-	if !test_helpers.VerifyExistence(wd + "short") {
+	if !test_helpers.VerifyExistence(t, wd+"short") {
 		t.Errorf("short is not in directory listing")
 	}
 	// Rename long to short (target exists)
@@ -536,7 +536,7 @@ func TestLongNames(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not rename n255y to short: %v", err)
 	}
-	if !test_helpers.VerifyExistence(wd + "short") {
+	if !test_helpers.VerifyExistence(t, wd+"short") {
 		t.Errorf("short is not in directory listing")
 	}
 	// Rename short to long (target does not exist)
@@ -544,7 +544,7 @@ func TestLongNames(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not rename short to n255x: %v", err)
 	}
-	if !test_helpers.VerifyExistence(wd + n255x) {
+	if !test_helpers.VerifyExistence(t, wd+n255x) {
 		t.Errorf("255x is not in directory listing II")
 	}
 	// Rename short to long (target exists)
@@ -557,7 +557,7 @@ func TestLongNames(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not rename short to n255x: %v", err)
 	}
-	if !test_helpers.VerifyExistence(wd + n255x) {
+	if !test_helpers.VerifyExistence(t, wd+n255x) {
 		t.Errorf("n255x is not in directory listing")
 	}
 	// Unlink
@@ -565,7 +565,7 @@ func TestLongNames(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not unlink n255x: %v", err)
 	}
-	if test_helpers.VerifyExistence(wd + n255x) {
+	if test_helpers.VerifyExistence(t, wd+n255x) {
 		t.Errorf("n255x still there after unlink")
 	}
 	// Long symlink
@@ -574,7 +574,7 @@ func TestLongNames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !test_helpers.VerifyExistence(wd + n255s) {
+	if !test_helpers.VerifyExistence(t, wd+n255s) {
 		t.Errorf("n255s is not in directory listing")
 	}
 	err = syscall.Unlink(wd + n255s)

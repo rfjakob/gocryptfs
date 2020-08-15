@@ -289,7 +289,8 @@ func TestRename(t *testing.T, plainDir string) {
 // VerifyExistence checks in 3 ways that "path" exists:
 // stat, open, readdir. Returns true if the path exists, false otherwise.
 // Panics if the result is inconsistent.
-func VerifyExistence(path string) bool {
+func VerifyExistence(t *testing.T, path string) bool {
+	t.Helper()
 	// Check if file can be stat()ed
 	stat := true
 	fi, err := os.Stat(path)
@@ -309,12 +310,12 @@ func VerifyExistence(path string) bool {
 	name := filepath.Base(path)
 	d, err := os.Open(dir)
 	if err != nil && open == true {
-		log.Panicf("we can open the file but not the parent dir!? err=%v", err)
+		t.Errorf("VerifyExistence: we can open the file but not the parent dir!? err=%v", err)
 	} else if err == nil {
 		defer d.Close()
 		listing, err := d.Readdirnames(0)
 		if stat && fi.IsDir() && err != nil {
-			log.Panicf("It's a directory, but readdirnames failed: %v", err)
+			t.Errorf("VerifyExistence: It's a directory, but readdirnames failed: %v", err)
 		}
 		for _, entry := range listing {
 			if entry == name {
@@ -326,7 +327,7 @@ func VerifyExistence(path string) bool {
 	if stat == open && open == readdir {
 		return stat
 	}
-	log.Panicf("inconsistent result on %q: stat=%v open=%v readdir=%v, path=%q", name, stat, open, readdir, path)
+	t.Errorf("VerifyExistence: inconsistent result on %q: stat=%v open=%v readdir=%v, path=%q", name, stat, open, readdir, path)
 	return false
 }
 

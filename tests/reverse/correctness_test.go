@@ -26,7 +26,7 @@ func TestLongnameStat(t *testing.T) {
 		}
 		fd.Close()
 		path := dirC + "/" + name
-		if !test_helpers.VerifyExistence(path) {
+		if !test_helpers.VerifyExistence(t, path) {
 			t.Fatalf("failed to verify %q", path)
 		}
 		test_helpers.VerifySize(t, path, 0)
@@ -106,7 +106,7 @@ func TestSymlinkDentrySize(t *testing.T) {
 // gocryptfs.conf
 func TestConfigMapping(t *testing.T) {
 	c := dirB + "/gocryptfs.conf"
-	if !test_helpers.VerifyExistence(c) {
+	if !test_helpers.VerifyExistence(t, c) {
 		t.Errorf("%s missing", c)
 	}
 	data, err := ioutil.ReadFile(c)

@@ -200,7 +200,7 @@ func TestExampleFSv11reverse(t *testing.T) {
 	dirA = tmpFsPath + dirA
 	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-extpass", "echo test", opensslOpt)
 	c := dirB + "/gocryptfs.conf"
-	if !test_helpers.VerifyExistence(c) {
+	if !test_helpers.VerifyExistence(t, c) {
 		t.Errorf("%s missing", c)
 	}
 	test_helpers.MountOrFatal(t, dirB, dirC, "-extpass", "echo test", opensslOpt)
@@ -211,7 +211,7 @@ func TestExampleFSv11reverse(t *testing.T) {
 	m := "68b51855-042abd80-635ae1ba-90152a78-2ec2d243-832ac72a-eab0561a-f2d37913"
 	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-masterkey", m,
 		"-raw64=false", "-hkdf=false", opensslOpt)
-	if !test_helpers.VerifyExistence(c) {
+	if !test_helpers.VerifyExistence(t, c) {
 		t.Errorf("%s missing", c)
 	}
 	test_helpers.MountOrFatal(t, dirB, dirC, "-aessiv", "-masterkey", m,
@@ -237,7 +237,7 @@ func TestExampleFSv11reversePlaintextnames(t *testing.T) {
 	dirA = tmpFsPath + dirA
 	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-extpass", "echo test", opensslOpt)
 	c := dirB + "/gocryptfs.conf"
-	if !test_helpers.VerifyExistence(c) {
+	if !test_helpers.VerifyExistence(t, c) {
 		t.Errorf("%s missing", c)
 	}
 	test_helpers.MountOrFatal(t, dirB, dirC, "-extpass", "echo test", opensslOpt)
@@ -248,7 +248,7 @@ func TestExampleFSv11reversePlaintextnames(t *testing.T) {
 	m := "e7fb8f0d-2a81df9e-26611e4b-5540b218-e48aa458-c2a623af-d0c82637-1466b5f2"
 	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-masterkey", m,
 		"-raw64=false", "-hkdf=false", opensslOpt)
-	if !test_helpers.VerifyExistence(c) {
+	if !test_helpers.VerifyExistence(t, c) {
 		t.Errorf("%s missing", c)
 	}
 	test_helpers.MountOrFatal(t, dirB, dirC, "-aessiv", "-masterkey", m,
@@ -335,7 +335,7 @@ func TestExampleFSv13reverse(t *testing.T) {
 	// Mount using password
 	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-extpass", "echo test", opensslOpt)
 	c := dirB + "/gocryptfs.conf"
-	if !test_helpers.VerifyExistence(c) {
+	if !test_helpers.VerifyExistence(t, c) {
 		t.Errorf("%s missing", c)
 	}
 	test_helpers.MountOrFatal(t, dirB, dirC, "-extpass", "echo test", opensslOpt)
@@ -367,7 +367,7 @@ func TestExampleFSv13reverse(t *testing.T) {
 	// Mount using masterkey
 	m := "2290a7f4-3e1908fb-b006f7d9-261bdaf1-4b72bc38-3b24956c-db7d8a8d-d996076a"
 	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-masterkey", m, opensslOpt)
-	if !test_helpers.VerifyExistence(c) {
+	if !test_helpers.VerifyExistence(t, c) {
 		t.Errorf("%s missing", c)
 	}
 	test_helpers.MountOrFatal(t, dirB, dirC, "-aessiv", "-masterkey", m, opensslOpt)
