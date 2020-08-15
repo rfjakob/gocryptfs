@@ -26,8 +26,7 @@ type Node struct {
 
 // Lookup - FUSE call for discovering a file.
 func (n *Node) Lookup(ctx context.Context, cName string, out *fuse.EntryOut) (ch *fs.Inode, errno syscall.Errno) {
-	dirfd := int(-1)
-	pName := ""
+	var d *dirfdPlus
 	t := n.lookupFileType(cName)
 	if t == typeDiriv {
 		// gocryptfs.diriv
@@ -40,14 +39,15 @@ func (n *Node) Lookup(ctx context.Context, cName string, out *fuse.EntryOut) (ch
 		return n.lookupConf(ctx, out)
 	} else if t == typeReal {
 		// real file
-		dirfd, pName, errno = n.prepareAtSyscall(cName)
+		d, errno = n.prepareAtSyscall(cName)
+		//fmt.Printf("Lookup: prepareAtSyscall -> d=%#v, errno=%d\n", d, errno)
 		if errno != 0 {
 			return
 		}
-		defer syscall.Close(dirfd)
+		defer syscall.Close(d.dirfd)
 	}
 	// Get device number and inode number into `st`
-	st, err := syscallcompat.Fstatat2(dirfd, pName, unix.AT_SYMLINK_NOFOLLOW)
+	st, err := syscallcompat.Fstatat2(d.dirfd, d.pName, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		return nil, fs.ToErrno(err)
 	}
@@ -55,7 +55,7 @@ func (n *Node) Lookup(ctx context.Context, cName string, out *fuse.EntryOut) (ch
 	ch = n.newChild(ctx, st, out)
 	// Translate ciphertext size in `out.Attr.Size` to plaintext size
 	if t == typeReal {
-		n.translateSize(dirfd, cName, pName, &out.Attr)
+		n.translateSize(d.dirfd, cName, d.pName, &out.Attr)
 	}
 	return ch, 0
 }
@@ -69,13 +69,13 @@ func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) 
 		return f.(fs.FileGetattrer).Getattr(ctx, out)
 	}
 
-	dirfd, pName, errno := n.prepareAtSyscall("")
+	d, errno := n.prepareAtSyscall("")
 	if errno != 0 {
 		return
 	}
-	defer syscall.Close(dirfd)
+	defer syscall.Close(d.dirfd)
 
-	st, err := syscallcompat.Fstatat2(dirfd, pName, unix.AT_SYMLINK_NOFOLLOW)
+	st, err := syscallcompat.Fstatat2(d.dirfd, d.pName, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		return fs.ToErrno(err)
 	}
@@ -87,7 +87,7 @@ func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) 
 
 	// Translate ciphertext size in `out.Attr.Size` to plaintext size
 	cName := filepath.Base(n.Path())
-	n.translateSize(dirfd, cName, pName, &out.Attr)
+	n.translateSize(d.dirfd, cName, d.pName, &out.Attr)
 
 	if rn.args.ForceOwner != nil {
 		out.Owner = *rn.args.ForceOwner
@@ -99,27 +99,26 @@ func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) 
 //
 // Symlink-safe through openBackingDir() + Readlinkat().
 func (n *Node) Readlink(ctx context.Context) (out []byte, errno syscall.Errno) {
-	dirfd, pName, errno := n.prepareAtSyscall("")
+	d, errno := n.prepareAtSyscall("")
 	if errno != 0 {
 		return
 	}
-	defer syscall.Close(dirfd)
+	defer syscall.Close(d.dirfd)
 
-	cName := filepath.Base(n.Path())
-	return n.readlink(dirfd, cName, pName)
+	return n.readlink(d.dirfd, d.cName, d.pName)
 }
 
 // Open - FUSE call. Open already-existing file.
 //
 // Symlink-safe through Openat().
 func (n *Node) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, fuseFlags uint32, errno syscall.Errno) {
-	dirfd, pName, errno := n.prepareAtSyscall("")
+	d, errno := n.prepareAtSyscall("")
 	if errno != 0 {
 		return
 	}
-	defer syscall.Close(dirfd)
+	defer syscall.Close(d.dirfd)
 
-	fd, err := syscallcompat.Openat(dirfd, pName, syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
+	fd, err := syscallcompat.Openat(d.dirfd, d.pName, syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		errno = fs.ToErrno(err)
 		return

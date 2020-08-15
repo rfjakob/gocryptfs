@@ -45,7 +45,7 @@ func findIno(dir string, ino uint64) string {
 //    ├── gocryptfs.longname.e31v1ax4h_F0l4jhlN8kCjaWWMq8rO9VVBZ15IYsV50         <---- child
 //    └── gocryptfs.longname.e31v1ax4h_F0l4jhlN8kCjaWWMq8rO9VVBZ15IYsV50.name    <---- name
 //
-// And verifies that the inode numbers match what we expect.
+// It verifies that the inode numbers match what we expect.
 func TestVirtualFileIno(t *testing.T) {
 	if plaintextnames {
 		t.Skip("plaintextnames mode does not have virtual files")
@@ -111,7 +111,7 @@ func TestVirtualFileIno(t *testing.T) {
 		var st2 syscall.Stat_t
 		err = syscall.Lstat(encryptedParent+"/"+entry, &st2)
 		if err != nil {
-			t.Logf("stat %q: %v", entry, err)
+			t.Errorf("stat %q: %v", entry, err)
 			continue
 		}
 		if entry == "gocryptfs.diriv" {

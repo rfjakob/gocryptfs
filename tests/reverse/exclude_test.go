@@ -118,6 +118,7 @@ func testExclude(t *testing.T, flag string) {
 	cExclude := encryptExcludeTestPaths(t, sock, pExclude)
 	// Check that "excluded" paths are not there and "ok" paths are there
 	for _, v := range cExclude {
+		t.Logf("File %q should be invisible", v)
 		if test_helpers.VerifyExistence(t, mnt+"/"+v) {
 			t.Errorf("File %q is visible, but should be excluded", v)
 		}
@@ -126,6 +127,7 @@ func testExclude(t *testing.T, flag string) {
 		}
 	}
 	for _, v := range cOk {
+		t.Logf("File %q should be visible", v)
 		if !test_helpers.VerifyExistence(t, mnt+"/"+v) {
 			t.Errorf("File %q is hidden, but should be visible", v)
 		}

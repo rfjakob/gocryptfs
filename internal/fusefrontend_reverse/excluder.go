@@ -2,6 +2,7 @@ package fusefrontend_reverse
 
 import (
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 
@@ -15,12 +16,9 @@ import (
 // prepareExcluder creates an object to check if paths are excluded
 // based on the patterns specified in the command line.
 func prepareExcluder(args fusefrontend.Args) *ignore.GitIgnore {
-	if len(args.Exclude) == 0 && len(args.ExcludeWildcard) == 0 && len(args.ExcludeFrom) == 0 {
-		return nil
-	}
 	patterns := getExclusionPatterns(args)
 	if len(patterns) == 0 {
-		panic(patterns)
+		log.Panic(patterns)
 	}
 	excluder, err := ignore.CompileIgnoreLines(patterns...)
 	if err != nil {

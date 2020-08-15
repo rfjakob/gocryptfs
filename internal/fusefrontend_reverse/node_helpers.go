@@ -47,6 +47,20 @@ func (n *Node) rootNode() *RootNode {
 	return n.Root().Operations().(*RootNode)
 }
 
+// dirfdPlus gets filled out as we gather information about a node
+type dirfdPlus struct {
+	// fd to the directory, opened with O_DIRECTORY|O_PATH
+	dirfd int
+	// Relative plaintext path
+	pPath string
+	// Plaintext basename: filepath.Base(pPath)
+	pName string
+	// Relative ciphertext path
+	cPath string
+	// Ciphertext basename: filepath.Base(cPath)
+	cName string
+}
+
 // prepareAtSyscall returns a (dirfd, cName) pair that can be used
 // with the "___at" family of system calls (openat, fstatat, unlinkat...) to
 // access the backing encrypted directory.
@@ -54,15 +68,22 @@ func (n *Node) rootNode() *RootNode {
 // If you pass a `child` file name, the (dirfd, cName) pair will refer to
 // a child of this node.
 // If `child` is empty, the (dirfd, cName) pair refers to this node itself.
-func (n *Node) prepareAtSyscall(child string) (dirfd int, pName string, errno syscall.Errno) {
-	p := n.Path()
+func (n *Node) prepareAtSyscall(child string) (d *dirfdPlus, errno syscall.Errno) {
+	cPath := n.Path()
 	if child != "" {
-		p = filepath.Join(p, child)
+		cPath = filepath.Join(cPath, child)
 	}
 	rn := n.rootNode()
-	dirfd, pName, err := rn.openBackingDir(p)
+	dirfd, pPath, err := rn.openBackingDir(cPath)
 	if err != nil {
 		errno = fs.ToErrno(err)
+	}
+	d = &dirfdPlus{
+		dirfd: dirfd,
+		pPath: pPath,
+		pName: filepath.Base(pPath),
+		cPath: cPath,
+		cName: filepath.Base(cPath),
 	}
 	return
 }
@@ -91,28 +112,32 @@ func (n *Node) isRoot() bool {
 }
 
 func (n *Node) lookupLongnameName(ctx context.Context, nameFile string, out *fuse.EntryOut) (ch *fs.Inode, errno syscall.Errno) {
-	dirfd, pName1, errno := n.prepareAtSyscall("")
+	d, errno := n.prepareAtSyscall("")
 	if errno != 0 {
 		return
 	}
-	defer syscall.Close(dirfd)
+	defer syscall.Close(d.dirfd)
 
 	// Find the file the gocryptfs.longname.XYZ.name file belongs to in the
 	// directory listing
-	fd, err := syscallcompat.Openat(dirfd, pName1, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
+	fd, err := syscallcompat.Openat(d.dirfd, d.pName, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		errno = fs.ToErrno(err)
 		return
 	}
 	defer syscall.Close(fd)
-	diriv := pathiv.Derive(n.Path(), pathiv.PurposeDirIV)
+	diriv := pathiv.Derive(d.cPath, pathiv.PurposeDirIV)
 	rn := n.rootNode()
 	pName, cFullname, errno := rn.findLongnameParent(fd, diriv, nameFile)
 	if errno != 0 {
 		return
 	}
+	if rn.isExcludedPlain(filepath.Join(d.cPath, pName)) {
+		errno = syscall.EPERM
+		return
+	}
 	// Get attrs from parent file
-	st, err := syscallcompat.Fstatat2(dirfd, pName, unix.AT_SYMLINK_NOFOLLOW)
+	st, err := syscallcompat.Fstatat2(fd, pName, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		errno = fs.ToErrno(err)
 		return
@@ -132,17 +157,17 @@ func (n *Node) lookupLongnameName(ctx context.Context, nameFile string, out *fus
 
 // lookupDiriv returns a new Inode for a gocryptfs.diriv file inside `n`.
 func (n *Node) lookupDiriv(ctx context.Context, out *fuse.EntryOut) (ch *fs.Inode, errno syscall.Errno) {
-	dirfd, pName, errno := n.prepareAtSyscall("")
+	d, errno := n.prepareAtSyscall("")
 	if errno != 0 {
 		return
 	}
-	defer syscall.Close(dirfd)
-	st, err := syscallcompat.Fstatat2(dirfd, pName, unix.AT_SYMLINK_NOFOLLOW)
+	defer syscall.Close(d.dirfd)
+	st, err := syscallcompat.Fstatat2(d.dirfd, d.pName, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		errno = fs.ToErrno(err)
 		return
 	}
-	content := pathiv.Derive(n.Path(), pathiv.PurposeDirIV)
+	content := pathiv.Derive(d.cPath, pathiv.PurposeDirIV)
 	var vf *VirtualMemNode
 	vf, errno = n.newVirtualMemNode(content, st, inoTagDirIV)
 	if errno != 0 {

@@ -87,7 +87,7 @@ func TestSymlinkDentrySize(t *testing.T) {
 
 	fi, err := os.Lstat(mnt + "/" + symlinkResponse.Result)
 	if err != nil {
-		t.Errorf("Lstat: %v", err)
+		t.Fatalf("Lstat: %v", err)
 	}
 
 	target, err := os.Readlink(mnt + "/" + symlinkResponse.Result)

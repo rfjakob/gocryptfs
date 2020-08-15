@@ -100,25 +100,24 @@ func (rn *RootNode) decryptPath(cPath string) (string, error) {
 // and returns the fd to the directory and the decrypted name of the
 // target file. The fd/name pair is intended for use with fchownat and
 // friends.
-func (rn *RootNode) openBackingDir(cPath string) (dirfd int, pName string, err error) {
+func (rn *RootNode) openBackingDir(cPath string) (dirfd int, pPath string, err error) {
 	defer func() {
-		tlog.Debug.Printf("openBackingDir %q -> %d %q %v\n", cPath, dirfd, pName, err)
+		tlog.Debug.Printf("openBackingDir %q -> %d %q %v\n", cPath, dirfd, pPath, err)
 	}()
 	dirfd = -1
-	pRelPath, err := rn.decryptPath(cPath)
+	pPath, err = rn.decryptPath(cPath)
 	if err != nil {
 		return
 	}
-	if rn.isExcludedPlain(pRelPath) {
+	if rn.isExcludedPlain(pPath) {
 		err = syscall.EPERM
 		return
 	}
 	// Open directory, safe against symlink races
-	pDir := filepath.Dir(pRelPath)
+	pDir := filepath.Dir(pPath)
 	dirfd, err = syscallcompat.OpenDirNofollow(rn.args.Cipherdir, pDir)
 	if err != nil {
 		return
 	}
-	pName = filepath.Base(pRelPath)
-	return dirfd, pName, nil
+	return dirfd, pPath, nil
 }

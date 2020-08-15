@@ -23,15 +23,15 @@ import (
 // This function is symlink-safe through use of openBackingDir() and
 // ReadDirIVAt().
 func (n *Node) Readdir(ctx context.Context) (stream fs.DirStream, errno syscall.Errno) {
-	dirfd, cName, errno := n.prepareAtSyscall("")
+	d, errno := n.prepareAtSyscall("")
 	if errno != 0 {
 		return
 	}
-	defer syscall.Close(dirfd)
+	defer syscall.Close(d.dirfd)
 
 	// Read plaintext directory
 	var entries []fuse.DirEntry
-	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
+	fd, err := syscallcompat.Openat(d.dirfd, d.pName, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		return nil, fs.ToErrno(err)
 	}
@@ -42,21 +42,20 @@ func (n *Node) Readdir(ctx context.Context) (stream fs.DirStream, errno syscall.
 	}
 
 	rn := n.rootNode()
+
+	// Filter out excluded entries
+	entries = rn.excludeDirEntries(d, entries)
+
 	if rn.args.PlaintextNames {
 		return n.readdirPlaintextnames(entries)
 	}
-
-	// Filter out excluded entries
-	//TODO
-	//entries = rfs.excludeDirEntries(relPath, entries)
 
 	// Virtual files: at least one gocryptfs.diriv file
 	virtualFiles := []fuse.DirEntry{
 		{Mode: virtualFileMode, Name: nametransform.DirIVFilename},
 	}
 
-	cipherPath := n.Path()
-	dirIV := pathiv.Derive(cipherPath, pathiv.PurposeDirIV)
+	dirIV := pathiv.Derive(d.cPath, pathiv.PurposeDirIV)
 	// Encrypt names
 	for i := range entries {
 		var cName string

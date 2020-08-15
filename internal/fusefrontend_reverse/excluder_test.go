@@ -9,14 +9,6 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
 )
 
-func TestShouldNoCreateExcluderIfNoPattersWereSpecified(t *testing.T) {
-	var args fusefrontend.Args
-	excluder := prepareExcluder(args)
-	if excluder != nil {
-		t.Error("Should not have created excluder")
-	}
-}
-
 func TestShouldPrefixExcludeValuesWithSlash(t *testing.T) {
 	var args fusefrontend.Args
 	args.Exclude = []string{"file1", "dir1/file2.txt"}
