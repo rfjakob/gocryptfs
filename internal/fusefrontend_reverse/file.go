@@ -68,3 +68,14 @@ func (f *File) Read(ctx context.Context, buf []byte, ioff int64) (resultData fus
 func (f *File) Release(context.Context) syscall.Errno {
 	return fs.ToErrno(f.fd.Close())
 }
+
+// Lseek - FUSE call.
+func (f *File) Lseek(ctx context.Context, off uint64, whence uint32) (uint64, syscall.Errno) {
+	plainOff := f.contentEnc.CipherSizeToPlainSize(off)
+	newPlainOff, err := syscall.Seek(int(f.fd.Fd()), int64(plainOff), int(whence))
+	if err != nil {
+		return 0, fs.ToErrno(err)
+	}
+	newOff := f.contentEnc.PlainSizeToCipherSize(uint64(newPlainOff))
+	return newOff, 0
+}

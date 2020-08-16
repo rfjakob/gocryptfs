@@ -263,6 +263,7 @@ func TestCpWarnings(t *testing.T) {
 	}
 }
 
+// TestSeekData tests that fs.FileLseeker is implemented
 func TestSeekData(t *testing.T) {
 	fn := filepath.Join(test_helpers.DefaultPlainDir, t.Name())
 	f, err := os.Create(fn)

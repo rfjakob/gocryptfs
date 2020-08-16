@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"syscall"
 	"testing"
 
@@ -256,4 +257,41 @@ func TestStatfs(t *testing.T) {
 	if st.Bsize == 0 {
 		t.Errorf("statfs reports size zero: %#v", st)
 	}
+}
+
+// TestSeekData tests that fs.FileLseeker is implemented
+func TestSeekData(t *testing.T) {
+	if !plaintextnames {
+		t.Skip()
+	}
+
+	fn := filepath.Join(dirA, t.Name())
+	f, err := os.Create(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var oneTiB int64 = 1024 * 1024 * 1024 * 1024
+	if _, err = f.Seek(oneTiB, 0); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.Write([]byte("foo")); err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+
+	const SEEK_DATA = 3
+
+	fn2 := filepath.Join(dirB, t.Name())
+	f, err = os.Open(fn2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	off, err := f.Seek(1024*1024, SEEK_DATA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if off < oneTiB-1024*1024 {
+		t.Errorf("off=%d, expected=%d\n", off, oneTiB)
+	}
+	f.Close()
 }

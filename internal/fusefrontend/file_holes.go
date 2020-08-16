@@ -61,7 +61,7 @@ func (f *File) Lseek(ctx context.Context, off uint64, whence uint32) (uint64, sy
 	cipherOff := f.rootNode.contentEnc.PlainSizeToCipherSize(off)
 	newCipherOff, err := syscall.Seek(f.intFd(), int64(cipherOff), int(whence))
 	if err != nil {
-		return uint64(newCipherOff), fs.ToErrno(err)
+		return 0, fs.ToErrno(err)
 	}
 	newOff := f.contentEnc.CipherSizeToPlainSize(uint64(newCipherOff))
 	return newOff, 0
