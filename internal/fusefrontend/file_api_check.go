@@ -16,7 +16,6 @@ var _ = (fs.FileAllocater)((*File)(nil))
 var _ = (fs.FileLseeker)((*File)(nil))
 
 /* TODO
-var _ = (fs.FileHandle)((*File)(nil))
 var _ = (fs.FileGetlker)((*File)(nil))
 var _ = (fs.FileSetlker)((*File)(nil))
 var _ = (fs.FileSetlkwer)((*File)(nil))
