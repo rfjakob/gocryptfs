@@ -11,7 +11,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-func (f *File2) Setattr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) (errno syscall.Errno) {
+func (f *File) Setattr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) (errno syscall.Errno) {
 	errno = f.setAttr(ctx, in)
 	if errno != 0 {
 		return errno
@@ -19,7 +19,7 @@ func (f *File2) Setattr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrO
 	return f.Getattr(ctx, out)
 }
 
-func (f *File2) setAttr(ctx context.Context, in *fuse.SetAttrIn) (errno syscall.Errno) {
+func (f *File) setAttr(ctx context.Context, in *fuse.SetAttrIn) (errno syscall.Errno) {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 	if f.released {

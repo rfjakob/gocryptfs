@@ -37,7 +37,7 @@ var allocateWarnOnce sync.Once
 // complicated and hard to get right.
 //
 // Other modes (hole punching, zeroing) are not supported.
-func (f *File2) Allocate(ctx context.Context, off uint64, sz uint64, mode uint32) syscall.Errno {
+func (f *File) Allocate(ctx context.Context, off uint64, sz uint64, mode uint32) syscall.Errno {
 	if mode != FALLOC_DEFAULT && mode != FALLOC_FL_KEEP_SIZE {
 		f := func() {
 			tlog.Info.Printf("fallocate: only mode 0 (default) and 1 (keep size) are supported")
@@ -93,7 +93,7 @@ func (f *File2) Allocate(ctx context.Context, off uint64, sz uint64, mode uint32
 }
 
 // truncate - called from Setattr.
-func (f *File2) truncate(newSize uint64) (errno syscall.Errno) {
+func (f *File) truncate(newSize uint64) (errno syscall.Errno) {
 	var err error
 	// Common case first: Truncate to zero
 	if newSize == 0 {
@@ -154,7 +154,7 @@ func (f *File2) truncate(newSize uint64) (errno syscall.Errno) {
 }
 
 // statPlainSize stats the file and returns the plaintext size
-func (f *File2) statPlainSize() (uint64, error) {
+func (f *File) statPlainSize() (uint64, error) {
 	fi, err := f.fd.Stat()
 	if err != nil {
 		tlog.Warn.Printf("ino%d fh%d: statPlainSize: %v", f.qIno.Ino, f.intFd(), err)
@@ -168,7 +168,7 @@ func (f *File2) statPlainSize() (uint64, error) {
 // truncateGrowFile extends a file using seeking or ftruncate performing RMW on
 // the first and last block as necessary. New blocks in the middle become
 // file holes unless they have been fallocate()'d beforehand.
-func (f *File2) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) syscall.Errno {
+func (f *File) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) syscall.Errno {
 	if newPlainSz <= oldPlainSz {
 		log.Panicf("BUG: newSize=%d <= oldSize=%d", newPlainSz, oldPlainSz)
 	}

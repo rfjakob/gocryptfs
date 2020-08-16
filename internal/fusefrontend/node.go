@@ -133,7 +133,7 @@ func (n *Node) Create(ctx context.Context, name string, flags uint32, mode uint3
 	ch := n.newChild(ctx, &st, out)
 
 	f := os.NewFile(uintptr(fd), cName)
-	return ch, NewFile2(f, rn, &st), 0, 0
+	return ch, NewFile(f, rn, &st), 0, 0
 }
 
 // Unlink - FUSE call. Delete a file.
@@ -216,7 +216,7 @@ func (n *Node) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, fuseFl
 		return
 	}
 	f := os.NewFile(uintptr(fd), cName)
-	fh = NewFile2(f, rn, &st)
+	fh = NewFile(f, rn, &st)
 	return
 }
 
@@ -224,7 +224,7 @@ func (n *Node) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, fuseFl
 func (n *Node) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) (errno syscall.Errno) {
 	// Use the fd if the kernel gave us one
 	if f != nil {
-		f2 := f.(*File2)
+		f2 := f.(*File)
 		return f2.Setattr(ctx, in, out)
 	}
 
@@ -286,7 +286,7 @@ func (n *Node) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAttrIn,
 		if errno != 0 {
 			return errno
 		}
-		f2 := f.(*File2)
+		f2 := f.(*File)
 		defer f2.Release(ctx)
 		errno = syscall.Errno(f2.truncate(sz))
 		if errno != 0 {

@@ -13,7 +13,7 @@ import (
 
 // Will a write to plaintext offset "targetOff" create a file hole in the
 // ciphertext? If yes, zero-pad the last ciphertext block.
-func (f *File2) writePadHole(targetOff int64) syscall.Errno {
+func (f *File) writePadHole(targetOff int64) syscall.Errno {
 	// Get the current file size.
 	fi, err := f.fd.Stat()
 	if err != nil {
@@ -43,7 +43,7 @@ func (f *File2) writePadHole(targetOff int64) syscall.Errno {
 
 // Zero-pad the file of size plainSize to the next block boundary. This is a no-op
 // if the file is already block-aligned.
-func (f *File2) zeroPad(plainSize uint64) syscall.Errno {
+func (f *File) zeroPad(plainSize uint64) syscall.Errno {
 	lastBlockLen := plainSize % f.contentEnc.PlainBS()
 	if lastBlockLen == 0 {
 		// Already block-aligned
@@ -57,7 +57,7 @@ func (f *File2) zeroPad(plainSize uint64) syscall.Errno {
 }
 
 // Lseek - FUSE call.
-func (f *File2) Lseek(ctx context.Context, off uint64, whence uint32) (uint64, syscall.Errno) {
+func (f *File) Lseek(ctx context.Context, off uint64, whence uint32) (uint64, syscall.Errno) {
 	cipherOff := f.rootNode.contentEnc.PlainSizeToCipherSize(off)
 	newCipherOff, err := syscall.Seek(f.intFd(), int64(cipherOff), int(whence))
 	if err != nil {

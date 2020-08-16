@@ -25,8 +25,8 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-// File2 implements the go-fuse v2 API (github.com/hanwen/go-fuse/v2/fs)
-type File2 struct {
+// File implements the go-fuse v2 API (github.com/hanwen/go-fuse/v2/fs)
+type File struct {
 	fd *os.File
 	// Has Release() already been called on this file? This also means that the
 	// wlock entry has been freed, so let's not crash trying to access it.
@@ -54,11 +54,11 @@ type File2 struct {
 }
 
 // NewFile returns a new go-fuse File instance.
-func NewFile2(fd *os.File, rn *RootNode, st *syscall.Stat_t) *File2 {
+func NewFile(fd *os.File, rn *RootNode, st *syscall.Stat_t) *File {
 	qi := inomap.QInoFromStat(st)
 	e := openfiletable.Register(qi)
 
-	return &File2{
+	return &File{
 		fd:             fd,
 		contentEnc:     rn.contentEnc,
 		qIno:           qi,
@@ -68,13 +68,13 @@ func NewFile2(fd *os.File, rn *RootNode, st *syscall.Stat_t) *File2 {
 }
 
 // intFd - return the backing file descriptor as an integer.
-func (f *File2) intFd() int {
+func (f *File) intFd() int {
 	return int(f.fd.Fd())
 }
 
 // readFileID loads the file header from disk and extracts the file ID.
 // Returns io.EOF if the file is empty.
-func (f *File2) readFileID() ([]byte, error) {
+func (f *File) readFileID() ([]byte, error) {
 	// We read +1 byte to determine if the file has actual content
 	// and not only the header. A header-only file will be considered empty.
 	// This makes File ID poisoning more difficult.
@@ -100,7 +100,7 @@ func (f *File2) readFileID() ([]byte, error) {
 // createHeader creates a new random header and writes it to disk.
 // Returns the new file ID.
 // The caller must hold fileIDLock.Lock().
-func (f *File2) createHeader() (fileID []byte, err error) {
+func (f *File) createHeader() (fileID []byte, err error) {
 	h := contentenc.RandomHeader()
 	buf := h.Pack()
 	// Prevent partially written (=corrupt) header by preallocating the space beforehand
@@ -130,7 +130,7 @@ func (f *File2) createHeader() (fileID []byte, err error) {
 //
 // Called by Read() for normal reading,
 // by Write() and Truncate() via doWrite() for Read-Modify-Write.
-func (f *File2) doRead(dst []byte, off uint64, length uint64) ([]byte, syscall.Errno) {
+func (f *File) doRead(dst []byte, off uint64, length uint64) ([]byte, syscall.Errno) {
 	// Get the file ID, either from the open file table, or from disk.
 	var fileID []byte
 	f.fileTableEntry.IDLock.Lock()
@@ -221,7 +221,7 @@ func (f *File2) doRead(dst []byte, off uint64, length uint64) ([]byte, syscall.E
 }
 
 // Read - FUSE call
-func (f *File2) Read(ctx context.Context, buf []byte, off int64) (resultData fuse.ReadResult, errno syscall.Errno) {
+func (f *File) Read(ctx context.Context, buf []byte, off int64) (resultData fuse.ReadResult, errno syscall.Errno) {
 	if len(buf) > fuse.MAX_KERNEL_WRITE {
 		// This would crash us due to our fixed-size buffer pool
 		tlog.Warn.Printf("Read: rejecting oversized request with EMSGSIZE, len=%d", len(buf))
@@ -257,7 +257,7 @@ func (f *File2) Read(ctx context.Context, buf []byte, off int64) (resultData fus
 // and by Truncate() to rewrite the last file block.
 //
 // Empty writes do nothing and are allowed.
-func (f *File2) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
+func (f *File) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
 	fileWasEmpty := false
 	// Get the file ID, create a new one if it does not exist yet.
 	var fileID []byte
@@ -342,7 +342,7 @@ func (f *File2) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
 // This is an optimisation for streaming writes on NFS where a
 // Stat() call is very expensive.
 // The caller must "wlock.lock(f.devIno.ino)" otherwise this check would be racy.
-func (f *File2) isConsecutiveWrite(off int64) bool {
+func (f *File) isConsecutiveWrite(off int64) bool {
 	opCount := openfiletable.WriteOpCount()
 	return opCount == f.lastOpCount+1 && off == f.lastWrittenOffset+1
 }
@@ -350,7 +350,7 @@ func (f *File2) isConsecutiveWrite(off int64) bool {
 // Write - FUSE call
 //
 // If the write creates a hole, pads the file to the next block boundary.
-func (f *File2) Write(ctx context.Context, data []byte, off int64) (uint32, syscall.Errno) {
+func (f *File) Write(ctx context.Context, data []byte, off int64) (uint32, syscall.Errno) {
 	if len(data) > fuse.MAX_KERNEL_WRITE {
 		// This would crash us due to our fixed-size buffer pool
 		tlog.Warn.Printf("Write: rejecting oversized request with EMSGSIZE, len=%d", len(data))
@@ -384,7 +384,7 @@ func (f *File2) Write(ctx context.Context, data []byte, off int64) (uint32, sysc
 }
 
 // Release - FUSE call, close file
-func (f *File2) Release(ctx context.Context) syscall.Errno {
+func (f *File) Release(ctx context.Context) syscall.Errno {
 	f.fdLock.Lock()
 	if f.released {
 		log.Panicf("ino%d fh%d: double release", f.qIno.Ino, f.intFd())
@@ -397,7 +397,7 @@ func (f *File2) Release(ctx context.Context) syscall.Errno {
 }
 
 // Flush - FUSE call
-func (f *File2) Flush(ctx context.Context) syscall.Errno {
+func (f *File) Flush(ctx context.Context) syscall.Errno {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 
@@ -414,7 +414,7 @@ func (f *File2) Flush(ctx context.Context) syscall.Errno {
 }
 
 // Fsync FUSE call
-func (f *File2) Fsync(ctx context.Context, flags uint32) (errno syscall.Errno) {
+func (f *File) Fsync(ctx context.Context, flags uint32) (errno syscall.Errno) {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 
@@ -422,7 +422,7 @@ func (f *File2) Fsync(ctx context.Context, flags uint32) (errno syscall.Errno) {
 }
 
 // Getattr FUSE call (like stat)
-func (f *File2) Getattr(ctx context.Context, a *fuse.AttrOut) syscall.Errno {
+func (f *File) Getattr(ctx context.Context, a *fuse.AttrOut) syscall.Errno {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 
