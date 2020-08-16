@@ -249,3 +249,11 @@ func Test0100Dir(t *testing.T) {
 	}
 	fd.Close()
 }
+
+func TestStatfs(t *testing.T) {
+	var st syscall.Statfs_t
+	syscall.Statfs(dirB, &st)
+	if st.Bsize == 0 {
+		t.Errorf("statfs reports size zero: %#v", st)
+	}
+}

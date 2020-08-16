@@ -10,9 +10,9 @@ var _ = (fs.NodeLookuper)((*Node)(nil))
 var _ = (fs.NodeReaddirer)((*Node)(nil))
 var _ = (fs.NodeReadlinker)((*Node)(nil))
 var _ = (fs.NodeOpener)((*Node)(nil))
+var _ = (fs.NodeStatfser)((*Node)(nil))
 
 /* TODO
-var _ = (fs.NodeStatfser)((*Node)(nil))
 var _ = (fs.NodeGetxattrer)((*Node)(nil))
 var _ = (fs.NodeListxattrer)((*Node)(nil))
 */

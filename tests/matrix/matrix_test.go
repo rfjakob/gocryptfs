@@ -873,3 +873,11 @@ func TestAccess(t *testing.T) {
 		t.Error("X_OK should have failed")
 	}
 }
+
+func TestStatfs(t *testing.T) {
+	var st syscall.Statfs_t
+	syscall.Statfs(test_helpers.DefaultPlainDir, &st)
+	if st.Bsize == 0 {
+		t.Errorf("statfs reports size zero: %#v", st)
+	}
+}
