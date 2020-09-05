@@ -25,6 +25,9 @@ const (
 	// Note that this flag does not change the password hashing algorithm
 	// which always is scrypt.
 	FlagHKDF
+	// FlagFIDO2 means that "-fido2" was used when creating the filesystem.
+	// The masterkey is protected using a FIDO2 token instead of a password.
+	FlagFIDO2
 )
 
 // knownFlags stores the known feature flags and their string representation
@@ -37,6 +40,7 @@ var knownFlags = map[flagIota]string{
 	FlagAESSIV:         "AESSIV",
 	FlagRaw64:          "Raw64",
 	FlagHKDF:           "HKDF",
+	FlagFIDO2:          "FIDO2",
 }
 
 // Filesystems that do not have these feature flags set are deprecated.
