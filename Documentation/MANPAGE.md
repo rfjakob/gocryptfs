@@ -513,7 +513,7 @@ EXIT CODES
 ==========
 
 0: success  
-6: CIPHERDIR is not an empty directory (on "-init")  
+7: CIPHERDIR is not an empty directory (on "-init")  
 10: MOUNTPOINT is not an empty directory  
 12: password incorrect  
 22: password is empty (on "-init")  
