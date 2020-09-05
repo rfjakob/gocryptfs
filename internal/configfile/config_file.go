@@ -10,12 +10,13 @@ import (
 	"log"
 	"syscall"
 
+	"os"
+
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
-import "os"
 
 const (
 	// ConfDefaultName is the default configuration file name.
@@ -27,6 +28,14 @@ const (
 	// (start with dot) to not annoy the user.
 	ConfReverseName = ".gocryptfs.reverse.conf"
 )
+
+// FIDO2Params is a structure for storing FIDO2 parameters.
+type FIDO2Params struct {
+	// FIDO2 credential
+	CredentialID []byte
+	// FIDO2 hmac-secret salt
+	HMACSalt []byte
+}
 
 // ConfFile is the content of a config file.
 type ConfFile struct {
@@ -46,6 +55,8 @@ type ConfFile struct {
 	// mounting. This mechanism is analogous to the ext4 feature flags that are
 	// stored in the superblock.
 	FeatureFlags []string
+	// FIDO2 parameters
+	FIDO2 FIDO2Params
 	// Filename is the name of the config file. Not exported to JSON.
 	filename string
 }
@@ -69,7 +80,7 @@ func randBytesDevRandom(n int) []byte {
 // "password" and write it to "filename".
 // Uses scrypt with cost parameter logN.
 func Create(filename string, password []byte, plaintextNames bool,
-	logN int, creator string, aessiv bool, devrandom bool) error {
+	logN int, creator string, aessiv bool, devrandom bool, fido2CredentialID []byte, fido2HmacSalt []byte) error {
 	var cf ConfFile
 	cf.filename = filename
 	cf.Creator = creator
@@ -88,6 +99,11 @@ func Create(filename string, password []byte, plaintextNames bool,
 	}
 	if aessiv {
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagAESSIV])
+	}
+	if len(fido2CredentialID) > 0 {
+		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagFIDO2])
+		cf.FIDO2.CredentialID = fido2CredentialID
+		cf.FIDO2.HMACSalt = fido2HmacSalt
 	}
 	{
 		// Generate new random master key

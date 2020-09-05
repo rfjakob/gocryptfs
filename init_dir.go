@@ -9,7 +9,9 @@ import (
 	"syscall"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
+	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
+	"github.com/rfjakob/gocryptfs/internal/fido2"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
@@ -67,14 +69,25 @@ func initDir(args *argContainer) {
 		}
 	}
 	// Choose password for config file
-	if args.extpass.Empty() {
+	if args.extpass.Empty() && args.fido2 == "" {
 		tlog.Info.Printf("Choose a password for protecting your files.")
 	}
 	{
-		password := readpassword.Twice([]string(args.extpass), []string(args.passfile))
+		var password []byte
+		var fido2CredentialID, fido2HmacSalt []byte
+		if args.fido2 != "" {
+			fido2CredentialID = fido2.Register(args.fido2, filepath.Base(args.cipherdir))
+			fido2HmacSalt = cryptocore.RandBytes(32)
+			password = fido2.Secret(args.fido2, fido2CredentialID, fido2HmacSalt)
+		} else {
+			// normal password entry
+			password = readpassword.Twice([]string(args.extpass), []string(args.passfile))
+			fido2CredentialID = nil
+			fido2HmacSalt = nil
+		}
 		creator := tlog.ProgramName + " " + GitVersion
 		err = configfile.Create(args.config, password, args.plaintextnames,
-			args.scryptn, creator, args.aessiv, args.devrandom)
+			args.scryptn, creator, args.aessiv, args.devrandom, fido2CredentialID, fido2HmacSalt)
 		if err != nil {
 			tlog.Fatal.Println(err)
 			os.Exit(exitcodes.WriteConf)

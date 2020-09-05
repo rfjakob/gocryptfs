@@ -32,7 +32,7 @@ type argContainer struct {
 	// Mount options with opposites
 	dev, nodev, suid, nosuid, exec, noexec, rw, ro bool
 	masterkey, mountpoint, cipherdir, cpuprofile,
-	memprofile, ko, ctlsock, fsname, force_owner, trace string
+	memprofile, ko, ctlsock, fsname, force_owner, trace, fido2 string
 	// -extpass, -badname, -passfile can be passed multiple times
 	extpass, badname, passfile multipleStrings
 	// For reverse mode, several ways to specify exclusions. All can be specified multiple times.
@@ -189,6 +189,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.StringVar(&args.fsname, "fsname", "", "Override the filesystem name")
 	flagSet.StringVar(&args.force_owner, "force_owner", "", "uid:gid pair to coerce ownership")
 	flagSet.StringVar(&args.trace, "trace", "", "Write execution trace to file")
+	flagSet.StringVar(&args.fido2, "fido2", "", "Protect the masterkey using a FIDO2 token instead of a password")
 
 	// Exclusion options
 	flagSet.Var(&args.exclude, "e", "Alias for -exclude")
@@ -277,6 +278,10 @@ func parseCliOpts() (args argContainer) {
 	}
 	if !args.extpass.Empty() && args.masterkey != "" {
 		tlog.Fatal.Printf("The options -extpass and -masterkey cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
+	}
+	if !args.extpass.Empty() && args.fido2 != "" {
+		tlog.Fatal.Printf("The options -extpass and -fido2 cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
 	if args.idle < 0 {

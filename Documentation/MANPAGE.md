@@ -130,6 +130,10 @@ to your program, use `"--"`, which is accepted by most programs:
 Stay in the foreground instead of forking away. Implies "-nosyslog".
 For compatibility, "-f" is also accepted, but "-fg" is preferred.
 
+#### -fido2 DEVICE_PATH
+Use a FIDO2 token to initialize and unlock the filesystem.
+Use "fido2-token -L" to obtain the FIDO2 token device path.
+
 #### -force_owner string
 If given a string of the form "uid:gid" (where both "uid" and "gid" are
 substituted with positive integers), presents all files as owned by the given

@@ -11,6 +11,7 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
+	"github.com/rfjakob/gocryptfs/internal/fido2"
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -67,12 +68,14 @@ func main() {
 		encryptPaths  *bool
 		aessiv        *bool
 		sep0          *bool
+		fido2         *string
 	}
 	args.dumpmasterkey = flag.Bool("dumpmasterkey", false, "Decrypt and dump the master key")
 	args.decryptPaths = flag.Bool("decrypt-paths", false, "Decrypt file paths using gocryptfs control socket")
 	args.encryptPaths = flag.Bool("encrypt-paths", false, "Encrypt file paths using gocryptfs control socket")
 	args.sep0 = flag.Bool("0", false, "Use \\0 instead of \\n as separator")
 	args.aessiv = flag.Bool("aessiv", false, "Assume AES-SIV mode instead of AES-GCM")
+	args.fido2 = flag.String("fido2", "", "Protect the masterkey using a FIDO2 token instead of a password")
 	flag.Usage = usage
 	flag.Parse()
 	s := sum(args.dumpmasterkey, args.decryptPaths, args.encryptPaths)
@@ -97,20 +100,30 @@ func main() {
 	}
 	defer fd.Close()
 	if *args.dumpmasterkey {
-		dumpMasterKey(fn)
+		dumpMasterKey(fn, *args.fido2)
 	} else {
 		inspectCiphertext(fd, *args.aessiv)
 	}
 }
 
-func dumpMasterKey(fn string) {
+func dumpMasterKey(fn string, fido2Path string) {
 	tlog.Info.Enabled = false
-	pw := readpassword.Once(nil, nil, "")
-	masterkey, _, err := configfile.LoadAndDecrypt(fn, pw)
+	cf, err := configfile.Load(fn)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		exitcodes.Exit(err)
 	}
+	var pw []byte
+	if cf.IsFeatureFlagSet(configfile.FlagFIDO2) {
+		if fido2Path == "" {
+			tlog.Fatal.Printf("Masterkey encrypted using FIDO2 token; need to use the --fido2 option.")
+			os.Exit(exitcodes.Usage)
+		}
+		pw = fido2.Secret(fido2Path, cf.FIDO2.CredentialID, cf.FIDO2.HMACSalt)
+	} else {
+		pw = readpassword.Once(nil, nil, "")
+	}
+	masterkey, err := cf.DecryptMasterKey(pw)
 	fmt.Println(hex.EncodeToString(masterkey))
 	for i := range pw {
 		pw[i] = 0

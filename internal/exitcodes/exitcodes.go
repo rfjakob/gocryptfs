@@ -70,6 +70,8 @@ const (
 	ExcludeError = 29
 	// DevNull means that /dev/null could not be opened
 	DevNull = 30
+	// FIDO2Error - an error was encountered while interacting with a FIDO2 token
+	FIDO2Error = 31
 )
 
 // Err wraps an error with an associated numeric exit code
