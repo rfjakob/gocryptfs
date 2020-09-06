@@ -63,7 +63,7 @@ func initDir(args *argContainer) {
 		err = isEmptyDir(args.cipherdir)
 		if err != nil {
 			tlog.Fatal.Printf("Invalid cipherdir: %v", err)
-			os.Exit(exitcodes.Init)
+			os.Exit(exitcodes.CipherDir)
 		}
 	}
 	// Choose password for config file

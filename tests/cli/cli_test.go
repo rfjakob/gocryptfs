@@ -800,3 +800,23 @@ func TestPassfileX2(t *testing.T) {
 	test_helpers.MountOrFatal(t, dir, mnt, "-passfile="+passfile1, "-passfile="+passfile2)
 	defer test_helpers.UnmountPanic(mnt)
 }
+
+// TestInitNotEmpty checks that `gocryptfs -init` returns the right error code
+// if CIPHERDIR is not empty. See https://github.com/rfjakob/gocryptfs/pull/503
+func TestInitNotEmpty(t *testing.T) {
+	dir := test_helpers.TmpDir + "/" + t.Name()
+	if err := os.Mkdir(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := ioutil.WriteFile(dir+"/foo", nil, 0700); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(test_helpers.GocryptfsBinary, "-init", "-extpass", "echo test", dir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	exitCode := test_helpers.ExtractCmdExitCode(err)
+	if exitCode != exitcodes.CipherDir {
+		t.Fatalf("wrong exit code: have=%d, want=%d", exitCode, exitcodes.CipherDir)
+	}
+}
