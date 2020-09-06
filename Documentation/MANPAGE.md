@@ -522,6 +522,8 @@ EXIT CODES
 26: fsck found errors  
 other: please check the error message
 
+See also: https://github.com/rfjakob/gocryptfs/blob/master/internal/exitcodes/exitcodes.go
+
 SEE ALSO
 ========
 mount(2) fuse(8) fallocate(2) encfs(1)
