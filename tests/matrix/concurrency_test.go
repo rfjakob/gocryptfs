@@ -127,3 +127,60 @@ func TestConcurrentReadCreate(t *testing.T) {
 	}()
 	wg.Wait()
 }
+
+// TestInoReuse tries to uncover problems when a file gets replaced by
+// a directory with the same inode number (and vice versa).
+//
+// So far, it only has triggered warnings like this
+//
+//     go-fuse: warning: Inode.Path: inode i4201033 is orphaned, replacing segment with ".go-fuse.5577006791947779410/deleted"
+//
+// but none of the "blocked waiting for FORGET".
+func TestInoReuse(t *testing.T) {
+	var wg sync.WaitGroup
+	fn := test_helpers.DefaultPlainDir + "/" + t.Name()
+
+	wg.Add(1)
+	go func() {
+		for i := 0; i < 1000; i++ {
+			fd, err := syscall.Creat(fn, 0600)
+			if err == syscall.EISDIR {
+				continue
+			}
+			if err != nil {
+				t.Error(err)
+				break
+			}
+			var st syscall.Stat_t
+			syscall.Fstat(fd, &st)
+			if i%2 == 0 {
+				syscall.Close(fd)
+				syscall.Unlink(fn)
+			} else {
+				syscall.Unlink(fn)
+				syscall.Close(fd)
+
+			}
+		}
+		wg.Done()
+	}()
+
+	wg.Add(1)
+	go func() {
+		for i := 0; i < 1000; i++ {
+			err := syscall.Mkdir(fn, 0700)
+			if err == syscall.EEXIST {
+				continue
+			}
+			if err != nil {
+				t.Error(err)
+				break
+			}
+			var st syscall.Stat_t
+			syscall.Stat(fn, &st)
+			syscall.Rmdir(fn)
+		}
+		wg.Done()
+	}()
+	wg.Wait()
+}
