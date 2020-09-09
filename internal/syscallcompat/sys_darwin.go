@@ -21,6 +21,9 @@ const (
 	// O_PATH is only defined on Linux
 	O_PATH = 0
 
+	// RENAME_NOREPLACE is only defined on Linux
+	RENAME_NOREPLACE = 0
+
 	// KAUTH_UID_NONE and KAUTH_GID_NONE are special values to
 	// revert permissions to the process credentials.
 	KAUTH_UID_NONE = ^uint32(0) - 100
@@ -131,12 +134,12 @@ func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.C
 	return Symlinkat(oldpath, newdirfd, newpath)
 }
 
-func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
-	if context != nil {
+func MkdiratUser(dirfd int, path string, mode uint32, caller *fuse.Caller) (err error) {
+	if caller != nil {
 		runtime.LockOSThread()
 		defer runtime.UnlockOSThread()
 
-		err = pthread_setugid_np(context.Owner.Uid, context.Owner.Gid)
+		err = pthread_setugid_np(caller.Uid, caller.Gid)
 		if err != nil {
 			return err
 		}
@@ -214,4 +217,9 @@ func UtimesNanoAtNofollow(dirfd int, path string, a *time.Time, m *time.Time) (e
 
 func Getdents(fd int) ([]fuse.DirEntry, error) {
 	return emulateGetdents(fd)
+}
+
+// Renameat2 does not exist on Darwin, so we call Renameat and ignore the flags.
+func Renameat2(olddirfd int, oldpath string, newdirfd int, newpath string, flags uint) (err error) {
+	return unix.Renameat(olddirfd, oldpath, newdirfd, newpath)
 }

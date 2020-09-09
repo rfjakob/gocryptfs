@@ -27,6 +27,9 @@ const (
 
 	// O_PATH is only defined on Linux
 	O_PATH = unix.O_PATH
+
+	// RENAME_NOREPLACE is only defined on Linux
+	RENAME_NOREPLACE = unix.RENAME_NOREPLACE
 )
 
 var preallocWarn sync.Once
@@ -270,4 +273,9 @@ func UtimesNanoAtNofollow(dirfd int, path string, a *time.Time, m *time.Time) (e
 // Getdents syscall.
 func Getdents(fd int) ([]fuse.DirEntry, error) {
 	return getdents(fd)
+}
+
+// Renameat2 does not exist on Darwin, so we have to wrap it here.
+func Renameat2(olddirfd int, oldpath string, newdirfd int, newpath string, flags uint) (err error) {
+	return unix.Renameat2(olddirfd, oldpath, newdirfd, newpath, flags)
 }
