@@ -51,6 +51,9 @@ func doInit() {
 	// Something like /tmp/gocryptfs-test-parent-1234
 	testParentDir := fmt.Sprintf("%s/gocryptfs-test-parent-%d", os.TempDir(), os.Getuid())
 	os.MkdirAll(testParentDir, 0755)
+	if !isExt4(testParentDir) {
+		fmt.Printf("test_helpers: warning: testParentDir %q does not reside on ext4, we will miss failures caused by ino reuse\n", testParentDir)
+	}
 	var err error
 	TmpDir, err = ioutil.TempDir(testParentDir, "")
 	if err != nil {
@@ -114,6 +117,23 @@ func ResetTmpDir(createDirIV bool) {
 			panic(err)
 		}
 	}
+}
+
+// isExt4 finds out if `path` resides on an ext4 filesystem, as reported by
+// statfs.
+func isExt4(path string) bool {
+	// From man statfs
+	const EXT4_SUPER_MAGIC = 0xef53
+
+	var fs syscall.Statfs_t
+	err := syscall.Statfs(path, &fs)
+	if err != nil {
+		return false
+	}
+	if fs.Type == EXT4_SUPER_MAGIC {
+		return true
+	}
+	return false
 }
 
 // InitFS creates a new empty cipherdir and calls
