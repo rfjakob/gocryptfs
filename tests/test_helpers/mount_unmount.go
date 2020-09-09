@@ -117,6 +117,8 @@ func MountOrExit(c string, p string, extraArgs ...string) {
 // Contrary to InitFS(), you MUST passt "-extpass=echo test" (or another way for
 // getting the master key) explicitly.
 func MountOrFatal(t *testing.T, c string, p string, extraArgs ...string) {
+	t.Helper()
+
 	err := Mount(c, p, true, extraArgs...)
 	if err != nil {
 		t.Fatal(fmt.Errorf("mount failed: %v", err))
