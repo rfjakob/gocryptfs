@@ -480,7 +480,7 @@ func (n *Node) Rename(ctx context.Context, name string, newParent fs.InodeEmbedd
 	// Easy case.
 	rn := n.rootNode()
 	if rn.args.PlaintextNames {
-		return fs.ToErrno(unix.Renameat2(dirfd, cName, dirfd2, cName2, uint(flags)))
+		return fs.ToErrno(syscallcompat.Renameat2(dirfd, cName, dirfd2, cName2, uint(flags)))
 	}
 	// Long destination file name: create .name file
 	nameFileAlreadyThere := false
@@ -498,8 +498,8 @@ func (n *Node) Rename(ctx context.Context, name string, newParent fs.InodeEmbedd
 	}
 	// Actual rename
 	tlog.Debug.Printf("Renameat %d/%s -> %d/%s\n", dirfd, cName, dirfd2, cName2)
-	err = unix.Renameat2(dirfd, cName, dirfd2, cName2, uint(flags))
-	if (flags&unix.RENAME_NOREPLACE == 0) && (err == syscall.ENOTEMPTY || err == syscall.EEXIST) {
+	err = syscallcompat.Renameat2(dirfd, cName, dirfd2, cName2, uint(flags))
+	if (flags&syscallcompat.RENAME_NOREPLACE == 0) && (err == syscall.ENOTEMPTY || err == syscall.EEXIST) {
 		// If an empty directory is overwritten we will always get an error as
 		// the "empty" directory will still contain gocryptfs.diriv.
 		// Interestingly, ext4 returns ENOTEMPTY while xfs returns EEXIST.
@@ -507,7 +507,7 @@ func (n *Node) Rename(ctx context.Context, name string, newParent fs.InodeEmbedd
 		// again.
 		tlog.Debug.Printf("Rename: Handling ENOTEMPTY")
 		if n2.Rmdir(ctx, newName) == 0 {
-			err = unix.Renameat2(dirfd, cName, dirfd2, cName2, uint(flags))
+			err = syscallcompat.Renameat2(dirfd, cName, dirfd2, cName2, uint(flags))
 		}
 	}
 	if err != nil {
