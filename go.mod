@@ -3,7 +3,7 @@ module github.com/rfjakob/gocryptfs
 go 1.13
 
 require (
-	github.com/hanwen/go-fuse/v2 v2.0.4-0.20200718183122-fee50bf01cd6
+	github.com/hanwen/go-fuse/v2 v2.0.4-0.20200908172753-0b6cbc515082
 	github.com/jacobsa/crypto v0.0.0-20190317225127-9f44e2d11115
 	github.com/jacobsa/oglematchers v0.0.0-20150720000706-141901ea67cd // indirect
 	github.com/jacobsa/oglemock v0.0.0-20150831005832-e94d794d06ff // indirect
