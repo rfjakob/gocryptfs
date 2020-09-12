@@ -3,8 +3,10 @@ package plaintextnames
 // integration tests that target plaintextnames specifically
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
+	"syscall"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
@@ -82,5 +84,44 @@ func TestFiltered(t *testing.T) {
 		t.Error(err)
 	} else {
 		fd.Close()
+	}
+}
+
+// TestInoReuseEvil makes it appear that a directory and a file share the
+// same inode number.
+// Only works on filesystems that recycle inode numbers (ext4 does),
+// and then the test causes a hang with these messages:
+//
+//		go-fuse: blocked for 5 seconds waiting for FORGET on i4329366
+//		go-fuse: blocked for 11 seconds waiting for FORGET on i4329366
+//		go-fuse: blocked for 17 seconds waiting for FORGET on i4329366
+//		[...]
+//
+func TestInoReuseEvil(t *testing.T) {
+	t.Skip("TODO: enable this test once the problem is fixed in go-fuse")
+
+	for i := 0; i < 2; i++ {
+		n := fmt.Sprintf("%s.%d", t.Name(), i)
+		pPath := pDir + "/" + n
+		cPath := cDir + "/" + n
+		if err := syscall.Mkdir(pPath, 0700); err != nil {
+			t.Fatal(err)
+		}
+		var st syscall.Stat_t
+		syscall.Stat(pPath, &st)
+		t.Logf("dir  ino = %d", st.Ino)
+		// delete the dir "behind our back"
+		if err := syscall.Rmdir(cPath); err != nil {
+			t.Fatal(err)
+		}
+		// create a new file that will likely get the same inode number
+		pPath2 := pPath + "2"
+		fd, err := syscall.Creat(pPath2, 0600)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer syscall.Close(fd)
+		syscall.Fstat(fd, &st)
+		t.Logf("file ino = %d", st.Ino)
 	}
 }
