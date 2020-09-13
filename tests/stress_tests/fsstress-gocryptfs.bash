@@ -102,7 +102,7 @@ do
 	wait
 
 	echo "    rm"
-	rm -R $MNT/*
+	rm -Rf $MNT/*
 
 	let N=$N+1
 done
