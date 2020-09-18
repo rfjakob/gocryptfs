@@ -8,9 +8,13 @@ fi
 
 IMG=$(mktemp /tmp/ext4-ramdisk-XXX.img)
 
-dd if=/dev/zero of=$IMG bs=1M count=1030
-mkfs.ext4 -q $IMG
-mkdir -p $MNT
-mount $IMG $MNT
-chmod 777 $MNT
-rm $IMG # unlink the file, it will be deleted once the fs is unmounted
+# unlink the file when done, space will be
+# reclaimed once the fs is unmounted. Also
+# cleans up in the error case.
+trap 'rm "$IMG"' EXIT
+
+dd if=/dev/zero of="$IMG" bs=1M count=1030 status=none
+mkfs.ext4 -q "$IMG"
+mkdir -p "$MNT"
+mount "$IMG" "$MNT"
+chmod 777 "$MNT"
