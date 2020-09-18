@@ -48,15 +48,16 @@ done
 
 # FS-specific compile and mount
 if [ $MYNAME = fsstress-loopback.bash ]; then
-	echo "Recompile go-fuse loopback"
+	echo -n "Recompile go-fuse loopback: "
 	cd $GOPATH/src/github.com/hanwen/go-fuse/example/loopback
-	go build -race && go install
+	git describe
+	go build && go install
 	$GOPATH/bin/loopback -q $MNT $DIR &
 	disown
 elif [ $MYNAME = fsstress-gocryptfs.bash ]; then
 	echo "Recompile gocryptfs"
 	cd $GOPATH/src/github.com/rfjakob/gocryptfs
-	./build.bash
+	./build.bash # also prints the version
 	$GOPATH/bin/gocryptfs -q -init -extpass "echo test" -scryptn=10 $DIR
 	$GOPATH/bin/gocryptfs -q -extpass "echo test" -nosyslog $DIR $MNT
 elif [ $MYNAME = fsstress-encfs.bash ]; then
@@ -74,7 +75,7 @@ do
 	sleep 1
 	echo -n x
 done
-echo " ok"
+echo " ok: $MNT"
 
 # Cleanup trap
 trap "kill %1 ; cd / ; fuse-unmount -z $MNT ; rm -rf $DIR $MNT" EXIT
