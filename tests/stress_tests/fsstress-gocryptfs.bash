@@ -70,7 +70,7 @@ fi
 
 sleep 0.5
 echo -n "Waiting for mount: "
-while ! grep "$MNT fuse" /proc/self/mounts > /dev/null
+while ! grep "$(basename $MNT) fuse" /proc/self/mounts > /dev/null
 do
 	sleep 1
 	echo -n x
