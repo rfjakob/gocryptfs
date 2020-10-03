@@ -42,7 +42,7 @@ if [[ -d vendor/github.com/hanwen/go-fuse ]] ; then
 else
 	# go-fuse version according to Go Modules
 	FAIL=0
-	OUT=$(go list -m github.com/hanwen/go-fuse/v2 | cut -d' ' -f2) || FAIL=1
+	OUT=$(go list -m github.com/hanwen/go-fuse/v2 | cut -d' ' -f2-) || FAIL=1
 	if [[ $FAIL -eq 0 ]]; then
 		GITVERSIONFUSE=$OUT
 	else
@@ -84,7 +84,7 @@ if [[ -z ${GOFLAGS:-} ]] ; then
 	export GOFLAGS
 fi
 
-GO_LDFLAGS="-X main.GitVersion=$GITVERSION -X main.GitVersionFuse=$GITVERSIONFUSE -X main.BuildDate=$BUILDDATE"
+GO_LDFLAGS="-X \"main.GitVersion=$GITVERSION\" -X \"main.GitVersionFuse=$GITVERSIONFUSE\" -X \"main.BuildDate=$BUILDDATE\""
 
 # If LDFLAGS is set, add it as "-extldflags".
 if [[ -n ${LDFLAGS:-} ]] ; then
