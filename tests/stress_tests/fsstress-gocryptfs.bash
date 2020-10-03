@@ -86,7 +86,7 @@ echo "Starting fsstress loop"
 N=1
 while true
 do
-	echo $N
+	echo "$N ................................. $(date)"
 	mkdir $MNT/fsstress.1
 	echo -n "    fsstress.1 "
 	$FSSTRESS -r -m 8 -n 1000 -d $MNT/fsstress.1 &
