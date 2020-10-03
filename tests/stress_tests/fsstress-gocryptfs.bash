@@ -12,12 +12,11 @@
 #
 # Nowadays it should pass an indefinite number of iterations.
 
-if [[ -z $TMPDIR ]]; then
-	TMPDIR=/var/tmp
-	export TMPDIR
-fi
-
 set -eu
+
+# Init variables to default values if unset or empty
+export TMPDIR=${TMPDIR:-/var/tmp}
+DEBUG=${DEBUG:-0}
 
 cd "$(dirname "$0")"
 MYNAME=$(basename $0)
@@ -25,7 +24,7 @@ source ../fuse-unmount.bash
 
 # fsstress binary
 FSSTRESS=$HOME/fuse-xfstests/ltp/fsstress
-if [ ! -x $FSSTRESS ]
+if [[ ! -x $FSSTRESS ]]
 then
 	echo "$MYNAME: fsstress binary not found at $FSSTRESS"
 	echo "Please clone and compile https://github.com/rfjakob/fuse-xfstests"
@@ -47,22 +46,25 @@ for i in $(mount | cut -d" " -f3 | grep $TMPDIR/$MYNAME) ; do
 done
 
 # FS-specific compile and mount
-if [ $MYNAME = fsstress-loopback.bash ]; then
+if [[ $MYNAME = fsstress-loopback.bash ]]; then
 	echo -n "Recompile go-fuse loopback: "
 	cd $GOPATH/src/github.com/hanwen/go-fuse/example/loopback
 	git describe
 	go build && go install
-	$GOPATH/bin/loopback -q $MNT $DIR &
+	OPTS="-q"
+	if [[ $DEBUG -eq 1 ]]; then
+		OPTS="-debug"
+	fi
+	$GOPATH/bin/loopback $OPTS "$MNT" "$DIR" &
 	disown
-elif [ $MYNAME = fsstress-gocryptfs.bash ]; then
+elif [[ $MYNAME = fsstress-gocryptfs.bash ]]; then
 	echo "Recompile gocryptfs"
 	cd $GOPATH/src/github.com/rfjakob/gocryptfs
 	./build.bash # also prints the version
 	$GOPATH/bin/gocryptfs -q -init -extpass "echo test" -scryptn=10 $DIR
-	$GOPATH/bin/gocryptfs -q -extpass "echo test" -nosyslog $DIR $MNT
-elif [ $MYNAME = fsstress-encfs.bash ]; then
-	# You probably want do adjust this path to your system
-	/home/jakob.donotbackup/encfs/build/encfs --extpass "echo test" --standard $DIR $MNT
+	$GOPATH/bin/gocryptfs -q -extpass "echo test" -nosyslog -fusedebug=$DEBUG $DIR $MNT
+elif [[ $MYNAME = fsstress-encfs.bash ]]; then
+	encfs --extpass "echo test" --standard $DIR $MNT
 else
 	echo Unknown mode: $MYNAME
 	exit 1
