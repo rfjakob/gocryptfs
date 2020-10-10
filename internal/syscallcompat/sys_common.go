@@ -44,7 +44,7 @@ func Faccessat(dirfd int, path string, mode uint32) error {
 	return unix.Faccessat(dirfd, path, mode, 0)
 }
 
-// Openat wraps the Openat syscall.
+// Openat wraps the Openat syscall, retrying on EINTR.
 func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) {
 	if flags&syscall.O_CREAT != 0 {
 		// O_CREAT should be used with O_EXCL. O_NOFOLLOW has no effect with O_EXCL.
@@ -59,7 +59,14 @@ func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) 
 			flags |= syscall.O_NOFOLLOW
 		}
 	}
-	return unix.Openat(dirfd, path, flags, mode)
+	// Like ignoringEINTR() in the Go stdlib:
+	// https://github.com/golang/go/blob/d2a80f3fb5b44450e0b304ac5a718f99c053d82a/src/os/file_posix.go#L243
+	for {
+		fd, err = unix.Openat(dirfd, path, flags, mode)
+		if err != unix.EINTR {
+			return fd, err
+		}
+	}
 }
 
 // Renameat wraps the Renameat syscall.
