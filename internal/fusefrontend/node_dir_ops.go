@@ -306,7 +306,7 @@ retry:
 		return fs.ToErrno(err)
 	}
 	if err != nil {
-		tlog.Warn.Printf("Rmdir: Readdirnames: %v", err)
+		tlog.Warn.Printf("Rmdir: Getdents: %v", err)
 		return fs.ToErrno(err)
 	}
 	// MacOS sprinkles .DS_Store files everywhere. This is hard to avoid for

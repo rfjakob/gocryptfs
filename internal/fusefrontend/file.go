@@ -409,7 +409,7 @@ func (f *File) Flush(ctx context.Context) syscall.Errno {
 	if err != nil {
 		return fs.ToErrno(err)
 	}
-	err = syscall.Close(newFd)
+	err = syscallcompat.Close(newFd)
 	return fs.ToErrno(err)
 }
 

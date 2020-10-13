@@ -44,7 +44,8 @@ func Faccessat(dirfd int, path string, mode uint32) error {
 	return unix.Faccessat(dirfd, path, mode, 0)
 }
 
-// Openat wraps the Openat syscall, retrying on EINTR.
+// Openat wraps the Openat syscall.
+// Retries on EINTR.
 func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) {
 	if flags&syscall.O_CREAT != 0 {
 		// O_CREAT should be used with O_EXCL. O_NOFOLLOW has no effect with O_EXCL.
@@ -59,24 +60,28 @@ func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) 
 			flags |= syscall.O_NOFOLLOW
 		}
 	}
-	// Like ignoringEINTR() in the Go stdlib:
-	// https://github.com/golang/go/blob/d2a80f3fb5b44450e0b304ac5a718f99c053d82a/src/os/file_posix.go#L243
-	for {
-		fd, err = unix.Openat(dirfd, path, flags, mode)
-		if err != unix.EINTR {
-			return fd, err
-		}
-	}
+	fd, err = retryEINTR2(func() (int, error) {
+		return unix.Openat(dirfd, path, flags, mode)
+	})
+	return fd, err
 }
 
 // Renameat wraps the Renameat syscall.
+// Retries on EINTR.
 func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
-	return unix.Renameat(olddirfd, oldpath, newdirfd, newpath)
+	err = retryEINTR(func() error {
+		return unix.Renameat(olddirfd, oldpath, newdirfd, newpath)
+	})
+	return err
 }
 
 // Unlinkat syscall.
+// Retries on EINTR.
 func Unlinkat(dirfd int, path string, flags int) (err error) {
-	return unix.Unlinkat(dirfd, path, flags)
+	err = retryEINTR(func() error {
+		return unix.Unlinkat(dirfd, path, flags)
+	})
+	return err
 }
 
 // Fchownat syscall.
@@ -105,17 +110,22 @@ func Mkdirat(dirfd int, path string, mode uint32) (err error) {
 }
 
 // Fstatat syscall.
+// Retries on EINTR.
 func Fstatat(dirfd int, path string, stat *unix.Stat_t, flags int) (err error) {
 	// Why would we ever want to call this without AT_SYMLINK_NOFOLLOW?
 	if flags&unix.AT_SYMLINK_NOFOLLOW == 0 {
 		tlog.Warn.Printf("Fstatat: adding missing AT_SYMLINK_NOFOLLOW flag")
 		flags |= unix.AT_SYMLINK_NOFOLLOW
 	}
-	return unix.Fstatat(dirfd, path, stat, flags)
+	err = retryEINTR(func() error {
+		return unix.Fstatat(dirfd, path, stat, flags)
+	})
+	return err
 }
 
 // Fstatat2 is a more convenient version of Fstatat. It allocates a Stat_t
 // for you and also handles the Unix2syscall conversion.
+// Retries on EINTR.
 func Fstatat2(dirfd int, path string, flags int) (*syscall.Stat_t, error) {
 	var stUnix unix.Stat_t
 	err := Fstatat(dirfd, path, &stUnix, flags)

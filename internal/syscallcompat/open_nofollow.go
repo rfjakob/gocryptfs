@@ -13,6 +13,7 @@ import (
 // This function is implemented by walking the directory tree, starting at
 // "baseDir", using the Openat syscall with the O_NOFOLLOW flag.
 // Symlinks that are part of the "baseDir" path are followed.
+// Retries on EINTR.
 func OpenDirNofollow(baseDir string, relPath string) (fd int, err error) {
 	if !filepath.IsAbs(baseDir) {
 		tlog.Warn.Printf("BUG: OpenDirNofollow called with relative baseDir=%q", baseDir)
@@ -23,7 +24,9 @@ func OpenDirNofollow(baseDir string, relPath string) (fd int, err error) {
 		return -1, syscall.EINVAL
 	}
 	// Open the base dir (following symlinks)
-	dirfd, err := syscall.Open(baseDir, syscall.O_DIRECTORY|O_PATH, 0)
+	dirfd, err := retryEINTR2(func() (int, error) {
+		return syscall.Open(baseDir, syscall.O_DIRECTORY|O_PATH, 0)
+	})
 	if err != nil {
 		return -1, err
 	}

@@ -265,9 +265,13 @@ func FutimesNano(fd int, a *time.Time, m *time.Time) (err error) {
 }
 
 // UtimesNanoAtNofollow is like UtimesNanoAt but never follows symlinks.
+// Retries on EINTR.
 func UtimesNanoAtNofollow(dirfd int, path string, a *time.Time, m *time.Time) (err error) {
 	ts := timesToTimespec(a, m)
-	return unix.UtimesNanoAt(dirfd, path, ts, unix.AT_SYMLINK_NOFOLLOW)
+	err = retryEINTR(func() error {
+		return unix.UtimesNanoAt(dirfd, path, ts, unix.AT_SYMLINK_NOFOLLOW)
+	})
+	return err
 }
 
 // Getdents syscall.
@@ -276,6 +280,10 @@ func Getdents(fd int) ([]fuse.DirEntry, error) {
 }
 
 // Renameat2 does not exist on Darwin, so we have to wrap it here.
+// Retries on EINTR.
 func Renameat2(olddirfd int, oldpath string, newdirfd int, newpath string, flags uint) (err error) {
-	return unix.Renameat2(olddirfd, oldpath, newdirfd, newpath, flags)
+	err = retryEINTR(func() error {
+		return unix.Renameat2(olddirfd, oldpath, newdirfd, newpath, flags)
+	})
+	return err
 }

@@ -203,6 +203,8 @@ func (rn *RootNode) openWriteOnlyFile(dirfd int, cName string, newFlags int) (rw
 //
 // openBackingDir is secure against symlink races by using Openat and
 // ReadDirIVAt.
+//
+// Retries on EINTR.
 func (rn *RootNode) openBackingDir(relPath string) (dirfd int, cName string, err error) {
 	dirRelPath := nametransform.Dir(relPath)
 	// With PlaintextNames, we don't need to read DirIVs. Easy.
@@ -216,7 +218,7 @@ func (rn *RootNode) openBackingDir(relPath string) (dirfd int, cName string, err
 		return dirfd, cName, nil
 	}
 	// Open cipherdir (following symlinks)
-	dirfd, err = syscall.Open(rn.args.Cipherdir, syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
+	dirfd, err = syscallcompat.Open(rn.args.Cipherdir, syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
 	if err != nil {
 		return -1, "", err
 	}
