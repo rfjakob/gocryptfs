@@ -11,6 +11,9 @@ import (
 //
 // This is needed because CIFS throws lots of EINTR errors:
 // https://github.com/rfjakob/gocryptfs/issues/483
+//
+// Don't use retryEINTR() with syscall.Close()!
+// See https://code.google.com/p/chromium/issues/detail?id=269623 .
 func retryEINTR(op func() error) error {
 	for {
 		err := op()
@@ -40,9 +43,25 @@ func Open(path string, mode int, perm uint32) (fd int, err error) {
 	return fd, err
 }
 
-// Close wraps syscall.Close.
+// Flush is a helper for the FUSE command FLUSH.
 // Retries on EINTR.
-func Close(fd int) (err error) {
-	err = retryEINTR(func() error { return syscall.Close(fd) })
-	return err
+func Flush(fd int) error {
+	for {
+		// Flushing is achieved by closing a dup'd fd.
+		newFd, err := syscall.Dup(fd)
+		if err == syscall.EINTR {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		err = syscall.Close(newFd)
+		// Even if we get EINTR here, newFd is dead - see
+		// https://code.google.com/p/chromium/issues/detail?id=269623 .
+		// We have to make a new one with Dup(), so continue at the top.
+		if err == syscall.EINTR {
+			continue
+		}
+		return err
+	}
 }

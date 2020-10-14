@@ -391,9 +391,9 @@ func (f *File) Release(ctx context.Context) syscall.Errno {
 	}
 	f.released = true
 	openfiletable.Unregister(f.qIno)
-	f.fd.Close()
+	err := f.fd.Close()
 	f.fdLock.Unlock()
-	return 0
+	return fs.ToErrno(err)
 }
 
 // Flush - FUSE call
@@ -401,15 +401,7 @@ func (f *File) Flush(ctx context.Context) syscall.Errno {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
 
-	// Since Flush() may be called for each dup'd fd, we don't
-	// want to really close the file, we just want to flush. This
-	// is achieved by closing a dup'd fd.
-	newFd, err := syscall.Dup(f.intFd())
-
-	if err != nil {
-		return fs.ToErrno(err)
-	}
-	err = syscallcompat.Close(newFd)
+	err := syscallcompat.Flush(f.intFd())
 	return fs.ToErrno(err)
 }
 
