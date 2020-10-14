@@ -161,6 +161,8 @@ func main() {
 	if os.Getenv("PATH") == "" {
 		os.Setenv("PATH", "/usr/sbin:/usr/bin:/sbin:/bin")
 	}
+	// Show microseconds in go-fuse debug output (-fusedebug)
+	log.SetFlags(log.Lmicroseconds)
 	var err error
 	// Parse all command-line options (i.e. arguments starting with "-")
 	// into "args". Path arguments are parsed below.
