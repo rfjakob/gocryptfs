@@ -7,7 +7,7 @@
 
 set -eu
 
-MOUNTS=$(mount | grep ' type fuse\.' | grep 'on /var/tmp/\|on /tmp/' | cut -d' ' -f 3)
+MOUNTS=$(mount | grep ' type fuse\.' | grep 'on /var/tmp/\|on /tmp/\|on /mnt/ext4-ramdisk/' | cut -d' ' -f 3)
 
 for i in $MOUNTS ; do
 	echo "Unmounting $i"
