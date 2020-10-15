@@ -187,7 +187,15 @@ RM:    3.379
 Changelog
 ---------
 
-vNEXT, in progress
+v2.0-beta1, 2020-10-15
+* **Switch to the improved go-fuse [v2 API](https://pkg.go.dev/github.com/hanwen/go-fuse/v2@v2.0.3/fs)**
+  * This is a big change, a lot of code has been reorganized or rewritten
+    to fit the v2 API model.
+  * Please test & report bugs
+  * No changes to the on-disk format
+  * File descriptor caching is not yet implemented,
+    causing a slowdown. Caching will be implemented for v2.0 final.
+* **Add support for FIDO2 tokens ([#505](https://github.com/rfjakob/gocryptfs/pull/505))**
 * Add `-encrypt-paths` / `-decrypt-paths` functionality to `gocryptfs-xray`
   ([#416](https://github.com/rfjakob/gocryptfs/issues/416))
 * Accept multiple `-passfile`s
