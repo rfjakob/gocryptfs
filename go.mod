@@ -18,3 +18,5 @@ require (
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200501145240-bc7a7d42d5c3
 )
+
+replace github.com/hanwen/go-fuse/v2 => github.com/rfjakob/go-fuse/v2 v2.0.4-0.20201015204057-88b12c99f8af
