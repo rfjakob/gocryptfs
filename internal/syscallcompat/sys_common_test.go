@@ -313,3 +313,11 @@ func TestFstatat(t *testing.T) {
 		t.Errorf("symlink size: expected=%d, got=%d", expectedSize, st.Size)
 	}
 }
+
+// BenchmarkLgetxattr benchmarks Lgetxattr. Lgetxattr is very hot as the kernel
+// queries security.capabilities for every file access.
+func BenchmarkLgetxattr(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		Lgetxattr("/", "this.attr.does.not.exist")
+	}
+}
