@@ -253,7 +253,7 @@ func (ck *fsckObj) xattrs(relPath string) {
 	}
 }
 
-func fsck(args *argContainer) {
+func fsck(args *argContainer) (exitcode int) {
 	if args.reverse {
 		tlog.Fatal.Printf("Running -fsck with -reverse is not supported")
 		os.Exit(exitcodes.Usage)
@@ -296,17 +296,17 @@ func fsck(args *argContainer) {
 	wipeKeys()
 	if ck.abort {
 		tlog.Info.Printf("fsck: aborted")
-		return
+		return exitcodes.Other
 	}
 	if len(ck.corruptList) == 0 && len(ck.skippedList) == 0 {
 		tlog.Info.Printf("fsck summary: no problems found\n")
-		return
+		return 0
 	}
 	if len(ck.skippedList) > 0 {
 		tlog.Warn.Printf("fsck: re-run this program as root to check all files!\n")
 	}
 	fmt.Printf("fsck summary: %d corrupt files, %d files skipped\n", len(ck.corruptList), len(ck.skippedList))
-	os.Exit(exitcodes.FsckErrors)
+	return exitcodes.FsckErrors
 }
 
 type sortableDirEntries []fuse.DirEntry
