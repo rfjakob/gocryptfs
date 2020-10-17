@@ -318,6 +318,6 @@ func TestFstatat(t *testing.T) {
 // queries security.capabilities for every file access.
 func BenchmarkLgetxattr(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		Lgetxattr("/", "this.attr.does.not.exist")
+		Lgetxattr("/", "user.this.attr.does.not.exist")
 	}
 }

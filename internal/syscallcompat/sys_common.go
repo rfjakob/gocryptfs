@@ -138,11 +138,47 @@ func Fstatat2(dirfd int, path string, flags int) (*syscall.Stat_t, error) {
 
 const XATTR_SIZE_MAX = 65536
 
-// Make the buffer 1kB bigger so we can detect overflows
+// Make the buffer 1kB bigger so we can detect overflows. Unfortunately,
+// slices larger than 64kB are always allocated on the heap.
 const XATTR_BUFSZ = XATTR_SIZE_MAX + 1024
+
+// We try with a small buffer first - this one can be allocated on the stack.
+const XATTR_BUFSZ_SMALL = 500
 
 // Fgetxattr is a wrapper around unix.Fgetxattr that handles the buffer sizing.
 func Fgetxattr(fd int, attr string) (val []byte, err error) {
+	fn := func(buf []byte) (int, error) {
+		return unix.Fgetxattr(fd, attr, buf)
+	}
+	return getxattrSmartBuf(fn)
+}
+
+// Lgetxattr is a wrapper around unix.Lgetxattr that handles the buffer sizing.
+func Lgetxattr(path string, attr string) (val []byte, err error) {
+	fn := func(buf []byte) (int, error) {
+		return unix.Lgetxattr(path, attr, buf)
+	}
+	return getxattrSmartBuf(fn)
+}
+
+func getxattrSmartBuf(fn func(buf []byte) (int, error)) ([]byte, error) {
+	// Fastpaths. Important for security.capabilities, which gets queried a lot.
+	buf := make([]byte, XATTR_BUFSZ_SMALL)
+	sz, err := fn(buf)
+	// Non-existing xattr
+	if err == unix.ENODATA {
+		return nil, err
+	}
+	// Underlying fs does not support security.capabilities (example: tmpfs)
+	if err == unix.EOPNOTSUPP {
+		return nil, err
+	}
+	// Small xattr
+	if err == nil && sz < len(buf) {
+		goto out
+	}
+	// Generic slowpath
+	//
 	// If the buffer is too small to fit the value, Linux and MacOS react
 	// differently:
 	// Linux: returns an ERANGE error and "-1" bytes.
@@ -151,11 +187,8 @@ func Fgetxattr(fd int, attr string) (val []byte, err error) {
 	// We choose the simple approach of buffer that is bigger than the limit on
 	// Linux, and return an error for everything that is bigger (which can
 	// only happen on MacOS).
-	//
-	// See https://github.com/pkg/xattr for a smarter solution.
-	// TODO: smarter buffer sizing?
-	buf := make([]byte, XATTR_BUFSZ)
-	sz, err := unix.Fgetxattr(fd, attr, buf)
+	buf = make([]byte, XATTR_BUFSZ)
+	sz, err = fn(buf)
 	if err == syscall.ERANGE {
 		// Do NOT return ERANGE - the user might retry ad inifinitum!
 		return nil, syscall.EOVERFLOW
@@ -166,32 +199,10 @@ func Fgetxattr(fd int, attr string) (val []byte, err error) {
 	if sz >= XATTR_SIZE_MAX {
 		return nil, syscall.EOVERFLOW
 	}
+out:
 	// Copy only the actually used bytes to a new (smaller) buffer
 	// so "buf" never leaves the function and can be allocated on the stack.
-	val = make([]byte, sz)
-	copy(val, buf)
-	return val, nil
-}
-
-// Lgetxattr is a wrapper around unix.Lgetxattr that handles the buffer sizing.
-func Lgetxattr(path string, attr string) (val []byte, err error) {
-	// See the buffer sizing comments in Fgetxattr.
-	// TODO: smarter buffer sizing?
-	buf := make([]byte, XATTR_BUFSZ)
-	sz, err := unix.Lgetxattr(path, attr, buf)
-	if err == syscall.ERANGE {
-		// Do NOT return ERANGE - the user might retry ad inifinitum!
-		return nil, syscall.EOVERFLOW
-	}
-	if err != nil {
-		return nil, err
-	}
-	if sz >= XATTR_SIZE_MAX {
-		return nil, syscall.EOVERFLOW
-	}
-	// Copy only the actually used bytes to a new (smaller) buffer
-	// so "buf" never leaves the function and can be allocated on the stack.
-	val = make([]byte, sz)
+	val := make([]byte, sz)
 	copy(val, buf)
 	return val, nil
 }
@@ -199,7 +210,7 @@ func Lgetxattr(path string, attr string) (val []byte, err error) {
 // Flistxattr is a wrapper for unix.Flistxattr that handles buffer sizing and
 // parsing the returned blob to a string slice.
 func Flistxattr(fd int) (attrs []string, err error) {
-	// See the buffer sizing comments in Fgetxattr.
+	// See the buffer sizing comments in getxattrSmartBuf.
 	// TODO: smarter buffer sizing?
 	buf := make([]byte, XATTR_BUFSZ)
 	sz, err := unix.Flistxattr(fd, buf)
