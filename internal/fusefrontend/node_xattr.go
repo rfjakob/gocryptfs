@@ -18,11 +18,24 @@ var xattrNameIV = []byte("xattr_name_iv_xx")
 // encrypted original name.
 var xattrStorePrefix = "user.gocryptfs."
 
+// We get one read of this xattr for each write -
+// see https://github.com/rfjakob/gocryptfs/issues/515 for details.
+var xattrCapability = "security.capability"
+
 // GetXAttr - FUSE call. Reads the value of extended attribute "attr".
 //
 // This function is symlink-safe through Fgetxattr.
 func (n *Node) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, syscall.Errno) {
 	rn := n.rootNode()
+	// If we are not mounted with -suid, reading the capability xattr does not
+	// make a lot of sense, so reject the request and gain a massive speedup.
+	// See https://github.com/rfjakob/gocryptfs/issues/515 .
+	if !rn.args.Suid && attr == xattrCapability {
+		// Returning EOPNOTSUPP is what we did till
+		// ca9e912a28b901387e1dbb85f6c531119f2d5ef2 "fusefrontend: drop xattr user namespace restriction"
+		// and it did not cause trouble. Seems cleaner than saying ENODATA.
+		return 0, syscall.EOPNOTSUPP
+	}
 	cAttr := rn.encryptXattrName(attr)
 	cData, errno := n.getXAttr(cAttr)
 	if errno != 0 {

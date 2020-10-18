@@ -266,6 +266,7 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 		Exclude:         args.exclude,
 		ExcludeWildcard: args.excludeWildcard,
 		ExcludeFrom:     args.excludeFrom,
+		Suid:            args.suid,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {

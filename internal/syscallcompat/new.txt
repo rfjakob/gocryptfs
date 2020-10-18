@@ -1,0 +1,6 @@
+goos: linux
+goarch: amd64
+pkg: github.com/rfjakob/gocryptfs/internal/syscallcompat
+BenchmarkLgetxattr-4   	  594607	      1799 ns/op
+PASS
+ok  	github.com/rfjakob/gocryptfs/internal/syscallcompat	1.108s

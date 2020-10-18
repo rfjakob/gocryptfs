@@ -39,4 +39,9 @@ type Args struct {
 	// ExcludeFrom is a list of files from which to read exclusion patterns
 	// (with wildcard syntax)
 	ExcludeFrom []string
+	// Suid is true if the filesystem has been mounted with the "-suid" flag.
+	// If it is false, we can ignore the GETXATTR "security.capability" calls,
+	// which are a performance problem for writes. See
+	// https://github.com/rfjakob/gocryptfs/issues/515 for details.
+	Suid bool
 }
