@@ -50,6 +50,9 @@ of Mac OS X support but please create a new ticket if you hit a problem.
 For Windows, an independent C++ reimplementation can be found here:
 [cppcryptfs](https://github.com/bailey27/cppcryptfs)
 
+A standalone Python tool that can decrypt files & file names is here:
+[gocryptfs-inspect](https://github.com/slackner/gocryptfs-inspect)
+
 Installation
 ------------
 Precompiled binaries that work on all x86_64 Linux systems are available for download from the github releases page.
