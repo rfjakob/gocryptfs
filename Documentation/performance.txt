@@ -66,6 +66,7 @@ v1.8.0            410     1000      17.5   6.7  5.4    7.8    go1.15.3, Linux 5.
 v2.0-beta1        387     1100      36.2  14.4 12.8   19.3
 v2.0-beta1-5-gc943ed3 417 1000      30.4  12.7  9.9   16.4
 v2.0-beta1-6      529     1100      17.5   9.0  3.6    9.0
+v2.0-beta1-9      477     1000      15.5   8.7  2.8    7.6
 
 Results for EncFS for comparison (benchmark.bash -encfs):
 
