@@ -127,8 +127,11 @@ to your program, use `"--"`, which is accepted by most programs:
 `-extpass "my program" -extpass "--"`
 
 #### -fg, -f
-Stay in the foreground instead of forking away. Implies "-nosyslog".
+Stay in the foreground instead of forking away.
 For compatibility, "-f" is also accepted, but "-fg" is preferred.
+
+Unless `-notifypid` is also passed, the logs go to stdout and stderr
+instead of syslog.
 
 #### -fido2 DEVICE_PATH
 Use a FIDO2 token to initialize and unlock the filesystem.
