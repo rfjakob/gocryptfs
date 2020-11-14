@@ -190,6 +190,10 @@ RM:    3.379
 Changelog
 ---------
 
+v2.0-beta2, 2020-11-14
+* Improve [performance](Documentation/performance.txt#L69)
+* Fix [GETATTR panic](https://github.com/rfjakob/gocryptfs/issues/519#issuecomment-718790790) in reverse mode
+
 v2.0-beta1, 2020-10-15
 * **Switch to the improved go-fuse [v2 API](https://pkg.go.dev/github.com/hanwen/go-fuse/v2@v2.0.3/fs)**
   * This is a big change, a lot of code has been reorganized or rewritten
