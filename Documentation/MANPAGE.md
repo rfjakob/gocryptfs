@@ -25,6 +25,9 @@ SYNOPSIS
 #### Check consistency
 `gocryptfs -fsck [OPTIONS] CIPHERDIR`
 
+#### Show filesystem information
+`gocryptfs -info [OPTIONS] CIPHERDIR`
+
 DESCRIPTION
 ===========
 
@@ -35,15 +38,104 @@ view can be presented by mounting the filesystem at MOUNTPOINT.
 gocryptfs was inspired by encfs(1) and strives to fix its
 security issues while providing good performance.
 
-OPTIONS
-=======
+ACTION FLAGS
+============
 
-Available options are listed below. Usually, you don't need any.
+Unless one of the following *action flags* is passed, the default
+action is to mount a filesystem (see SYNOPSIS).
+
+#### -fsck
+Check CIPHERDIR for consistency. If corruption is found, the
+exit code is 26.
+
+#### -h, -help
+Print a short help text that shows the more-often used options.
+
+#### -hh
+Long help text, shows all available options.
+
+#### -info
+Pretty-print the contents of the config file for human consumption,
+stripping out sensitive data.
+
+#### -init
+Initialize encrypted directory.
+
+#### -passwd
+Change the password. Will ask for the old password, check if it is
+correct, and ask for a new one.
+
+This can be used together with `-masterkey` if
+you forgot the password but know the master key. Note that without the
+old password, gocryptfs cannot tell if the master key is correct and will
+overwrite the old one without mercy. It will, however, create a backup copy
+of the old config file as `gocryptfs.conf.bak`. Delete it after
+you have verified that you can access your files with the
+new password.
+
+#### -speed
+Run crypto speed test. Benchmark Go's built-in GCM against OpenSSL
+(if available). The library that will be selected on "-openssl=auto"
+(the default) is marked as such.
+
+#### -version
+Print version and exit. The output contains three fields separated by ";".
+Example: "gocryptfs v1.1.1-5-g75b776c; go-fuse 6b801d3; 2016-11-01 go1.7.3".
+Field 1 is the gocryptfs version, field 2 is the version of the go-fuse
+library, field 3 is the compile date and the Go version that was
+used.
+
+INIT OPTIONS
+============
+
+Available options for `-init` are listed below. Usually, you don't need any.
 Defaults are fine.
 
 #### -aessiv
 Use the AES-SIV encryption mode. This is slower than GCM but is
 secure with deterministic nonces as used in "-reverse" mode.
+
+#### -devrandom
+Use `/dev/random` for generating the master key instead of the default Go
+implementation. This is especially useful on embedded systems with Go versions
+prior to 1.9, which fall back to weak random data when the getrandom syscall
+is blocking. Using this option can block indefinitely when the kernel cannot
+harvest enough entropy.
+
+#### -hkdf
+Use HKDF to derive separate keys for content and name encryption from
+the master key. Default true.
+
+#### -nosyslog
+Diagnostic messages are normally redirected to syslog once gocryptfs
+daemonizes. This option disables the redirection and messages will
+continue be printed to stdout and stderr.
+
+#### -plaintextnames
+Do not encrypt file names and symlink targets.
+
+#### -raw64
+Use unpadded base64 encoding for file names. This gets rid of the
+trailing "\\=\\=". A filesystem created with this option can only be
+mounted using gocryptfs v1.2 and higher. Default true.
+
+#### -reverse
+Reverse mode shows a read-only encrypted view of a plaintext
+directory. Implies "-aessiv".
+
+#### -scryptn int
+scrypt cost parameter expressed as scryptn=log2(N). Possible values are
+10 to 28, representing N=2^10 to N=2^28.
+
+Setting this to a lower
+value speeds up mounting and reduces its memory needs, but makes
+the password susceptible to brute-force attacks. The default is 16.
+
+MOUNT OPTIONS
+=============
+
+Available options for mounting are listed below. Usually, you don't need any.
+Defaults are fine.
 
 #### -allow_other
 By default, the Linux kernel prevents any other user (even root) to
@@ -52,12 +144,6 @@ other users, subject to file permission checking. Only works if
 user_allow_other is set in /etc/fuse.conf. This option is equivalent to
 "allow_other" plus "default_permissions" described in fuse(8).
 
-#### -config string
-Use specified config file instead of `CIPHERDIR/gocryptfs.conf`.
-
-#### -cpuprofile string
-Write cpu profile to specified file.
-
 #### -ctlsock string
 Create a control socket at the specified location. The socket can be
 used to decrypt and encrypt paths inside the filesystem. When using
@@ -65,20 +151,10 @@ this option, make sure that the directory you place the socket in is
 not world-accessible. For example, `/run/user/UID/my.socket` would 
 be suitable.
 
-#### -d, -debug
-Enable debug output.
-
 #### -dev, -nodev
 Enable (`-dev`) or disable (`-nodev`) device files in a gocryptfs mount
 (default: `-nodev`). If both are specified, `-nodev` takes precedence.
 You need root permissions to use `-dev`.
-
-#### -devrandom
-Use `/dev/random` for generating the master key instead of the default Go
-implementation. This is especially useful on embedded systems with Go versions
-prior to 1.9, which fall back to weak random data when the getrandom syscall
-is blocking. Using this option can block indefinitely when the kernel cannot
-harvest enough entropy.
 
 #### -e PATH, -exclude PATH
 Only for reverse mode: exclude relative plaintext path from the encrypted
@@ -109,33 +185,12 @@ See also `-exclude`, `-exclude-wildcard` and the [EXCLUDING FILES](#excluding-fi
 Enable (`-exec`) or disable (`-noexec`) executables in a gocryptfs mount
 (default: `-exec`). If both are specified, `-noexec` takes precedence.
 
-#### -extpass CMD [-extpass ARG1 ...]
-Use an external program (like ssh-askpass) for the password prompt.
-The program should return the password on stdout, a trailing newline is
-stripped by gocryptfs. If you just want to read from a password file, see `-passfile`.
-
-When `-extpass` is specified once, the string argument will be split on spaces.
-For example, `-extpass "md5sum my password.txt"` will be executed as
-`"md5sum" "my" "password.txt"`, which is NOT what you want.
-
-Specify `-extpass` twice or more to use the string arguments as-is.
-For example, you DO want to call `md5sum` like this:
-`-extpass "md5sum" -extpass "my password.txt"`.
-
-If you want to prevent splitting on spaces but don't want to pass arguments
-to your program, use `"--"`, which is accepted by most programs:
-`-extpass "my program" -extpass "--"`
-
 #### -fg, -f
 Stay in the foreground instead of forking away.
 For compatibility, "-f" is also accepted, but "-fg" is preferred.
 
 Unless `-notifypid` is also passed, the logs go to stdout and stderr
 instead of syslog.
-
-#### -fido2 DEVICE_PATH
-Use a FIDO2 token to initialize and unlock the filesystem.
-Use "fido2-token -L" to obtain the FIDO2 token device path.
 
 #### -force_owner string
 If given a string of the form "uid:gid" (where both "uid" and "gid" are
@@ -165,10 +220,6 @@ that uses built-in Go crypto.
 
 Setting this option forces the filesystem to read-only and noexec.
 
-#### -fsck
-Check CIPHERDIR for consistency. If corruption is found, the
-exit code is 26.
-
 #### -fsname string
 Override the filesystem name (first column in df -T). Can also be
 passed as "-o fsname=" and is equivalent to libfuse's option of the
@@ -177,27 +228,10 @@ same name. By default, CIPHERDIR is used.
 #### -fusedebug
 Enable fuse library debug output.
 
-#### -h, -help
-Print a short help text that shows the more-often used options.
-
-#### -hh
-Long help text, shows all available options.
-
-#### -hkdf
-Use HKDF to derive separate keys for content and name encryption from
-the master key.
-
 #### -i duration, -idle duration
 Only for forward mode: automatically unmount the filesystem if it has been idle
 for the specified duration. Durations can be specified like "500s" or "2h45m".
 0 (the default) means stay mounted indefinitely.
-
-#### -info
-Pretty-print the contents of the config file for human consumption,
-stripping out sensitive data.
-
-#### -init
-Initialize encrypted directory.
 
 #### -ko
 Pass additional mount options to the kernel (comma-separated list).
@@ -218,31 +252,6 @@ the directories. Example:
 Store names longer than 176 bytes in extra files (default true)
 This flag is useful when recovering old gocryptfs filesystems using
 "-masterkey". It is ignored (stays at the default) otherwise.
-
-#### -masterkey string
-Use a explicit master key specified on the command line or, if the special
-value "stdin" is used, read the masterkey from stdin. This
-option can be used to mount a gocryptfs filesystem without a config file.
-Note that the command line, and with it the master key, is visible to
-anybody on the machine who can execute "ps -auxwww". Use "-masterkey=stdin"
-to avoid that risk.
-
-The masterkey option is meant as a recovery option for emergencies, such as
-if you have forgotten the password or lost the config file.
-
-Even if a config file exists, it will not be used. All non-standard
-settings have to be passed on the command line: `-aessiv` when you
-mount a filesystem that was created using reverse mode, or
-`-plaintextnames` for a filesystem that was created with that option.
-
-Examples:
-
-    -masterkey=6f717d8b-6b5f8e8a-fd0aa206-778ec093-62c5669b-abd229cd-241e00cd-b4d6713d
-    -masterkey=stdin
-
-#### -memprofile string
-Write memory profile to the specified file. This is useful when debugging
-memory usage of gocryptfs.
 
 #### -nodev
 See `-dev, -nodev`.
@@ -276,11 +285,6 @@ out-of-space errors for a massive speedup.
 For benchmarks and more details of the issue see
 https://github.com/rfjakob/gocryptfs/issues/63 .
 
-#### -nosyslog
-Diagnostic messages are normally redirected to syslog once gocryptfs
-daemonizes. This option disables the redirection and messages will
-continue be printed to stdout and stderr.
-
 #### -nosuid
 See `-suid, -nosuid`.
 
@@ -288,83 +292,13 @@ See `-suid, -nosuid`.
 Send USR1 to the specified process after successful mount. This is
 used internally for daemonization.
 
-#### -o COMMA-SEPARATED-OPTIONS
-For compatibility with mount(1), options are also accepted as
-"-o COMMA-SEPARATED-OPTIONS" at the end of the command line.
-For example, "-o q,zerokey" is equivalent to passing "-q -zerokey".
-
-Note that you can only use options that are understood by gocryptfs
-with "-o". If you want to pass special flags to the kernel, you should
-use "-ko" (*k*ernel *o*ption). This is different in libfuse-based
-filesystems, that automatically pass any "-o" options they do not
-understand along to the kernel.
-
-Example:
-
-    gocryptfs /tmp/foo /tmp/bar -o q,zerokey
-
-#### -openssl bool/"auto"
-Use OpenSSL instead of built-in Go crypto (default "auto"). Using
-built-in crypto is 4x slower unless your CPU has AES instructions and
-you are using Go 1.6+. In mode "auto", gocrypts chooses the faster
-option.
-
-#### -passfile FILE [-passfile FILE2 ...]
-Read password from the specified plain text file. The file should contain exactly
-one line (do not use binary files!).
-A warning will be printed if there is more than one line, and only
-the first line will be used. A single
-trailing newline is allowed and does not cause a warning.
-
-Pass this option multiple times to read the first line from multiple
-files. They are concatenated for the effective password.
-
-Example:
-
-    echo hello > hello.txt
-    echo word > world.txt
-    gocryptfs -passfile hello.txt -passfile world.txt
-
-The effective password will be "helloworld".
-
-#### -passwd
-Change the password. Will ask for the old password, check if it is
-correct, and ask for a new one.
-
-This can be used together with `-masterkey` if
-you forgot the password but know the master key. Note that without the
-old password, gocryptfs cannot tell if the master key is correct and will
-overwrite the old one without mercy. It will, however, create a backup copy
-of the old config file as `gocryptfs.conf.bak`. Delete it after
-you have verified that you can access your files with the
-new password.
-
-#### -plaintextnames
-Do not encrypt file names and symlink targets.
-
-#### -q, -quiet
-Quiet - silence informational messages.
-
-#### -raw64
-Use unpadded base64 encoding for file names. This gets rid of the
-trailing "\\=\\=". A filesystem created with this option can only be
-mounted using gocryptfs v1.2 and higher.
-
-#### -reverse
-Reverse mode shows a read-only encrypted view of a plaintext
-directory. Implies "-aessiv".
-
 #### -rw, -ro
 Mount the filesystem read-write (`-rw`, default) or read-only (`-ro`).
 If both are specified, `-ro` takes precedence.
 
-#### -scryptn int
-scrypt cost parameter expressed as scryptn=log2(N). Possible values are
-10 to 28, representing N=2^10 to N=2^28.
-
-Setting this to a lower
-value speeds up mounting and reduces its memory needs, but makes
-the password susceptible to brute-force attacks. The default is 16.
+#### -reverse
+See the `-reverse` section in INIT FLAGS. You need to specifiy the
+`-reverse` option both at `-init` and at mount.
 
 #### -serialize_reads
 The kernel usually submits multiple concurrent reads to service
@@ -408,37 +342,158 @@ and report any problems you may hit.
 
 More info: https://github.com/rfjakob/gocryptfs/issues/156
 
-#### -speed
-Run crypto speed test. Benchmark Go's built-in GCM against OpenSSL
-(if available). The library that will be selected on "-openssl=auto"
-(the default) is marked as such.
-
 #### -suid, -nosuid
 Enable (`-suid`) or disable (`-nosuid`) suid and sgid executables in a gocryptfs
 mount (default: `-nosuid`). If both are specified, `-nosuid` takes precedence.
 You need root permissions to use `-suid`.
 
+#### -zerokey
+Use all-zero dummy master key. This options is only intended for
+automated testing as it does not provide any security.
+
+COMMON OPTIONS
+==============
+
+Options that apply to more than one action are listed below.
+Each options lists where it is applicable. Again, usually you
+don't need any.
+
+#### -config string
+Use specified config file instead of `CIPHERDIR/gocryptfs.conf`.
+
+Applies to: all actions that use a config file: mount, `-fsck`, `-passwd`, `-info`, `-init`.
+
+#### -cpuprofile string
+Write cpu profile to specified file.
+
+Applies to: all actions.
+
+#### -d, -debug
+Enable debug output.
+
+Applies to: all actions.
+
+#### -extpass CMD [-extpass ARG1 ...]
+Use an external program (like ssh-askpass) for the password prompt.
+The program should return the password on stdout, a trailing newline is
+stripped by gocryptfs. If you just want to read from a password file, see `-passfile`.
+
+When `-extpass` is specified once, the string argument will be split on spaces.
+For example, `-extpass "md5sum my password.txt"` will be executed as
+`"md5sum" "my" "password.txt"`, which is NOT what you want.
+
+Specify `-extpass` twice or more to use the string arguments as-is.
+For example, you DO want to call `md5sum` like this:
+`-extpass "md5sum" -extpass "my password.txt"`.
+
+If you want to prevent splitting on spaces but don't want to pass arguments
+to your program, use `"--"`, which is accepted by most programs:
+`-extpass "my program" -extpass "--"`
+
+Applies to: all actions that ask for a password.
+
+#### -fido2 DEVICE_PATH
+Use a FIDO2 token to initialize and unlock the filesystem.
+Use "fido2-token -L" to obtain the FIDO2 token device path.
+
+Applies to: all actions that ask for a password.
+
+#### -masterkey string
+Use a explicit master key specified on the command line or, if the special
+value "stdin" is used, read the masterkey from stdin, instead of reading
+the config file and asking for the decryption password.
+
+Note that the command line, and with it the master key, is visible to
+anybody on the machine who can execute "ps -auxwww". Use "-masterkey=stdin"
+to avoid that risk.
+
+The masterkey option is meant as a recovery option for emergencies, such as
+if you have forgotten the password or lost the config file.
+
+Even if a config file exists, it will not be used. All non-standard
+settings have to be passed on the command line: `-aessiv` when you
+mount a filesystem that was created using reverse mode, or
+`-plaintextnames` for a filesystem that was created with that option.
+
+Examples:
+
+    -masterkey=6f717d8b-6b5f8e8a-fd0aa206-778ec093-62c5669b-abd229cd-241e00cd-b4d6713d
+    -masterkey=stdin
+
+Applies to: all actions that ask for a password.
+
+#### -memprofile string
+Write memory profile to the specified file. This is useful when debugging
+memory usage of gocryptfs.
+
+Applies to: all actions.
+
+#### -o COMMA-SEPARATED-OPTIONS
+For compatibility with mount(1), options are also accepted as
+"-o COMMA-SEPARATED-OPTIONS" at the end of the command line.
+For example, "-o q,zerokey" is equivalent to passing "-q -zerokey".
+
+Note that you can only use options that are understood by gocryptfs
+with "-o". If you want to pass special flags to the kernel, you should
+use "-ko" (*k*ernel *o*ption). This is different in libfuse-based
+filesystems, that automatically pass any "-o" options they do not
+understand along to the kernel.
+
+Example:
+
+    gocryptfs /tmp/foo /tmp/bar -o q,zerokey
+
+Applies to: all actions.
+
+#### -openssl bool/"auto"
+Use OpenSSL instead of built-in Go crypto (default "auto"). Using
+built-in crypto is 4x slower unless your CPU has AES instructions and
+you are using Go 1.6+. In mode "auto", gocrypts chooses the faster
+option.
+
+Applies to: all actions.
+
+#### -passfile FILE [-passfile FILE2 ...]
+Read password from the specified plain text file. The file should contain exactly
+one line (do not use binary files!).
+A warning will be printed if there is more than one line, and only
+the first line will be used. A single
+trailing newline is allowed and does not cause a warning.
+
+Pass this option multiple times to read the first line from multiple
+files. They are concatenated for the effective password.
+
+Example:
+
+    echo hello > hello.txt
+    echo word > world.txt
+    gocryptfs -passfile hello.txt -passfile world.txt
+
+The effective password will be "helloworld".
+
+Applies to: all actions that ask for a password.
+
+#### -q, -quiet
+Quiet - silence informational messages.
+
+Applies to: all actions.
+
 #### -trace string
 Write execution trace to file. View the trace using "go tool trace FILE".
 
-#### -version
-Print version and exit. The output contains three fields separated by ";".
-Example: "gocryptfs v1.1.1-5-g75b776c; go-fuse 6b801d3; 2016-11-01 go1.7.3".
-Field 1 is the gocryptfs version, field 2 is the version of the go-fuse
-library, field 3 is the compile date and the Go version that was
-used.
+Applies to: all actions.
 
 #### -wpanic
 When encountering a warning, panic and exit immediately. This is
 useful in regression testing.
 
-#### -zerokey
-Use all-zero dummy master key. This options is only intended for
-automated testing as it does not provide any security.
+Applies to: all actions.
 
 #### \-\-
 Stop option parsing. Helpful when CIPHERDIR may start with a
 dash "-".
+
+Applies to: all actions.
 
 EXCLUDING FILES
 ===============
