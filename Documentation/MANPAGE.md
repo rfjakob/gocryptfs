@@ -55,8 +55,16 @@ Print a short help text that shows the more-often used options.
 Long help text, shows all available options.
 
 #### -info
-Pretty-print the contents of the config file for human consumption,
-stripping out sensitive data.
+Pretty-print the contents of the config file in CIPHERDIR for
+human consumption, stripping out sensitive data.
+
+Example:
+
+    $ gocryptfs -info my_cipherdir
+    Creator:      gocryptfs v2.0-beta2
+    FeatureFlags: GCMIV128 HKDF DirIV EMENames LongNames Raw64
+    EncryptedKey: 64B
+    ScryptObject: Salt=32B N=65536 R=8 P=1 KeyLen=32
 
 #### -init
 Initialize encrypted directory.
