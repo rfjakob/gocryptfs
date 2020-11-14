@@ -579,6 +579,14 @@ Mount an encrypted view of joe's home directory using reverse mode:
 	gocryptfs -init -reverse /home/joe
 	gocryptfs -reverse /home/joe /home/joe.crypt
 
+Adding this line to `/etc/fstab` will mount `/tmp/cipher` to `/tmp/plain` on boot, using the
+password in `/tmp/passfile`. Use `sudo mount -av` to test the line without having
+to reboot. Adjust the gocryptfs path acc. to the output of the command `which gocryptfs`.
+Do use the `nofail` option to prevent an unbootable system if the gocryptfs mount fails (see
+the `-nofail` option for details).
+
+    /tmp/cipher /tmp/plain fuse./usr/local/bin/gocryptfs nofail,allow_other,passfile=/tmp/password 0 0
+
 EXIT CODES
 ==========
 
