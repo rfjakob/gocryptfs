@@ -190,6 +190,10 @@ func (n *Node) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, fuseFl
 	rn.openWriteOnlyLock.RLock()
 	defer rn.openWriteOnlyLock.RUnlock()
 
+	if rn.args.KernelCache {
+		fuseFlags = fuse.FOPEN_KEEP_CACHE
+	}
+
 	// Open backing file
 	fd, err := syscallcompat.Openat(dirfd, cName, newFlags, 0)
 	// Handle a few specific errors

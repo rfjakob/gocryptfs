@@ -241,6 +241,9 @@ Only for forward mode: automatically unmount the filesystem if it has been idle
 for the specified duration. Durations can be specified like "500s" or "2h45m".
 0 (the default) means stay mounted indefinitely.
 
+#### -kernel_cache
+Enable the kernel_cache option of the FUSE filesystem, see fuse(8) for details.
+
 #### -ko
 Pass additional mount options to the kernel (comma-separated list).
 FUSE filesystems are mounted with "nodev,nosuid" by default. If gocryptfs
