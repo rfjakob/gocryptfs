@@ -296,8 +296,7 @@ v1.6, 2018-08-18
   ([#235](https://github.com/rfjakob/gocryptfs/issues/235),
   [commit](https://github.com/rfjakob/gocryptfs/commit/ec2fdc19cf9358ae7ba09c528a5807b6b0760f9b))
 * **Add support for the Trezor One HSM** [PR#247](https://github.com/rfjakob/gocryptfs/pull/247), thanks @xaionaro!
-  * Use `./build.bash -tags enable_trezor` to compile with Trezor support
-  * Then, use `gocryptfs -init -trezor` to create a filesystem locked with a physical Trezor device.
+  * Support was later removed in favor of FIDO2 tokens ([#261](https://github.com/rfjakob/gocryptfs/issues/261), [commit](https://github.com/rfjakob/gocryptfs/commit/16fac26c57ba303bf60266d24c17f5243e5ea376))
 * Only print master key once, on init
   ([#76](https://github.com/rfjakob/gocryptfs/issues/76),
   [commit](https://github.com/rfjakob/gocryptfs/commit/6d64dfe8f7acd8e9ca4a659d26318e442c2db85a))
