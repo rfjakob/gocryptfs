@@ -175,11 +175,15 @@ func doMount(args *argContainer) {
 const checksDuringTimeoutPeriod = 4
 
 func idleMonitor(idleTimeout time.Duration, fs *fusefrontend.RootNode, srv *fuse.Server, mountpoint string) {
-	sleepTimeBetweenChecks := contentenc.MinUint64(
+	// sleepNs is the sleep time between checks, in nanoseconds.
+	sleepNs := contentenc.MinUint64(
 		uint64(idleTimeout/checksDuringTimeoutPeriod),
 		uint64(2*time.Minute))
-	timeoutCycles := int(math.Ceil(float64(idleTimeout) / float64(sleepTimeBetweenChecks)))
+	timeoutCycles := int(math.Ceil(float64(idleTimeout) / float64(sleepNs)))
 	idleCount := 0
+	idleTime := func() time.Duration {
+		return time.Duration(sleepNs * uint64(idleCount))
+	}
 	for {
 		// Atomically check whether the flag is 0 and reset it to 1 if so.
 		isIdle := !atomic.CompareAndSwapUint32(&fs.IsIdle, 0, 1)
@@ -191,13 +195,21 @@ func idleMonitor(idleTimeout time.Duration, fs *fusefrontend.RootNode, srv *fuse
 			idleCount++
 		}
 		tlog.Debug.Printf(
-			"Checking for idle (isIdle = %t, open = %d): %s",
-			isIdle, openFileCount, time.Now().String())
+			"idleMonitor: idle for %v (idleCount = %d, isIdle = %t, open = %d)",
+			idleTime(), idleCount, isIdle, openFileCount)
 		if idleCount > 0 && idleCount%timeoutCycles == 0 {
-			tlog.Info.Printf("Filesystem idle; unmounting: %s", mountpoint)
-			unmount(srv, mountpoint)
+			tlog.Info.Printf("idleMonitor: filesystem idle; unmounting: %s", mountpoint)
+			err := srv.Unmount()
+			if err != nil {
+				// We get "Device or resource busy" when a process has its
+				// working directory on the mount. Log the event at Info level
+				// so the user finds out why their filesystem does not get
+				// unmounted.
+				tlog.Info.Printf("idleMonitor: unmount failed: %v. Resetting idle time.", err)
+				idleCount = 0
+			}
 		}
-		time.Sleep(time.Duration(sleepTimeBetweenChecks))
+		time.Sleep(time.Duration(sleepNs))
 	}
 }
 
@@ -483,6 +495,8 @@ func handleSigint(srv *fuse.Server, mountpoint string) {
 	}()
 }
 
+// unmount() calls srv.Unmount(), and if that fails, calls "fusermount -u -z"
+// (lazy unmount).
 func unmount(srv *fuse.Server, mountpoint string) {
 	err := srv.Unmount()
 	if err != nil {

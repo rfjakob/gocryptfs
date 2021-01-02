@@ -192,6 +192,7 @@ Changelog
 
 vNEXT, in progress
 * MANPAGE: Split options into sections acc. to where they apply ([#517](https://github.com/rfjakob/gocryptfs/issues/517))
+* `-idle`: count cwd inside the mount as busy ([#533](https://github.com/rfjakob/gocryptfs/issues/533))
 
 v2.0-beta2, 2020-11-14
 * Improve [performance](Documentation/performance.txt#L69)
