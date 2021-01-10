@@ -573,17 +573,23 @@ In short:
 EXAMPLES
 ========
 
+### Init
+
 Create an encrypted filesystem in directory "mydir.crypt", mount it on "mydir":
 
 	mkdir mydir.crypt mydir
 	gocryptfs -init mydir.crypt
 	gocryptfs mydir.crypt mydir
 
+### Mount
+
 Mount an encrypted view of joe's home directory using reverse mode:
 
 	mkdir /home/joe.crypt
 	gocryptfs -init -reverse /home/joe
 	gocryptfs -reverse /home/joe /home/joe.crypt
+
+### fstab
 
 Adding this line to `/etc/fstab` will mount `/tmp/cipher` to `/tmp/plain` on boot, using the
 password in `/tmp/passfile`. Use `sudo mount -av` to test the line without having
