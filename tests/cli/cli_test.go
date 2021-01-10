@@ -59,8 +59,10 @@ func TestInitFilePerms(t *testing.T) {
 	syscall.Stat(dir+"/gocryptfs.diriv", &st)
 	perms = st.Mode & 0777
 	// From v1.7.1, these are created with 0440 permissions, see
-	// https://github.com/rfjakob/gocryptfs/issues/387
-	if perms != 0440 {
+	// https://github.com/rfjakob/gocryptfs/issues/387 .
+	// From v2.0, created with 0444 perms, see
+	// https://github.com/rfjakob/gocryptfs/issues/539 .
+	if perms != 0444 {
 		t.Errorf("Wrong permissions for gocryptfs.diriv: %#o", perms)
 	}
 }

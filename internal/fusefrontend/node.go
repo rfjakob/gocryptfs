@@ -239,6 +239,10 @@ func (n *Node) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAttrIn,
 	defer syscall.Close(dirfd)
 
 	// chmod(2)
+	//
+	// gocryptfs.diriv & gocryptfs.longname.[sha256].name files do NOT get chmod'ed
+	// or chown'ed with their parent file/dir for simplicity.
+	// See nametransform/perms.go for details.
 	if mode, ok := in.GetMode(); ok {
 		errno = fs.ToErrno(syscallcompat.FchmodatNofollow(dirfd, cName, mode))
 		if errno != 0 {

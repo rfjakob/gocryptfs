@@ -193,6 +193,8 @@ Changelog
 vNEXT, in progress
 * MANPAGE: Split options into sections acc. to where they apply ([#517](https://github.com/rfjakob/gocryptfs/issues/517))
 * `-idle`: count cwd inside the mount as busy ([#533](https://github.com/rfjakob/gocryptfs/issues/533))
+* Make `gocryptfs.diriv` and `gocryptfs.xxx.name` files world-readable to make encrypted backups easier
+  when mounting via [/etc/fstab](Documentation/MANPAGE.md#fstab) ([#539](https://github.com/rfjakob/gocryptfs/issues/539))
 
 v2.0-beta2, 2020-11-14
 * Improve [performance](Documentation/performance.txt#L69)
