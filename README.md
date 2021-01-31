@@ -208,7 +208,7 @@ v2.0-beta1, 2020-10-15
   * No changes to the on-disk format
   * File descriptor caching is not yet implemented,
     causing a slowdown. Caching will be implemented for v2.0 final.
-* **Add support for FIDO2 tokens ([#505](https://github.com/rfjakob/gocryptfs/pull/505))**
+* **Add support for FIDO2 tokens (`-fido2`, [#505](https://github.com/rfjakob/gocryptfs/pull/505))**
 * Add `-encrypt-paths` / `-decrypt-paths` functionality to `gocryptfs-xray`
   ([#416](https://github.com/rfjakob/gocryptfs/issues/416))
 * Accept multiple `-passfile`s
@@ -238,6 +238,9 @@ v1.8.0, 2020-05-09
   ([#452](https://github.com/rfjakob/gocryptfs/issues/452))
 * Respect `GOMAXPROCS` environment variable
   ([commit ff210a06f](https://github.com/rfjakob/gocryptfs/commit/ff210a06fb3097eecd5668ddb3ace9c76873eb00)
+* Completely remove Trezor-related code (commit 1364b44ae356da31e24e5605fe73a307e9d6fb03)
+  * Has been disabled since v1.7 due to issues a third-party module.
+  * Please use FIDO2 instead (gocryptfs v2.0)
 
 v1.7.1, 2019-10-06
 * Support wild cards in reverse mode via `--exclude-wildcard`
@@ -289,6 +292,9 @@ v1.7, 2019-03-17
   ([commit](https://github.com/rfjakob/gocryptfs/commit/03b9d65cce53fb95b7d489ecd03d0853b9b923fb)))
 * Pack the rendered man page into the source code archive for user convenience
   ([issue 355](https://github.com/rfjakob/gocryptfs/issues/355))
+* Disable Trezor support again (commit 16fac26c57ba303bf60266d24c17f5243e5ea376)
+  * Trezor support has been broken since Sept 2018 due to issues
+    in a third-party module ([#261](https://github.com/rfjakob/gocryptfs/issues/261))
 
 v1.6.1, 2018-12-12
 * Fix "Operation not supported" chmod errors on Go 1.11
@@ -298,9 +304,10 @@ v1.6, 2018-08-18
 * **Add `-e` / `-exclude` option** for reverse mode
   ([#235](https://github.com/rfjakob/gocryptfs/issues/235),
   [commit](https://github.com/rfjakob/gocryptfs/commit/ec2fdc19cf9358ae7ba09c528a5807b6b0760f9b))
-* **Add support for the Trezor One HSM** [PR#247](https://github.com/rfjakob/gocryptfs/pull/247), thanks @xaionaro!
+* Add support for the Trezor One HSM [PR#247](https://github.com/rfjakob/gocryptfs/pull/247), thanks @xaionaro!
   * Use `./build.bash -tags enable_trezor` to compile with Trezor support
   * Then, use `gocryptfs -init -trezor` to create a filesystem locked with a physical Trezor device.
+  * Note 2021-01-31: Support was removed again in gocryptfs v1.7. Please use `-fido2` in gocryptfs v2.0.
 * Only print master key once, on init
   ([#76](https://github.com/rfjakob/gocryptfs/issues/76),
   [commit](https://github.com/rfjakob/gocryptfs/commit/6d64dfe8f7acd8e9ca4a659d26318e442c2db85a))
