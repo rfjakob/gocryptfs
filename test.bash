@@ -80,7 +80,14 @@ else
 fi
 
 if grep -R "panic(" ./*.go internal ; then
-	echo "Please use log.Panic instead of naked panic!"
+	echo "$MYNAME: Please use log.Panic instead of naked panic!"
+	exit 1
+fi
+
+# All functions from the commit msg in https://go-review.googlesource.com/c/go/+/210639
+if grep -R -E 'syscall.(Setegid|Seteuid|Setgroups|Setgid|Setregid|Setreuid|Setresgid|Setresuid|Setuid)\(' \
+	./*.go internal ; then
+	echo "$MYNAME: You probably want to use unix.Setgroups and friends. See the comments in OpenatUser() for why."
 	exit 1
 fi
 

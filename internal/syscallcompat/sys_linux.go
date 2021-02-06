@@ -92,28 +92,38 @@ func getSupplementaryGroups(pid uint32) (gids []int) {
 }
 
 // OpenatUser runs the Openat syscall in the context of a different user.
+//
+// It switches the current thread to the new user, performs the syscall,
+// and switches back.
 func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Context) (fd int, err error) {
 	if context != nil {
 		runtime.LockOSThread()
 		defer runtime.UnlockOSThread()
 
-		err = syscall.Setgroups(getSupplementaryGroups(context.Pid))
-		if err != nil {
-			return -1, err
-		}
-		defer syscall.Setgroups(nil)
+		// Since go1.16beta1 (commit d1b1145cace8b968307f9311ff611e4bb810710c ,
+		// https://go-review.googlesource.com/c/go/+/210639 )
+		// syscall.{Setgroups,Setregid,Setreuid} affects all threads, which
+		// is exactly what we not want.
+		//
+		// We now use unix.{Setgroups,Setregid,Setreuid} instead.
 
-		err = syscall.Setregid(-1, int(context.Owner.Gid))
+		err = unix.Setgroups(getSupplementaryGroups(context.Pid))
 		if err != nil {
 			return -1, err
 		}
-		defer syscall.Setregid(-1, 0)
+		defer unix.Setgroups(nil)
 
-		err = syscall.Setreuid(-1, int(context.Owner.Uid))
+		err = unix.Setregid(-1, int(context.Owner.Gid))
 		if err != nil {
 			return -1, err
 		}
-		defer syscall.Setreuid(-1, 0)
+		defer unix.Setregid(-1, 0)
+
+		err = unix.Setreuid(-1, int(context.Owner.Uid))
+		if err != nil {
+			return -1, err
+		}
+		defer unix.Setreuid(-1, 0)
 	}
 
 	return Openat(dirfd, path, flags, mode)
@@ -125,28 +135,30 @@ func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 }
 
 // MknodatUser runs the Mknodat syscall in the context of a different user.
+//
+// See OpenatUser() for how this works.
 func MknodatUser(dirfd int, path string, mode uint32, dev int, context *fuse.Context) (err error) {
 	if context != nil {
 		runtime.LockOSThread()
 		defer runtime.UnlockOSThread()
 
-		err = syscall.Setgroups(getSupplementaryGroups(context.Pid))
+		err = unix.Setgroups(getSupplementaryGroups(context.Pid))
 		if err != nil {
 			return err
 		}
-		defer syscall.Setgroups(nil)
+		defer unix.Setgroups(nil)
 
-		err = syscall.Setregid(-1, int(context.Owner.Gid))
+		err = unix.Setregid(-1, int(context.Owner.Gid))
 		if err != nil {
 			return err
 		}
-		defer syscall.Setregid(-1, 0)
+		defer unix.Setregid(-1, 0)
 
-		err = syscall.Setreuid(-1, int(context.Owner.Uid))
+		err = unix.Setreuid(-1, int(context.Owner.Uid))
 		if err != nil {
 			return err
 		}
-		defer syscall.Setreuid(-1, 0)
+		defer unix.Setreuid(-1, 0)
 	}
 
 	return Mknodat(dirfd, path, mode, dev)
@@ -193,56 +205,60 @@ func FchmodatNofollow(dirfd int, path string, mode uint32) (err error) {
 }
 
 // SymlinkatUser runs the Symlinkat syscall in the context of a different user.
+//
+// See OpenatUser() for how this works.
 func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.Context) (err error) {
 	if context != nil {
 		runtime.LockOSThread()
 		defer runtime.UnlockOSThread()
 
-		err = syscall.Setgroups(getSupplementaryGroups(context.Pid))
+		err = unix.Setgroups(getSupplementaryGroups(context.Pid))
 		if err != nil {
 			return err
 		}
-		defer syscall.Setgroups(nil)
+		defer unix.Setgroups(nil)
 
-		err = syscall.Setregid(-1, int(context.Owner.Gid))
+		err = unix.Setregid(-1, int(context.Owner.Gid))
 		if err != nil {
 			return err
 		}
-		defer syscall.Setregid(-1, 0)
+		defer unix.Setregid(-1, 0)
 
-		err = syscall.Setreuid(-1, int(context.Owner.Uid))
+		err = unix.Setreuid(-1, int(context.Owner.Uid))
 		if err != nil {
 			return err
 		}
-		defer syscall.Setreuid(-1, 0)
+		defer unix.Setreuid(-1, 0)
 	}
 
 	return Symlinkat(oldpath, newdirfd, newpath)
 }
 
 // MkdiratUser runs the Mkdirat syscall in the context of a different user.
+//
+// See OpenatUser() for how this works.
 func MkdiratUser(dirfd int, path string, mode uint32, caller *fuse.Caller) (err error) {
 	if caller != nil {
 		runtime.LockOSThread()
 		defer runtime.UnlockOSThread()
 
-		err = syscall.Setgroups(getSupplementaryGroups(caller.Pid))
+		err = unix.Setgroups(getSupplementaryGroups(caller.Pid))
 		if err != nil {
 			return err
 		}
-		defer syscall.Setgroups(nil)
+		defer unix.Setgroups(nil)
 
-		err = syscall.Setregid(-1, int(caller.Gid))
+		err = unix.Setregid(-1, int(caller.Gid))
 		if err != nil {
 			return err
 		}
-		defer syscall.Setregid(-1, 0)
+		defer unix.Setregid(-1, 0)
 
-		err = syscall.Setreuid(-1, int(caller.Uid))
+		err = unix.Setreuid(-1, int(caller.Uid))
 		if err != nil {
 			return err
 		}
-		defer syscall.Setreuid(-1, 0)
+		defer unix.Setreuid(-1, 0)
 	}
 
 	return Mkdirat(dirfd, path, mode)
