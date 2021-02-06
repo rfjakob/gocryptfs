@@ -195,6 +195,7 @@ vNEXT, in progress
 * `-idle`: count cwd inside the mount as busy ([#533](https://github.com/rfjakob/gocryptfs/issues/533))
 * Make `gocryptfs.diriv` and `gocryptfs.xxx.name` files world-readable to make encrypted backups easier
   when mounting via [/etc/fstab](Documentation/MANPAGE.md#fstab) ([#539](https://github.com/rfjakob/gocryptfs/issues/539))
+* Make it work with MacFUSE v4.x ([#524](https://github.com/rfjakob/gocryptfs/issues/524))
 
 v2.0-beta2, 2020-11-14
 * Improve [performance](Documentation/performance.txt#L69)
