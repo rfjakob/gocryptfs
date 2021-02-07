@@ -196,6 +196,9 @@ vNEXT, in progress
 * Make `gocryptfs.diriv` and `gocryptfs.xxx.name` files world-readable to make encrypted backups easier
   when mounting via [/etc/fstab](Documentation/MANPAGE.md#fstab) ([#539](https://github.com/rfjakob/gocryptfs/issues/539))
 * Make it work with MacFUSE v4.x ([#524](https://github.com/rfjakob/gocryptfs/issues/524))
+* **Disable ACL encryption**, it causes a lot of problems ([#543](https://github.com/rfjakob/gocryptfs/issues/543), [#536](https://github.com/rfjakob/gocryptfs/issues/536))
+  * Old encrypted ACLs are reported by `gocryptfs -fsck` but otherwise ignored
+  * This fixes inheritance, but does not yet enforce them correctly
 
 v2.0-beta2, 2020-11-14
 * Improve [performance](Documentation/performance.txt#L69)
@@ -222,7 +225,7 @@ v2.0-beta1, 2020-10-15
 
 v1.8.0, 2020-05-09
 * Enable ACL support ([#453](https://github.com/rfjakob/gocryptfs/issues/453))
-  * **Warning 2021-02-07: This feature is incomplete!**
+  * **Warning 2021-02-07**: This feature is incomplete! Do not use ACLs before gocryptfs v2.0 final!
     Reading and writing ACLs works, but they are not enforced or inherited ([#542](https://github.com/rfjakob/gocryptfs/issues/542))
 * Ignore `.nfsXXX` temporary files
   ([#367](https://github.com/rfjakob/gocryptfs/issues/431))

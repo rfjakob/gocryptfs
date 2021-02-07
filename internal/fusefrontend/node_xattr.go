@@ -10,6 +10,9 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
+// -1 as uint32
+const minus1 = ^uint32(0)
+
 // xattr names are encrypted like file names, but with a fixed IV.
 // Padded with "_xx" for length 16.
 var xattrNameIV = []byte("xattr_name_iv_xx")
@@ -21,6 +24,13 @@ var xattrStorePrefix = "user.gocryptfs."
 // We get one read of this xattr for each write -
 // see https://github.com/rfjakob/gocryptfs/issues/515 for details.
 var xattrCapability = "security.capability"
+
+// isAcl returns true if the attribute name is for storing ACLs
+//
+// ACLs are passed through without encryption
+func isAcl(attr string) bool {
+	return attr == "system.posix_acl_access" || attr == "system.posix_acl_default"
+}
 
 // GetXAttr - FUSE call. Reads the value of extended attribute "attr".
 //
@@ -36,15 +46,34 @@ func (n *Node) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, 
 		// and it did not cause trouble. Seems cleaner than saying ENODATA.
 		return 0, syscall.EOPNOTSUPP
 	}
-	cAttr := rn.encryptXattrName(attr)
-	cData, errno := n.getXAttr(cAttr)
-	if errno != 0 {
-		return 0, errno
+	var data []byte
+	// ACLs are passed through without encryption
+	if isAcl(attr) {
+		var errno syscall.Errno
+		data, errno = n.getXAttr(attr)
+		if errno != 0 {
+			return minus1, errno
+		}
+	} else {
+		// encrypted user xattr
+		cAttr := rn.encryptXattrName(attr)
+		cData, errno := n.getXAttr(cAttr)
+		if errno != 0 {
+			return 0, errno
+		}
+		var err error
+		data, err = rn.decryptXattrValue(cData)
+		if err != nil {
+			tlog.Warn.Printf("GetXAttr: %v", err)
+			return minus1, syscall.EIO
+		}
 	}
-	data, err := rn.decryptXattrValue(cData)
-	if err != nil {
-		tlog.Warn.Printf("GetXAttr: %v", err)
-		return ^uint32(0), syscall.EIO
+	// Caller passes size zero to find out how large their buffer should be
+	if len(dest) == 0 {
+		return uint32(len(data)), 0
+	}
+	if len(dest) < len(data) {
+		return minus1, syscall.ERANGE
 	}
 	l := copy(dest, data)
 	return uint32(l), 0
@@ -56,6 +85,12 @@ func (n *Node) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, 
 func (n *Node) Setxattr(ctx context.Context, attr string, data []byte, flags uint32) syscall.Errno {
 	rn := n.rootNode()
 	flags = uint32(filterXattrSetFlags(int(flags)))
+
+	// ACLs are passed through without encryption
+	if isAcl(attr) {
+		return n.setXAttr(attr, data, flags)
+	}
+
 	cAttr := rn.encryptXattrName(attr)
 	cData := rn.encryptXattrValue(data)
 	return n.setXAttr(cAttr, cData, flags)
@@ -66,6 +101,12 @@ func (n *Node) Setxattr(ctx context.Context, attr string, data []byte, flags uin
 // This function is symlink-safe through Fremovexattr.
 func (n *Node) Removexattr(ctx context.Context, attr string) syscall.Errno {
 	rn := n.rootNode()
+
+	// ACLs are passed through without encryption
+	if isAcl(attr) {
+		return n.removeXAttr(attr)
+	}
+
 	cAttr := rn.encryptXattrName(attr)
 	return n.removeXAttr(cAttr)
 }
@@ -81,6 +122,11 @@ func (n *Node) Listxattr(ctx context.Context, dest []byte) (uint32, syscall.Errn
 	rn := n.rootNode()
 	var buf bytes.Buffer
 	for _, curName := range cNames {
+		// ACLs are passed through without encryption
+		if isAcl(curName) {
+			buf.WriteString(curName + "\000")
+			continue
+		}
 		if !strings.HasPrefix(curName, xattrStorePrefix) {
 			continue
 		}
@@ -90,10 +136,20 @@ func (n *Node) Listxattr(ctx context.Context, dest []byte) (uint32, syscall.Errn
 			rn.reportMitigatedCorruption(curName)
 			continue
 		}
+		// We *used to* encrypt ACLs, which caused a lot of problems.
+		if isAcl(name) {
+			tlog.Warn.Printf("ListXAttr: ignoring deprecated encrypted ACL %q = %q", curName, name)
+			rn.reportMitigatedCorruption(curName)
+			continue
+		}
 		buf.WriteString(name + "\000")
 	}
+	// Caller passes size zero to find out how large their buffer should be
+	if len(dest) == 0 {
+		return uint32(buf.Len()), 0
+	}
 	if buf.Len() > len(dest) {
-		return ^uint32(0), syscall.ERANGE
+		return minus1, syscall.ERANGE
 	}
 	return uint32(copy(dest, buf.Bytes())), 0
 }
