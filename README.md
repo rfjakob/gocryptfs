@@ -221,7 +221,9 @@ v2.0-beta1, 2020-10-15
   [gocryptfs commit ec74d1d](https://github.com/rfjakob/gocryptfs/commit/ec74d1d2f4217a9a337d1db9902f32ae2aecaf33))
 
 v1.8.0, 2020-05-09
-* **Enable ACL support ([#453](https://github.com/rfjakob/gocryptfs/issues/453))**
+* Enable ACL support ([#453](https://github.com/rfjakob/gocryptfs/issues/453))
+  * **Warning 2021-02-07: This feature is incomplete!**
+    Reading and writing ACLs works, but they are not enforced or inherited ([#542](https://github.com/rfjakob/gocryptfs/issues/542))
 * Ignore `.nfsXXX` temporary files
   ([#367](https://github.com/rfjakob/gocryptfs/issues/431))
 * Handle inode number collisions from multiple devices
