@@ -347,15 +347,24 @@ func TestAcl(t *testing.T) {
 		t.Fatalf("creating empty file failed: %v", err)
 	}
 	// ACLs are blobs generated in userspace, let's steal a valid ACL from
-	// setfacl using strace:
+	// setfacl:
 	//
-	//   $ strace -e setxattr setfacl -m u:root:r file
-	//   setxattr("file", "system.posix_acl_access", "\2\0\0\0\1\0\6\0\377\377\377\377\2\0\4\0\0\0\0\0\4\0\4\0\377\377\377\377\20\0\4", 44, 0) = 0
+	// $ setfacl -m u:root:r file
+	// $ getfattr -n system.posix_acl_access file
+	// # file: file
+	// system.posix_acl_access=0sAgAAAAEABgD/////AgAEAAAAAAAEAAQA/////xAABAD/////IAAEAP////8=
 	//
 	// The ACL gives user root additional read rights, in other words, it should
 	// have no effect at all.
-	acl := "\002\000\000\000\001\000\006\000\377\377\377\377\002\000\004\000\000\000\000\000\004\000\004\000\377\377\377\377\020\000\004"
-	err = setGetRmList3(fn, "system.posix_acl_access", []byte(acl))
+
+	acl, err := base64.StdEncoding.DecodeString("AgAAAAEABgD/////AgAEAAAAAAAEAAQA/////xAABAD/////IAAEAP////8=")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(acl) != 44 {
+		t.Fatal(len(acl))
+	}
+	err = setGetRmList3(fn, "system.posix_acl_access", acl)
 	if err != nil {
 		t.Error(err)
 	}
