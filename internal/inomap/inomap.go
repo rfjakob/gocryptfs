@@ -104,3 +104,14 @@ func (m *InoMap) TranslateStat(st *syscall.Stat_t) {
 	in := QInoFromStat(st)
 	st.Ino = m.Translate(in)
 }
+
+type TranslateStater interface {
+	TranslateStat(st *syscall.Stat_t)
+}
+
+// TranslateStatZero always sets st.Ino to zero. Used for `-sharedstorage`.
+type TranslateStatZero struct{}
+
+func (z TranslateStatZero) TranslateStat(st *syscall.Stat_t) {
+	st.Ino = 0
+}

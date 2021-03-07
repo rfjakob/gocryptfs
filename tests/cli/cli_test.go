@@ -822,3 +822,50 @@ func TestInitNotEmpty(t *testing.T) {
 		t.Fatalf("wrong exit code: have=%d, want=%d", exitCode, exitcodes.CipherDir)
 	}
 }
+
+// TestSharedstorage checks that `-sharedstorage` hands out arbitrary inode
+// numbers (no hard link tracking)
+func TestSharedstorage(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	mnt := dir + ".mnt"
+	err := os.Mkdir(mnt, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	test_helpers.MountOrFatal(t, dir, mnt, "-extpass=echo test", "-sharedstorage")
+	defer test_helpers.UnmountPanic(mnt)
+	foo1 := mnt + "/foo1"
+	foo2 := mnt + "/foo2"
+	if err := ioutil.WriteFile(foo1, nil, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Link(foo1, foo2); err != nil {
+		t.Fatal(err)
+	}
+	var st1, st2, st3 syscall.Stat_t
+	if err := syscall.Stat(foo1, &st1); err != nil {
+		t.Fatal(err)
+	}
+	// The link show show a new inode number
+	if err := syscall.Stat(foo2, &st2); err != nil {
+		t.Fatal(err)
+	}
+	// Stat()'ing again should give us again a new inode number
+	if err := syscall.Stat(foo2, &st3); err != nil {
+		t.Fatal(err)
+	}
+	if st1.Ino == st2.Ino || st2.Ino == st3.Ino || st1.Ino == st3.Ino {
+		t.Error(st1.Ino, st2.Ino, st3.Ino)
+	}
+	// Check that we we don't have stat caching. New length should show up
+	// on the hard link immediately.
+	if err := ioutil.WriteFile(foo1, []byte("xxxxxx"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := syscall.Stat(foo2, &st2); err != nil {
+		t.Fatal(err)
+	}
+	if st2.Size != 6 {
+		t.Fatal(st2.Size)
+	}
+}

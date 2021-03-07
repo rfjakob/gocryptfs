@@ -280,6 +280,7 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 		ExcludeFrom:     args.excludeFrom,
 		Suid:            args.suid,
 		KernelCache:     args.kernel_cache,
+		SharedStorage:   args.sharedstorage,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {
@@ -349,7 +350,11 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 	if args.sharedstorage {
 		// sharedstorage mode sets all cache timeouts to zero so changes to the
 		// backing shared storage show up immediately.
-		fuseOpts = &fs.Options{}
+		// Hard links are disabled by using automatically incrementing
+		// inode numbers provided by go-fuse.
+		fuseOpts = &fs.Options{
+			FirstAutomaticIno: 1000,
+		}
 	} else {
 		fuseOpts = &fs.Options{
 			// These options are to be compatible with libfuse defaults,
@@ -421,7 +426,8 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 	} else if args.rw {
 		mOpts.Options = append(mOpts.Options, "rw")
 	}
-	// If both "nosuid" and "suid" were passed, the safer option wins.
+	// If both "nosuid" & "suid", "nodev" & "dev", etc were passed, the safer
+	// option wins.
 	if args.nosuid {
 		mOpts.Options = append(mOpts.Options, "nosuid")
 	} else if args.suid {

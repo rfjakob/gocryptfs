@@ -50,7 +50,7 @@ type RootNode struct {
 	IsIdle uint32
 	// inoMap translates inode numbers from different devices to unique inode
 	// numbers.
-	inoMap *inomap.InoMap
+	inoMap inomap.TranslateStater
 }
 
 func NewRootNode(args Args, c *contentenc.ContentEnc, n nametransform.NameTransformer) *RootNode {
@@ -60,12 +60,18 @@ func NewRootNode(args Args, c *contentenc.ContentEnc, n nametransform.NameTransf
 	if len(args.Exclude) > 0 {
 		tlog.Warn.Printf("Forward mode does not support -exclude")
 	}
-	return &RootNode{
+	rn := &RootNode{
 		args:          args,
 		nameTransform: n,
 		contentEnc:    c,
 		inoMap:        inomap.New(),
 	}
+	// In `-sharedstorage` mode we always set the inode number to zero.
+	// This makes go-fuse generate a new inode number for each lookup.
+	if args.SharedStorage {
+		rn.inoMap = &inomap.TranslateStatZero{}
+	}
+	return rn
 }
 
 // mangleOpenFlags is used by Create() and Open() to convert the open flags the user

@@ -46,4 +46,7 @@ type Args struct {
 	Suid bool
 	// Enable the FUSE kernel_cache option
 	KernelCache bool
+	// SharedStorage disables caching & hard link tracking,
+	// enabled via cli flag "-sharedstorage"
+	SharedStorage bool
 }
