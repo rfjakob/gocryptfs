@@ -10,7 +10,7 @@ test:
 .phony: root_test
 root_test:
 	./build.bash
-	cd tests/root_test ; go test -c ; sudo ./root_test.test -test.v
+	cd tests/root_test && go test -c && sudo ./root_test.test -test.v
 
 .phony: format
 format:
