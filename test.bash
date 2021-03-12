@@ -85,8 +85,7 @@ if grep -R "panic(" ./*.go internal ; then
 fi
 
 # All functions from the commit msg in https://go-review.googlesource.com/c/go/+/210639
-if grep -R -E 'syscall.(Setegid|Seteuid|Setgroups|Setgid|Setregid|Setreuid|Setresgid|Setresuid|Setuid)\(' \
-	./*.go internal ; then
+if find . -type f -name \*.go -print0 | xargs -0 grep -E 'syscall.(Setegid|Seteuid|Setgroups|Setgid|Setregid|Setreuid|Setresgid|Setresuid|Setuid)\(' ; then
 	echo "$MYNAME: You probably want to use unix.Setgroups and friends. See the comments in OpenatUser() for why."
 	exit 1
 fi

@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -867,5 +868,37 @@ func TestSharedstorage(t *testing.T) {
 	}
 	if st2.Size != 6 {
 		t.Fatal(st2.Size)
+	}
+}
+
+// Test that the filesystem is immediately ready for Creat() after mount returns
+func TestMountCreat(t *testing.T) {
+	const concurrency = 2
+	const repeat = 2
+
+	dir := test_helpers.InitFS(t)
+	mnt := dir + ".mnt"
+	err := os.Mkdir(mnt, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for j := 0; j < repeat; j++ {
+		test_helpers.MountOrFatal(t, dir, mnt, "-extpass=echo test")
+		var wg sync.WaitGroup
+		wg.Add(concurrency)
+		for i := 0; i < concurrency; i++ {
+			go func(i int) {
+				path := fmt.Sprintf("%s/%d", mnt, i)
+				fd, err := syscall.Creat(path, 0600)
+				syscall.Close(fd)
+				if err != nil {
+					t.Errorf("Creat %q: %v", path, err)
+				}
+				wg.Done()
+			}(i)
+		}
+		wg.Wait()
+		test_helpers.UnmountPanic(mnt)
 	}
 }
