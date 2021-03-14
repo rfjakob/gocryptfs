@@ -43,7 +43,7 @@ func getdents(fd int) ([]fuse.DirEntry, error) {
 			continue
 		} else if err != nil {
 			if smartBuf.Len() > 0 {
-				tlog.Warn.Printf("warning: unix.Getdents returned errno %d in the middle of data", err.(syscall.Errno))
+				tlog.Warn.Printf("warning: unix.Getdents returned errno %d in the middle of data ( https://github.com/rfjakob/gocryptfs/issues/483 )", err.(syscall.Errno))
 				return nil, syscall.EIO
 			}
 			return nil, err
