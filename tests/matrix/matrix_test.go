@@ -57,6 +57,7 @@ var matrix = []testcaseMatrix{
 	{false, "auto", false, true, nil},
 	// -serialize_reads
 	{false, "auto", false, false, []string{"-serialize_reads"}},
+	{false, "auto", false, false, []string{"-sharedstorage"}},
 }
 
 // This is the entry point for the tests
