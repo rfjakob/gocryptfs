@@ -516,17 +516,13 @@ func TestMultipleOperationFlags(t *testing.T) {
 func TestNoexec(t *testing.T) {
 	dir := test_helpers.InitFS(t)
 	mnt := dir + ".mnt"
-	err := os.Mkdir(mnt, 0700)
-	if err != nil {
-		t.Fatal(err)
-	}
 	test_helpers.MountOrFatal(t, dir, mnt, "-extpass=echo test", "-noexec")
 	defer test_helpers.UnmountPanic(mnt)
 	sh := mnt + "/x.sh"
 	content := `#!/bin/bash
 echo hello
 `
-	err = ioutil.WriteFile(sh, []byte(content), 0755)
+	err := ioutil.WriteFile(sh, []byte(content), 0755)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -633,11 +629,7 @@ func TestIdle(t *testing.T) {
 func TestNotIdle(t *testing.T) {
 	dir := test_helpers.InitFS(t)
 	mnt := dir + ".mnt"
-	err := os.Mkdir(mnt, 0700)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = test_helpers.Mount(dir, mnt, false, "-extpass", "echo test", "-i=100ms")
+	err := test_helpers.Mount(dir, mnt, false, "-extpass", "echo test", "-i=100ms")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -829,10 +821,6 @@ func TestInitNotEmpty(t *testing.T) {
 func TestSharedstorage(t *testing.T) {
 	dir := test_helpers.InitFS(t)
 	mnt := dir + ".mnt"
-	err := os.Mkdir(mnt, 0700)
-	if err != nil {
-		t.Fatal(err)
-	}
 	test_helpers.MountOrFatal(t, dir, mnt, "-extpass=echo test", "-sharedstorage")
 	defer test_helpers.UnmountPanic(mnt)
 	foo1 := mnt + "/foo1"
@@ -878,10 +866,6 @@ func TestMountCreat(t *testing.T) {
 
 	dir := test_helpers.InitFS(t)
 	mnt := dir + ".mnt"
-	err := os.Mkdir(mnt, 0700)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	for j := 0; j < repeat; j++ {
 		test_helpers.MountOrFatal(t, dir, mnt, "-extpass=echo test")

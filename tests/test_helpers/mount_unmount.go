@@ -113,6 +113,7 @@ func MountOrExit(c string, p string, extraArgs ...string) {
 }
 
 // MountOrFatal calls Mount() and calls t.Fatal() on failure.
+// Creates plaindir `p` if it does not exist.
 //
 // Contrary to InitFS(), you MUST passt "-extpass=echo test" (or another way for
 // getting the master key) explicitly.

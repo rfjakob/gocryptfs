@@ -191,10 +191,6 @@ func TestDiskFull(t *testing.T) {
 
 	// Mount gocryptfs
 	mnt := ext4mnt + "/b"
-	err = os.Mkdir(mnt, 0600)
-	if err != nil {
-		t.Fatal(err)
-	}
 	test_helpers.MountOrFatal(t, cipherdir, mnt, "-extpass", "echo test")
 	defer test_helpers.UnmountPanic(mnt)
 
