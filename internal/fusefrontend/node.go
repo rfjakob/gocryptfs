@@ -130,10 +130,15 @@ func (n *Node) Create(ctx context.Context, name string, flags uint32, mode uint3
 		errno = fs.ToErrno(err)
 		return
 	}
+	// Save original stat values before newChild() translates the inode number.
+	// For an open fd, we assume the inode number cannot change behind our back,
+	// even in `-sharedstorage` mode.
+	origSt := st
+
 	ch := n.newChild(ctx, &st, out)
 
 	f := os.NewFile(uintptr(fd), cName)
-	return ch, NewFile(f, rn, &st), 0, 0
+	return ch, NewFile(f, rn, &origSt), 0, 0
 }
 
 // Unlink - FUSE call. Delete a file.

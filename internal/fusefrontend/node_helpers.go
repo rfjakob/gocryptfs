@@ -100,7 +100,8 @@ func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno sy
 }
 
 // newChild attaches a new child inode to n.
-// The passed-in `st` will be modified to get a unique inode number.
+// The passed-in `st` will be modified to get a unique inode number
+// (or, in `-sharedstorage` mode, the inode number will be set to zero).
 func (n *Node) newChild(ctx context.Context, st *syscall.Stat_t, out *fuse.EntryOut) *fs.Inode {
 	rn := n.rootNode()
 	// Get stable inode number based on underlying (device,ino) pair
