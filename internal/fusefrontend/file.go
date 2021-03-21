@@ -53,18 +53,31 @@ type File struct {
 	rootNode *RootNode
 }
 
-// NewFile returns a new go-fuse File instance.
-func NewFile(fd *os.File, rn *RootNode, st *syscall.Stat_t) *File {
+// NewFile returns a new go-fuse File instance based on an already-open file
+// descriptor. NewFile internally calls Fstat() on the fd. The resulting Stat_t
+// is returned because node.Create() needs it.
+//
+// `cName` is only used for error logging and may be left blank.
+func NewFile(fd int, cName string, rn *RootNode) (f *File, st *syscall.Stat_t, errno syscall.Errno) {
+	// Need device number and inode number for openfiletable locking
+	st = &syscall.Stat_t{}
+	if err := syscall.Fstat(fd, st); err != nil {
+		errno = fs.ToErrno(err)
+		return
+	}
 	qi := inomap.QInoFromStat(st)
 	e := openfiletable.Register(qi)
 
-	return &File{
-		fd:             fd,
+	osFile := os.NewFile(uintptr(fd), cName)
+
+	f = &File{
+		fd:             osFile,
 		contentEnc:     rn.contentEnc,
 		qIno:           qi,
 		fileTableEntry: e,
 		rootNode:       rn,
 	}
+	return f, st, 0
 }
 
 // intFd - return the backing file descriptor as an integer.
