@@ -96,10 +96,10 @@ as well as in the go-fuse library.
 Compile
 -------
 
-With [go 1.11 or higher](.travis.yml#L12):
+With go 1.11 or higher:
 
-	$ go get -d github.com/rfjakob/gocryptfs
-	$ cd $(go env GOPATH)/src/github.com/rfjakob/gocryptfs
+	$ git clone https://github.com/rfjakob/gocryptfs.git
+	$ cd gocryptfs
 	$ ./build.bash
 
 build.bash needs the OpenSSL headers installed (Debian: `apt install libssl-dev`,
