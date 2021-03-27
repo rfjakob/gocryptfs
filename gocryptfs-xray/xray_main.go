@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/contentenc"
@@ -15,6 +16,15 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
+
+// GitVersion is the gocryptfs version according to git, set by build.bash
+var GitVersion = "[GitVersion not set - please compile using ./build.bash]"
+
+// GitVersionFuse is the go-fuse library version, set by build.bash
+var GitVersionFuse = "[GitVersionFuse not set - please compile using ./build.bash]"
+
+// BuildDate is a date string like "2017-09-06", set by build.bash
+var BuildDate = "0000-00-00"
 
 const (
 	ivLen      = contentenc.DefaultIVBits / 8
@@ -39,7 +49,18 @@ func prettyPrintHeader(h *contentenc.FileHeader, aessiv bool) {
 	fmt.Printf(msg+"\n", h.Version, id)
 }
 
+// printVersion prints a version string like this:
+// gocryptfs v1.7-32-gcf99cfd; go-fuse v1.0.0-174-g22a9cb9; 2019-05-12 go1.12 linux/amd64
+func printVersion() {
+	built := fmt.Sprintf("%s %s", BuildDate, runtime.Version())
+	fmt.Printf("%s %s; %s %s/%s\n",
+		myName, GitVersion, built,
+		runtime.GOOS, runtime.GOARCH)
+}
+
 func usage() {
+	printVersion()
+	fmt.Printf("\n")
 	fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] FILE\n"+
 		"\n"+
 		"Options:\n", myName)
@@ -69,6 +90,7 @@ func main() {
 		aessiv        *bool
 		sep0          *bool
 		fido2         *string
+		version       *bool
 	}
 	args.dumpmasterkey = flag.Bool("dumpmasterkey", false, "Decrypt and dump the master key")
 	args.decryptPaths = flag.Bool("decrypt-paths", false, "Decrypt file paths using gocryptfs control socket")
@@ -76,8 +98,16 @@ func main() {
 	args.sep0 = flag.Bool("0", false, "Use \\0 instead of \\n as separator")
 	args.aessiv = flag.Bool("aessiv", false, "Assume AES-SIV mode instead of AES-GCM")
 	args.fido2 = flag.String("fido2", "", "Protect the masterkey using a FIDO2 token instead of a password")
+	args.version = flag.Bool("version", false, "Print version information")
+
 	flag.Usage = usage
 	flag.Parse()
+
+	if *args.version {
+		printVersion()
+		os.Exit(0)
+	}
+
 	s := sum(args.dumpmasterkey, args.decryptPaths, args.encryptPaths)
 	if s > 1 {
 		fmt.Printf("fatal: %d operations were requested\n", s)
