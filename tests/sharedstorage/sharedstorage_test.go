@@ -14,7 +14,9 @@ import (
 
 var flagSharestorage bool
 
-const cacheTime = time.Second
+// EntryTimeout is 1 second, give the kernel 1.1 second to actually
+// expire an entry. The tests fail sometime with 1.0 second!
+const waitForExpire = time.Second + 100*time.Millisecond
 
 func TestMain(m *testing.M) {
 	ret := 0
@@ -87,7 +89,7 @@ func TestDirUnlink(t *testing.T) {
 			t.Fatal(err)
 		} else {
 			// Must always work after cache timeout
-			time.Sleep(cacheTime)
+			time.Sleep(waitForExpire)
 			if err := unix.Unlink(tc.mnt1 + "/foo"); err != nil {
 				t.Fatal(err)
 			}
@@ -129,7 +131,7 @@ func TestStaleHardlinks(t *testing.T) {
 			t.Fatal(err)
 		} else {
 			// Must always work after cache timeout
-			time.Sleep(cacheTime)
+			time.Sleep(waitForExpire)
 			fd, err = unix.Open(link0, unix.O_RDONLY, 0)
 			if err != nil {
 				t.Fatal(err)
