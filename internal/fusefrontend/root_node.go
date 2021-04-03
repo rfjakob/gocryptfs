@@ -48,6 +48,8 @@ type RootNode struct {
 	// When -idle was used when mounting, idleMonitor() sets it to 1
 	// periodically.
 	IsIdle uint32
+	// dirCache caches directory fds
+	dirCache dirCacheStruct
 	// inoMap translates inode numbers from different devices to unique inode
 	// numbers.
 	inoMap inomap.TranslateStater

@@ -9,6 +9,7 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 
+	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -83,11 +84,28 @@ func (n *Node) rootNode() *RootNode {
 // a child of this node.
 // If `child` is empty, the (dirfd, cName) pair refers to this node itself.
 func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno syscall.Errno) {
+	rn := n.rootNode()
+
+	// Cache lookup
+	// TODO: also handle caching for root node & plaintextnames
+	cacheable := (child != "" && !rn.args.PlaintextNames)
+	if cacheable {
+		var iv []byte
+		dirfd, iv = rn.dirCache.Lookup(n)
+		if dirfd > 0 {
+			cName, err := rn.nameTransform.EncryptAndHashName(child, iv)
+			if err != nil {
+				return -1, "", fs.ToErrno(err)
+			}
+			return dirfd, cName, 0
+		}
+	}
+
+	// Slowpath
 	p := n.Path()
 	if child != "" {
 		p = filepath.Join(p, child)
 	}
-	rn := n.rootNode()
 	if rn.isFiltered(p) {
 		errno = syscall.EPERM
 		return
@@ -95,6 +113,18 @@ func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno sy
 	dirfd, cName, err := rn.openBackingDir(p)
 	if err != nil {
 		errno = fs.ToErrno(err)
+	}
+
+	// Cache store
+	// TODO: also handle caching for root node & plaintextnames
+	if cacheable {
+		// TODO: openBackingDir already calls ReadDirIVAt(). Get the data out.
+		iv, err := nametransform.ReadDirIVAt(dirfd)
+		if err != nil {
+			syscall.Close(dirfd)
+			return -1, "", fs.ToErrno(err)
+		}
+		rn.dirCache.Store(n, dirfd, iv)
 	}
 	return
 }

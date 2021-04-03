@@ -21,13 +21,11 @@ const (
 	enableDebugMessages = false
 	// Enable hit rate statistics printing
 	enableStats = false
-
-	pathFmt = "%-40q"
 )
 
 type dirCacheEntryStruct struct {
-	// relative plaintext path to the directory
-	dirRelPath string
+	// pointer to the Node this entry belongs to
+	node *Node
 	// fd to the directory (opened with O_PATH!)
 	fd int
 	// content of gocryptfs.diriv in this directory
@@ -46,7 +44,7 @@ func (e *dirCacheEntryStruct) Clear() {
 		}
 	}
 	e.fd = -1
-	e.dirRelPath = ""
+	e.node = nil
 	e.iv = nil
 }
 
@@ -76,7 +74,7 @@ func (d *dirCacheStruct) Clear() {
 
 // Store the entry in the cache. The passed "fd" will be Dup()ed, and the caller
 // can close their copy at will.
-func (d *dirCacheStruct) Store(dirRelPath string, fd int, iv []byte) {
+func (d *dirCacheStruct) Store(node *Node, fd int, iv []byte) {
 	// Note: package ensurefds012, imported from main, guarantees that dirCache
 	// can never get fds 0,1,2.
 	if fd <= 0 || len(iv) != nametransform.DirIVLen {
@@ -94,9 +92,9 @@ func (d *dirCacheStruct) Store(dirRelPath string, fd int, iv []byte) {
 		tlog.Warn.Printf("dirCache.Store: Dup failed: %v", err)
 		return
 	}
-	d.dbg("Store  "+pathFmt+" fd=%d iv=%x\n", dirRelPath, fd2, iv)
+	d.dbg("dirCache.Store  %p fd=%d iv=%x\n", node, fd2, iv)
 	e.fd = fd2
-	e.dirRelPath = dirRelPath
+	e.node = node
 	e.iv = iv
 	// expireThread is started on the first Lookup()
 	if !d.expireThreadRunning {
@@ -108,7 +106,7 @@ func (d *dirCacheStruct) Store(dirRelPath string, fd int, iv []byte) {
 // Lookup checks if relPath is in the cache, and returns an (fd, iv) pair.
 // It returns (-1, nil) if not found. The fd is internally Dup()ed and the
 // caller must close it when done.
-func (d *dirCacheStruct) Lookup(dirRelPath string) (fd int, iv []byte) {
+func (d *dirCacheStruct) Lookup(node *Node) (fd int, iv []byte) {
 	d.Lock()
 	defer d.Unlock()
 	if enableStats {
@@ -121,7 +119,7 @@ func (d *dirCacheStruct) Lookup(dirRelPath string) (fd int, iv []byte) {
 			// Cache slot is empty
 			continue
 		}
-		if dirRelPath != e.dirRelPath {
+		if node != e.node {
 			// Not the right path
 			continue
 		}
@@ -135,7 +133,7 @@ func (d *dirCacheStruct) Lookup(dirRelPath string) (fd int, iv []byte) {
 		break
 	}
 	if fd == 0 {
-		d.dbg("Lookup "+pathFmt+" miss\n", dirRelPath)
+		d.dbg("dirCache.Lookup %p miss\n", node)
 		return -1, nil
 	}
 	if enableStats {
@@ -144,7 +142,7 @@ func (d *dirCacheStruct) Lookup(dirRelPath string) (fd int, iv []byte) {
 	if fd <= 0 || len(iv) != nametransform.DirIVLen {
 		log.Panicf("Lookup sanity check failed: fd=%d len=%d", fd, len(iv))
 	}
-	d.dbg("Lookup "+pathFmt+" hit fd=%d dup=%d iv=%x\n", dirRelPath, e.fd, fd, iv)
+	d.dbg("dirCache.Lookup %p hit fd=%d dup=%d iv=%x\n", node, e.fd, fd, iv)
 	return fd, iv
 }
 
