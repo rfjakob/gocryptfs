@@ -15,7 +15,7 @@ RM:    time rm -Rf linux-3.0
 
 (or just run benchmark.bash)
 
-VERSION           WRITE    READ     UNTAR  MD5   LS     RM    ENV CHANGE?
+VERSION           WRITE    READ     UNTAR  MD5   LS     RM    ENV CHANGE?                COMMIT MSG
 **********************
 * CPU = Pentium G630 *
 **********************
@@ -66,7 +66,10 @@ v1.8.0            410     1000      17.5   6.7  5.4    7.8    go1.15.3, Linux 5.
 v2.0-beta1        387     1100      36.2  14.4 12.8   19.3
 v2.0-beta1-5-gc943ed3 417 1000      30.4  12.7  9.9   16.4
 v2.0-beta1-6      529     1100      17.5   9.0  3.6    9.0
-v2.0-beta1-9      477     1000      15.5   8.7  2.8    7.6
+v2.0-beta1-9-g029e44d  477 1000     15.5   8.7  2.8    7.6
+v2.0-beta2-16-geaca820 542  997     15.9   8.8  6.2    7.8    go1.16.2, Linux 5.11.10    fusefrontend: do not encrypt ACLs
+v2.0-beta2-36-g6aae2aa 505 1000     16.1   8.2  6.3    7.7
+v2.0-beta2-37-g24d5d39 558 1000     12.3   6.4  4.4    2.8                               fs: add initial dirfd caching]
 
 Results for EncFS for comparison (benchmark.bash -encfs):
 
