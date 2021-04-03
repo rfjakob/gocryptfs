@@ -66,25 +66,21 @@ func (n *Node) mkdirWithIv(dirfd int, cName string, mode uint32, caller *fuse.Ca
 //
 // Symlink-safe through use of Mkdirat().
 func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
-	rn := n.rootNode()
-	newPath := filepath.Join(n.Path(), name)
-	if rn.isFiltered(newPath) {
-		return nil, syscall.EPERM
-	}
-	dirfd, cName, err := rn.openBackingDir(newPath)
-	if err != nil {
-		return nil, fs.ToErrno(err)
+	dirfd, cName, errno := n.prepareAtSyscall(name)
+	if errno != 0 {
+		return nil, errno
 	}
 	defer syscall.Close(dirfd)
+
+	rn := n.rootNode()
 	var caller *fuse.Caller
 	if rn.args.PreserveOwner {
 		caller, _ = fuse.FromContext(ctx)
 	}
 
 	var st syscall.Stat_t
-
 	if rn.args.PlaintextNames {
-		err = syscallcompat.MkdiratUser(dirfd, cName, mode, caller)
+		err := syscallcompat.MkdiratUser(dirfd, cName, mode, caller)
 		if err != nil {
 			return nil, fs.ToErrno(err)
 		}
@@ -104,7 +100,7 @@ func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.En
 		// Handle long file name
 		if nametransform.IsLongContent(cName) {
 			// Create ".name"
-			err = rn.nameTransform.WriteLongNameAt(dirfd, cName, newPath)
+			err := rn.nameTransform.WriteLongNameAt(dirfd, cName, name)
 			if err != nil {
 				return nil, fs.ToErrno(err)
 			}
@@ -116,7 +112,7 @@ func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.En
 				return nil, fs.ToErrno(err)
 			}
 		} else {
-			err = rn.mkdirWithIv(dirfd, cName, mode, caller)
+			err := rn.mkdirWithIv(dirfd, cName, mode, caller)
 			if err != nil {
 				return nil, fs.ToErrno(err)
 			}
@@ -158,12 +154,9 @@ func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.En
 // This function is symlink-safe through use of openBackingDir() and
 // ReadDirIVAt().
 func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
-	rn := n.rootNode()
-	p := n.Path()
-	dirName := filepath.Base(p)
-	parentDirFd, cDirName, err := rn.openBackingDir(p)
-	if err != nil {
-		return nil, fs.ToErrno(err)
+	parentDirFd, cDirName, errno := n.prepareAtSyscall("")
+	if errno != 0 {
+		return nil, errno
 	}
 	defer syscall.Close(parentDirFd)
 
@@ -180,6 +173,7 @@ func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 	}
 	// Get DirIV (stays nil if PlaintextNames is used)
 	var cachedIV []byte
+	rn := n.rootNode()
 	if !rn.args.PlaintextNames {
 		// Read the DirIV from disk
 		cachedIV, err = nametransform.ReadDirIVAt(fd)
@@ -193,7 +187,7 @@ func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 	// Filter and decrypt filenames
 	for i := range cipherEntries {
 		cName := cipherEntries[i].Name
-		if dirName == "." && cName == configfile.ConfDefaultName {
+		if n.IsRoot() && cName == configfile.ConfDefaultName {
 			// silently ignore "gocryptfs.conf" in the top level dir
 			continue
 		}
