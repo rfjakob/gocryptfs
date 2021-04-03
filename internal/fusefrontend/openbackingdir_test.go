@@ -15,22 +15,25 @@ import (
 
 func TestOpenBackingDir(t *testing.T) {
 	cipherdir := test_helpers.InitFS(t)
+	t.Logf("cipherdir = %q", cipherdir)
 	args := Args{
 		Cipherdir: cipherdir,
 	}
-	fs := newTestFS(args)
+	rn := newTestFS(args)
 	out := &fuse.EntryOut{}
 
-	_, errno := fs.Mkdir(nil, "dir1", 0700, out)
+	child, errno := rn.Mkdir(nil, "dir1", 0700, out)
 	if errno != 0 {
 		t.Fatal(errno)
 	}
-	_, errno = fs.Mkdir(nil, "dir1/dir2", 0700, out)
+	rn.AddChild("dir1", child, false)
+	dir1 := toNode(child.Operations())
+	_, errno = dir1.Mkdir(nil, "dir2", 0700, out)
 	if errno != 0 {
 		t.Fatal(errno)
 	}
 
-	dirfd, cName, err := fs.openBackingDir("")
+	dirfd, cName, err := rn.openBackingDir("")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,8 +43,8 @@ func TestOpenBackingDir(t *testing.T) {
 	syscall.Close(dirfd)
 
 	// Again, but populate the cache for "" by looking up a non-existing file
-	fs.Lookup(nil, "xyz1234", &fuse.EntryOut{})
-	dirfd, cName, err = fs.openBackingDir("")
+	rn.Lookup(nil, "xyz1234", &fuse.EntryOut{})
+	dirfd, cName, err = rn.openBackingDir("")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +62,7 @@ func TestOpenBackingDir(t *testing.T) {
 	}
 	syscall.Close(dirfd)
 
-	dirfd, cName, err = fs.openBackingDir("dir1")
+	dirfd, cName, err = rn.openBackingDir("dir1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +75,7 @@ func TestOpenBackingDir(t *testing.T) {
 	}
 	syscall.Close(dirfd)
 
-	dirfd, cName, err = fs.openBackingDir("dir1/dir2")
+	dirfd, cName, err = rn.openBackingDir("dir1/dir2")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,14 +84,13 @@ func TestOpenBackingDir(t *testing.T) {
 	}
 	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("Faccessat(%d, %q): %v", dirfd, cName, err)
 	}
 	syscall.Close(dirfd)
 
 	n255 := strings.Repeat("n", 255)
-	path := "dir1/" + n255
-	fs.Mkdir(nil, path, 0700, out)
-	dirfd, cName, err = fs.openBackingDir(path)
+	dir1.Mkdir(nil, n255, 0700, out)
+	dirfd, cName, err = rn.openBackingDir("dir1/" + n255)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +102,7 @@ func TestOpenBackingDir(t *testing.T) {
 	}
 	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("Faccessat(%d, %q): %v", dirfd, cName, err)
 	}
 	syscall.Close(dirfd)
 }
