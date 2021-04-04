@@ -23,7 +23,7 @@ const (
 	enableStats = false
 )
 
-type dirCacheEntryStruct struct {
+type dirCacheEntry struct {
 	// pointer to the Node this entry belongs to
 	node *Node
 	// fd to the directory (opened with O_PATH!)
@@ -32,7 +32,7 @@ type dirCacheEntryStruct struct {
 	iv []byte
 }
 
-func (e *dirCacheEntryStruct) Clear() {
+func (e *dirCacheEntry) Clear() {
 	// An earlier clear may have already closed the fd, or the cache
 	// has never been filled (fd is 0 in that case).
 	// Note: package ensurefds012, imported from main, guarantees that dirCache
@@ -48,10 +48,10 @@ func (e *dirCacheEntryStruct) Clear() {
 	e.iv = nil
 }
 
-type dirCacheStruct struct {
+type dirCache struct {
 	sync.Mutex
 	// Cache entries
-	entries [dirCacheSize]dirCacheEntryStruct
+	entries [dirCacheSize]dirCacheEntry
 	// Where to store the next entry (index into entries)
 	nextIndex int
 	// On the first Lookup(), the expire thread is started, and this flag is set
@@ -63,7 +63,7 @@ type dirCacheStruct struct {
 }
 
 // Clear clears the cache contents.
-func (d *dirCacheStruct) Clear() {
+func (d *dirCache) Clear() {
 	d.dbg("Clear\n")
 	d.Lock()
 	defer d.Unlock()
@@ -74,7 +74,7 @@ func (d *dirCacheStruct) Clear() {
 
 // Store the entry in the cache. The passed "fd" will be Dup()ed, and the caller
 // can close their copy at will.
-func (d *dirCacheStruct) Store(node *Node, fd int, iv []byte) {
+func (d *dirCache) Store(node *Node, fd int, iv []byte) {
 	// Note: package ensurefds012, imported from main, guarantees that dirCache
 	// can never get fds 0,1,2.
 	if fd <= 0 || len(iv) != nametransform.DirIVLen {
@@ -106,13 +106,13 @@ func (d *dirCacheStruct) Store(node *Node, fd int, iv []byte) {
 // Lookup checks if relPath is in the cache, and returns an (fd, iv) pair.
 // It returns (-1, nil) if not found. The fd is internally Dup()ed and the
 // caller must close it when done.
-func (d *dirCacheStruct) Lookup(node *Node) (fd int, iv []byte) {
+func (d *dirCache) Lookup(node *Node) (fd int, iv []byte) {
 	d.Lock()
 	defer d.Unlock()
 	if enableStats {
 		d.lookups++
 	}
-	var e *dirCacheEntryStruct
+	var e *dirCacheEntry
 	for i := range d.entries {
 		e = &d.entries[i]
 		if e.fd <= 0 {
@@ -147,7 +147,7 @@ func (d *dirCacheStruct) Lookup(node *Node) (fd int, iv []byte) {
 }
 
 // expireThread is started on the first Lookup()
-func (d *dirCacheStruct) expireThread() {
+func (d *dirCache) expireThread() {
 	for {
 		time.Sleep(60 * time.Second)
 		d.Clear()
@@ -166,7 +166,7 @@ func (d *dirCacheStruct) expireThread() {
 }
 
 // dbg prints a debug message. Usually disabled.
-func (d *dirCacheStruct) dbg(format string, a ...interface{}) {
+func (d *dirCache) dbg(format string, a ...interface{}) {
 	if enableDebugMessages {
 		fmt.Printf(format, a...)
 	}

@@ -49,7 +49,7 @@ type RootNode struct {
 	// periodically.
 	IsIdle uint32
 	// dirCache caches directory fds
-	dirCache dirCacheStruct
+	dirCache dirCache
 	// inoMap translates inode numbers from different devices to unique inode
 	// numbers.
 	inoMap inomap.TranslateStater
