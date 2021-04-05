@@ -151,17 +151,24 @@ func (d *dirCache) expireThread() {
 	for {
 		time.Sleep(60 * time.Second)
 		d.Clear()
-		if enableStats {
-			d.Lock()
-			lookups := d.lookups
-			hits := d.hits
-			d.lookups = 0
-			d.hits = 0
-			d.Unlock()
-			if lookups > 0 {
-				fmt.Printf("dirCache: hits=%3d lookups=%3d, rate=%3d%%\n", hits, lookups, (hits*100)/lookups)
-			}
-		}
+		d.stats()
+	}
+}
+
+// stats prints hit rate statistics and resets the counters. No-op if
+// enableStats == false.
+func (d *dirCache) stats() {
+	if !enableStats {
+		return
+	}
+	d.Lock()
+	lookups := d.lookups
+	hits := d.hits
+	d.lookups = 0
+	d.hits = 0
+	d.Unlock()
+	if lookups > 0 {
+		fmt.Printf("dirCache: hits=%3d lookups=%3d, rate=%3d%%\n", hits, lookups, (hits*100)/lookups)
 	}
 }
 

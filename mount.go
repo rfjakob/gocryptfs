@@ -37,6 +37,12 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
+// AfterUnmount is called after the filesystem has been unmounted.
+// This can be used for cleanup and printing statistics.
+type AfterUnmounter interface {
+	AfterUnmount()
+}
+
 // doMount mounts an encrypted directory.
 // Called from main.
 func doMount(args *argContainer) {
@@ -116,10 +122,13 @@ func doMount(args *argContainer) {
 	tlog.Debug.Printf("cli args: %#v", args)
 	// Initialize gocryptfs (read config file, ask for password, ...)
 	fs, wipeKeys := initFuseFrontend(args)
-	// Initialize go-fuse FUSE server
-	srv := initGoFuse(fs, args)
 	// Try to wipe secret keys from memory after unmount
 	defer wipeKeys()
+	// Initialize go-fuse FUSE server
+	srv := initGoFuse(fs, args)
+	if x, ok := fs.(AfterUnmounter); ok {
+		defer x.AfterUnmount()
+	}
 
 	tlog.Info.Println(tlog.ColorGreen + "Filesystem mounted and ready." + tlog.ColorReset)
 	// We have been forked into the background, as evidenced by the set

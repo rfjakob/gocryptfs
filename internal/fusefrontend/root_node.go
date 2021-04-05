@@ -76,6 +76,12 @@ func NewRootNode(args Args, c *contentenc.ContentEnc, n nametransform.NameTransf
 	return rn
 }
 
+// main.doMount() calls this after unmount
+func (rn *RootNode) AfterUnmount() {
+	// print stats before we exit
+	rn.dirCache.stats()
+}
+
 // mangleOpenFlags is used by Create() and Open() to convert the open flags the user
 // wants to the flags we internally use to open the backing file.
 // The returned flags always contain O_NOFOLLOW.
