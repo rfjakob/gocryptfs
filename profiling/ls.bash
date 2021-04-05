@@ -9,7 +9,7 @@ T=$(mktemp -d)
 mkdir $T/a $T/b
 
 ../gocryptfs -init -quiet -scryptn 10 -extpass "echo test" $T/a
-../gocryptfs -quiet -extpass "echo test" $T/a $T/b
+../gocryptfs -quiet -nosyslog -extpass "echo test" $T/a $T/b
 
 # Cleanup trap
 trap "cd /; fusermount -u -z $T/b; rm -Rf $T/a" EXIT
@@ -24,7 +24,7 @@ echo "done, $SECONDS seconds"
 
 echo "Remount..."
 fusermount -u $T/b
-../gocryptfs -quiet -extpass "echo test" -cpuprofile $T/cprof -memprofile $T/mprof \
+../gocryptfs -quiet -nosyslog -extpass "echo test" -cpuprofile $T/cprof -memprofile $T/mprof \
 	$T/a $T/b
 
 echo "Running ls under profiler (3x)..."
