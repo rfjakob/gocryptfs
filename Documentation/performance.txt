@@ -69,7 +69,8 @@ v2.0-beta1-6      529     1100      17.5   9.0  3.6    9.0
 v2.0-beta1-9-g029e44d  477 1000     15.5   8.7  2.8    7.6
 v2.0-beta2-16-geaca820 542  997     15.9   8.8  6.2    7.8    go1.16.2, Linux 5.11.10    fusefrontend: do not encrypt ACLs
 v2.0-beta2-36-g6aae2aa 505 1000     16.1   8.2  6.3    7.7
-v2.0-beta2-37-g24d5d39 558 1000     12.3   6.4  4.4    2.8                               fs: add initial dirfd caching]
+v2.0-beta2-37-g24d5d39 558 1000     12.3   6.4  4.4    2.8                               fs: add initial dirfd caching
+v2.0-beta2-42-g4a07d65 549 1000      8.2   4.7  1.8    2.4                               fusefrontend: make dirCache work for "node itself"
 
 Results for EncFS for comparison (benchmark.bash -encfs):
 
