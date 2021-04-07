@@ -2,7 +2,9 @@ package fusefrontend
 
 import (
 	"context"
+	"log"
 	"path/filepath"
+	"sync/atomic"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fs"
@@ -82,13 +84,37 @@ func (n *Node) rootNode() *RootNode {
 //
 // If you pass a `child` file name, the (dirfd, cName) pair will refer to
 // a child of this node.
-// If `child` is empty, the (dirfd, cName) pair refers to this node itself.
+// If `child` is empty, the (dirfd, cName) pair refers to this node itself. For
+// the root node, that means (dirfd, ".").
 func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno syscall.Errno) {
 	rn := n.rootNode()
+	// all filesystem operations go through prepareAtSyscall(), so this is a
+	// good place to reset the idle marker.
+	atomic.StoreUint32(&rn.IsIdle, 0)
+
+	// root node itself is special
+	if child == "" && n.IsRoot() {
+		var err error
+		dirfd, cName, err = rn.openBackingDir("")
+		if err != nil {
+			errno = fs.ToErrno(err)
+		}
+		return
+	}
+
+	// normal node itself can be converted to child of parent node
+	if child == "" {
+		name, p1 := n.Parent()
+		if p1 == nil || name == "" {
+			return -1, "", syscall.ENOENT
+		}
+		p2 := toNode(p1.Operations())
+		return p2.prepareAtSyscall(name)
+	}
 
 	// Cache lookup
-	// TODO: also handle caching for root node & plaintextnames
-	cacheable := (child != "" && !rn.args.PlaintextNames)
+	// TODO make it work for plaintextnames as well?
+	cacheable := (!rn.args.PlaintextNames)
 	if cacheable {
 		var iv []byte
 		dirfd, iv = rn.dirCache.Lookup(n)
@@ -102,10 +128,10 @@ func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno sy
 	}
 
 	// Slowpath
-	p := n.Path()
-	if child != "" {
-		p = filepath.Join(p, child)
+	if child == "" {
+		log.Panicf("BUG: child name is empty - this cannot happen")
 	}
+	p := filepath.Join(n.Path(), child)
 	if rn.isFiltered(p) {
 		errno = syscall.EPERM
 		return
@@ -113,12 +139,12 @@ func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno sy
 	dirfd, cName, err := rn.openBackingDir(p)
 	if err != nil {
 		errno = fs.ToErrno(err)
+		return
 	}
 
 	// Cache store
-	// TODO: also handle caching for root node & plaintextnames
 	if cacheable {
-		// TODO: openBackingDir already calls ReadDirIVAt(). Get the data out.
+		// TODO: openBackingDir already calls ReadDirIVAt(). Avoid duplicate work?
 		iv, err := nametransform.ReadDirIVAt(dirfd)
 		if err != nil {
 			syscall.Close(dirfd)

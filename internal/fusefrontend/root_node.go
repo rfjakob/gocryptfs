@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -127,8 +126,6 @@ func (rn *RootNode) reportMitigatedCorruption(item string) {
 //
 // Prevents name clashes with internal files when file names are not encrypted
 func (rn *RootNode) isFiltered(path string) bool {
-	atomic.StoreUint32(&rn.IsIdle, 0)
-
 	if !rn.args.PlaintextNames {
 		return false
 	}
