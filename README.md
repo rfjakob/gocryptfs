@@ -205,9 +205,9 @@ v2.0-beta3, 2021-04-24
   the back of gocryptfs. Helps both with `-sharedstorage` and also without.
   ([commit 1](https://github.com/hanwen/go-fuse/commit/c3186132bf8b7a04b5e5bc27489d88181f92e4e0),
   [commit 2](https://github.com/hanwen/go-fuse/commit/a90e1f463c3f172a7690a6449fe5955a180dfec3),
-  (#549)[https://github.com/rfjakob/gocryptfs/issues/549])
+  [#549](https://github.com/rfjakob/gocryptfs/issues/549))
 * Add directory fd caching for 2x - 3x speed boost in small file ops compared to v2.0-beta2
-  ([performance numbers]https://github.com/rfjakob/gocryptfs/blob/5cb1e55714aa92a848c0fb5fc3fa7b91625210fe/Documentation/performance.txt#L73))
+  ([performance numbers](https://github.com/rfjakob/gocryptfs/blob/5cb1e55714aa92a848c0fb5fc3fa7b91625210fe/Documentation/performance.txt#L73))
 
 v2.0-beta2, 2020-11-14
 * Improve [performance](Documentation/performance.txt#L69)
