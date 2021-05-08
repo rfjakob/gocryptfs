@@ -364,12 +364,11 @@ func (n *Node) Symlink(ctx context.Context, target, name string, out *fuse.Entry
 // Reject those flags with syscall.EINVAL.
 // If we can handle the flags, this function returns 0.
 func rejectRenameFlags(flags uint32) syscall.Errno {
-	const RENAME_NOREPLACE = 1
 	switch flags {
 	case 0:
 		// Normal rename, we can handle that
 		return 0
-	case RENAME_NOREPLACE:
+	case syscallcompat.RENAME_NOREPLACE:
 		// We also can handle RENAME_NOREPLACE
 		return 0
 	default:
