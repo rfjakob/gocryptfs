@@ -358,11 +358,36 @@ func (n *Node) Symlink(ctx context.Context, target, name string, out *fuse.Entry
 	return inode, 0
 }
 
+// xfstests generic/013 now also exercises RENAME_EXCHANGE and RENAME_WHITEOUT,
+// uncovering lots of problems with longnames
+//
+// Reject those flags with syscall.EINVAL.
+// If we can handle the flags, this function returns 0.
+func rejectRenameFlags(flags uint32) syscall.Errno {
+	const RENAME_NOREPLACE = 1
+	switch flags {
+	case 0:
+		// Normal rename, we can handle that
+		return 0
+	case RENAME_NOREPLACE:
+		// We also can handle RENAME_NOREPLACE
+		return 0
+	default:
+		// We cannot handle RENAME_EXCHANGE and RENAME_WHITEOUT yet -
+		// needs extra code for .name files.
+		return syscall.EINVAL
+	}
+}
+
 // Rename - FUSE call.
 // This function is called on the PARENT DIRECTORY of `name`.
 //
 // Symlink-safe through Renameat().
 func (n *Node) Rename(ctx context.Context, name string, newParent fs.InodeEmbedder, newName string, flags uint32) (errno syscall.Errno) {
+	if errno = rejectRenameFlags(flags); errno != 0 {
+		return errno
+	}
+
 	dirfd, cName, errno := n.prepareAtSyscall(name)
 	if errno != 0 {
 		return
