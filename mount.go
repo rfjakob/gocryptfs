@@ -396,6 +396,9 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 		// Make the kernel check the file permissions for us
 		mOpts.Options = append(mOpts.Options, "default_permissions")
 	}
+	if args.acl {
+		mOpts.EnableAcl = true
+	}
 	if args.forcedecode {
 		tlog.Info.Printf(tlog.ColorYellow + "THE OPTION \"-forcedecode\" IS ACTIVE. GOCRYPTFS WILL RETURN CORRUPT DATA!" +
 			tlog.ColorReset)

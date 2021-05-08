@@ -137,6 +137,7 @@ func writeTillFull(t *testing.T, path string) (int, syscall.Errno) {
 	return sz, 0
 }
 
+// TestDiskFull needs root permissions because it creates a loop disk
 func TestDiskFull(t *testing.T) {
 	if os.Getuid() != 0 {
 		t.Skip("must run as root")
@@ -227,5 +228,86 @@ func TestDiskFull(t *testing.T) {
 	}
 	if len(foo2) != sz2 {
 		t.Fail()
+	}
+}
+
+func TestAcl(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skip("must run as root")
+	}
+	cDir := test_helpers.InitFS(t)
+	os.Chmod(cDir, 0755)
+	pDir := cDir + ".mnt"
+	test_helpers.MountOrFatal(t, cDir, pDir, "-allow_other", "-acl", "-extpass=echo test")
+	defer test_helpers.UnmountPanic(pDir)
+
+	f1 := pDir + "/f1"
+	if err := ioutil.WriteFile(f1, []byte("hello world\n"), 000); err != nil {
+		t.Fatal(err)
+	}
+
+	openUser1234 := func(rwMode int) error {
+		return asUser(1234, 1234, nil, func() error {
+			fd, err := syscall.Open(f1, rwMode, 0)
+			if err != nil {
+				return err
+			}
+			defer syscall.Close(fd)
+			buf := make([]byte, 100)
+			if rwMode == syscall.O_RDONLY || rwMode == syscall.O_RDWR {
+				_, err = syscall.Read(fd, buf)
+				if err != nil {
+					return err
+				}
+			}
+			if rwMode == syscall.O_WRONLY || rwMode == syscall.O_RDWR {
+				_, err = syscall.Write(fd, buf)
+				if err != nil {
+					return err
+				}
+			}
+			return err
+		})
+	}
+
+	dumpAcl := func() {
+		out, err := exec.Command("getfacl", f1).CombinedOutput()
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log(string(out))
+	}
+
+	if err := openUser1234(syscall.O_RDONLY); err == nil {
+		t.Error("this should have failed")
+		dumpAcl()
+	}
+
+	// Allow read
+	out, err := exec.Command("setfacl", "-m", "u:1234:r", f1).CombinedOutput()
+	if err != nil {
+		t.Fatal(string(out))
+	}
+	if err := openUser1234(syscall.O_RDONLY); err != nil {
+		t.Errorf("O_RDONLY should have worked, but got error: %v", err)
+		dumpAcl()
+	}
+	if err := openUser1234(syscall.O_WRONLY); err == nil {
+		t.Error("O_WRONLY should have failed")
+		dumpAcl()
+	}
+
+	// Allow write
+	out, err = exec.Command("setfacl", "-m", "u:1234:w", f1).CombinedOutput()
+	if err != nil {
+		t.Fatal(string(out))
+	}
+	if err := openUser1234(syscall.O_WRONLY); err != nil {
+		t.Errorf("O_WRONLY should have worked, but got error: %v", err)
+		dumpAcl()
+	}
+	if err := openUser1234(syscall.O_RDONLY); err == nil {
+		t.Error("O_RDONLY should have failed")
+		dumpAcl()
 	}
 }

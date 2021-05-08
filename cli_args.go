@@ -30,7 +30,7 @@ type argContainer struct {
 	noprealloc, speed, hkdf, serialize_reads, forcedecode, hh, info,
 	sharedstorage, devrandom, fsck bool
 	// Mount options with opposites
-	dev, nodev, suid, nosuid, exec, noexec, rw, ro, kernel_cache bool
+	dev, nodev, suid, nosuid, exec, noexec, rw, ro, kernel_cache, acl bool
 	masterkey, mountpoint, cipherdir, cpuprofile,
 	memprofile, ko, ctlsock, fsname, force_owner, trace, fido2 string
 	// -extpass, -badname, -passfile can be passed multiple times
@@ -180,6 +180,7 @@ func parseCliOpts() (args argContainer) {
 	flagSet.BoolVar(&args.rw, "rw", false, "Mount the filesystem read-write")
 	flagSet.BoolVar(&args.ro, "ro", false, "Mount the filesystem read-only")
 	flagSet.BoolVar(&args.kernel_cache, "kernel_cache", false, "Enable the FUSE kernel_cache option")
+	flagSet.BoolVar(&args.acl, "acl", false, "Enforce ACLs")
 
 	flagSet.StringVar(&args.masterkey, "masterkey", "", "Mount with explicit master key")
 	flagSet.StringVar(&args.cpuprofile, "cpuprofile", "", "Write cpu profile to specified file")
