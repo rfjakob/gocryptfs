@@ -190,6 +190,10 @@ RM:    3.379
 Changelog
 ---------
 
+v2.0-beta4, 2021-05-15
+* Make ACLs *actually* work (pass `-acl` to enable) ([#536](https://github.com/rfjakob/gocryptfs/issues/536))
+* Blocklist RENAME_EXCHANGE and RENAME_WHITEOUT (broken as discovered by [fuse-xfstest/gocryptfs-2019-12](https://github.com/rfjakob/fuse-xfstests/tree/gocryptfs-2019-12))
+
 v2.0-beta3, 2021-04-24
 * MANPAGE: Split options into sections acc. to where they apply ([#517](https://github.com/rfjakob/gocryptfs/issues/517))
 * `-idle`: count cwd inside the mount as busy ([#533](https://github.com/rfjakob/gocryptfs/issues/533))
