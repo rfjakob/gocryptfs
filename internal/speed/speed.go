@@ -46,6 +46,8 @@ func Run() {
 		}
 		if b.preferred {
 			fmt.Printf("\t(selected in auto mode)\n")
+		} else if b.name == "XChaCha20-Poly1305-Go" {
+			fmt.Printf("\t(benchmark only, not selectable yet)\n")
 		} else {
 			fmt.Printf("\t\n")
 		}
