@@ -143,7 +143,7 @@ func doMount(args *argContainer) {
 			tlog.Debug.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_DEBUG)
 			tlog.Warn.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
 			tlog.Fatal.SwitchToSyslog(syslog.LOG_USER | syslog.LOG_CRIT)
-			tlog.SwitchLoggerToSyslog(syslog.LOG_USER | syslog.LOG_WARNING)
+			tlog.SwitchLoggerToSyslog()
 			// Daemons should redirect stdin, stdout and stderr
 			redirectStdFds()
 		}

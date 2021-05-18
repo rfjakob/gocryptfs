@@ -253,6 +253,7 @@ func (ck *fsckObj) xattrs(relPath string) {
 	}
 }
 
+// entrypoint from main()
 func fsck(args *argContainer) (exitcode int) {
 	if args.reverse {
 		tlog.Fatal.Printf("Running -fsck with -reverse is not supported")
@@ -273,6 +274,12 @@ func fsck(args *argContainer) (exitcode int) {
 		rootNode:   rn,
 		watchDone:  make(chan struct{}),
 		seenInodes: make(map[uint64]struct{}),
+	}
+	if args.quiet {
+		// go-fuse throws a lot of these:
+		//   writer: Write/Writev failed, err: 2=no such file or directory. opcode: INTERRUPT
+		// This is ugly and causes failures in xfstests. Hide them away in syslog.
+		tlog.SwitchLoggerToSyslog()
 	}
 	// Mount
 	srv := initGoFuse(pfs, args)

@@ -136,6 +136,7 @@ func init() {
 }
 
 // SwitchToSyslog redirects the output of this logger to syslog.
+// p = facility | severity
 func (l *toggledLogger) SwitchToSyslog(p syslog.Priority) {
 	w, err := syslog.New(p, ProgramName)
 	if err != nil {
@@ -150,7 +151,8 @@ func (l *toggledLogger) SwitchToSyslog(p syslog.Priority) {
 
 // SwitchLoggerToSyslog redirects the default log.Logger that the go-fuse lib uses
 // to syslog.
-func SwitchLoggerToSyslog(p syslog.Priority) {
+func SwitchLoggerToSyslog() {
+	p := syslog.LOG_USER | syslog.LOG_WARNING
 	w, err := syslog.New(p, ProgramName)
 	if err != nil {
 		Warn.Printf("SwitchLoggerToSyslog: %v", err)
