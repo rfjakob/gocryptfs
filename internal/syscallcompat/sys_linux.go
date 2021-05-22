@@ -91,11 +91,9 @@ func getSupplementaryGroups(pid uint32) (gids []int) {
 	return nil
 }
 
-// OpenatUser runs the Openat syscall in the context of a different user.
-//
-// It switches the current thread to the new user, performs the syscall,
-// and switches back.
-func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Context) (fd int, err error) {
+// asUser runs the function `f` under the effective uid, gid, groups specified
+// in `context`.
+func asUser(f func() (int, error), context *fuse.Context) (int, error) {
 	if context != nil {
 		runtime.LockOSThread()
 		defer runtime.UnlockOSThread()
@@ -107,7 +105,7 @@ func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Co
 		//
 		// We now use unix.{Setgroups,Setregid,Setreuid} instead.
 
-		err = unix.Setgroups(getSupplementaryGroups(context.Pid))
+		err := unix.Setgroups(getSupplementaryGroups(context.Pid))
 		if err != nil {
 			return -1, err
 		}
@@ -125,8 +123,18 @@ func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Co
 		}
 		defer unix.Setreuid(-1, 0)
 	}
+	return f()
+}
 
-	return Openat(dirfd, path, flags, mode)
+// OpenatUser runs the Openat syscall in the context of a different user.
+//
+// It switches the current thread to the new user, performs the syscall,
+// and switches back.
+func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Context) (fd int, err error) {
+	f := func() (int, error) {
+		return Openat(dirfd, path, flags, mode)
+	}
+	return asUser(f, context)
 }
 
 // Mknodat wraps the Mknodat syscall.
@@ -138,30 +146,12 @@ func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 //
 // See OpenatUser() for how this works.
 func MknodatUser(dirfd int, path string, mode uint32, dev int, context *fuse.Context) (err error) {
-	if context != nil {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-
-		err = unix.Setgroups(getSupplementaryGroups(context.Pid))
-		if err != nil {
-			return err
-		}
-		defer unix.Setgroups(nil)
-
-		err = unix.Setregid(-1, int(context.Owner.Gid))
-		if err != nil {
-			return err
-		}
-		defer unix.Setregid(-1, 0)
-
-		err = unix.Setreuid(-1, int(context.Owner.Uid))
-		if err != nil {
-			return err
-		}
-		defer unix.Setreuid(-1, 0)
+	f := func() (int, error) {
+		err := Mknodat(dirfd, path, mode, dev)
+		return -1, err
 	}
-
-	return Mknodat(dirfd, path, mode, dev)
+	_, err = asUser(f, context)
+	return err
 }
 
 // Dup3 wraps the Dup3 syscall. We want to use Dup3 rather than Dup2 because Dup2
@@ -208,60 +198,31 @@ func FchmodatNofollow(dirfd int, path string, mode uint32) (err error) {
 //
 // See OpenatUser() for how this works.
 func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.Context) (err error) {
-	if context != nil {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-
-		err = unix.Setgroups(getSupplementaryGroups(context.Pid))
-		if err != nil {
-			return err
-		}
-		defer unix.Setgroups(nil)
-
-		err = unix.Setregid(-1, int(context.Owner.Gid))
-		if err != nil {
-			return err
-		}
-		defer unix.Setregid(-1, 0)
-
-		err = unix.Setreuid(-1, int(context.Owner.Uid))
-		if err != nil {
-			return err
-		}
-		defer unix.Setreuid(-1, 0)
+	f := func() (int, error) {
+		err := Symlinkat(oldpath, newdirfd, newpath)
+		return -1, err
 	}
-
-	return Symlinkat(oldpath, newdirfd, newpath)
+	_, err = asUser(f, context)
+	return err
 }
 
 // MkdiratUser runs the Mkdirat syscall in the context of a different user.
 //
 // See OpenatUser() for how this works.
 func MkdiratUser(dirfd int, path string, mode uint32, caller *fuse.Caller) (err error) {
-	if caller != nil {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-
-		err = unix.Setgroups(getSupplementaryGroups(caller.Pid))
-		if err != nil {
-			return err
-		}
-		defer unix.Setgroups(nil)
-
-		err = unix.Setregid(-1, int(caller.Gid))
-		if err != nil {
-			return err
-		}
-		defer unix.Setregid(-1, 0)
-
-		err = unix.Setreuid(-1, int(caller.Uid))
-		if err != nil {
-			return err
-		}
-		defer unix.Setreuid(-1, 0)
+	f := func() (int, error) {
+		err := Mkdirat(dirfd, path, mode)
+		return -1, err
 	}
-
-	return Mkdirat(dirfd, path, mode)
+	// TODO: refactor MkdiratUser to take context instead of caller
+	var context *fuse.Context
+	if caller != nil {
+		context = &fuse.Context{
+			Caller: *caller,
+		}
+	}
+	_, err = asUser(f, context)
+	return err
 }
 
 func timesToTimespec(a *time.Time, m *time.Time) []unix.Timespec {
