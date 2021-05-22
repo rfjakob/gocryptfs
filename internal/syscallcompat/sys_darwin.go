@@ -134,12 +134,12 @@ func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.C
 	return Symlinkat(oldpath, newdirfd, newpath)
 }
 
-func MkdiratUser(dirfd int, path string, mode uint32, caller *fuse.Caller) (err error) {
-	if caller != nil {
+func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
+	if context != nil {
 		runtime.LockOSThread()
 		defer runtime.UnlockOSThread()
 
-		err = pthread_setugid_np(caller.Uid, caller.Gid)
+		err = pthread_setugid_np(context.Owner.Uid, context.Owner.Gid)
 		if err != nil {
 			return err
 		}
