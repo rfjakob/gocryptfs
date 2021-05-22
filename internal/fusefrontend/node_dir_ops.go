@@ -35,14 +35,14 @@ func haveDsstore(entries []fuse.DirEntry) bool {
 // mkdirWithIv - create a new directory and corresponding diriv file. dirfd
 // should be a handle to the parent directory, cName is the name of the new
 // directory and mode specifies the access permissions to use.
-func (n *Node) mkdirWithIv(dirfd int, cName string, mode uint32, caller *fuse.Caller) error {
+func (n *Node) mkdirWithIv(dirfd int, cName string, mode uint32, context *fuse.Context) error {
 	rn := n.rootNode()
 	// Between the creation of the directory and the creation of gocryptfs.diriv
 	// the directory is inconsistent. Take the lock to prevent other readers
 	// from seeing it.
 	rn.dirIVLock.Lock()
 	defer rn.dirIVLock.Unlock()
-	err := syscallcompat.MkdiratUser(dirfd, cName, mode, caller)
+	err := syscallcompat.MkdiratUser(dirfd, cName, mode, context)
 	if err != nil {
 		return err
 	}
@@ -73,14 +73,14 @@ func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.En
 	defer syscall.Close(dirfd)
 
 	rn := n.rootNode()
-	var caller *fuse.Caller
+	var context *fuse.Context
 	if rn.args.PreserveOwner {
-		caller, _ = fuse.FromContext(ctx)
+		context = toFuseCtx(ctx)
 	}
 
 	var st syscall.Stat_t
 	if rn.args.PlaintextNames {
-		err := syscallcompat.MkdiratUser(dirfd, cName, mode, caller)
+		err := syscallcompat.MkdiratUser(dirfd, cName, mode, context)
 		if err != nil {
 			return nil, fs.ToErrno(err)
 		}
@@ -106,13 +106,13 @@ func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.En
 			}
 
 			// Create directory
-			err = rn.mkdirWithIv(dirfd, cName, mode, caller)
+			err = rn.mkdirWithIv(dirfd, cName, mode, context)
 			if err != nil {
 				nametransform.DeleteLongNameAt(dirfd, cName)
 				return nil, fs.ToErrno(err)
 			}
 		} else {
-			err := rn.mkdirWithIv(dirfd, cName, mode, caller)
+			err := rn.mkdirWithIv(dirfd, cName, mode, context)
 			if err != nil {
 				return nil, fs.ToErrno(err)
 			}

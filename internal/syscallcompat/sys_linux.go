@@ -209,17 +209,10 @@ func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.C
 // MkdiratUser runs the Mkdirat syscall in the context of a different user.
 //
 // See OpenatUser() for how this works.
-func MkdiratUser(dirfd int, path string, mode uint32, caller *fuse.Caller) (err error) {
+func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
 	f := func() (int, error) {
 		err := Mkdirat(dirfd, path, mode)
 		return -1, err
-	}
-	// TODO: refactor MkdiratUser to take context instead of caller
-	var context *fuse.Context
-	if caller != nil {
-		context = &fuse.Context{
-			Caller: *caller,
-		}
 	}
 	_, err = asUser(f, context)
 	return err
