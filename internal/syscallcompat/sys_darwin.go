@@ -216,6 +216,11 @@ func UtimesNanoAtNofollow(dirfd int, path string, a *time.Time, m *time.Time) (e
 }
 
 func Getdents(fd int) ([]fuse.DirEntry, error) {
+	entries, _, err := emulateGetdents(fd)
+	return entries, err
+}
+
+func GetdentsSpecial(fd int) (entries []fuse.DirEntry, entriesSpecial []fuse.DirEntry, err error) {
 	return emulateGetdents(fd)
 }
 

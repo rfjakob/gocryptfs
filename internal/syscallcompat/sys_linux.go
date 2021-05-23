@@ -244,8 +244,15 @@ func UtimesNanoAtNofollow(dirfd int, path string, a *time.Time, m *time.Time) (e
 	return err
 }
 
-// Getdents syscall.
+// Getdents syscall with "." and ".." filtered out.
 func Getdents(fd int) ([]fuse.DirEntry, error) {
+	entries, _, err := getdents(fd)
+	return entries, err
+}
+
+// GetdentsSpecial calls the Getdents syscall,
+// with normal entries and "." / ".." split into two slices.
+func GetdentsSpecial(fd int) (entries []fuse.DirEntry, entriesSpecial []fuse.DirEntry, err error) {
 	return getdents(fd)
 }
 

@@ -83,7 +83,7 @@ func testGetdents(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		getdentsEntries, err := getdentsUnderTest(int(fd.Fd()))
+		getdentsEntries, special, err := getdentsUnderTest(int(fd.Fd()))
 		if err != nil {
 			t.Log(err)
 			skipOnGccGo(t)
@@ -112,6 +112,21 @@ func testGetdents(t *testing.T) {
 				if g.Mode != syscall.S_IFDIR {
 					t.Errorf("%s: g.Ino=%d, r.Ino=%d", name, g.Ino, r.Ino)
 				}
+			}
+		}
+		if len(special) != 2 {
+			t.Error(special)
+		}
+		if !(special[0].Name == "." && special[1].Name == ".." ||
+			special[1].Name == "." && special[0].Name == "..") {
+			t.Error(special)
+		}
+		for _, v := range special {
+			if v.Ino == 0 {
+				t.Error(v)
+			}
+			if v.Mode != syscall.S_IFDIR {
+				t.Error(v)
 			}
 		}
 	}

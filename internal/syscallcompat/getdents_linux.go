@@ -27,7 +27,7 @@ const sizeofDirent = int(unsafe.Sizeof(unix.Dirent{}))
 const maxReclen = 280
 
 // getdents wraps unix.Getdents and converts the result to []fuse.DirEntry.
-func getdents(fd int) ([]fuse.DirEntry, error) {
+func getdents(fd int) (entries []fuse.DirEntry, entriesSpecial []fuse.DirEntry, err error) {
 	// Collect syscall result in smartBuf.
 	// "bytes.Buffer" is smart about expanding the capacity and avoids the
 	// exponential runtime of simple append().
@@ -44,9 +44,9 @@ func getdents(fd int) ([]fuse.DirEntry, error) {
 		} else if err != nil {
 			if smartBuf.Len() > 0 {
 				tlog.Warn.Printf("warning: unix.Getdents returned errno %d in the middle of data ( https://github.com/rfjakob/gocryptfs/issues/483 )", err.(syscall.Errno))
-				return nil, syscall.EIO
+				return nil, nil, syscall.EIO
 			}
-			return nil, err
+			return nil, nil, err
 		}
 		if n == 0 {
 			break
@@ -66,12 +66,12 @@ func getdents(fd int) ([]fuse.DirEntry, error) {
 			tlog.Warn.Printf("Getdents: corrupt entry #%d: Reclen=0 at offset=%d. Returning EBADR",
 				numEntries, offset)
 			// EBADR = Invalid request descriptor
-			return nil, syscall.EBADR
+			return nil, nil, syscall.EBADR
 		}
 		if int(s.Reclen) > maxReclen {
 			tlog.Warn.Printf("Getdents: corrupt entry #%d: Reclen=%d > %d. Returning EBADR",
 				numEntries, s.Reclen, maxReclen)
-			return nil, syscall.EBADR
+			return nil, nil, syscall.EBADR
 		}
 		offset += int(s.Reclen)
 		numEntries++
@@ -80,17 +80,22 @@ func getdents(fd int) ([]fuse.DirEntry, error) {
 	// Note: syscall.ParseDirent() only returns the names,
 	// we want all the data, so we have to implement
 	// it on our own.
-	entries := make([]fuse.DirEntry, 0, numEntries)
+	entries = make([]fuse.DirEntry, 0, numEntries)
 	offset = 0
 	for offset < len(buf) {
 		s := *(*unix.Dirent)(unsafe.Pointer(&buf[offset]))
 		name, err := getdentsName(s)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		offset += int(s.Reclen)
 		if name == "." || name == ".." {
-			// os.File.Readdir() drops "." and "..". Let's be compatible.
+			// These are always directories, no need to call convertDType.
+			entriesSpecial = append(entriesSpecial, fuse.DirEntry{
+				Ino:  s.Ino,
+				Mode: syscall.S_IFDIR,
+				Name: name,
+			})
 			continue
 		}
 		mode, err := convertDType(fd, name, s.Type)
@@ -105,7 +110,7 @@ func getdents(fd int) ([]fuse.DirEntry, error) {
 			Name: name,
 		})
 	}
-	return entries, nil
+	return entries, entriesSpecial, nil
 }
 
 // getdentsName extracts the filename from a Dirent struct and returns it as
