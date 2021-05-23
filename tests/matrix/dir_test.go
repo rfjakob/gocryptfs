@@ -3,6 +3,7 @@ package matrix
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"syscall"
 	"testing"
 
@@ -46,5 +47,26 @@ func TestRmdirPerms(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Rmdir %q: %v", dir, err)
 		}
+	}
+}
+
+// TestHaveDotdot checks that we have "." and ".." in a directory.
+// (gocryptfs v2.0-beta1 did not!)
+func TestHaveDotdot(t *testing.T) {
+	dir1 := test_helpers.DefaultPlainDir + "/TestHaveDotdot"
+	err := os.Mkdir(dir1, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// All Go readdir functions filter out "." and "..".
+	// Fall back to "ls -a" which does not.
+	out, err := exec.Command("ls", "-a", dir1).CombinedOutput()
+	if err != nil {
+		t.Fatal(err)
+	}
+	have := string(out)
+	want := ".\n..\n"
+	if have != want {
+		t.Errorf("have=%q want=%q", have, want)
 	}
 }
