@@ -94,8 +94,9 @@ fi
 # Actual "go build" call for gocryptfs
 go build "-ldflags=$GO_LDFLAGS" "$@"
 # Additional binaries
-(cd gocryptfs-xray; go build "-ldflags=$GO_LDFLAGS" "$@")
-(cd contrib/statfs; go build "-ldflags=$GO_LDFLAGS" "$@")
+for d in gocryptfs-xray contrib/statfs contrib/findholes ; do
+	(cd "$d"; go build "-ldflags=$GO_LDFLAGS" "$@")
+done
 
 ./gocryptfs -version
 
