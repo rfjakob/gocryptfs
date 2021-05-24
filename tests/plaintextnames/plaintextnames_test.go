@@ -97,9 +97,9 @@ func TestFiltered(t *testing.T) {
 //		go-fuse: blocked for 17 seconds waiting for FORGET on i4329366
 //		[...]
 //
+// The test runs with -plaintextnames because that makes it easier to manipulate
+// cipherdir directly.
 func TestInoReuseEvil(t *testing.T) {
-	t.Skip("TODO: enable this test once the problem is fixed in go-fuse")
-
 	for i := 0; i < 2; i++ {
 		n := fmt.Sprintf("%s.%d", t.Name(), i)
 		pPath := pDir + "/" + n
