@@ -43,9 +43,11 @@ const (
 type ContentEnc struct {
 	// Cryptographic primitives
 	cryptoCore *cryptocore.CryptoCore
-	// Plaintext block size
+	// plainBS is the plaintext block size. Usually 4096 bytes.
 	plainBS uint64
-	// Ciphertext block size
+	// cipherBS is the ciphertext block size. Usually 4128 bytes.
+	// `cipherBS - plainBS`is the per-block overhead
+	// (use BlockOverhead() to calculate it for you!)
 	cipherBS uint64
 	// All-zero block of size cipherBS, for fast compares
 	allZeroBlock []byte
@@ -302,7 +304,7 @@ func (be *ContentEnc) doEncryptBlock(plaintext []byte, blockNo uint64, fileID []
 	cBlock = cBlock[0:len(nonce)]
 	// Encrypt plaintext and append to nonce
 	ciphertext := be.cryptoCore.AEADCipher.Seal(cBlock, nonce, plaintext, aData)
-	overhead := int(be.cipherBS - be.plainBS)
+	overhead := int(be.BlockOverhead())
 	if len(plaintext)+overhead != len(ciphertext) {
 		log.Panicf("unexpected ciphertext length: plaintext=%d, overhead=%d, ciphertext=%d",
 			len(plaintext), overhead, len(ciphertext))
