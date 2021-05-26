@@ -1,6 +1,8 @@
 package stupidgcm
 
 import (
+	"runtime"
+
 	"golang.org/x/sys/cpu"
 )
 
@@ -23,6 +25,11 @@ func PreferOpenSSL() bool {
 		// Go stdlib is probably faster
 		return false
 	}
-	// Openssl is probably faster
+	// On the Apple M1, Go stdlib is faster than OpenSSL, despite cpu.ARM64.HasAES
+	// reading false: https://github.com/rfjakob/gocryptfs/issues/556#issuecomment-848079309
+	if runtime.GOOS == "darwin" && runtime.GOARCH == "arm64" {
+		return false
+	}
+	// OpenSSL is probably faster
 	return true
 }
