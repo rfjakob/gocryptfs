@@ -31,7 +31,11 @@ func (be *ContentEnc) BlockNoToPlainOff(blockNo uint64) uint64 {
 	return blockNo * be.plainBS
 }
 
-// CipherSizeToPlainSize calculates the plaintext size from a ciphertext size
+// CipherSizeToPlainSize calculates the plaintext size `plainSize` from a
+// ciphertext size `cipherSize` (in bytes).
+//
+// Not all ciphertext sizes are legal due to the per-block overheads.
+// For an illegal cipherSize, we return a best guess plainSize.
 func (be *ContentEnc) CipherSizeToPlainSize(cipherSize uint64) uint64 {
 	// Zero-sized files stay zero-sized
 	if cipherSize == 0 {
@@ -47,6 +51,15 @@ func (be *ContentEnc) CipherSizeToPlainSize(cipherSize uint64) uint64 {
 	if cipherSize < HeaderLen {
 		tlog.Warn.Printf("cipherSize %d < header size %d: corrupt file\n", cipherSize, HeaderLen)
 		return 0
+	}
+
+	// If the last block is incomplete, pad it to 1 byte of plaintext
+	// (= 33 bytes of ciphertext).
+	lastBlockSize := (cipherSize - HeaderLen) % be.cipherBS
+	if lastBlockSize > 0 && lastBlockSize <= be.BlockOverhead() {
+		tmp := cipherSize - lastBlockSize + be.BlockOverhead() + 1
+		tlog.Warn.Printf("cipherSize %d: incomplete last block (%d bytes), padding to %d bytes", cipherSize, lastBlockSize, tmp)
+		cipherSize = tmp
 	}
 
 	// Block number at last byte
