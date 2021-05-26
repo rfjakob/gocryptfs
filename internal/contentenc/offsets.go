@@ -76,20 +76,20 @@ func (be *ContentEnc) CipherSizeToPlainSize(cipherSize uint64) uint64 {
 	return cipherSize - overhead
 }
 
-// PlainSizeToCipherSize calculates the ciphertext size from a plaintext size
+// PlainSizeToCipherSize calculates the ciphertext size from a plaintext size.
 func (be *ContentEnc) PlainSizeToCipherSize(plainSize uint64) uint64 {
 	// Zero-sized files stay zero-sized
 	if plainSize == 0 {
 		return 0
 	}
+	return be.PlainOffToCipherOff(plainSize-1) + 1
+}
 
-	// Block number at last byte
-	blockNo := be.PlainOffToBlockNo(plainSize - 1)
-	blockCount := blockNo + 1
-
-	overhead := be.BlockOverhead()*blockCount + HeaderLen
-
-	return plainSize + overhead
+// PlainOffToCipherOff tells you the highest ciphertext offset that is
+// *guaranteed* to be written/read when you write/read at `plainOff`.
+func (be *ContentEnc) PlainOffToCipherOff(plainOff uint64) uint64 {
+	startOfBlock := be.BlockNoToCipherOff(be.PlainOffToBlockNo(plainOff))
+	return startOfBlock + plainOff%be.PlainBS() + be.BlockOverhead()
 }
 
 // ExplodePlainRange splits a plaintext byte range into (possibly partial) blocks
