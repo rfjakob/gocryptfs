@@ -4,7 +4,11 @@ package holes
 
 import (
 	"fmt"
+	"log"
+	"math/rand"
+	"os"
 	"syscall"
+	"time"
 )
 
 const (
@@ -15,6 +19,19 @@ const (
 	SegmentData = SegmentType(101)
 	SegmentEOF  = SegmentType(102)
 )
+
+type Whence int
+
+func (w Whence) String() string {
+	switch w {
+	case SEEK_DATA:
+		return "SEEK_DATA"
+	case SEEK_HOLE:
+		return "SEEK_HOLE"
+	default:
+		return "???"
+	}
+}
 
 type Segment struct {
 	Offset int64
@@ -42,8 +59,11 @@ func (s SegmentType) String() string {
 
 // PrettyPrint pretty-prints the Segments.
 func PrettyPrint(segments []Segment) (out string) {
-	for _, s := range segments {
-		out += "\n" + s.String()
+	for i, s := range segments {
+		out += s.String()
+		if i < len(segments)-1 {
+			out += "\n"
+		}
 	}
 	return out
 }
@@ -62,6 +82,7 @@ func Find(fd int) (segments []Segment, err error) {
 
 	// find out if file starts with data or hole
 	off, err := syscall.Seek(fd, 0, SEEK_DATA)
+	// starts with hole and has no data
 	if err == syscall.ENXIO {
 		segments = append(segments,
 			Segment{0, SegmentHole},
@@ -71,36 +92,108 @@ func Find(fd int) (segments []Segment, err error) {
 	if err != nil {
 		return nil, err
 	}
+	// starts with data
 	if off == cursor {
 		segments = append(segments, Segment{0, SegmentData})
 	} else {
+		// starts with hole
 		segments = append(segments,
 			Segment{0, SegmentHole},
-			Segment{totalSize, SegmentData})
+			Segment{off, SegmentData})
 		cursor = off
 	}
 
 	// now we are at the start of data.
 	// find next hole, then next data, then next hole, then next data...
 	for {
-		cursor, err = syscall.Seek(fd, cursor, SEEK_HOLE)
+		oldCursor := cursor
+		// Next hole
+		off, err = syscall.Seek(fd, cursor, SEEK_HOLE)
 		if err != nil {
 			return nil, err
 		}
-		if cursor == totalSize {
-			segments = append(segments, Segment{cursor, SegmentEOF})
-			break
+		segments = append(segments, Segment{off, SegmentHole})
+		cursor = off
+
+		// Next data
+		off, err := syscall.Seek(fd, cursor, SEEK_DATA)
+		// No more data?
+		if err == syscall.ENXIO {
+			segments = append(segments,
+				Segment{totalSize, SegmentEOF})
+			return segments, nil
 		}
-		segments = append(segments, Segment{cursor, SegmentHole})
-		cursor, err = syscall.Seek(fd, cursor, SEEK_DATA)
 		if err != nil {
 			return nil, err
 		}
-		if cursor == totalSize {
-			segments = append(segments, Segment{cursor, SegmentEOF})
-			break
+		segments = append(segments, Segment{off, SegmentData})
+		cursor = off
+
+		if oldCursor == cursor {
+			return nil, fmt.Errorf("%s\nerror: seek loop!", PrettyPrint(segments))
 		}
-		segments = append(segments, Segment{cursor, SegmentData})
 	}
 	return segments, nil
+}
+
+// Verify the gives `segments` using a full bytewise file scan
+func Verify(fd int, segments []Segment) (err error) {
+	last := segments[len(segments)-1]
+	if last.Type != SegmentEOF {
+		log.Panicf("BUG: last segment is not EOF. segments: %v", segments)
+	}
+
+	for i, s := range segments {
+		var whence int
+		switch s.Type {
+		case SegmentHole:
+			whence = SEEK_HOLE
+		case SegmentData:
+			whence = SEEK_DATA
+		case SegmentEOF:
+			continue
+		default:
+			log.Panicf("BUG: unkown segment type %d", s.Type)
+		}
+		for off := s.Offset; off < segments[i+1].Offset; off++ {
+			res, err := syscall.Seek(fd, off, whence)
+			if err != nil {
+				return fmt.Errorf("error: seek(%d, %s) returned error %v", off, Whence(whence).String(), err)
+			}
+			if res != off {
+				return fmt.Errorf("error: seek(%d, %s) returned new offset %d", off, Whence(whence).String(), res)
+			}
+		}
+	}
+	return err
+}
+
+// Create a test file at `path` with random holes
+func Create(path string) {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	rand.Seed(time.Now().UnixNano())
+	offsets := make([]int64, 10)
+	for i := range offsets {
+		offsets[i] = int64(rand.Int31n(60000))
+	}
+
+	buf := []byte("x")
+	for _, off := range offsets {
+		_, err = f.WriteAt(buf, off)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	// Expand the file to 50000 bytes so we sometimes have a hole on the end
+	if offsets[len(offsets)-1] < 50000 {
+		f.Truncate(50000)
+	}
+
+	f.Sync()
 }

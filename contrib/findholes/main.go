@@ -10,13 +10,25 @@ import (
 )
 
 func main() {
+	flags := struct {
+		verify *bool
+		create *bool
+	}{}
+	flags.verify = flag.Bool("verify", false, "Verify results using full file scan")
+	flags.create = flag.Bool("create", false, "Create test file with random holes")
 	flag.Parse()
 	if flag.NArg() != 1 {
 		fmt.Printf("Usage: findholes FILE\n")
 		os.Exit(1)
 	}
 
-	f, err := os.Open(flag.Arg(0))
+	path := flag.Arg(0)
+
+	if *flags.create {
+		holes.Create(path)
+	}
+
+	f, err := os.Open(path)
 	if err != nil {
 		// os.Open() gives nicer error messages than syscall.Open()
 		fmt.Println(err)
@@ -31,4 +43,15 @@ func main() {
 	}
 
 	fmt.Println(holes.PrettyPrint(segments))
+
+	if *flags.verify {
+		err = holes.Verify(int(f.Fd()), segments)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		} else {
+			fmt.Println("verify ok")
+		}
+	}
+
 }
