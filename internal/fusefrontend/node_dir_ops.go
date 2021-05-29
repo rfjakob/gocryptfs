@@ -161,13 +161,12 @@ func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 	defer syscall.Close(parentDirFd)
 
 	// Read ciphertext directory
-	var cipherEntries []fuse.DirEntry
 	fd, err := syscallcompat.Openat(parentDirFd, cDirName, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		return nil, fs.ToErrno(err)
 	}
 	defer syscall.Close(fd)
-	cipherEntries, err = syscallcompat.Getdents(fd)
+	cipherEntries, specialEntries, err := syscallcompat.GetdentsSpecial(fd)
 	if err != nil {
 		return nil, fs.ToErrno(err)
 	}
@@ -184,6 +183,8 @@ func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 	}
 	// Decrypted directory entries
 	var plain []fuse.DirEntry
+	// Add "." and ".."
+	plain = append(plain, specialEntries...)
 	// Filter and decrypt filenames
 	for i := range cipherEntries {
 		cName := cipherEntries[i].Name
