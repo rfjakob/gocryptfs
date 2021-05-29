@@ -88,8 +88,10 @@ func doTestFileHoleCopy(t *testing.T, name string, writeOffsets []int64) {
 		if err := syscall.Stat(pPath[i], &st); err != nil {
 			t.Fatal(err)
 		}
-		// Sometimes the size on disk decreases by 4k due to less fragmentation
-		if st.Blocks != st0.Blocks && st.Blocks != st0.Blocks-8 {
+		// Size on disk fluctuates by +-4kB due to different number of extents
+		// (looking at "filefrag -v", it seems like ext4 needs 4kB extra once
+		//  you have >=4 extents)
+		if st.Blocks != st0.Blocks && st.Blocks != st0.Blocks-8 && st.Blocks != st0.Blocks+8 {
 			t.Errorf("size changed: st0.Blocks=%d st%d.Blocks=%d", st0.Blocks, i, st.Blocks)
 		}
 	}
