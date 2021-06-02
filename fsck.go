@@ -295,6 +295,10 @@ func fsck(args *argContainer) (exitcode int) {
 		err = srv.Unmount()
 		if err != nil {
 			tlog.Warn.Printf("failed to unmount %q: %v", ck.mnt, err)
+		} else {
+			if err := syscall.Rmdir(ck.mnt); err != nil {
+				tlog.Warn.Printf("cleaning up %q failed: %v", ck.mnt, err)
+			}
 		}
 	}()
 	// Recursively check the root dir
