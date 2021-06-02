@@ -260,6 +260,7 @@ func fsck(args *argContainer) (exitcode int) {
 		os.Exit(exitcodes.Usage)
 	}
 	args.allow_other = false
+	args.ro = true
 	var err error
 	args.mountpoint, err = ioutil.TempDir("", "gocryptfs.fsck.")
 	if err != nil {
