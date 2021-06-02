@@ -2,7 +2,6 @@
 package nametransform
 
 import (
-	"bytes"
 	"crypto/aes"
 	"encoding/base64"
 	"path/filepath"
@@ -21,7 +20,7 @@ const (
 // NameTransformer is an interface used to transform filenames.
 type NameTransformer interface {
 	DecryptName(cipherName string, iv []byte) (string, error)
-	EncryptName(plainName string, iv []byte) string
+	EncryptName(plainName string, iv []byte) (string, error)
 	EncryptAndHashName(name string, iv []byte) (string, error)
 	// HashLongName - take the hash of a long string "name" and return
 	// "gocryptfs.longname.[sha256]"
@@ -99,22 +98,14 @@ func (n *NameTransform) decryptName(cipherName string, iv []byte) (string, error
 	bin = n.emeCipher.Decrypt(iv, bin)
 	bin, err = unPad16(bin)
 	if err != nil {
-		tlog.Debug.Printf("DecryptName: unPad16 error detail: %v", err)
-		// unPad16 returns detailed errors including the position of the
-		// incorrect bytes. Kill the padding oracle by lumping everything into
-		// a generic error.
-		return "", syscall.EBADMSG
-	}
-	// A name can never contain a null byte or "/". Make sure we never return those
-	// to the kernel, even when we read a corrupted (or fuzzed) filesystem.
-	if bytes.Contains(bin, []byte{0}) || bytes.Contains(bin, []byte("/")) {
-		return "", syscall.EBADMSG
-	}
-	// The name should never be "." or "..".
-	if bytes.Equal(bin, []byte(".")) || bytes.Equal(bin, []byte("..")) {
+		tlog.Warn.Printf("DecryptName %q: unPad16 error: %v", cipherName, err)
 		return "", syscall.EBADMSG
 	}
 	plain := string(bin)
+	if err := IsValidName(plain); err != nil {
+		tlog.Warn.Printf("DecryptName %q: invalid name after decryption: %v", cipherName, err)
+		return "", syscall.EBADMSG
+	}
 	return plain, err
 }
 
@@ -123,12 +114,16 @@ func (n *NameTransform) decryptName(cipherName string, iv []byte) (string, error
 //
 // This function is exported because in some cases, fusefrontend needs access
 // to the full (not hashed) name if longname is used.
-func (n *NameTransform) EncryptName(plainName string, iv []byte) (cipherName64 string) {
+func (n *NameTransform) EncryptName(plainName string, iv []byte) (cipherName64 string, err error) {
+	if err := IsValidName(plainName); err != nil {
+		tlog.Warn.Printf("EncryptName %q: invalid plainName: %v", plainName, err)
+		return "", syscall.EBADMSG
+	}
 	bin := []byte(plainName)
 	bin = pad16(bin)
 	bin = n.emeCipher.Encrypt(iv, bin)
 	cipherName64 = n.B64.EncodeToString(bin)
-	return cipherName64
+	return cipherName64, nil
 }
 
 // B64EncodeToString returns a Base64-encoded string

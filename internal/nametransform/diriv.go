@@ -102,7 +102,10 @@ func (be *NameTransform) EncryptAndHashName(name string, iv []byte) (string, err
 	if len(name) > NameMax {
 		return "", syscall.ENAMETOOLONG
 	}
-	cName := be.EncryptName(name, iv)
+	cName, err := be.EncryptName(name, iv)
+	if err != nil {
+		return "", err
+	}
 	if be.longNames && len(cName) > NameMax {
 		return be.HashLongName(cName), nil
 	}

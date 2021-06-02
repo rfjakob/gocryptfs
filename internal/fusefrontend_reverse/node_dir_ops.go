@@ -64,7 +64,11 @@ func (n *Node) Readdir(ctx context.Context) (stream fs.DirStream, errno syscall.
 			!rn.args.ConfigCustom {
 			cName = configfile.ConfDefaultName
 		} else {
-			cName = rn.nameTransform.EncryptName(entries[i].Name, dirIV)
+			cName, err = rn.nameTransform.EncryptName(entries[i].Name, dirIV)
+			if err != nil {
+				entries[i].Name = "___GOCRYPTFS_INVALID_NAME___"
+				continue
+			}
 			if len(cName) > unix.NAME_MAX {
 				cName = rn.nameTransform.HashLongName(cName)
 				dotNameFile := fuse.DirEntry{

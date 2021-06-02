@@ -2,6 +2,7 @@ package nametransform
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 )
 
@@ -48,6 +49,29 @@ func TestUnpad16Garbage(t *testing.T) {
 		_, err := unPad16([]byte(v))
 		if err == nil {
 			t.Fail()
+		}
+	}
+}
+
+func TestIsValidName(t *testing.T) {
+	cases := []struct {
+		in   string
+		want bool
+	}{
+		{"", false},
+		{".", false},
+		{"..", false},
+		{"...", true},
+		{"asdasd/asdasd", false},
+		{"asdasd\000asdasd", false},
+		{"hello", true},
+		{strings.Repeat("x", 255), true},
+		{strings.Repeat("x", 256), false},
+	}
+	for _, c := range cases {
+		have := IsValidName(c.in)
+		if (have == nil) != c.want {
+			t.Errorf("IsValidName(%q): want %v have %v", c.in, c.want, have)
 		}
 	}
 }

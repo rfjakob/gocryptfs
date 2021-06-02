@@ -23,7 +23,10 @@ func (rn *RootNode) EncryptPath(plainPath string) (string, error) {
 	parts := strings.Split(plainPath, "/")
 	for _, part := range parts {
 		dirIV := pathiv.Derive(cipherPath, pathiv.PurposeDirIV)
-		encryptedPart := rn.nameTransform.EncryptName(part, dirIV)
+		encryptedPart, err := rn.nameTransform.EncryptName(part, dirIV)
+		if err != nil {
+			return "", err
+		}
 		if rn.args.LongNames && len(encryptedPart) > unix.NAME_MAX {
 			encryptedPart = rn.nameTransform.HashLongName(encryptedPart)
 		}

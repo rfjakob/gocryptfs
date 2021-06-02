@@ -132,7 +132,10 @@ func (n *NameTransform) WriteLongNameAt(dirfd int, hashName string, plainName st
 	if err != nil {
 		return err
 	}
-	cName := n.EncryptName(plainName, dirIV)
+	cName, err := n.EncryptName(plainName, dirIV)
+	if err != nil {
+		return err
+	}
 
 	// Write the encrypted name into hashName.name
 	fdRaw, err := syscallcompat.Openat(dirfd, hashName+LongNameSuffix,

@@ -33,7 +33,10 @@ func newTestFS(args Args) *RootNode {
 func TestEncryptDecryptXattrName(t *testing.T) {
 	fs := newTestFS(Args{})
 	attr1 := "user.foo123456789"
-	cAttr := fs.encryptXattrName(attr1)
+	cAttr, err := fs.encryptXattrName(attr1)
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Logf("cAttr=%v", cAttr)
 	attr2, err := fs.decryptXattrName(cAttr)
 	if attr1 != attr2 || err != nil {

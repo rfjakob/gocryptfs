@@ -56,12 +56,14 @@ func (n *Node) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, 
 		}
 	} else {
 		// encrypted user xattr
-		cAttr := rn.encryptXattrName(attr)
+		cAttr, err := rn.encryptXattrName(attr)
+		if err != nil {
+			return minus1, syscall.EIO
+		}
 		cData, errno := n.getXAttr(cAttr)
 		if errno != 0 {
 			return 0, errno
 		}
-		var err error
 		data, err = rn.decryptXattrValue(cData)
 		if err != nil {
 			tlog.Warn.Printf("GetXAttr: %v", err)
@@ -91,7 +93,10 @@ func (n *Node) Setxattr(ctx context.Context, attr string, data []byte, flags uin
 		return n.setXAttr(attr, data, flags)
 	}
 
-	cAttr := rn.encryptXattrName(attr)
+	cAttr, err := rn.encryptXattrName(attr)
+	if err != nil {
+		return syscall.EINVAL
+	}
 	cData := rn.encryptXattrValue(data)
 	return n.setXAttr(cAttr, cData, flags)
 }
@@ -107,7 +112,10 @@ func (n *Node) Removexattr(ctx context.Context, attr string) syscall.Errno {
 		return n.removeXAttr(attr)
 	}
 
-	cAttr := rn.encryptXattrName(attr)
+	cAttr, err := rn.encryptXattrName(attr)
+	if err != nil {
+		return syscall.EINVAL
+	}
 	return n.removeXAttr(cAttr)
 }
 

@@ -71,9 +71,12 @@ func (rn *RootNode) findLongnameParent(fd int, diriv []byte, longname string) (p
 		if len(entry.Name) <= shortNameMax {
 			continue
 		}
-		cFullName = rn.nameTransform.EncryptName(entry.Name, diriv)
+		cFullName, err = rn.nameTransform.EncryptName(entry.Name, diriv)
+		if err != nil {
+			continue
+		}
 		if len(cFullName) <= unix.NAME_MAX {
-			// Entry should have been skipped by the "continue" above
+			// Entry should have been skipped by the shortNameMax check above
 			log.Panic("logic error or wrong shortNameMax constant?")
 		}
 		hName := rn.nameTransform.HashLongName(cFullName)
