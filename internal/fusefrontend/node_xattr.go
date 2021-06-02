@@ -7,6 +7,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/hanwen/go-fuse/v2/fuse"
+
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -90,7 +92,12 @@ func (n *Node) Setxattr(ctx context.Context, attr string, data []byte, flags uin
 
 	// ACLs are passed through without encryption
 	if isAcl(attr) {
-		return n.setXAttr(attr, data, flags)
+		// result of setting an acl depends on the user doing it
+		var context *fuse.Context
+		if rn.args.PreserveOwner {
+			context = toFuseCtx(ctx)
+		}
+		return n.setXAttr(context, attr, data, flags)
 	}
 
 	cAttr, err := rn.encryptXattrName(attr)
@@ -98,7 +105,7 @@ func (n *Node) Setxattr(ctx context.Context, attr string, data []byte, flags uin
 		return syscall.EINVAL
 	}
 	cData := rn.encryptXattrValue(data)
-	return n.setXAttr(cAttr, cData, flags)
+	return n.setXAttr(nil, cAttr, cData, flags)
 }
 
 // RemoveXAttr - FUSE call.

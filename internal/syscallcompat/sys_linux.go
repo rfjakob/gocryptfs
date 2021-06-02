@@ -130,6 +130,9 @@ func asUser(f func() (int, error), context *fuse.Context) (int, error) {
 //
 // It switches the current thread to the new user, performs the syscall,
 // and switches back.
+//
+// If `context` is nil, this function behaves like ordinary Openat (no
+// user switching).
 func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Context) (fd int, err error) {
 	f := func() (int, error) {
 		return Openat(dirfd, path, flags, mode)
@@ -143,6 +146,7 @@ func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 }
 
 // MknodatUser runs the Mknodat syscall in the context of a different user.
+// If `context` is nil, this function behaves like ordinary Mknodat.
 //
 // See OpenatUser() for how this works.
 func MknodatUser(dirfd int, path string, mode uint32, dev int, context *fuse.Context) (err error) {
@@ -195,6 +199,7 @@ func FchmodatNofollow(dirfd int, path string, mode uint32) (err error) {
 }
 
 // SymlinkatUser runs the Symlinkat syscall in the context of a different user.
+// If `context` is nil, this function behaves like ordinary Symlinkat.
 //
 // See OpenatUser() for how this works.
 func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.Context) (err error) {
@@ -207,11 +212,26 @@ func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.C
 }
 
 // MkdiratUser runs the Mkdirat syscall in the context of a different user.
+// If `context` is nil, this function behaves like ordinary Mkdirat.
 //
 // See OpenatUser() for how this works.
 func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
 	f := func() (int, error) {
 		err := Mkdirat(dirfd, path, mode)
+		return -1, err
+	}
+	_, err = asUser(f, context)
+	return err
+}
+
+// LsetxattrUser runs the Lsetxattr syscall in the context of a different user.
+// This is useful when setting ACLs, as the result depends on the user running
+// the operation (see fuse-xfstests generic/375).
+//
+// If `context` is nil, this function behaves like ordinary Lsetxattr.
+func LsetxattrUser(path string, attr string, data []byte, flags int, context *fuse.Context) (err error) {
+	f := func() (int, error) {
+		err := unix.Lsetxattr(path, attr, data, flags)
 		return -1, err
 	}
 	_, err = asUser(f, context)
