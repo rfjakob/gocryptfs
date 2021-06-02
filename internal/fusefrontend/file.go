@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"os"
 	"sync"
 	"syscall"
@@ -178,6 +179,10 @@ func (f *File) doRead(dst []byte, off uint64, length uint64) ([]byte, syscall.Er
 	// Read the backing ciphertext in one go
 	blocks := f.contentEnc.ExplodePlainRange(off, length)
 	alignedOffset, alignedLength := blocks[0].JointCiphertextRange(blocks)
+	// f.fd.ReadAt takes an int64!
+	if alignedOffset > math.MaxInt64 {
+		return nil, syscall.EFBIG
+	}
 	skip := blocks[0].Skip
 	tlog.Debug.Printf("doRead: off=%d len=%d -> off=%d len=%d skip=%d\n",
 		off, length, alignedOffset, alignedLength, skip)
@@ -320,9 +325,13 @@ func (f *File) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
 	// Preallocate so we cannot run out of space in the middle of the write.
 	// This prevents partially written (=corrupt) blocks.
 	var err error
-	cOff := int64(blocks[0].BlockCipherOff())
+	cOff := blocks[0].BlockCipherOff()
+	// f.fd.WriteAt & syscallcompat.EnospcPrealloc take int64 offsets!
+	if cOff > math.MaxInt64 {
+		return 0, syscall.EFBIG
+	}
 	if !f.rootNode.args.NoPrealloc {
-		err = syscallcompat.EnospcPrealloc(f.intFd(), cOff, int64(len(ciphertext)))
+		err = syscallcompat.EnospcPrealloc(f.intFd(), int64(cOff), int64(len(ciphertext)))
 		if err != nil {
 			if !syscallcompat.IsENOSPC(err) {
 				tlog.Warn.Printf("ino%d fh%d: doWrite: prealloc failed: %v", f.qIno.Ino, f.intFd(), err)
@@ -339,7 +348,7 @@ func (f *File) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
 		}
 	}
 	// Write
-	_, err = f.fd.WriteAt(ciphertext, cOff)
+	_, err = f.fd.WriteAt(ciphertext, int64(cOff))
 	// Return memory to CReqPool
 	f.rootNode.contentEnc.CReqPool.Put(ciphertext)
 	if err != nil {
