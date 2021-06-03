@@ -34,7 +34,7 @@ func callFidoCommand(command fidoCommand, device string, stdin []string) ([]stri
 	case assertWithPIN:
 		cmd = exec.Command("fido2-assert", "-G", "-h", "-v", device)
 	}
-	tlog.Debug.Printf("callFidoCommand: executing %q with args %v", cmd.Path, cmd.Args)
+	tlog.Debug.Printf("callFidoCommand: executing %q with args %q", cmd.Path, cmd.Args)
 	cmd.Stderr = os.Stderr
 	in, err := cmd.StdinPipe()
 	if err != nil {
