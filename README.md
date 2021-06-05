@@ -42,10 +42,10 @@ Platforms
 
 Linux is gocryptfs' native platform.
 
-Beta-quality Mac OS X support is available, which means most things work
+Beta-quality macOS support is available, which means most things work
 fine but you may hit an occasional problem. Check out
 [ticket #15](https://github.com/rfjakob/gocryptfs/issues/15) for the history
-of Mac OS X support but please create a new ticket if you hit a problem.
+of macOS support but please create a new ticket if you hit a problem.
 
 For Windows, an independent C++ reimplementation can be found here:
 [cppcryptfs](https://github.com/bailey27/cppcryptfs)
@@ -62,7 +62,7 @@ On Debian, gocryptfs is available as a deb package:
 apt install gocryptfs
 ```
 
-On Mac OS X, gocryptfs is available as a Homebrew formula:
+On macOS, gocryptfs is available as a Homebrew formula:
 ```bash
 brew install gocryptfs
 ```
