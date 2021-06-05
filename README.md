@@ -190,9 +190,13 @@ RM:    3.379
 Changelog
 ---------
 
+v2.0, 2021-06-05
+* Fix a few [issues discovered by xfstests](https://github.com/rfjakob/fuse-xfstests/wiki/results_2021-05-19)
+  * Biggest change: rewrite SEEK_HOLE / SEEK_DATA logic (now emulates 4k alignment)
+
 v2.0-beta4, 2021-05-15
-* Make ACLs *actually* work (pass `-acl` to enable) ([#536](https://github.com/rfjakob/gocryptfs/issues/536))
-* Blocklist RENAME_EXCHANGE and RENAME_WHITEOUT (broken as discovered by [fuse-xfstest/gocryptfs-2019-12](https://github.com/rfjakob/fuse-xfstests/tree/gocryptfs-2019-12))
+* **Make ACLs *actually* work (pass `-acl` to enable)** ([#536](https://github.com/rfjakob/gocryptfs/issues/536))
+* Blocklist `RENAME_EXCHANGE` and `RENAME_WHITEOUT` (broken as discovered by [fuse-xfstest/gocryptfs-2019-12](https://github.com/rfjakob/fuse-xfstests/tree/gocryptfs-2019-12))
 
 v2.0-beta3, 2021-04-24
 * MANPAGE: Split options into sections acc. to where they apply ([#517](https://github.com/rfjakob/gocryptfs/issues/517))
