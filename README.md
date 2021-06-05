@@ -67,6 +67,11 @@ On macOS, gocryptfs is available as a Homebrew formula:
 brew install gocryptfs
 ```
 
+Alternatively, gocryptfs is also available via [MacPorts](https://www.macports.org/) on macOS:
+```bash
+sudo port install gocryptfs
+```
+
 On Fedora, gocryptfs is available as an rpm package:
 ```bash
 sudo dnf install gocryptfs
