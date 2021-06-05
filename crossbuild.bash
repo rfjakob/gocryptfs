@@ -11,8 +11,11 @@ set -x
 GOOS=linux  GOARCH=arm   GOARM=7 $B
 GOOS=linux  GOARCH=arm64         $B
 
-# MacOS
+# MacOS on Intel
 GOOS=darwin GOARCH=amd64 $B
+
+# MacOS on Apple Silicon M1
+GOOS=darwin GOARCH=arm64 $B
 
 # The cross-built binary is not useful on the compile host.
 rm gocryptfs
