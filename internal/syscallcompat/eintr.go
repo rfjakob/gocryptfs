@@ -2,6 +2,8 @@ package syscallcompat
 
 import (
 	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
 // retryEINTR executes operation `op` and retries if it gets EINTR.
@@ -41,6 +43,24 @@ func Open(path string, mode int, perm uint32) (fd int, err error) {
 		return syscall.Open(path, mode, perm)
 	})
 	return fd, err
+}
+
+// Renameat wraps the Renameat syscall.
+// Retries on EINTR.
+func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
+	err = retryEINTR(func() error {
+		return unix.Renameat(olddirfd, oldpath, newdirfd, newpath)
+	})
+	return err
+}
+
+// Unlinkat syscall.
+// Retries on EINTR.
+func Unlinkat(dirfd int, path string, flags int) (err error) {
+	err = retryEINTR(func() error {
+		return unix.Unlinkat(dirfd, path, flags)
+	})
+	return err
 }
 
 // Flush is a helper for the FUSE command FLUSH.

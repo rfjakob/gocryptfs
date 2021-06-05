@@ -66,24 +66,6 @@ func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) 
 	return fd, err
 }
 
-// Renameat wraps the Renameat syscall.
-// Retries on EINTR.
-func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
-	err = retryEINTR(func() error {
-		return unix.Renameat(olddirfd, oldpath, newdirfd, newpath)
-	})
-	return err
-}
-
-// Unlinkat syscall.
-// Retries on EINTR.
-func Unlinkat(dirfd int, path string, flags int) (err error) {
-	err = retryEINTR(func() error {
-		return unix.Unlinkat(dirfd, path, flags)
-	})
-	return err
-}
-
 // Fchownat syscall.
 func Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error) {
 	// Why would we ever want to call this without AT_SYMLINK_NOFOLLOW?
@@ -92,21 +74,6 @@ func Fchownat(dirfd int, path string, uid int, gid int, flags int) (err error) {
 		flags |= unix.AT_SYMLINK_NOFOLLOW
 	}
 	return unix.Fchownat(dirfd, path, uid, gid, flags)
-}
-
-// Linkat exists both in Linux and in MacOS 10.10+.
-func Linkat(olddirfd int, oldpath string, newdirfd int, newpath string, flags int) (err error) {
-	return unix.Linkat(olddirfd, oldpath, newdirfd, newpath, flags)
-}
-
-// Symlinkat syscall.
-func Symlinkat(oldpath string, newdirfd int, newpath string) (err error) {
-	return unix.Symlinkat(oldpath, newdirfd, newpath)
-}
-
-// Mkdirat syscall.
-func Mkdirat(dirfd int, path string, mode uint32) (err error) {
-	return unix.Mkdirat(dirfd, path, mode)
 }
 
 // Fstatat syscall.

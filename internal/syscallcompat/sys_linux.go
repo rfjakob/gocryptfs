@@ -204,7 +204,7 @@ func FchmodatNofollow(dirfd int, path string, mode uint32) (err error) {
 // See OpenatUser() for how this works.
 func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.Context) (err error) {
 	f := func() (int, error) {
-		err := Symlinkat(oldpath, newdirfd, newpath)
+		err := unix.Symlinkat(oldpath, newdirfd, newpath)
 		return -1, err
 	}
 	_, err = asUser(f, context)
@@ -217,7 +217,7 @@ func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.C
 // See OpenatUser() for how this works.
 func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
 	f := func() (int, error) {
-		err := Mkdirat(dirfd, path, mode)
+		err := unix.Mkdirat(dirfd, path, mode)
 		return -1, err
 	}
 	_, err = asUser(f, context)

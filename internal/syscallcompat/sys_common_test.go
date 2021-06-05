@@ -230,8 +230,10 @@ func symlinkCheckMode(t *testing.T, st syscall.Stat_t) {
 	}
 }
 
+// We used to have our own wrapper for Symlinkat. The wrapper is gone but the test
+// is still useful.
 func TestSymlinkat(t *testing.T) {
-	err := Symlinkat("/foo/bar/baz", tmpDirFd, "symlink1")
+	err := unix.Symlinkat("/foo/bar/baz", tmpDirFd, "symlink1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -242,7 +244,7 @@ func TestSymlinkat(t *testing.T) {
 	}
 	symlinkCheckMode(t, st)
 	// Test with absolute path
-	err = Symlinkat("/foo/bar/baz", -1, tmpDir+"/symlink2")
+	err = unix.Symlinkat("/foo/bar/baz", -1, tmpDir+"/symlink2")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,8 +255,10 @@ func TestSymlinkat(t *testing.T) {
 	symlinkCheckMode(t, st)
 }
 
+// We used to have our own wrapper for Mkdirat. The wrapper is gone but the test
+// is still useful.
 func TestMkdirat(t *testing.T) {
-	err := Mkdirat(tmpDirFd, "mkdirat", 0700)
+	err := unix.Mkdirat(tmpDirFd, "mkdirat", 0700)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -266,7 +270,7 @@ func TestMkdirat(t *testing.T) {
 		t.Fatalf("mkdirat did not create a directory")
 	}
 	// Test with absolute path
-	err = Mkdirat(-1, tmpDir+"/mkdirat2", 0700)
+	err = unix.Mkdirat(-1, tmpDir+"/mkdirat2", 0700)
 	if err != nil {
 		t.Fatal(err)
 	}

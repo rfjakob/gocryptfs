@@ -131,7 +131,7 @@ func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.C
 		defer pthread_setugid_np(KAUTH_UID_NONE, KAUTH_GID_NONE)
 	}
 
-	return Symlinkat(oldpath, newdirfd, newpath)
+	return unix.Symlinkat(oldpath, newdirfd, newpath)
 }
 
 func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
@@ -146,7 +146,7 @@ func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (er
 		defer pthread_setugid_np(KAUTH_UID_NONE, KAUTH_GID_NONE)
 	}
 
-	return Mkdirat(dirfd, path, mode)
+	return unix.Mkdirat(dirfd, path, mode)
 }
 
 type attrList struct {
