@@ -20,8 +20,12 @@ GOOS=linux  GOARCH=arm64         $B
 # MacOS on Intel
 GOOS=darwin GOARCH=amd64 $B
 
-# MacOS on Apple Silicon M1
-GOOS=darwin GOARCH=arm64 $B
+# MacOS on Apple Silicon M1.
+# Go 1.16 added support for the M1 and added ios/arm64,
+# so we use this to check if we should attempt a build.
+if go tool dist list | grep ios/arm64 ; then
+	GOOS=darwin GOARCH=arm64 $B
+fi
 
 # The cross-built binary is not useful on the compile host.
 rm gocryptfs
