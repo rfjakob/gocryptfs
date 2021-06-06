@@ -354,6 +354,9 @@ func (n *Node) Symlink(ctx context.Context, target, name string, out *fuse.Entry
 		errno = fs.ToErrno(err)
 		return
 	}
+	// Report the plaintext size, not the encrypted blob size
+	st.Size = int64(len(target))
+
 	inode = n.newChild(ctx, st, out)
 	return inode, 0
 }

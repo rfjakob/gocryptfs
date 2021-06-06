@@ -19,6 +19,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"sync"
 	"syscall"
@@ -880,5 +881,23 @@ func TestStatfs(t *testing.T) {
 	syscall.Statfs(test_helpers.DefaultPlainDir, &st)
 	if st.Bsize == 0 {
 		t.Errorf("statfs reports size zero: %#v", st)
+	}
+}
+
+// gocryptfs 2.0 reported the ciphertext size on symlink creation, causing
+// confusion: https://github.com/rfjakob/gocryptfs/issues/574
+func TestSymlinkSize(t *testing.T) {
+	p := filepath.Join(test_helpers.DefaultPlainDir, t.Name())
+	// SYMLINK reports the size to the kernel
+	if err := syscall.Symlink("foo", p); err != nil {
+		t.Fatal(err)
+	}
+	// Kernel serves us this value from the attr cache
+	var st syscall.Stat_t
+	if err := syscall.Lstat(p, &st); err != nil {
+		t.Fatal(err)
+	}
+	if st.Size != 3 {
+		t.Errorf("wrong size: have %d, want %d", st.Size, 3)
 	}
 }
