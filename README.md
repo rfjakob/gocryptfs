@@ -96,7 +96,12 @@ as well as in the go-fuse library.
 Compile
 -------
 
-With go 1.11 or higher:
+Install Go 1.11 or higher:
+
+* Debian/Ubuntu: `apt install golang`
+* Fedora: `dnf install golang`
+
+Then, download the source code and compile:
 
 	$ git clone https://github.com/rfjakob/gocryptfs.git
 	$ cd gocryptfs
