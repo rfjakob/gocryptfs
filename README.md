@@ -100,13 +100,19 @@ With go 1.11 or higher:
 
 	$ git clone https://github.com/rfjakob/gocryptfs.git
 	$ cd gocryptfs
-	$ ./build.bash
-
-build.bash needs the OpenSSL headers installed (Debian: `apt install libssl-dev`,
-Fedora: `dnf install openssl-devel`). Alternatively, you can compile
-without OpenSSL using
-
 	$ ./build-without-openssl.bash
+
+This will compile a static binary that uses the Go stdlib crypto backend.
+
+If you want to use the OpenSSL crypto backend (faster on
+old CPUs lacking AES-NI), you have to install a few dependencies:
+
+* Debian/Ubuntu: `apt install libssl-dev gcc pkg-config`
+* Fedora: `dnf install openssl-devel gcc pkg-config`
+
+Then, run:
+
+	$ ./build.bash
 
 Use
 ---
