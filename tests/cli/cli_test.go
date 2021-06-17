@@ -16,6 +16,7 @@ import (
 
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/exitcodes"
+	"github.com/rfjakob/gocryptfs/internal/nametransform"
 
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
@@ -698,18 +699,29 @@ func TestSymlinkedCipherdir(t *testing.T) {
 
 // TestBadname tests the `-badname` option
 func TestBadname(t *testing.T) {
+	//Supported structure of badname: <ciphername><badname pattern><badname suffix>
+	//"Visible" shows the success of function DecryptName (cipher -> plain)
+	//"Access" shows the success of function EncryptAndHashBadName (plain -> cipher)
+	//Case    Visible  Access  Description
+	//Case 1     x       x     Access file without BadName suffix (default mode)
+	//Case 2     x       x     Access file with BadName suffix which has a valid cipher file (will only be possible if file was created without badname option)
+	//Case 3                   Access file with valid ciphername + BadName suffix (impossible since this would not be produced by DecryptName)
+	//Case 4     x       x     Access file with decryptable part of name and Badname suffix (default badname case)
+	//Case 5     x       x     Access file with undecryptable name and BadName suffix (e. g. when part of the cipher name was cut)
+	//Case 6     x             Access file with multiple possible matches.
+	//Case 7                   Access file with BadName suffix and non-matching pattern
+
 	dir := test_helpers.InitFS(t)
 	mnt := dir + ".mnt"
 	validFileName := "file"
-	invalidSuffix := ".invalid_file"
+	invalidSuffix := "_invalid_file"
+	contentCipher := [7][]byte{{}, {}, {}, {}, {}, {}, {}}
+	//first mount without badname (see case 2)
+	test_helpers.MountOrFatal(t, dir, mnt, "-extpass=echo test")
 
-	// use static suffix for testing
-	test_helpers.MountOrFatal(t, dir, mnt, "-badname=*", "-extpass=echo test")
-	defer test_helpers.UnmountPanic(mnt)
-
-	// write one valid filename (empty content)
 	file := mnt + "/" + validFileName
-	err := ioutil.WriteFile(file, nil, 0600)
+	// Case 1: write one valid filename (empty content)
+	err := ioutil.WriteFile(file, []byte("Content Case 1."), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -720,7 +732,6 @@ func TestBadname(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer fread.Close()
-
 	encryptedfilename := ""
 	ciphernames, err := fread.Readdirnames(0)
 	if err != nil {
@@ -733,17 +744,68 @@ func TestBadname(t *testing.T) {
 			break
 		}
 	}
+	//Generate valid cipherdata for all cases
+	for i := 0; i < len(contentCipher); i++ {
+		err := ioutil.WriteFile(file, []byte(fmt.Sprintf("Content Case %d.", i+1)), 0600)
+		if err != nil {
+			t.Fatal(err)
+		}
+		//save the cipher data for file operations in cipher dir
+		contentCipher[i], err = ioutil.ReadFile(dir + "/" + encryptedfilename)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 
-	// write invalid file which should be decodable
-	err = ioutil.WriteFile(dir+"/"+encryptedfilename+invalidSuffix, nil, 0600)
+	//re-write content for case 1
+	err = ioutil.WriteFile(file, []byte("Content Case 1."), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// write invalid file which is not decodable (cropping the encrpyted file name)
-	err = ioutil.WriteFile(dir+"/"+encryptedfilename[:len(encryptedfilename)-2]+invalidSuffix, nil, 0600)
+
+	// Case 2: File with invalid suffix in plain name but valid cipher file
+	file = mnt + "/" + validFileName + nametransform.BadNameFlag
+	err = ioutil.WriteFile(file, []byte("Content Case 2."), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
+	// unmount...
+	test_helpers.UnmountPanic(mnt)
+
+	// ...and remount with -badname.
+	test_helpers.MountOrFatal(t, dir, mnt, "-badname=*valid*", "-extpass=echo test")
+	defer test_helpers.UnmountPanic(mnt)
+
+	// Case 3 is impossible: only BadnameSuffix would mean the cipher name is valid
+
+	// Case 4: write invalid file which should be decodable
+	err = ioutil.WriteFile(dir+"/"+encryptedfilename+invalidSuffix, contentCipher[3], 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	//Case 5: write invalid file which is not decodable (cropping the encrpyted file name)
+	err = ioutil.WriteFile(dir+"/"+encryptedfilename[:len(encryptedfilename)-2]+invalidSuffix, contentCipher[4], 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Case 6: Multiple possible matches
+	// generate two files with invalid cipher names which can both match the badname pattern
+	err = ioutil.WriteFile(dir+"/mzaZRF9_0IU-_5vv2wPC"+invalidSuffix, contentCipher[5], 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ioutil.WriteFile(dir+"/mzaZRF9_0IU-_5vv2wP"+invalidSuffix, contentCipher[5], 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Case 7: Non-Matching badname pattern
+	//TODO: this test will crash the test setup since it will create errors in DecryptName and panic is active
+	//err = ioutil.WriteFile(dir+"/"+encryptedfilename+"wrongPattern", contentCipher[6], 0600)
+	//if err != nil {
+	//	t.Fatal(err)
+	//}
 
 	// check for filenames
 	f, err := os.Open(mnt)
@@ -755,22 +817,73 @@ func TestBadname(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	foundDecodable := false
-	foundUndecodable := false
+
+	searchstrings := [7]string{validFileName,
+		validFileName + nametransform.BadNameFlag,
+		"",
+		validFileName + invalidSuffix + nametransform.BadNameFlag,
+		encryptedfilename[:len(encryptedfilename)-2] + invalidSuffix + nametransform.BadNameFlag,
+		"",
+		validFileName + "wrongPattern" + nametransform.BadNameFlag}
+	results := [7]bool{false, false, true, false, false, true, true}
+	var filecontent string
+	var filebytes []byte
 	for _, name := range names {
-		if strings.Contains(name, validFileName+invalidSuffix+" GOCRYPTFS_BAD_NAME") {
-			foundDecodable = true
-		} else if strings.Contains(name, encryptedfilename[:len(encryptedfilename)-2]+invalidSuffix+" GOCRYPTFS_BAD_NAME") {
-			foundUndecodable = true
+		if name == searchstrings[0] {
+			//Case 1: Test access
+			filebytes, err = ioutil.ReadFile(mnt + "/" + name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			filecontent = string(filebytes)
+			if filecontent == "Content Case 1." {
+				results[0] = true
+			}
+
+		} else if name == searchstrings[1] {
+			//Case 2: Test Access
+			filebytes, err = ioutil.ReadFile(mnt + "/" + name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			filecontent = string(filebytes)
+			if filecontent == "Content Case 2." {
+				results[1] = true
+			}
+		} else if name == searchstrings[3] {
+			//Case 4: Test Access
+			filebytes, err = ioutil.ReadFile(mnt + "/" + name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			filecontent = string(filebytes)
+			if filecontent == "Content Case 4." {
+				results[3] = true
+			}
+		} else if name == searchstrings[4] {
+			//Case 5: Test Access
+			filebytes, err = ioutil.ReadFile(mnt + "/" + name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			filecontent = string(filebytes)
+			if filecontent == "Content Case 5." {
+				results[4] = true
+			}
+		} else if name == searchstrings[6] {
+			//Case 7
+			results[6] = false
 		}
+		//Case 3 is always passed
+		//Case 6 is highly obscure:
+		//The last part of a valid cipher name must match the badname pattern AND
+		//the remaining cipher name must still be decryptable. Test case not programmable in a general case
 	}
 
-	if !foundDecodable {
-		t.Errorf("did not find invalid name %s in %v", validFileName+invalidSuffix+" GOCRYPTFS_BAD_NAME", names)
-	}
-
-	if !foundUndecodable {
-		t.Errorf("did not find invalid name %s in %v", encryptedfilename[:len(encryptedfilename)-2]+invalidSuffix+" GOCRYPTFS_BAD_NAME", names)
+	for i := 0; i < len(results); i++ {
+		if !results[i] {
+			t.Errorf("Case %d failed: '%s' in [%s]", i+1, searchstrings[i], strings.Join(names, ","))
+		}
 	}
 }
 

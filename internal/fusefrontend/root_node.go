@@ -217,6 +217,12 @@ func (rn *RootNode) openWriteOnlyFile(dirfd int, cName string, newFlags int) (rw
 //
 // Retries on EINTR.
 func (rn *RootNode) openBackingDir(relPath string) (dirfd int, cName string, err error) {
+	badnames := false
+	ntransform, ok := rn.nameTransform.(*nametransform.NameTransform)
+	if ok && len(ntransform.BadnamePatterns) > 0 {
+		//BadName allowed, try to determine filenames
+		badnames = true
+	}
 	dirRelPath := nametransform.Dir(relPath)
 	// With PlaintextNames, we don't need to read DirIVs. Easy.
 	if rn.args.PlaintextNames {
@@ -245,7 +251,11 @@ func (rn *RootNode) openBackingDir(relPath string) (dirfd int, cName string, err
 			syscall.Close(dirfd)
 			return -1, "", err
 		}
-		cName, err = rn.nameTransform.EncryptAndHashName(name, iv)
+		if badnames {
+			cName, err = rn.nameTransform.EncryptAndHashBadName(name, iv, dirfd)
+		} else {
+			cName, err = rn.nameTransform.EncryptAndHashName(name, iv)
+		}
 		if err != nil {
 			syscall.Close(dirfd)
 			return -1, "", err
