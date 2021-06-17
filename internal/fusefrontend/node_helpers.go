@@ -121,11 +121,13 @@ func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno sy
 		var iv []byte
 		dirfd, iv = rn.dirCache.Lookup(n)
 		if dirfd > 0 {
-			ntransform, ok := rn.nameTransform.(*nametransform.NameTransform)
-			cName, err := rn.nameTransform.EncryptAndHashName(child, iv)
-			if ok && len(ntransform.BadnamePatterns) > 0 {
+			var cName string
+			var err error
+			if rn.nameTransform.HaveBadnamePatterns() {
 				//BadName allowed, try to determine filenames
 				cName, err = rn.nameTransform.EncryptAndHashBadName(child, iv, dirfd)
+			} else {
+				cName, err = rn.nameTransform.EncryptAndHashName(child, iv)
 			}
 
 			if err != nil {

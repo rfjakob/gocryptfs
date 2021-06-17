@@ -140,7 +140,11 @@ func (be *NameTransform) EncryptAndHashBadName(name string, iv []byte, dirfd int
 	// search for the longest badname pattern match
 	for charpos := len(name) - len(BadNameFlag); charpos > 0; charpos-- {
 		//only use original cipher name and append assumed suffix (without badname flag)
-		cNamePart := be.EncryptName(name[:charpos], iv)
+		cNamePart, err := be.EncryptName(name[:charpos], iv)
+		if err != nil {
+			//expand suffix on error
+			continue
+		}
 		if be.longNames && len(cName) > NameMax {
 			cNamePart = be.HashLongName(cName)
 		}

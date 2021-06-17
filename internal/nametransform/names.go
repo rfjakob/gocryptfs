@@ -30,6 +30,7 @@ type NameTransformer interface {
 	//
 	// This function does not do any I/O.
 	HashLongName(name string) string
+	HaveBadnamePatterns() bool
 	WriteLongNameAt(dirfd int, hashName string, plainName string) error
 	B64EncodeToString(src []byte) string
 	B64DecodeString(s string) ([]byte, error)
@@ -137,4 +138,9 @@ func (n *NameTransform) B64EncodeToString(src []byte) string {
 // B64DecodeString decodes a Base64-encoded string
 func (n *NameTransform) B64DecodeString(s string) ([]byte, error) {
 	return n.B64.DecodeString(s)
+}
+
+// Returns true if BadName patterns were provided
+func (n *NameTransform) HaveBadnamePatterns() bool {
+	return len(n.BadnamePatterns) > 0
 }

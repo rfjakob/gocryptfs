@@ -717,7 +717,7 @@ func TestBadname(t *testing.T) {
 	invalidSuffix := "_invalid_file"
 	contentCipher := [7][]byte{{}, {}, {}, {}, {}, {}, {}}
 	//first mount without badname (see case 2)
-	test_helpers.MountOrFatal(t, dir, mnt, "-extpass=echo test")
+	test_helpers.MountOrFatal(t, dir, mnt, "-extpass=echo test", "-wpanic=false")
 
 	file := mnt + "/" + validFileName
 	// Case 1: write one valid filename (empty content)
@@ -773,7 +773,7 @@ func TestBadname(t *testing.T) {
 	test_helpers.UnmountPanic(mnt)
 
 	// ...and remount with -badname.
-	test_helpers.MountOrFatal(t, dir, mnt, "-badname=*valid*", "-extpass=echo test")
+	test_helpers.MountOrFatal(t, dir, mnt, "-badname=*valid*", "-extpass=echo test", "-wpanic=false")
 	defer test_helpers.UnmountPanic(mnt)
 
 	// Case 3 is impossible: only BadnameSuffix would mean the cipher name is valid
@@ -801,11 +801,10 @@ func TestBadname(t *testing.T) {
 	}
 
 	// Case 7: Non-Matching badname pattern
-	//TODO: this test will crash the test setup since it will create errors in DecryptName and panic is active
-	//err = ioutil.WriteFile(dir+"/"+encryptedfilename+"wrongPattern", contentCipher[6], 0600)
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
+	err = ioutil.WriteFile(dir+"/"+encryptedfilename+"wrongPattern", contentCipher[6], 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// check for filenames
 	f, err := os.Open(mnt)
