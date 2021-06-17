@@ -245,7 +245,11 @@ func (rn *RootNode) openBackingDir(relPath string) (dirfd int, cName string, err
 			syscall.Close(dirfd)
 			return -1, "", err
 		}
-		cName, err = rn.nameTransform.EncryptAndHashName(name, iv)
+		if rn.nameTransform.HaveBadnamePatterns() {
+			cName, err = rn.nameTransform.EncryptAndHashBadName(name, iv, dirfd)
+		} else {
+			cName, err = rn.nameTransform.EncryptAndHashName(name, iv)
+		}
 		if err != nil {
 			syscall.Close(dirfd)
 			return -1, "", err
