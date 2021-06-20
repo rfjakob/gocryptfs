@@ -56,7 +56,7 @@ type ConfFile struct {
 	// stored in the superblock.
 	FeatureFlags []string
 	// FIDO2 parameters
-	FIDO2 FIDO2Params
+	FIDO2 *FIDO2Params `json:",omitempty"`
 	// Filename is the name of the config file. Not exported to JSON.
 	filename string
 }
@@ -102,8 +102,10 @@ func Create(filename string, password []byte, plaintextNames bool,
 	}
 	if len(fido2CredentialID) > 0 {
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagFIDO2])
-		cf.FIDO2.CredentialID = fido2CredentialID
-		cf.FIDO2.HMACSalt = fido2HmacSalt
+		cf.FIDO2 = &FIDO2Params{
+			CredentialID: fido2CredentialID,
+			HMACSalt:     fido2HmacSalt,
+		}
 	}
 	{
 		// Generate new random master key
