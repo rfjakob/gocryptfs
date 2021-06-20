@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
 	"log/syslog"
@@ -309,8 +308,7 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 	if args.allow_other && os.Getuid() == 0 {
 		frontendArgs.PreserveOwner = true
 	}
-	jsonBytes, _ := json.MarshalIndent(frontendArgs, "", "\t")
-	tlog.Debug.Printf("frontendArgs: %s", string(jsonBytes))
+	tlog.Debug.Printf("frontendArgs: %s", tlog.JSONDump(frontendArgs))
 
 	// Init crypto backend
 	cCore := cryptocore.New(masterkey, cryptoBackend, contentenc.DefaultIVBits, args.hkdf, args.forcedecode)
