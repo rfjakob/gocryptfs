@@ -152,6 +152,31 @@ other users, subject to file permission checking. Only works if
 user_allow_other is set in /etc/fuse.conf. This option is equivalent to
 "allow_other" plus "default_permissions" described in fuse(8).
 
+#### -badname string
+When gocryptfs encounters a "bad" file name (cannot be decrypted or decrypts
+to garbage), a warning is logged and the file is hidden from the
+plaintext view.
+
+With the `-badname` option, you can select "bad" file names that should
+still be shown in the plaintext view instead of hiding them. Bad files
+will get ` GOCRYPTFS_BAD_NAME` appended to their name.
+
+Glob pattern. Can be passed multiple times for multiple patterns.
+
+Examples:
+
+Dropbox sync conflicts:
+
+    -badname '*conflicted copy*'
+
+Syncthing sync conflicts:
+
+    -badname '*.sync-conflict*'
+
+Show all invalid filenames:
+
+    -badname '*'
+
 #### -ctlsock string
 Create a control socket at the specified location. The socket can be
 used to decrypt and encrypt paths inside the filesystem. When using
