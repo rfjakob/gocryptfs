@@ -44,19 +44,23 @@ type NameTransform struct {
 	// on the Raw64 feature flag
 	B64 *base64.Encoding
 	// Patterns to bypass decryption
-	BadnamePatterns []string
+	badnamePatterns []string
 }
 
 // New returns a new NameTransform instance.
-func New(e *eme.EMECipher, longNames bool, raw64 bool) *NameTransform {
+func New(e *eme.EMECipher, longNames bool, raw64 bool, badname []string) *NameTransform {
+	tlog.Debug.Printf("nametransform.New: longNames=%v, raw64=%v, badname=%q",
+		longNames, raw64, badname)
+
 	b64 := base64.URLEncoding
 	if raw64 {
 		b64 = base64.RawURLEncoding
 	}
 	return &NameTransform{
-		emeCipher: e,
-		longNames: longNames,
-		B64:       b64,
+		emeCipher:       e,
+		longNames:       longNames,
+		B64:             b64,
+		badnamePatterns: badname,
 	}
 }
 
@@ -65,7 +69,7 @@ func New(e *eme.EMECipher, longNames bool, raw64 bool) *NameTransform {
 func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error) {
 	res, err := n.decryptName(cipherName, iv)
 	if err != nil {
-		for _, pattern := range n.BadnamePatterns {
+		for _, pattern := range n.badnamePatterns {
 			match, err := filepath.Match(pattern, cipherName)
 			if err == nil && match { // Pattern should have been validated already
 				// Find longest decryptable substring
@@ -142,5 +146,5 @@ func (n *NameTransform) B64DecodeString(s string) ([]byte, error) {
 
 // HaveBadnamePatterns returns true if BadName patterns were provided
 func (n *NameTransform) HaveBadnamePatterns() bool {
-	return len(n.BadnamePatterns) > 0
+	return len(n.badnamePatterns) > 0
 }

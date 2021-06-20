@@ -313,18 +313,7 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 	// Init crypto backend
 	cCore := cryptocore.New(masterkey, cryptoBackend, contentenc.DefaultIVBits, args.hkdf, args.forcedecode)
 	cEnc := contentenc.New(cCore, contentenc.DefaultBS, args.forcedecode)
-	nameTransform := nametransform.New(cCore.EMECipher, frontendArgs.LongNames, args.raw64)
-	// Init badname patterns
-	nameTransform.BadnamePatterns = make([]string, 0)
-	for _, pattern := range args.badname {
-		_, err := filepath.Match(pattern, "") // Make sure pattern is valid
-		if err != nil {
-			tlog.Fatal.Printf("-badname: invalid pattern %q supplied", pattern)
-			os.Exit(exitcodes.Usage)
-		} else {
-			nameTransform.BadnamePatterns = append(nameTransform.BadnamePatterns, pattern)
-		}
-	}
+	nameTransform := nametransform.New(cCore.EMECipher, frontendArgs.LongNames, args.raw64, []string(args.badname))
 	// After the crypto backend is initialized,
 	// we can purge the master key from memory.
 	for i := range masterkey {

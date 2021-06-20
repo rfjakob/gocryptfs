@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -290,6 +291,15 @@ func parseCliOpts() (args argContainer) {
 		tlog.Fatal.Printf("Idle timeout cannot be less than 0")
 		os.Exit(exitcodes.Usage)
 	}
+	// Make sure all badname patterns are valid
+	for _, pattern := range args.badname {
+		_, err := filepath.Match(pattern, "")
+		if err != nil {
+			tlog.Fatal.Printf("-badname: invalid pattern %q supplied", pattern)
+			os.Exit(exitcodes.Usage)
+		}
+	}
+
 	return args
 }
 
