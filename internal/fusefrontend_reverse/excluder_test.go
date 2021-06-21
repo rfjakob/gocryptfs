@@ -64,12 +64,3 @@ func TestShouldReturnFalseIfThereAreNoExclusions(t *testing.T) {
 		t.Error("Should not exclude any path if no exclusions were specified")
 	}
 }
-
-func TestShouldCallIgnoreParserToCheckExclusion(t *testing.T) {
-	rfs, ignorerMock := createRFSWithMocks()
-
-	rfs.isExcludedPlain("some/path")
-	if ignorerMock.calledWith != "some/path" {
-		t.Error("Failed to call IgnoreParser")
-	}
-}

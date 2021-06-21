@@ -18,6 +18,9 @@ import (
 
 func TestMain(m *testing.M) {
 	test_helpers.ResetTmpDir(true)
+	// TestZerokey() in tests/cli verifies that mounting with `-zerokey` is equivalent
+	// to mounting with a config file with all-default options (just the masterkey
+	// set to all-zero).
 	test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, "-zerokey")
 	r := m.Run()
 	test_helpers.UnmountPanic(test_helpers.DefaultPlainDir)

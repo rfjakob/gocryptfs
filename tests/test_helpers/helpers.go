@@ -141,6 +141,8 @@ func isExt4(path string) bool {
 //     gocryptfs -q -init -extpass "echo test" -scryptn=10 $extraArgs $cipherdir
 //
 // It returns cipherdir without a trailing slash.
+//
+// If t is set, t.Fatal() is called on error, log.Panic() otherwise.
 func InitFS(t *testing.T, extraArgs ...string) string {
 	prefix := "x."
 	if t != nil {

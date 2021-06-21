@@ -27,7 +27,7 @@ type RootNode struct {
 	// states
 	dirIVLock sync.RWMutex
 	// Filename encryption helper
-	nameTransform nametransform.NameTransformer
+	nameTransform *nametransform.NameTransform
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
 	// This lock is used by openWriteOnlyFile() to block concurrent opens while
@@ -54,7 +54,7 @@ type RootNode struct {
 	inoMap inomap.TranslateStater
 }
 
-func NewRootNode(args Args, c *contentenc.ContentEnc, n nametransform.NameTransformer) *RootNode {
+func NewRootNode(args Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) *RootNode {
 	if args.SerializeReads {
 		serialize_reads.InitSerializer()
 	}

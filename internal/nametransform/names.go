@@ -19,23 +19,6 @@ const (
 	BadNameFlag = " GOCRYPTFS_BAD_NAME"
 )
 
-// NameTransformer is an interface used to transform filenames.
-type NameTransformer interface {
-	DecryptName(cipherName string, iv []byte) (string, error)
-	EncryptName(plainName string, iv []byte) (string, error)
-	EncryptAndHashName(name string, iv []byte) (string, error)
-	EncryptAndHashBadName(name string, iv []byte, dirfd int) (string, error)
-	// HashLongName - take the hash of a long string "name" and return
-	// "gocryptfs.longname.[sha256]"
-	//
-	// This function does not do any I/O.
-	HashLongName(name string) string
-	HaveBadnamePatterns() bool
-	WriteLongNameAt(dirfd int, hashName string, plainName string) error
-	B64EncodeToString(src []byte) string
-	B64DecodeString(s string) ([]byte, error)
-}
-
 // NameTransform is used to transform filenames.
 type NameTransform struct {
 	emeCipher *eme.EMECipher

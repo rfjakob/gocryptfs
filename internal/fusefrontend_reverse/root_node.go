@@ -28,7 +28,7 @@ type RootNode struct {
 	// Stores configuration arguments
 	args fusefrontend.Args
 	// Filename encryption helper
-	nameTransform nametransform.NameTransformer
+	nameTransform *nametransform.NameTransform
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
 	// Tests whether a path is excluded (hidden) from the user. Used by -exclude.
@@ -41,7 +41,7 @@ type RootNode struct {
 // NewRootNode returns an encrypted FUSE overlay filesystem.
 // In this case (reverse mode) the backing directory is plain-text and
 // ReverseFS provides an encrypted view.
-func NewRootNode(args fusefrontend.Args, c *contentenc.ContentEnc, n nametransform.NameTransformer) *RootNode {
+func NewRootNode(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) *RootNode {
 	rn := &RootNode{
 		args:          args,
 		nameTransform: n,
