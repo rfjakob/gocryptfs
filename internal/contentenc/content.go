@@ -73,6 +73,9 @@ type ContentEnc struct {
 
 // New returns an initialized ContentEnc instance.
 func New(cc *cryptocore.CryptoCore, plainBS uint64, forceDecode bool) *ContentEnc {
+	tlog.Debug.Printf("contentenc.New: plainBS=%d, forceDecode=%v",
+		plainBS, forceDecode)
+
 	if fuse.MAX_KERNEL_WRITE%plainBS != 0 {
 		log.Panicf("unaligned MAX_KERNEL_WRITE=%d", fuse.MAX_KERNEL_WRITE)
 	}

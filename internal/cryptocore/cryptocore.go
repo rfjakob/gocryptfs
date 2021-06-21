@@ -36,6 +36,19 @@ const (
 	BackendAESSIV AEADTypeEnum = 5
 )
 
+func (a AEADTypeEnum) String() string {
+	switch a {
+	case BackendOpenSSL:
+		return "BackendOpenSSL"
+	case BackendGoGCM:
+		return "BackendGoGCM"
+	case BackendAESSIV:
+		return "BackendAESSIV"
+	default:
+		return fmt.Sprintf("%d", a)
+	}
+}
+
 // CryptoCore is the low level crypto implementation.
 type CryptoCore struct {
 	// EME is used for filename encryption.
@@ -58,6 +71,9 @@ type CryptoCore struct {
 // Note: "key" is either the scrypt hash of the password (when decrypting
 // a config file) or the masterkey (when finally mounting the filesystem).
 func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDecode bool) *CryptoCore {
+	tlog.Debug.Printf("cryptocore.New: key=%d bytes, aeadType=%v, IVBitLen=%d, useHKDF=%v, forceDecode=%v",
+		len(key), aeadType, IVBitLen, useHKDF, forceDecode)
+
 	if len(key) != KeyLen {
 		log.Panic(fmt.Sprintf("Unsupported key length %d", len(key)))
 	}

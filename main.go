@@ -176,6 +176,7 @@ func main() {
 	if args.debug {
 		tlog.Debug.Enabled = true
 	}
+	tlog.Debug.Printf("cli args: %q", os.Args)
 	// "-v"
 	if args.version {
 		tlog.Debug.Printf("openssl=%v\n", args.openssl)
@@ -281,12 +282,6 @@ func main() {
 	}
 	if args.cpuprofile != "" || args.memprofile != "" || args.trace != "" {
 		tlog.Info.Printf("Note: You must unmount gracefully, otherwise the profile file(s) will stay empty!\n")
-	}
-	// "-openssl"
-	if !args.openssl {
-		tlog.Debug.Printf("OpenSSL disabled, using Go GCM")
-	} else {
-		tlog.Debug.Printf("OpenSSL enabled")
 	}
 	// Operation flags
 	nOps := countOpFlags(&args)

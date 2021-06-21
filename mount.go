@@ -117,8 +117,6 @@ func doMount(args *argContainer) {
 			args.noprealloc = true
 		}
 	}
-	// We cannot use JSON for pretty-printing as the fields are unexported
-	tlog.Debug.Printf("cli args: %#v", args)
 	// Initialize gocryptfs (read config file, ask for password, ...)
 	fs, wipeKeys := initFuseFrontend(args)
 	// Try to wipe secret keys from memory after unmount
@@ -308,7 +306,6 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 	if args.allow_other && os.Getuid() == 0 {
 		frontendArgs.PreserveOwner = true
 	}
-	tlog.Debug.Printf("frontendArgs: %s", tlog.JSONDump(frontendArgs))
 
 	// Init crypto backend
 	cCore := cryptocore.New(masterkey, cryptoBackend, contentenc.DefaultIVBits, args.hkdf, args.forcedecode)
@@ -321,6 +318,7 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 	}
 	masterkey = nil
 	// Spawn fusefrontend
+	tlog.Debug.Printf("frontendArgs: %s", tlog.JSONDump(frontendArgs))
 	if args.reverse {
 		if cryptoBackend != cryptocore.BackendAESSIV {
 			log.Panic("reverse mode must use AES-SIV, everything else is insecure")
