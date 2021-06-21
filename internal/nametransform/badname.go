@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	// BadNameFlag is appended to filenames in plaintext view if a corrupt
+	// BadnameSuffix is appended to filenames in plaintext view if a corrupt
 	// ciphername is shown due to a matching `-badname` pattern
-	BadNameFlag = " GOCRYPTFS_BAD_NAME"
+	BadnameSuffix = " GOCRYPTFS_BAD_NAME"
 )
 
 // EncryptAndHashBadName tries to find the "name" substring, which (encrypted and hashed)
@@ -24,7 +24,7 @@ func (be *NameTransform) EncryptAndHashBadName(name string, iv []byte, dirfd int
 	var st unix.Stat_t
 	var filesFound int
 	lastFoundName, err := be.EncryptAndHashName(name, iv)
-	if !strings.HasSuffix(name, BadNameFlag) || err != nil {
+	if !strings.HasSuffix(name, BadnameSuffix) || err != nil {
 		//Default mode: same behaviour on error or no BadNameFlag on "name"
 		return lastFoundName, err
 	}
@@ -35,13 +35,13 @@ func (be *NameTransform) EncryptAndHashBadName(name string, iv []byte, dirfd int
 		return lastFoundName, nil
 	}
 	//BadName Mode: check if the name was tranformed without change (badname suffix and undecryptable cipher name)
-	err = syscallcompat.Fstatat(dirfd, name[:len(name)-len(BadNameFlag)], &st, unix.AT_SYMLINK_NOFOLLOW)
+	err = syscallcompat.Fstatat(dirfd, name[:len(name)-len(BadnameSuffix)], &st, unix.AT_SYMLINK_NOFOLLOW)
 	if err == nil {
 		filesFound++
-		lastFoundName = name[:len(name)-len(BadNameFlag)]
+		lastFoundName = name[:len(name)-len(BadnameSuffix)]
 	}
 	// search for the longest badname pattern match
-	for charpos := len(name) - len(BadNameFlag); charpos > 0; charpos-- {
+	for charpos := len(name) - len(BadnameSuffix); charpos > 0; charpos-- {
 		//only use original cipher name and append assumed suffix (without badname flag)
 		cNamePart, err := be.EncryptName(name[:charpos], iv)
 		if err != nil {
@@ -51,7 +51,7 @@ func (be *NameTransform) EncryptAndHashBadName(name string, iv []byte, dirfd int
 		if be.longNames && len(cName) > NameMax {
 			cNamePart = be.HashLongName(cName)
 		}
-		cNameBadReverse := cNamePart + name[charpos:len(name)-len(BadNameFlag)]
+		cNameBadReverse := cNamePart + name[charpos:len(name)-len(BadnameSuffix)]
 		err = syscallcompat.Fstatat(dirfd, cNameBadReverse, &st, unix.AT_SYMLINK_NOFOLLOW)
 		if err == nil {
 			filesFound++
@@ -76,10 +76,10 @@ func (n *NameTransform) decryptBadname(cipherName string, iv []byte) (string, er
 			for charpos := len(cipherName) - 1; charpos >= nameMin; charpos-- {
 				res, err := n.decryptName(cipherName[:charpos], iv)
 				if err == nil {
-					return res + cipherName[charpos:] + BadNameFlag, nil
+					return res + cipherName[charpos:] + BadnameSuffix, nil
 				}
 			}
-			return cipherName + BadNameFlag, nil
+			return cipherName + BadnameSuffix, nil
 		}
 	}
 	return "", syscall.EBADMSG

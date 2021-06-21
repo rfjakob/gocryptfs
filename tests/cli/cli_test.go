@@ -764,7 +764,7 @@ func TestBadname(t *testing.T) {
 	}
 
 	// Case 2: File with invalid suffix in plain name but valid cipher file
-	file = mnt + "/" + validFileName + nametransform.BadNameFlag
+	file = mnt + "/" + validFileName + nametransform.BadnameSuffix
 	err = ioutil.WriteFile(file, []byte("Content Case 2."), 0600)
 	if err != nil {
 		t.Fatal(err)
@@ -819,12 +819,12 @@ func TestBadname(t *testing.T) {
 
 	searchstrings := []string{
 		validFileName,
-		validFileName + nametransform.BadNameFlag,
+		validFileName + nametransform.BadnameSuffix,
 		"",
-		validFileName + invalidSuffix + nametransform.BadNameFlag,
-		encryptedfilename[:len(encryptedfilename)-2] + invalidSuffix + nametransform.BadNameFlag,
+		validFileName + invalidSuffix + nametransform.BadnameSuffix,
+		encryptedfilename[:len(encryptedfilename)-2] + invalidSuffix + nametransform.BadnameSuffix,
 		"",
-		validFileName + "wrongPattern" + nametransform.BadNameFlag}
+		validFileName + "wrongPattern" + nametransform.BadnameSuffix}
 	results := []bool{false, false, true, false, false, true, true}
 	var filecontent string
 	var filebytes []byte
