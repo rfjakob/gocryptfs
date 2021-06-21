@@ -15,8 +15,6 @@ import (
 const (
 	// Like ext4, we allow at most 255 bytes for a file name.
 	NameMax = 255
-	//BadNameFlag is appended to filenames in plain mode if a ciphername is inavlid but is shown
-	BadNameFlag = " GOCRYPTFS_BAD_NAME"
 )
 
 // NameTransform is used to transform filenames.
@@ -51,22 +49,8 @@ func New(e *eme.EMECipher, longNames bool, raw64 bool, badname []string) *NameTr
 // filename "cipherName", and failing that checks if it can be bypassed
 func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error) {
 	res, err := n.decryptName(cipherName, iv)
-	if err != nil {
-		for _, pattern := range n.badnamePatterns {
-			match, err := filepath.Match(pattern, cipherName)
-			if err == nil && match { // Pattern should have been validated already
-				// Find longest decryptable substring
-				// At least 16 bytes due to AES --> at least 22 characters in base64
-				nameMin := n.B64.EncodedLen(aes.BlockSize)
-				for charpos := len(cipherName) - 1; charpos >= nameMin; charpos-- {
-					res, err = n.decryptName(cipherName[:charpos], iv)
-					if err == nil {
-						return res + cipherName[charpos:] + BadNameFlag, nil
-					}
-				}
-				return cipherName + BadNameFlag, nil
-			}
-		}
+	if err != nil && n.HaveBadnamePatterns() {
+		return n.decryptBadname(cipherName, iv)
 	}
 	return res, err
 }
@@ -117,6 +101,24 @@ func (n *NameTransform) EncryptName(plainName string, iv []byte) (cipherName64 s
 	return cipherName64, nil
 }
 
+// EncryptAndHashName encrypts "name" and hashes it to a longname if it is
+// too long.
+// Returns ENAMETOOLONG if "name" is longer than 255 bytes.
+func (be *NameTransform) EncryptAndHashName(name string, iv []byte) (string, error) {
+	// Prevent the user from creating files longer than 255 chars.
+	if len(name) > NameMax {
+		return "", syscall.ENAMETOOLONG
+	}
+	cName, err := be.EncryptName(name, iv)
+	if err != nil {
+		return "", err
+	}
+	if be.longNames && len(cName) > NameMax {
+		return be.HashLongName(cName), nil
+	}
+	return cName, nil
+}
+
 // B64EncodeToString returns a Base64-encoded string
 func (n *NameTransform) B64EncodeToString(src []byte) string {
 	return n.B64.EncodeToString(src)
@@ -127,7 +129,11 @@ func (n *NameTransform) B64DecodeString(s string) ([]byte, error) {
 	return n.B64.DecodeString(s)
 }
 
-// HaveBadnamePatterns returns true if BadName patterns were provided
-func (n *NameTransform) HaveBadnamePatterns() bool {
-	return len(n.badnamePatterns) > 0
+// Dir is like filepath.Dir but returns "" instead of ".".
+func Dir(path string) string {
+	d := filepath.Dir(path)
+	if d == "." {
+		return ""
+	}
+	return d
 }

@@ -5,14 +5,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
-	"strings"
 	"syscall"
 
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
-	"golang.org/x/sys/unix"
 )
 
 const (
@@ -94,79 +91,4 @@ func WriteDirIVAt(dirfd int) error {
 		return err
 	}
 	return nil
-}
-
-// encryptAndHashName encrypts "name" and hashes it to a longname if it is
-// too long.
-// Returns ENAMETOOLONG if "name" is longer than 255 bytes.
-func (be *NameTransform) EncryptAndHashName(name string, iv []byte) (string, error) {
-	// Prevent the user from creating files longer than 255 chars.
-	if len(name) > NameMax {
-		return "", syscall.ENAMETOOLONG
-	}
-	cName, err := be.EncryptName(name, iv)
-	if err != nil {
-		return "", err
-	}
-	if be.longNames && len(cName) > NameMax {
-		return be.HashLongName(cName), nil
-	}
-	return cName, nil
-}
-
-// EncryptAndHashBadName tries to find the "name" substring, which (encrypted and hashed)
-// leads to an unique existing file
-// Returns ENOENT if cipher file does not exist or is not unique
-func (be *NameTransform) EncryptAndHashBadName(name string, iv []byte, dirfd int) (cName string, err error) {
-	var st unix.Stat_t
-	var filesFound int
-	lastFoundName, err := be.EncryptAndHashName(name, iv)
-	if !strings.HasSuffix(name, BadNameFlag) || err != nil {
-		//Default mode: same behaviour on error or no BadNameFlag on "name"
-		return lastFoundName, err
-	}
-	//Default mode: Check if File extists without modifications
-	err = syscallcompat.Fstatat(dirfd, lastFoundName, &st, unix.AT_SYMLINK_NOFOLLOW)
-	if err == nil {
-		//file found, return result
-		return lastFoundName, nil
-	}
-	//BadName Mode: check if the name was tranformed without change (badname suffix and undecryptable cipher name)
-	err = syscallcompat.Fstatat(dirfd, name[:len(name)-len(BadNameFlag)], &st, unix.AT_SYMLINK_NOFOLLOW)
-	if err == nil {
-		filesFound++
-		lastFoundName = name[:len(name)-len(BadNameFlag)]
-	}
-	// search for the longest badname pattern match
-	for charpos := len(name) - len(BadNameFlag); charpos > 0; charpos-- {
-		//only use original cipher name and append assumed suffix (without badname flag)
-		cNamePart, err := be.EncryptName(name[:charpos], iv)
-		if err != nil {
-			//expand suffix on error
-			continue
-		}
-		if be.longNames && len(cName) > NameMax {
-			cNamePart = be.HashLongName(cName)
-		}
-		cNameBadReverse := cNamePart + name[charpos:len(name)-len(BadNameFlag)]
-		err = syscallcompat.Fstatat(dirfd, cNameBadReverse, &st, unix.AT_SYMLINK_NOFOLLOW)
-		if err == nil {
-			filesFound++
-			lastFoundName = cNameBadReverse
-		}
-	}
-	if filesFound == 1 {
-		return lastFoundName, nil
-	}
-	// more than 1 possible file found, ignore
-	return "", syscall.ENOENT
-}
-
-// Dir is like filepath.Dir but returns "" instead of ".".
-func Dir(path string) string {
-	d := filepath.Dir(path)
-	if d == "." {
-		return ""
-	}
-	return d
 }
