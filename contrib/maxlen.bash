@@ -13,6 +13,13 @@ if [[ $# -ne 1 || $1 == -* ]]; then
 	exit 1
 fi
 
+# Only show live progress if connected to a termial
+# https://stackoverflow.com/a/911213/1380267
+INTERACTIVE=0
+if [[ -t 1 ]] ; then
+	INTERACTIVE=1
+fi
+
 cd "$1"
 echo "Testing $PWD"
 
@@ -22,7 +29,7 @@ NAME=""
 while true ; do
 	NEXT="${NAME}x"
 	if [[ -e $NEXT ]]; then
-		echo "error: file $NEXT already exists"
+		echo "error: file $PWD/$NEXT already exists"
 		exit 1
 	fi
 	touch $NEXT 2> /dev/null || break
@@ -44,7 +51,10 @@ MAX_DIRNAME=${#NAME}
 echo "${#NAME}"
 
 for CHARS_PER_SUBDIR in 1 10 100 $MAX_DIRNAME ; do
-	echo -n "  Maximum path length with $(printf %3d $CHARS_PER_SUBDIR) chars per subdir:     "
+	echo -n "  Maximum path length with $(printf %3d $CHARS_PER_SUBDIR) chars per subdir: "
+	if [[ $INTERACTIVE -eq 1 ]] ; then
+		echo -n "    "
+	fi
 	# Trick from https://stackoverflow.com/a/5349842/1380267
 	SUBDIR=$(printf 'x%.0s' $(seq 1 $CHARS_PER_SUBDIR))
 	mkdir "$SUBDIR"
@@ -54,8 +64,10 @@ for CHARS_PER_SUBDIR in 1 10 100 $MAX_DIRNAME ; do
 		NEXT="$P/$SUBDIR"
 		mkdir "$NEXT" 2> /dev/null || break
 		P=$NEXT
-		echo -n -e "\b\b\b\b"
-		printf %4d ${#P}
+		if [[ $INTERACTIVE -eq 1 ]] ; then
+			echo -n -e "\b\b\b\b"
+			printf %4d ${#P}
+		fi
 	done
 	# Then add one character at a time until we hit an error
 	NAME=""
@@ -67,7 +79,9 @@ for CHARS_PER_SUBDIR in 1 10 100 $MAX_DIRNAME ; do
 	if [[ $NAME != "" ]] ; then
 		P=$P/$NAME
 	fi
-	echo -n -e "\b\b\b\b"
+	if [[ $INTERACTIVE -eq 1 ]] ; then
+		echo -n -e "\b\b\b\b"
+	fi
 	printf %4d ${#P}
 	echo
 	rm -R "$SUBDIR"
