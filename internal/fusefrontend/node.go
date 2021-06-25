@@ -52,7 +52,7 @@ func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) 
 		return f.(fs.FileGetattrer).Getattr(ctx, out)
 	}
 
-	dirfd, cName, errno := n.prepareAtSyscall("")
+	dirfd, cName, errno := n.prepareAtSyscallMyself()
 	if errno != 0 {
 		return
 	}
@@ -106,7 +106,7 @@ func (n *Node) Unlink(ctx context.Context, name string) (errno syscall.Errno) {
 //
 // Symlink-safe through openBackingDir() + Readlinkat().
 func (n *Node) Readlink(ctx context.Context) (out []byte, errno syscall.Errno) {
-	dirfd, cName, errno := n.prepareAtSyscall("")
+	dirfd, cName, errno := n.prepareAtSyscallMyself()
 	if errno != 0 {
 		return
 	}
@@ -123,7 +123,7 @@ func (n *Node) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAttrIn,
 		return f2.Setattr(ctx, in, out)
 	}
 
-	dirfd, cName, errno := n.prepareAtSyscall("")
+	dirfd, cName, errno := n.prepareAtSyscallMyself()
 	if errno != 0 {
 		return
 	}
@@ -271,7 +271,7 @@ func (n *Node) Link(ctx context.Context, target fs.InodeEmbedder, name string, o
 	defer syscall.Close(dirfd)
 
 	n2 := toNode(target)
-	dirfd2, cName2, errno := n2.prepareAtSyscall("")
+	dirfd2, cName2, errno := n2.prepareAtSyscallMyself()
 	if errno != 0 {
 		return
 	}

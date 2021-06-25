@@ -61,11 +61,16 @@ func NewRootNode(args Args, c *contentenc.ContentEnc, n *nametransform.NameTrans
 	if len(args.Exclude) > 0 {
 		tlog.Warn.Printf("Forward mode does not support -exclude")
 	}
+	ivLen := nametransform.DirIVLen
+	if args.PlaintextNames {
+		ivLen = 0
+	}
 	rn := &RootNode{
 		args:          args,
 		nameTransform: n,
 		contentEnc:    c,
 		inoMap:        inomap.New(),
+		dirCache:      dirCache{ivLen: ivLen},
 	}
 	// In `-sharedstorage` mode we always set the inode number to zero.
 	// This makes go-fuse generate a new inode number for each lookup.
@@ -122,15 +127,15 @@ func (rn *RootNode) reportMitigatedCorruption(item string) {
 	}
 }
 
-// isFiltered - check if plaintext "path" should be forbidden
+// isFiltered - check if plaintext file "child" should be forbidden
 //
 // Prevents name clashes with internal files when file names are not encrypted
-func (rn *RootNode) isFiltered(path string) bool {
+func (rn *RootNode) isFiltered(child string) bool {
 	if !rn.args.PlaintextNames {
 		return false
 	}
 	// gocryptfs.conf in the root directory is forbidden
-	if path == configfile.ConfDefaultName {
+	if child == configfile.ConfDefaultName {
 		tlog.Info.Printf("The name /%s is reserved when -plaintextnames is used\n",
 			configfile.ConfDefaultName)
 		return true

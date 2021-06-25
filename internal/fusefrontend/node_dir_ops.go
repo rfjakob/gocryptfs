@@ -154,7 +154,7 @@ func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.En
 // This function is symlink-safe through use of openBackingDir() and
 // ReadDirIVAt().
 func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
-	parentDirFd, cDirName, errno := n.prepareAtSyscall("")
+	parentDirFd, cDirName, errno := n.prepareAtSyscallMyself()
 	if errno != 0 {
 		return nil, errno
 	}
@@ -360,7 +360,7 @@ retry:
 
 // Opendir is a FUSE call to check if the directory can be opened.
 func (n *Node) Opendir(ctx context.Context) (errno syscall.Errno) {
-	dirfd, cName, errno := n.prepareAtSyscall("")
+	dirfd, cName, errno := n.prepareAtSyscallMyself()
 	if errno != 0 {
 		return
 	}

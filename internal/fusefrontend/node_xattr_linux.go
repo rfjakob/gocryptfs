@@ -17,7 +17,7 @@ func filterXattrSetFlags(flags int) int {
 }
 
 func (n *Node) getXAttr(cAttr string) (out []byte, errno syscall.Errno) {
-	dirfd, cName, errno := n.prepareAtSyscall("")
+	dirfd, cName, errno := n.prepareAtSyscallMyself()
 	if errno != 0 {
 		return
 	}
@@ -32,7 +32,7 @@ func (n *Node) getXAttr(cAttr string) (out []byte, errno syscall.Errno) {
 }
 
 func (n *Node) setXAttr(context *fuse.Context, cAttr string, cData []byte, flags uint32) (errno syscall.Errno) {
-	dirfd, cName, errno := n.prepareAtSyscall("")
+	dirfd, cName, errno := n.prepareAtSyscallMyself()
 	if errno != 0 {
 		return
 	}
@@ -44,7 +44,7 @@ func (n *Node) setXAttr(context *fuse.Context, cAttr string, cData []byte, flags
 }
 
 func (n *Node) removeXAttr(cAttr string) (errno syscall.Errno) {
-	dirfd, cName, errno := n.prepareAtSyscall("")
+	dirfd, cName, errno := n.prepareAtSyscallMyself()
 	if errno != 0 {
 		return
 	}
@@ -55,7 +55,7 @@ func (n *Node) removeXAttr(cAttr string) (errno syscall.Errno) {
 }
 
 func (n *Node) listXAttr() (out []string, errno syscall.Errno) {
-	dirfd, cName, errno := n.prepareAtSyscall("")
+	dirfd, cName, errno := n.prepareAtSyscallMyself()
 	if errno != 0 {
 		return
 	}

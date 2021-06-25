@@ -2,16 +2,12 @@ package fusefrontend
 
 import (
 	"context"
-	"log"
-	"path/filepath"
-	"sync/atomic"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fs"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 
-	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -78,91 +74,6 @@ func (n *Node) Path() string {
 // rootNode returns the Root Node of the filesystem.
 func (n *Node) rootNode() *RootNode {
 	return n.Root().Operations().(*RootNode)
-}
-
-// prepareAtSyscall returns a (dirfd, cName) pair that can be used
-// with the "___at" family of system calls (openat, fstatat, unlinkat...) to
-// access the backing encrypted directory.
-//
-// If you pass a `child` file name, the (dirfd, cName) pair will refer to
-// a child of this node.
-// If `child` is empty, the (dirfd, cName) pair refers to this node itself. For
-// the root node, that means (dirfd, ".").
-func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno syscall.Errno) {
-	rn := n.rootNode()
-	// all filesystem operations go through prepareAtSyscall(), so this is a
-	// good place to reset the idle marker.
-	atomic.StoreUint32(&rn.IsIdle, 0)
-
-	// root node itself is special
-	if child == "" && n.IsRoot() {
-		var err error
-		dirfd, cName, err = rn.openBackingDir("")
-		if err != nil {
-			errno = fs.ToErrno(err)
-		}
-		return
-	}
-
-	// normal node itself can be converted to child of parent node
-	if child == "" {
-		name, p1 := n.Parent()
-		if p1 == nil || name == "" {
-			return -1, "", syscall.ENOENT
-		}
-		p2 := toNode(p1.Operations())
-		return p2.prepareAtSyscall(name)
-	}
-
-	// Cache lookup
-	// TODO make it work for plaintextnames as well?
-	cacheable := (!rn.args.PlaintextNames)
-	if cacheable {
-		var iv []byte
-		dirfd, iv = rn.dirCache.Lookup(n)
-		if dirfd > 0 {
-			var cName string
-			var err error
-			if rn.nameTransform.HaveBadnamePatterns() {
-				//BadName allowed, try to determine filenames
-				cName, err = rn.nameTransform.EncryptAndHashBadName(child, iv, dirfd)
-			} else {
-				cName, err = rn.nameTransform.EncryptAndHashName(child, iv)
-			}
-
-			if err != nil {
-				return -1, "", fs.ToErrno(err)
-			}
-			return dirfd, cName, 0
-		}
-	}
-
-	// Slowpath
-	if child == "" {
-		log.Panicf("BUG: child name is empty - this cannot happen")
-	}
-	p := filepath.Join(n.Path(), child)
-	if rn.isFiltered(p) {
-		errno = syscall.EPERM
-		return
-	}
-	dirfd, cName, err := rn.openBackingDir(p)
-	if err != nil {
-		errno = fs.ToErrno(err)
-		return
-	}
-
-	// Cache store
-	if cacheable {
-		// TODO: openBackingDir already calls ReadDirIVAt(). Avoid duplicate work?
-		iv, err := nametransform.ReadDirIVAt(dirfd)
-		if err != nil {
-			syscall.Close(dirfd)
-			return -1, "", fs.ToErrno(err)
-		}
-		rn.dirCache.Store(n, dirfd, iv)
-	}
-	return
 }
 
 // newChild attaches a new child inode to n.

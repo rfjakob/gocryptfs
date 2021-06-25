@@ -16,7 +16,7 @@ import (
 //
 // Symlink-safe through Openat().
 func (n *Node) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, fuseFlags uint32, errno syscall.Errno) {
-	dirfd, cName, errno := n.prepareAtSyscall("")
+	dirfd, cName, errno := n.prepareAtSyscallMyself()
 	if errno != 0 {
 		return
 	}

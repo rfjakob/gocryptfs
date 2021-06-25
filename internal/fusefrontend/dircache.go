@@ -7,7 +7,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -50,6 +49,9 @@ func (e *dirCacheEntry) Clear() {
 
 type dirCache struct {
 	sync.Mutex
+	// Expected length of the stored IVs. Only used for sanity checks.
+	// Usually set to 16, but 0 in plaintextnames mode.
+	ivLen int
 	// Cache entries
 	entries [dirCacheSize]dirCacheEntry
 	// Where to store the next entry (index into entries)
@@ -77,7 +79,7 @@ func (d *dirCache) Clear() {
 func (d *dirCache) Store(node *Node, fd int, iv []byte) {
 	// Note: package ensurefds012, imported from main, guarantees that dirCache
 	// can never get fds 0,1,2.
-	if fd <= 0 || len(iv) != nametransform.DirIVLen {
+	if fd <= 0 || len(iv) != d.ivLen {
 		log.Panicf("Store sanity check failed: fd=%d len=%d", fd, len(iv))
 	}
 	d.Lock()
@@ -139,7 +141,7 @@ func (d *dirCache) Lookup(node *Node) (fd int, iv []byte) {
 	if enableStats {
 		d.hits++
 	}
-	if fd <= 0 || len(iv) != nametransform.DirIVLen {
+	if fd <= 0 || len(iv) != d.ivLen {
 		log.Panicf("Lookup sanity check failed: fd=%d len=%d", fd, len(iv))
 	}
 	d.dbg("dirCache.Lookup %p hit fd=%d dup=%d iv=%x\n", node, e.fd, fd, iv)
