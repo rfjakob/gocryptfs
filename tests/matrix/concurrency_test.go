@@ -119,7 +119,8 @@ func TestConcurrentReadCreate(t *testing.T) {
 			}
 			buf := buf0[:n]
 			if bytes.Compare(buf, content) != 0 {
-				log.Fatal("content mismatch")
+				// Calling t.Fatal() from a goroutine hangs the test so we use log.Fatal
+				log.Fatalf("%s: content mismatch: have=%q want=%q", t.Name(), string(buf), string(content))
 			}
 			f.Close()
 		}
