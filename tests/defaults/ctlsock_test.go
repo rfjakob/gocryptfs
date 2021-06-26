@@ -66,7 +66,7 @@ func TestCtlSockDecrypt(t *testing.T) {
 		}
 		response := test_helpers.QueryCtlSock(t, sock, req)
 		if response.Result == "" || response.ErrNo != 0 {
-			t.Fatalf("got an error reply: %+v", response)
+			t.Fatalf("got an error for query %+v: %+v", req, response)
 		}
 		// Check if the encrypted path actually exists
 		cPath := response.Result
