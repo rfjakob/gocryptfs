@@ -13,7 +13,7 @@ import (
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
-func TestOpenBackingDir(t *testing.T) {
+func TestPrepareAtSyscall(t *testing.T) {
 	cipherdir := test_helpers.InitFS(t)
 	t.Logf("cipherdir = %q", cipherdir)
 	args := Args{
@@ -33,9 +33,9 @@ func TestOpenBackingDir(t *testing.T) {
 		t.Fatal(errno)
 	}
 
-	dirfd, cName, err := rn.openBackingDir("")
-	if err != nil {
-		t.Fatal(err)
+	dirfd, cName, errno := rn.prepareAtSyscallMyself()
+	if errno != 0 {
+		t.Fatal(errno)
 	}
 	if cName != "." {
 		t.Fatal("cName should be .")
@@ -44,15 +44,15 @@ func TestOpenBackingDir(t *testing.T) {
 
 	// Again, but populate the cache for "" by looking up a non-existing file
 	rn.Lookup(nil, "xyz1234", &fuse.EntryOut{})
-	dirfd, cName, err = rn.openBackingDir("")
-	if err != nil {
-		t.Fatal(err)
+	dirfd, cName, errno = rn.prepareAtSyscallMyself()
+	if errno != 0 {
+		t.Fatal(errno)
 	}
 	if cName != "." {
 		t.Fatal("cName should be .")
 	}
 
-	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
+	err := syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
 	if err != nil {
 		t.Error(err)
 	}
@@ -62,7 +62,7 @@ func TestOpenBackingDir(t *testing.T) {
 	}
 	syscall.Close(dirfd)
 
-	dirfd, cName, err = rn.openBackingDir("dir1")
+	dirfd, cName, errno = rn.prepareAtSyscall("dir1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,9 +75,9 @@ func TestOpenBackingDir(t *testing.T) {
 	}
 	syscall.Close(dirfd)
 
-	dirfd, cName, err = rn.openBackingDir("dir1/dir2")
-	if err != nil {
-		t.Fatal(err)
+	dirfd, cName, errno = dir1.prepareAtSyscall("dir2")
+	if errno != 0 {
+		t.Fatal(errno)
 	}
 	if cName == "" {
 		t.Fatal("cName should not be empty")
@@ -90,9 +90,9 @@ func TestOpenBackingDir(t *testing.T) {
 
 	n255 := strings.Repeat("n", 255)
 	dir1.Mkdir(nil, n255, 0700, out)
-	dirfd, cName, err = rn.openBackingDir("dir1/" + n255)
-	if err != nil {
-		t.Fatal(err)
+	dirfd, cName, errno = dir1.prepareAtSyscall(n255)
+	if errno != 0 {
+		t.Fatal(errno)
 	}
 	if cName == "" {
 		t.Fatal("cName should not be empty")
@@ -107,32 +107,34 @@ func TestOpenBackingDir(t *testing.T) {
 	syscall.Close(dirfd)
 }
 
-func TestOpenBackingDirPlaintextNames(t *testing.T) {
+func TestPrepareAtSyscallPlaintextnames(t *testing.T) {
 	cipherdir := test_helpers.InitFS(t, "-plaintextnames")
 	args := Args{
 		Cipherdir:      cipherdir,
 		PlaintextNames: true,
 	}
-	fs := newTestFS(args)
+	rn := newTestFS(args)
 	out := &fuse.EntryOut{}
 
-	_, errno := fs.Mkdir(nil, "dir1", 0700, out)
+	child, errno := rn.Mkdir(nil, "dir1", 0700, out)
 	if errno != 0 {
 		t.Fatal(errno)
 	}
-	_, errno = fs.Mkdir(nil, "dir1/dir2", 0700, out)
+	rn.AddChild("dir1", child, false)
+	dir1 := toNode(child.Operations())
+	_, errno = dir1.Mkdir(nil, "dir2", 0700, out)
 	if errno != 0 {
 		t.Fatal(errno)
 	}
 
-	dirfd, cName, err := fs.openBackingDir("")
-	if err != nil {
-		t.Fatal(err)
+	dirfd, cName, errno := rn.prepareAtSyscallMyself()
+	if errno != 0 {
+		t.Fatal(errno)
 	}
 	if cName != "." {
 		t.Fatal("cName should be .")
 	}
-	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
+	err := syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
 	if err != nil {
 		t.Error(err)
 	}
@@ -142,9 +144,9 @@ func TestOpenBackingDirPlaintextNames(t *testing.T) {
 	}
 	syscall.Close(dirfd)
 
-	dirfd, cName, err = fs.openBackingDir("dir1")
-	if err != nil {
-		t.Fatal(err)
+	dirfd, cName, errno = rn.prepareAtSyscall("dir1")
+	if errno != 0 {
+		t.Fatal(errno)
 	}
 	if cName != "dir1" {
 		t.Fatalf("wrong cName: %q", cName)
@@ -155,9 +157,9 @@ func TestOpenBackingDirPlaintextNames(t *testing.T) {
 	}
 	syscall.Close(dirfd)
 
-	dirfd, cName, err = fs.openBackingDir("dir1/dir2")
-	if err != nil {
-		t.Fatal(err)
+	dirfd, cName, errno = dir1.prepareAtSyscall("dir2")
+	if errno != 0 {
+		t.Fatal(errno)
 	}
 	if cName != "dir2" {
 		t.Fatalf("wrong cName: %q", cName)
