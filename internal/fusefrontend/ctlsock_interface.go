@@ -18,11 +18,7 @@ var _ ctlsocksrv.Interface = &RootNode{} // Verify that interface is implemented
 //
 // Symlink-safe through openBackingDir().
 func (rn *RootNode) EncryptPath(plainPath string) (cipherPath string, err error) {
-	if plainPath == "" {
-		// Empty string gets encrypted as empty string
-		return plainPath, nil
-	}
-	if rn.args.PlaintextNames {
+	if rn.args.PlaintextNames || plainPath == "" {
 		return plainPath, nil
 	}
 
@@ -68,21 +64,17 @@ func (rn *RootNode) EncryptPath(plainPath string) (cipherPath string, err error)
 // DecryptPath is symlink-safe because openBackingDir() and decryptPathAt()
 // are symlink-safe.
 func (rn *RootNode) DecryptPath(cipherPath string) (plainPath string, err error) {
+	if rn.args.PlaintextNames || cipherPath == "" {
+		return cipherPath, nil
+	}
+
 	dirfd, _, errno := rn.prepareAtSyscallMyself()
 	if errno != 0 {
 		return "", errno
 	}
 	defer syscall.Close(dirfd)
-	return rn.decryptPathAt(dirfd, cipherPath)
-}
 
-// decryptPathAt decrypts a ciphertext path relative to dirfd.
-//
-// Symlink-safe through ReadDirIVAt() and ReadLongNameAt().
-func (rn *RootNode) decryptPathAt(dirfd int, cipherPath string) (plainPath string, err error) {
-	if rn.args.PlaintextNames || cipherPath == "" {
-		return cipherPath, nil
-	}
+	// Decrypt path level by level
 	parts := strings.Split(cipherPath, "/")
 	wd := dirfd
 	for i, part := range parts {
