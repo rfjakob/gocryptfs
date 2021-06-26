@@ -32,25 +32,36 @@ while true ; do
 		echo "error: file $PWD/$NEXT already exists"
 		exit 1
 	fi
-	touch $NEXT 2> /dev/null || break
+	echo -n 2> /dev/null > $NEXT || break
 	rm $NEXT
 	NAME="$NEXT"
 done
 echo "${#NAME}"
 
-echo -n "  Maximum dirname length:  "
-# Add one character at a time until we hit an error
-NAME=""
-while true ; do
-	NEXT="${NAME}x"
-	mkdir $NEXT 2> /dev/null || break
-	rmdir $NEXT
-	NAME="$NEXT"
-done
-MAX_DIRNAME=${#NAME}
-echo "${#NAME}"
+# Set to 0 if undefined
+: ${QUICK:=0}
 
-for CHARS_PER_SUBDIR in 1 10 100 $MAX_DIRNAME ; do
+if [[ $QUICK -ne 1 ]]; then
+	echo -n "  Maximum dirname length:  "
+	# Add one character at a time until we hit an error
+	NAME=""
+	while true ; do
+		NEXT="${NAME}x"
+		mkdir $NEXT 2> /dev/null || break
+		rmdir $NEXT
+		NAME="$NEXT"
+	done
+	MAX_DIRNAME=${#NAME}
+	echo "${#NAME}"
+fi
+
+if [[ $QUICK -eq 1 ]]; then
+	CHARS_TODO=100
+else
+	CHARS_TODO="1 10 100 $MAX_DIRNAME"
+fi
+
+for CHARS_PER_SUBDIR in $CHARS_TODO ; do
 	echo -n "  Maximum path length with $(printf %3d $CHARS_PER_SUBDIR) chars per subdir: "
 	if [[ $INTERACTIVE -eq 1 ]] ; then
 		echo -n "    "

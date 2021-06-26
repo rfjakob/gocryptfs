@@ -380,6 +380,7 @@ func TestMaxlen(t *testing.T) {
 		t.Fatal(err)
 	}
 	cmd := exec.Command("../../contrib/maxlen.bash", workDir)
+	cmd.Env = []string{"QUICK=1"}
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Log(string(out))
@@ -387,11 +388,7 @@ func TestMaxlen(t *testing.T) {
 	}
 	want := `
   Maximum filename length: 255
-  Maximum dirname length:  255
-  Maximum path length with   1 chars per subdir: 4095
-  Maximum path length with  10 chars per subdir: 4095
   Maximum path length with 100 chars per subdir: 4095
-  Maximum path length with 255 chars per subdir: 4095
 `
 	if !strings.HasSuffix(string(out), want) {
 		t.Errorf("wrong output: %s", string(out))
