@@ -1,7 +1,6 @@
 package fusefrontend
 
 import (
-	"fmt"
 	"path"
 	"path/filepath"
 	"strings"
@@ -18,7 +17,7 @@ var _ ctlsocksrv.Interface = &RootNode{} // Verify that interface is implemented
 // EncryptPath implements ctlsock.Backend
 //
 // Symlink-safe through openBackingDir().
-func (rn *RootNode) EncryptPath(plainPath string) (string, error) {
+func (rn *RootNode) EncryptPath(plainPath string) (cipherPath string, err error) {
 	if plainPath == "" {
 		// Empty string gets encrypted as empty string
 		return plainPath, nil
@@ -26,22 +25,42 @@ func (rn *RootNode) EncryptPath(plainPath string) (string, error) {
 	if rn.args.PlaintextNames {
 		return plainPath, nil
 	}
-	// Encrypt path level by level using openBackingDir. Pretty inefficient,
-	// but does not matter here.
+
+	dirfd, _, errno := rn.prepareAtSyscallMyself()
+	if errno != 0 {
+		return "", errno
+	}
+	defer syscall.Close(dirfd)
+
+	// Encrypt path level by level
 	parts := strings.Split(plainPath, "/")
-	wd := ""
-	cPath := ""
-	for _, part := range parts {
-		wd = filepath.Join(wd, part)
-		dirfd, cName, err := rn.openBackingDir(wd)
+	wd := dirfd
+	for i, part := range parts {
+		dirIV, err := nametransform.ReadDirIVAt(wd)
 		if err != nil {
 			return "", err
 		}
-		syscall.Close(dirfd)
-		cPath = filepath.Join(cPath, cName)
+		cPart, err := rn.nameTransform.EncryptAndHashName(part, dirIV)
+		if err != nil {
+			return "", err
+		}
+		cipherPath = filepath.Join(cipherPath, cPart)
+		// Last path component? We are done.
+		if i == len(parts)-1 {
+			break
+		}
+		// Descend into next directory
+		wd, err = syscallcompat.Openat(wd, cPart, syscall.O_NOFOLLOW|syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
+		if err != nil {
+			return "", err
+		}
+		// Yes this is somewhat wasteful in terms of used file descriptors:
+		// we keep them all open until the function returns. But it is simple
+		// and reliable.
+		defer syscall.Close(wd)
 	}
-	tlog.Debug.Printf("encryptPath '%s' -> '%s'", plainPath, cPath)
-	return cPath, nil
+	tlog.Debug.Printf("EncryptPath %q -> %q", plainPath, cipherPath)
+	return cipherPath, nil
 }
 
 // DecryptPath implements ctlsock.Backend
@@ -49,9 +68,9 @@ func (rn *RootNode) EncryptPath(plainPath string) (string, error) {
 // DecryptPath is symlink-safe because openBackingDir() and decryptPathAt()
 // are symlink-safe.
 func (rn *RootNode) DecryptPath(cipherPath string) (plainPath string, err error) {
-	dirfd, _, err := rn.openBackingDir("")
-	if err != nil {
-		return "", err
+	dirfd, _, errno := rn.prepareAtSyscallMyself()
+	if errno != 0 {
+		return "", errno
 	}
 	defer syscall.Close(dirfd)
 	return rn.decryptPathAt(dirfd, cipherPath)
@@ -69,20 +88,17 @@ func (rn *RootNode) decryptPathAt(dirfd int, cipherPath string) (plainPath strin
 	for i, part := range parts {
 		dirIV, err := nametransform.ReadDirIVAt(wd)
 		if err != nil {
-			fmt.Printf("ReadDirIV: %v\n", err)
 			return "", err
 		}
 		longPart := part
 		if nametransform.IsLongContent(part) {
 			longPart, err = nametransform.ReadLongNameAt(wd, part)
 			if err != nil {
-				fmt.Printf("ReadLongName: %v\n", err)
 				return "", err
 			}
 		}
 		name, err := rn.nameTransform.DecryptName(longPart, dirIV)
 		if err != nil {
-			fmt.Printf("DecryptName: %v\n", err)
 			return "", err
 		}
 		plainPath = path.Join(plainPath, name)
@@ -100,6 +116,5 @@ func (rn *RootNode) decryptPathAt(dirfd int, cipherPath string) (plainPath strin
 		// and reliable.
 		defer syscall.Close(wd)
 	}
-
 	return plainPath, nil
 }
