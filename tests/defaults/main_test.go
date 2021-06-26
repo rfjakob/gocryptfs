@@ -318,9 +318,9 @@ read(3, "M:\tSylwester Nawrocki <s.nawrock"..., 32768) = 32768
 read(3, "rs/scsi/eata*\n\nEATA ISA/EISA/PCI"..., 32768) = 32768
 read(3, "F:\tDocumentation/isapnp.txt\nF:\td"..., 32768) = 32768
 read(3, "hunkeey@googlemail.com>\nL:\tlinux"..., 32768) = 32768
-read(3, "ach-spear3xx/\n\nSPEAR6XX MACHINE "..., 32768) = 32768
+read(3, "ach-spear3xx/\n\nSPEAR6XX MACHINE "..., 32768) = 32768 <--- WRONG LENGTH!!!
 read(3, "", 32768)                      = 0
-lseek(3, 0, SEEK_CUR)                   = 196608
+lseek(3, 0, SEEK_CUR)                   = 196608                <--- WRONG LENGTH!!!
 close(3)                                = 0
 fstat(1, {st_mode=S_IFCHR|0620, st_rdev=makedev(0x88, 0x2), ...}) = 0
 write(1, "279b6ab0491e7532132e8f32afe6c04d"..., 56279b6ab0491e7532132e8f32afe6c04d  linux-3.0/MAINTAINERS
@@ -371,5 +371,29 @@ func TestMd5sumMaintainers(t *testing.T) {
 	if n != 4 {
 		t.Errorf("found %d instead of %d instances of %q", n, 4, md5Want)
 		t.Logf("full output:\n%s", out)
+	}
+}
+
+func TestMaxlen(t *testing.T) {
+	workDir := filepath.Join(test_helpers.DefaultPlainDir, t.Name())
+	if err := os.Mkdir(workDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command("../../contrib/maxlen.bash", workDir)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Log(string(out))
+		t.Fatal(err)
+	}
+	want := `
+  Maximum filename length: 255
+  Maximum dirname length:  255
+  Maximum path length with   1 chars per subdir: 4095
+  Maximum path length with  10 chars per subdir: 4095
+  Maximum path length with 100 chars per subdir: 4095
+  Maximum path length with 255 chars per subdir: 4095
+`
+	if !strings.HasSuffix(string(out), want) {
+		t.Errorf("wrong output: %s", string(out))
 	}
 }
