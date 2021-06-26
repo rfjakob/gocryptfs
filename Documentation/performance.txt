@@ -72,6 +72,7 @@ v2.0-beta2-36-g6aae2aa 505 1000     16.1   8.2  6.3    7.7
 v2.0-beta2-37-g24d5d39 558 1000     12.3   6.4  4.4    2.8                               fs: add initial dirfd caching
 v2.0-beta2-42-g4a07d65 549 1000      8.2   4.7  1.8    2.4                               fusefrontend: make dirCache work for "node itself"
 v2.0                   420 1000      8.5   4.5  1.8    2.3    go1.16.5, Linux 5.11.21
+v2.0.1-28-g49507ea     471  991      8.6   4.5  1.7    2.2
 
 Results for EncFS for comparison (benchmark.bash -encfs):
 
