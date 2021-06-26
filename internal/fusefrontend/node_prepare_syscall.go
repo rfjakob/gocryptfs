@@ -98,11 +98,12 @@ func (n *Node) prepareAtSyscallMyself() (dirfd int, cName string, errno syscall.
 	if n.IsRoot() {
 		var err error
 		rn := n.rootNode()
-		dirfd, cName, err = rn.openBackingDir("")
+		// Open cipherdir (following symlinks)
+		dirfd, err = syscallcompat.Open(rn.args.Cipherdir, syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
 		if err != nil {
-			errno = fs.ToErrno(err)
+			return -1, "", fs.ToErrno(err)
 		}
-		return
+		return dirfd, ".", 0
 	}
 
 	// Otherwise convert to prepareAtSyscall of parent node

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"path/filepath"
 	"runtime"
 	"syscall"
 
@@ -239,15 +238,14 @@ func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 // Symlink-safe through Unlinkat() + AT_REMOVEDIR.
 func (n *Node) Rmdir(ctx context.Context, name string) (code syscall.Errno) {
 	rn := n.rootNode()
-	p := filepath.Join(n.Path(), name)
-	parentDirFd, cName, err := rn.openBackingDir(p)
-	if err != nil {
-		return fs.ToErrno(err)
+	parentDirFd, cName, errno := n.prepareAtSyscall(name)
+	if errno != 0 {
+		return errno
 	}
 	defer syscall.Close(parentDirFd)
 	if rn.args.PlaintextNames {
 		// Unlinkat with AT_REMOVEDIR is equivalent to Rmdir
-		err = unix.Unlinkat(parentDirFd, cName, unix.AT_REMOVEDIR)
+		err := unix.Unlinkat(parentDirFd, cName, unix.AT_REMOVEDIR)
 		return fs.ToErrno(err)
 	}
 	// Unless we are running as root, we need read, write and execute permissions
@@ -256,7 +254,7 @@ func (n *Node) Rmdir(ctx context.Context, name string) (code syscall.Errno) {
 	var origMode uint32
 	if !rn.args.PreserveOwner {
 		var st unix.Stat_t
-		err = syscallcompat.Fstatat(parentDirFd, cName, &st, unix.AT_SYMLINK_NOFOLLOW)
+		err := syscallcompat.Fstatat(parentDirFd, cName, &st, unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
 			return fs.ToErrno(err)
 		}
