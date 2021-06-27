@@ -6,20 +6,24 @@
 #
 # This is called by the top-level script "benchmark.bash".
 
-cd "$(dirname "$0")"
+
 MYNAME=$(basename "$0")
-MD5="$PWD/stress_tests/linux-3.0.md5sums"
 
 if [ $# -ne 1 ]; then
 	echo "usage: $MYNAME TESTDIR"
 	exit 1
 fi
 
+# Resolve possible relative TESTDIR path before cd'ing away
+TESTDIR=$(realpath "$1")
+
 # Download /tmp/linux-3.0.tar.gz
+cd "$(dirname "$0")"
+MD5="$PWD/stress_tests/linux-3.0.md5sums"
 ./dl-linux-tarball.bash
 
 # cd to TESTDIR
-cd "$1"
+cd "$TESTDIR"
 
 # Execute command, discard all stdout output, print elapsed time
 # (to stderr, unfortunately).
