@@ -22,6 +22,20 @@ const (
 	assertWithPIN fidoCommand = iota
 )
 
+// String pretty-prints for debug output
+func (fc fidoCommand) String() string {
+	switch fc {
+	case cred:
+		return "cred"
+	case assert:
+		return "assert"
+	case assertWithPIN:
+		return "assertWithPIN"
+	default:
+		return fmt.Sprintf("%d", fc)
+	}
+}
+
 const relyingPartyID = "gocryptfs"
 
 func callFidoCommand(command fidoCommand, device string, stdin []string) ([]string, error) {
@@ -34,7 +48,7 @@ func callFidoCommand(command fidoCommand, device string, stdin []string) ([]stri
 	case assertWithPIN:
 		cmd = exec.Command("fido2-assert", "-G", "-h", "-v", device)
 	}
-	tlog.Debug.Printf("callFidoCommand: executing %q with args %q", cmd.Path, cmd.Args)
+	tlog.Debug.Printf("callFidoCommand %s: executing %q with args %q", command, cmd.Path, cmd.Args)
 	cmd.Stderr = os.Stderr
 	in, err := cmd.StdinPipe()
 	if err != nil {
