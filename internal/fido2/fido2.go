@@ -17,9 +17,8 @@ import (
 type fidoCommand int
 
 const (
-	cred          fidoCommand = iota
-	assert        fidoCommand = iota
-	assertWithPIN fidoCommand = iota
+	cred   fidoCommand = iota
+	assert fidoCommand = iota
 )
 
 // String pretty-prints for debug output
@@ -29,8 +28,6 @@ func (fc fidoCommand) String() string {
 		return "cred"
 	case assert:
 		return "assert"
-	case assertWithPIN:
-		return "assertWithPIN"
 	default:
 		return fmt.Sprintf("%d", fc)
 	}
@@ -45,8 +42,6 @@ func callFidoCommand(command fidoCommand, device string, stdin []string) ([]stri
 		cmd = exec.Command("fido2-cred", "-M", "-h", "-v", device)
 	case assert:
 		cmd = exec.Command("fido2-assert", "-G", "-h", device)
-	case assertWithPIN:
-		cmd = exec.Command("fido2-assert", "-G", "-h", "-v", device)
 	}
 	tlog.Debug.Printf("callFidoCommand %s: executing %q with args %q", command, cmd.Path, cmd.Args)
 	cmd.Stderr = os.Stderr
@@ -92,15 +87,11 @@ func Secret(device string, credentialID []byte, salt []byte) (secret []byte) {
 	crid := base64.StdEncoding.EncodeToString(credentialID)
 	hmacsalt := base64.StdEncoding.EncodeToString(salt)
 	stdin := []string{cdh, relyingPartyID, crid, hmacsalt}
-	// try asserting without PIN first
+	// call fido2-assert
 	out, err := callFidoCommand(assert, device, stdin)
 	if err != nil {
-		// if that fails, let's assert with PIN
-		out, err = callFidoCommand(assertWithPIN, device, stdin)
-		if err != nil {
-			tlog.Fatal.Println(err)
-			os.Exit(exitcodes.FIDO2Error)
-		}
+		tlog.Fatal.Println(err)
+		os.Exit(exitcodes.FIDO2Error)
 	}
 	secret, err = base64.StdEncoding.DecodeString(out[4])
 	if err != nil {

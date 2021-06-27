@@ -208,6 +208,9 @@ RM:    2,367
 Changelog
 ---------
 
+v2.1 (IN PROGRESS)
+* fido2: do not request PIN on `gocryptfs -init` ([#571](https://github.com/rfjakob/gocryptfs/issues/571))
+
 v2.0.1, 2021-06-07
 * Fix symlink creation reporting the wrong size, causing git to report it as modified
   ([#574](https://github.com/rfjakob/gocryptfs/issues/574))
