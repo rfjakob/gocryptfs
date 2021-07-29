@@ -12,6 +12,9 @@
 
 cd "$(dirname "$0")"
 
+# $0 does not work because we may have been sourced
+MYNAME=build.bash
+
 # Make sure we have the go binary
 go version > /dev/null
 
@@ -28,7 +31,7 @@ if [[ -d .git ]] ; then
 elif [[ -f VERSION ]] ; then
 	GITVERSION=$(cat VERSION)
 else
-	echo "Warning: could not determine gocryptfs version"
+	echo "$MYNAME: warning: could not determine gocryptfs version"
 	GITVERSION="[unknown]"
 fi
 
@@ -42,7 +45,7 @@ else
 	if [[ $FAIL -eq 0 ]]; then
 		GITVERSIONFUSE=$OUT
 	else
-		echo "Warning: could not determine go-fuse version"
+		echo "$MYNAME: warning: could not determine go-fuse version"
 		GITVERSIONFUSE="[unknown]"
 	fi
 fi
@@ -56,7 +59,10 @@ fi
 # If SOURCE_DATE_EPOCH is set, it overrides BUILDDATE. This is the
 # standard environment variable for faking the date in reproducible builds.
 if [[ -n ${SOURCE_DATE_EPOCH:-} ]] ; then
-	BUILDDATE=$(date --utc --date="@${SOURCE_DATE_EPOCH}" +%Y-%m-%d)
+	if ! BUILDDATE=$(date -u --date="@${SOURCE_DATE_EPOCH}" +%Y-%m-%d) ; then
+		echo "$MYNAME: info: retrying with BSD date syntax..."
+		BUILDDATE=$(date -u -r "$SOURCE_DATE_EPOCH" +%Y-%m-%d)
+	fi
 fi
 
 # Only set GOFLAGS if it is not already set by the user
