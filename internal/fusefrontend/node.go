@@ -447,3 +447,22 @@ func (n *Node) Rename(ctx context.Context, name string, newParent fs.InodeEmbedd
 	}
 	return 0
 }
+
+// Fsync: handles FUSE opcodes FSYNC & FDIRSYNC
+//
+// Note: f is always set to nil by go-fuse
+func (n *Node) Fsync(ctx context.Context, f fs.FileHandle, flags uint32) syscall.Errno {
+	dirfd, cName, errno := n.prepareAtSyscallMyself()
+	if errno != 0 {
+		return errno
+	}
+	defer syscall.Close(dirfd)
+
+	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
+	if err != nil {
+		return fs.ToErrno(err)
+	}
+	defer syscall.Close(fd)
+
+	return fs.ToErrno(syscall.Fsync(fd))
+}

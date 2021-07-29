@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
@@ -392,5 +393,32 @@ func TestMaxlen(t *testing.T) {
 `
 	if !strings.HasSuffix(string(out), want) {
 		t.Errorf("wrong output: %s", string(out))
+	}
+}
+
+func TestFsync(t *testing.T) {
+	fileName := test_helpers.DefaultPlainDir + "/" + t.Name() + ".file"
+	fileFD, err := syscall.Creat(fileName, 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer syscall.Close(fileFD)
+	dirName := test_helpers.DefaultPlainDir + "/" + t.Name() + ".dir"
+	if err := os.Mkdir(dirName, 0700); err != nil {
+		t.Fatal(err)
+	}
+	dirFD, err := syscall.Open(dirName, syscall.O_RDONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer syscall.Close(dirFD)
+
+	err = syscall.Fsync(dirFD)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = syscall.Fsync(fileFD)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
