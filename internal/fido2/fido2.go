@@ -39,7 +39,7 @@ func callFidoCommand(command fidoCommand, device string, stdin []string) ([]stri
 	var cmd *exec.Cmd
 	switch command {
 	case cred:
-		cmd = exec.Command("fido2-cred", "-M", "-h", "-v", device)
+		cmd = exec.Command("fido2-cred", "-M", "-h", device)
 	case assert:
 		cmd = exec.Command("fido2-assert", "-G", "-h", device)
 	}
