@@ -23,3 +23,25 @@ install:
 	install -Dm644 -t "$(DESTDIR)/usr/share/man/man1/" Documentation/gocryptfs.1
 	install -Dm644 -t "$(DESTDIR)/usr/share/man/man1/" Documentation/gocryptfs-xray.1
 	install -Dm644 -t "$(DESTDIR)/usr/share/licenses/gocryptfs" LICENSE
+
+.phony: ci
+ci:
+	uname -a ; go version ; openssl version
+	df -Th / /tmp /var/tmp
+
+	./build-without-openssl.bash
+	./build.bash
+	./test.bash
+	make root_test
+	./crossbuild.bash
+
+	echo "Rebuild with locked dependencies"
+	# Download dependencies to "vendor" directory
+	go mod vendor
+	# Delete global cache
+	go clean -modcache
+	# GOPROXY=off makes sure we fail instead of making network requests
+	# (we should not need any!)
+	GOPROXY=off ./build.bash -mod=vendor
+	# Delete "vendor" dir
+	git clean -dxff
