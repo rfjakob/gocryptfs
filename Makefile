@@ -42,6 +42,6 @@ ci:
 	go clean -modcache
 	# GOPROXY=off makes sure we fail instead of making network requests
 	# (we should not need any!)
-	GOPROXY=off ./build.bash -mod=vendor
+	GOPROXY=off ./build.bash
 	# Delete "vendor" dir
 	git clean -dxff

@@ -1,6 +1,6 @@
 module github.com/rfjakob/gocryptfs
 
-go 1.13
+go 1.16
 
 require (
 	github.com/hanwen/go-fuse/v2 v2.1.1-0.20210611132105-24a1dfe6b4f8
