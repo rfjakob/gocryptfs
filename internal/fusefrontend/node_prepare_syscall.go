@@ -66,6 +66,9 @@ func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno sy
 	defer syscall.Close(parentDirfd)
 
 	dirfd, err := syscallcompat.Openat(parentDirfd, myCName, syscall.O_NOFOLLOW|syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
+	if err != nil {
+		return -1, "", fs.ToErrno(err)
+	}
 
 	// Cache store
 	if !rn.args.PlaintextNames {
