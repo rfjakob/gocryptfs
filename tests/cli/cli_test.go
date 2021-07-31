@@ -929,8 +929,8 @@ func TestInitNotEmpty(t *testing.T) {
 	}
 }
 
-// TestSharedstorage checks that `-sharedstorage` hands out arbitrary inode
-// numbers (no hard link tracking)
+// TestSharedstorage checks that `-sharedstorage` shows stable inode numbers to
+// userpsace despite having hard link tracking disabled
 func TestSharedstorage(t *testing.T) {
 	dir := test_helpers.InitFS(t)
 	mnt := dir + ".mnt"
@@ -944,7 +944,7 @@ func TestSharedstorage(t *testing.T) {
 	if err := os.Link(foo1, foo2); err != nil {
 		t.Fatal(err)
 	}
-	var st1, st2, st3 syscall.Stat_t
+	var st1, st2 syscall.Stat_t
 	if err := syscall.Stat(foo1, &st1); err != nil {
 		t.Fatal(err)
 	}
@@ -952,12 +952,8 @@ func TestSharedstorage(t *testing.T) {
 	if err := syscall.Stat(foo2, &st2); err != nil {
 		t.Fatal(err)
 	}
-	// Stat()'ing again should give us again a new inode number
-	if err := syscall.Stat(foo2, &st3); err != nil {
-		t.Fatal(err)
-	}
-	if st1.Ino == st2.Ino || st2.Ino == st3.Ino || st1.Ino == st3.Ino {
-		t.Error(st1.Ino, st2.Ino, st3.Ino)
+	if st1.Ino != st2.Ino {
+		t.Errorf("unstable inode number: changed from %d to %d", st1.Ino, st2.Ino)
 	}
 	// Check that we we don't have stat caching. New length should show up
 	// on the hard link immediately.

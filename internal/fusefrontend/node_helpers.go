@@ -2,6 +2,7 @@ package fusefrontend
 
 import (
 	"context"
+	"sync/atomic"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fs"
@@ -82,13 +83,20 @@ func (n *Node) rootNode() *RootNode {
 func (n *Node) newChild(ctx context.Context, st *syscall.Stat_t, out *fuse.EntryOut) *fs.Inode {
 	rn := n.rootNode()
 	// Get stable inode number based on underlying (device,ino) pair
-	// (or set to zero in case of `-sharestorage`)
 	rn.inoMap.TranslateStat(st)
 	out.Attr.FromStat(st)
+
+	var gen uint64 = 1
+	if rn.args.SharedStorage {
+		// Make each directory entry a unique node by using a unique generation
+		// value - see the comment at RootNode.gen for details.
+		gen = atomic.AddUint64(&rn.gen, 1)
+	}
+
 	// Create child node
 	id := fs.StableAttr{
 		Mode: uint32(st.Mode),
-		Gen:  1,
+		Gen:  gen,
 		Ino:  st.Ino,
 	}
 	node := &Node{}

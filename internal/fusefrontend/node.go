@@ -40,6 +40,24 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (ch 
 	// Translate ciphertext size in `out.Attr.Size` to plaintext size
 	n.translateSize(dirfd, cName, &out.Attr)
 
+	rn := n.rootNode()
+	if rn.args.SharedStorage {
+		// If we already have a child node that matches what we found on disk*
+		// (as reflected in `ch`), return it here.
+		//
+		// This keeps the Node ID for each directory entry stable
+		// (until forgotten).
+		//
+		// *We compare `name`, `Ino`, `Mode` (but not `Gen`!)
+		old := n.Inode.GetChild(name)
+		if old != nil &&
+			old.StableAttr().Ino == ch.StableAttr().Ino &&
+			// `Mode` has already been masked with syscall.S_IFMT by n.newChild()
+			old.StableAttr().Mode == ch.StableAttr().Mode {
+			return old, 0
+		}
+	}
+
 	return ch, 0
 }
 

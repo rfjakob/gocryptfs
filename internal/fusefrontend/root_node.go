@@ -50,7 +50,13 @@ type RootNode struct {
 	dirCache dirCache
 	// inoMap translates inode numbers from different devices to unique inode
 	// numbers.
-	inoMap inomap.TranslateStater
+	inoMap *inomap.InoMap
+	// gen is the node generation numbers. Normally, it is always set to 1,
+	// but -sharestorage uses an incrementing counter for new nodes.
+	// This makes each directory entry unique (even hard links),
+	// makes go-fuse hand out separate FUSE Node IDs for each, and prevents
+	// bizarre problems when inode numbers are reused behind our back.
+	gen uint64
 }
 
 func NewRootNode(args Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) *RootNode {
@@ -70,11 +76,6 @@ func NewRootNode(args Args, c *contentenc.ContentEnc, n *nametransform.NameTrans
 		contentEnc:    c,
 		inoMap:        inomap.New(),
 		dirCache:      dirCache{ivLen: ivLen},
-	}
-	// In `-sharedstorage` mode we always set the inode number to zero.
-	// This makes go-fuse generate a new inode number for each lookup.
-	if args.SharedStorage {
-		rn.inoMap = &inomap.TranslateStatZero{}
 	}
 	return rn
 }
