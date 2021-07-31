@@ -1,15 +1,10 @@
 // Tests run for (almost all) combinations of openssl, aessiv, plaintextnames.
 package matrix
 
-// File reading, writing, modification, truncate
+// File reading, writing, modification, truncate, ...
 //
-// Runs everything four times, for all combinations of
-// "-plaintextnames" and "-openssl".
-//
-// Test Matrix:
-//                       openssl=true openssl=false
-// plaintextnames=false  X            X
-// plaintextnames=true   X            X
+// Runs all tests N times, for the combinations of different flags specified
+// in the `matrix` variable.
 
 import (
 	"bytes"
@@ -21,6 +16,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -899,5 +895,24 @@ func TestSymlinkSize(t *testing.T) {
 	}
 	if st.Size != 3 {
 		t.Errorf("wrong size: have %d, want %d", st.Size, 3)
+	}
+}
+
+// TestPwd check that /usr/bin/pwd works inside gocryptfs.
+//
+// This was broken in gocryptfs v2.0 with -sharedstorage:
+// https://github.com/rfjakob/gocryptfs/issues/584
+func TestPwd(t *testing.T) {
+	dir := test_helpers.DefaultPlainDir
+	for i := 0; i < 3; i++ {
+		cmd := exec.Command("pwd")
+		cmd.Dir = dir
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Log(strings.TrimSpace(string(out)))
+			t.Fatalf("dir %q: %v", dir, err)
+		}
+		dir = dir + "/" + t.Name()
+		os.Mkdir(dir, 0700)
 	}
 }
