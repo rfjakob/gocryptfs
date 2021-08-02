@@ -87,7 +87,7 @@ func (n *Node) newChild(ctx context.Context, st *syscall.Stat_t, out *fuse.Entry
 	out.Attr.FromStat(st)
 
 	var gen uint64 = 1
-	if rn.args.SharedStorage {
+	if rn.args.SharedStorage || rn.quirks&quirkDuplicateIno1 != 0 {
 		// Make each directory entry a unique node by using a unique generation
 		// value - see the comment at RootNode.gen for details.
 		gen = atomic.AddUint64(&rn.gen, 1)

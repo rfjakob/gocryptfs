@@ -57,6 +57,9 @@ type RootNode struct {
 	// makes go-fuse hand out separate FUSE Node IDs for each, and prevents
 	// bizarre problems when inode numbers are reused behind our back.
 	gen uint64
+	// quirks is a bitmap that enables workaround for quirks in the filesystem
+	// backing the cipherdir
+	quirks uint64
 }
 
 func NewRootNode(args Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) *RootNode {
@@ -76,6 +79,7 @@ func NewRootNode(args Args, c *contentenc.ContentEnc, n *nametransform.NameTrans
 		contentEnc:    c,
 		inoMap:        inomap.New(),
 		dirCache:      dirCache{ivLen: ivLen},
+		quirks:        detectQuirks(args.Cipherdir),
 	}
 	return rn
 }

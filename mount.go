@@ -19,8 +19,6 @@ import (
 	"syscall"
 	"time"
 
-	"golang.org/x/sys/unix"
-
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 
@@ -101,21 +99,6 @@ func doMount(args *argContainer) {
 				tlog.Warn.Printf("ctlsock close: %v", err)
 			}
 		}()
-	}
-	// Preallocation on Btrfs is broken ( https://github.com/rfjakob/gocryptfs/issues/395 )
-	// and slow ( https://github.com/rfjakob/gocryptfs/issues/63 ).
-	if !args.noprealloc {
-		// darwin does not have unix.BTRFS_SUPER_MAGIC, so we define it here
-		const BTRFS_SUPER_MAGIC = 0x9123683e
-		var st unix.Statfs_t
-		err = unix.Statfs(args.cipherdir, &st)
-		// Cast to uint32 avoids compile error on arm: "constant 2435016766 overflows int32"
-		if err == nil && uint32(st.Type) == BTRFS_SUPER_MAGIC {
-			tlog.Info.Printf(tlog.ColorYellow +
-				"Btrfs detected, forcing -noprealloc. See https://github.com/rfjakob/gocryptfs/issues/395 for why." +
-				tlog.ColorReset)
-			args.noprealloc = true
-		}
 	}
 	// Initialize gocryptfs (read config file, ask for password, ...)
 	fs, wipeKeys := initFuseFrontend(args)
