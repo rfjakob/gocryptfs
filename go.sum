@@ -2,6 +2,8 @@ github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/hanwen/go-fuse/v2 v2.1.1-0.20210802120645-15a8bb029a4e h1:mykFj7/XZmUTy/rRWaqbqHJEFU+dXfLmuigEWTlgECE=
 github.com/hanwen/go-fuse/v2 v2.1.1-0.20210802120645-15a8bb029a4e/go.mod h1:B1nGE/6RBFyBRC1RRnf23UpwCdyJ31eukw34oAKukAc=
+github.com/integrii/flaggy v1.4.4 h1:8fGyiC14o0kxhTqm2VBoN19fDKPZsKipP7yggreTMDc=
+github.com/integrii/flaggy v1.4.4/go.mod h1:tnTxHeTJbah0gQ6/K0RW0J7fMUBk9MCF5blhm43LNpI=
 github.com/jacobsa/crypto v0.0.0-20190317225127-9f44e2d11115 h1:YuDUUFNM21CAbyPOpOP8BicaTD/0klJEKt5p8yuw+uY=
 github.com/jacobsa/crypto v0.0.0-20190317225127-9f44e2d11115/go.mod h1:LadVJg0XuawGk+8L1rYnIED8451UyNxEMdTWCEt5kmU=
 github.com/jacobsa/oglematchers v0.0.0-20150720000706-141901ea67cd h1:9GCSedGjMcLZCrusBZuo4tyKLpKUPenUUqi34AkuFmA=
@@ -22,6 +24,8 @@ github.com/rfjakob/eme v1.1.1 h1:t+CgvcOn+eDvj2xdglxsSnkgg8LM8jwdxnV7OnsrTn0=
 github.com/rfjakob/eme v1.1.1/go.mod h1:U2bmx0hDj8EyDdcxmD5t3XHDnBFnyNNc22n1R4008eM=
 github.com/sabhiram/go-gitignore v0.0.0-20180611051255-d3107576ba94 h1:G04eS0JkAIVZfaJLjla9dNxkJCPiKIGZlw9AfOhzOD0=
 github.com/sabhiram/go-gitignore v0.0.0-20180611051255-d3107576ba94/go.mod h1:b18R55ulyQ/h3RaWyloPyER7fWQVZvimKKhnI5OfrJQ=
+github.com/spf13/pflag v1.0.5 h1:iy+VFUOCP1a+8yFto/drg2CJ5u0yRoB7fZw3DKv/JXA=
+github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.5.1 h1:nOGnQDM7FYENwehXlg/kFVnos3rEvtKTjRvOWSzb6H4=
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=

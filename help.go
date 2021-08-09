@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 
+	"github.com/integrii/flaggy"
+
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
@@ -51,6 +53,6 @@ func helpLong() {
 	fmt.Printf("\n")
 	fmt.Printf(tUsage)
 	fmt.Printf("\nOptions:\n")
-	flagSet.PrintDefaults()
+	flaggy.ShowHelp("")
 	fmt.Printf("  --\n    	Stop option parsing\n")
 }

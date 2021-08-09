@@ -45,7 +45,7 @@ type AfterUnmounter interface {
 func doMount(args *argContainer) {
 	// Check mountpoint
 	var err error
-	args.mountpoint, err = filepath.Abs(flagSet.Arg(1))
+	args.mountpoint, err = filepath.Abs(args.mountpoint)
 	if err != nil {
 		tlog.Fatal.Printf("Invalid mountpoint: %v", err)
 		os.Exit(exitcodes.MountPoint)

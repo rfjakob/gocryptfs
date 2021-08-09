@@ -169,7 +169,7 @@ func main() {
 	args := parseCliOpts()
 	// Fork a child into the background if "-fg" is not set AND we are mounting
 	// a filesystem. The child will do all the work.
-	if !args.fg && flagSet.NArg() == 2 {
+	if !args.fg && args.cipherdir != "" && args.mountpoint != "" {
 		ret := forkChild()
 		os.Exit(ret)
 	}
@@ -200,8 +200,8 @@ func main() {
 		tlog.Debug.Printf("Panicking on warnings")
 	}
 	// Every operation below requires CIPHERDIR. Exit if we don't have it.
-	if flagSet.NArg() == 0 {
-		if flagSet.NFlag() == 0 {
+	if args.cipherdir == "" {
+		if len(os.Args[1:]) == 0 {
 			// Naked call to "gocryptfs". Just print the help text.
 			helpShort()
 		} else {
@@ -212,7 +212,7 @@ func main() {
 		os.Exit(exitcodes.Usage)
 	}
 	// Check that CIPHERDIR exists
-	args.cipherdir, _ = filepath.Abs(flagSet.Arg(0))
+	args.cipherdir, _ = filepath.Abs(args.cipherdir)
 	err = isDir(args.cipherdir)
 	if err != nil {
 		tlog.Fatal.Printf("Invalid cipherdir: %v", err)
@@ -287,10 +287,9 @@ func main() {
 	nOps := countOpFlags(&args)
 	if nOps == 0 {
 		// Default operation: mount.
-		if flagSet.NArg() != 2 {
+		if args.cipherdir == "" || args.mountpoint == "" {
 			prettyArgs := prettyArgs()
-			tlog.Info.Printf("Wrong number of arguments (have %d, want 2). You passed: %s",
-				flagSet.NArg(), prettyArgs)
+			tlog.Info.Printf("Wrong number of arguments. You passed: %s", prettyArgs)
 			tlog.Fatal.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]", tlog.ProgramName)
 			os.Exit(exitcodes.Usage)
 		}
@@ -302,9 +301,8 @@ func main() {
 		tlog.Fatal.Printf("At most one of -info, -init, -passwd, -fsck is allowed")
 		os.Exit(exitcodes.Usage)
 	}
-	if flagSet.NArg() != 1 {
-		tlog.Fatal.Printf("The options -info, -init, -passwd, -fsck take exactly one argument, %d given",
-			flagSet.NArg())
+	if args.cipherdir == "" || args.mountpoint != "" {
+		tlog.Fatal.Printf("The options -info, -init, -passwd, -fsck take exactly one argument")
 		os.Exit(exitcodes.Usage)
 	}
 	// "-info"
