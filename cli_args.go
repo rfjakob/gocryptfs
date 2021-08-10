@@ -6,7 +6,6 @@ package main
 import _ "github.com/rfjakob/gocryptfs/internal/ensurefds012"
 
 import (
-	"flag"
 	"fmt"
 	"net"
 	"os"
@@ -14,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	flag "github.com/spf13/pflag"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 
@@ -71,6 +72,10 @@ func (s *multipleStrings) Empty() bool {
 	return len(s2) == 0
 }
 
+func (s *multipleStrings) Type() string {
+	return "multipleStrings"
+}
+
 var flagSet *flag.FlagSet
 
 // prefixOArgs transform options passed via "-o foo,bar" into regular options
@@ -123,16 +128,34 @@ func prefixOArgs(osArgs []string) ([]string, error) {
 	return newArgs, nil
 }
 
+// convertToDoubleDash converts args like "-debug" (Go stdlib `flag` style)
+// into "--debug" (spf13/pflag style).
+// gocryptfs v2.1 switched from `flag` to `pflag`, but we obviously want to stay
+// cli-compatible, and this is the hack to do it.
+func convertToDoubleDash(osArgs []string) (out []string) {
+	out = append(out, osArgs...)
+	for i, v := range out {
+		if v == "-h" {
+			continue
+		}
+		if len(v) >= 2 && v[0] == '-' && v[1] != '-' {
+			out[i] = "-" + out[i]
+		}
+	}
+	return out
+}
+
 // parseCliOpts - parse command line options (i.e. arguments that start with "-")
 func parseCliOpts() (args argContainer) {
 	var err error
 	var opensslAuto string
 
-	os.Args, err = prefixOArgs(os.Args)
+	osArgsPreprocessed, err := prefixOArgs(os.Args)
 	if err != nil {
 		tlog.Fatal.Println(err)
 		os.Exit(exitcodes.Usage)
 	}
+	osArgsPreprocessed = convertToDoubleDash(osArgsPreprocessed)
 
 	flagSet = flag.NewFlagSet(tlog.ProgramName, flag.ContinueOnError)
 	flagSet.Usage = func() {}
@@ -222,7 +245,7 @@ func parseCliOpts() (args argContainer) {
 	var dummyString string
 	flagSet.StringVar(&dummyString, "o", "", "For compatibility with mount(1), options can be also passed as a comma-separated list to -o on the end.")
 	// Actual parsing
-	err = flagSet.Parse(os.Args[1:])
+	err = flagSet.Parse(osArgsPreprocessed[1:])
 	if err == flag.ErrHelp {
 		helpShort()
 		os.Exit(0)
