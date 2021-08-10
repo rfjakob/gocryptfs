@@ -36,9 +36,9 @@ type argContainer struct {
 	masterkey, mountpoint, cipherdir, cpuprofile,
 	memprofile, ko, ctlsock, fsname, force_owner, trace, fido2 string
 	// -extpass, -badname, -passfile can be passed multiple times
-	extpass, badname, passfile multipleStrings
+	extpass, badname, passfile []string
 	// For reverse mode, several ways to specify exclusions. All can be specified multiple times.
-	exclude, excludeWildcard, excludeFrom multipleStrings
+	exclude, excludeWildcard, excludeFrom []string
 	// Configuration file name override
 	config             string
 	notifypid, scryptn int
@@ -53,27 +53,6 @@ type argContainer struct {
 	_forceOwner *fuse.Owner
 	// _explicitScryptn is true then the user passed "-scryptn=xyz"
 	_explicitScryptn bool
-}
-
-type multipleStrings []string
-
-func (s *multipleStrings) String() string {
-	s2 := []string(*s)
-	return fmt.Sprint(s2)
-}
-
-func (s *multipleStrings) Set(val string) error {
-	*s = append(*s, val)
-	return nil
-}
-
-func (s *multipleStrings) Empty() bool {
-	s2 := []string(*s)
-	return len(s2) == 0
-}
-
-func (s *multipleStrings) Type() string {
-	return "multipleStrings"
 }
 
 var flagSet *flag.FlagSet
@@ -218,16 +197,16 @@ func parseCliOpts() (args argContainer) {
 	flagSet.StringVar(&args.fido2, "fido2", "", "Protect the masterkey using a FIDO2 token instead of a password")
 
 	// Exclusion options
-	flagSet.Var(&args.exclude, "e", "Alias for -exclude")
-	flagSet.Var(&args.exclude, "exclude", "Exclude relative path from reverse view")
-	flagSet.Var(&args.excludeWildcard, "ew", "Alias for -exclude-wildcard")
-	flagSet.Var(&args.excludeWildcard, "exclude-wildcard", "Exclude path from reverse view, supporting wildcards")
-	flagSet.Var(&args.excludeFrom, "exclude-from", "File from which to read exclusion patterns (with -exclude-wildcard syntax)")
+	flagSet.StringSliceVar(&args.exclude, "e", nil, "Alias for -exclude")
+	flagSet.StringSliceVar(&args.exclude, "exclude", nil, "Exclude relative path from reverse view")
+	flagSet.StringSliceVar(&args.excludeWildcard, "ew", nil, "Alias for -exclude-wildcard")
+	flagSet.StringSliceVar(&args.excludeWildcard, "exclude-wildcard", nil, "Exclude path from reverse view, supporting wildcards")
+	flagSet.StringSliceVar(&args.excludeFrom, "exclude-from", nil, "File from which to read exclusion patterns (with -exclude-wildcard syntax)")
 
 	// multipleStrings options ([]string)
-	flagSet.Var(&args.extpass, "extpass", "Use external program for the password prompt")
-	flagSet.Var(&args.badname, "badname", "Glob pattern invalid file names that should be shown")
-	flagSet.Var(&args.passfile, "passfile", "Read password from file")
+	flagSet.StringSliceVar(&args.extpass, "extpass", nil, "Use external program for the password prompt")
+	flagSet.StringSliceVar(&args.badname, "badname", nil, "Glob pattern invalid file names that should be shown")
+	flagSet.StringSliceVar(&args.passfile, "passfile", nil, "Read password from file")
 
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")
@@ -294,7 +273,7 @@ func parseCliOpts() (args argContainer) {
 		args.allow_other = false
 		args.ko = "noexec"
 	}
-	if !args.extpass.Empty() && len(args.passfile) != 0 {
+	if len(args.extpass) > 0 && len(args.passfile) != 0 {
 		tlog.Fatal.Printf("The options -extpass and -passfile cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
@@ -302,11 +281,11 @@ func parseCliOpts() (args argContainer) {
 		tlog.Fatal.Printf("The options -passfile and -masterkey cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
-	if !args.extpass.Empty() && args.masterkey != "" {
+	if len(args.extpass) > 0 && args.masterkey != "" {
 		tlog.Fatal.Printf("The options -extpass and -masterkey cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
-	if !args.extpass.Empty() && args.fido2 != "" {
+	if len(args.extpass) > 0 && args.fido2 != "" {
 		tlog.Fatal.Printf("The options -extpass and -fido2 cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
@@ -328,7 +307,7 @@ func parseCliOpts() (args argContainer) {
 
 // prettyArgs pretty-prints the command-line arguments.
 func prettyArgs() string {
-	pa := fmt.Sprintf("%v", os.Args)
+	pa := fmt.Sprintf("%q", os.Args)
 	// Get rid of "[" and "]"
 	pa = pa[1 : len(pa)-1]
 	return pa

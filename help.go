@@ -50,7 +50,10 @@ func helpLong() {
 	printVersion()
 	fmt.Printf("\n")
 	fmt.Printf(tUsage)
+	fmt.Printf(`
+Notes: All options can equivalently use "-" (single dash) or "--" (double dash).
+       A standalone "--" stops option parsing.
+`)
 	fmt.Printf("\nOptions:\n")
 	flagSet.PrintDefaults()
-	fmt.Printf("  --\n    	Stop option parsing\n")
 }

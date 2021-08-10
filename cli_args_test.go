@@ -75,14 +75,3 @@ func TestPrefixOArgs(t *testing.T) {
 		}
 	}
 }
-
-func TestStringSlice(t *testing.T) {
-	var s multipleStrings
-	s.Set("foo")
-	s.Set("bar")
-	want := "[foo bar]"
-	have := s.String()
-	if want != have {
-		t.Errorf("Wrong string representation: want=%q have=%q", want, have)
-	}
-}

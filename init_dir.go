@@ -69,7 +69,7 @@ func initDir(args *argContainer) {
 		}
 	}
 	// Choose password for config file
-	if args.extpass.Empty() && args.fido2 == "" {
+	if len(args.extpass) == 0 && args.fido2 == "" {
 		tlog.Info.Printf("Choose a password for protecting your files.")
 	}
 	{
