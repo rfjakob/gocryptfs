@@ -5,18 +5,16 @@ import (
 	"testing"
 )
 
-type testcase struct {
-	// i is the input
-	i []string
-	// o is the expected output
-	o []string
-	// Do we expect an error?
-	e bool
-}
-
 // TestPrefixOArgs checks that the "-o x,y,z" parsing works correctly.
 func TestPrefixOArgs(t *testing.T) {
-	testcases := []testcase{
+	testcases := []struct {
+		// i is the input
+		i []string
+		// o is the expected output
+		o []string
+		// Do we expect an error?
+		e bool
+	}{
 		{
 			i: nil,
 			o: nil,
