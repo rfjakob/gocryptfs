@@ -251,7 +251,7 @@ func parseCliOpts() (args argContainer) {
 		os.Exit(0)
 	}
 	if err != nil {
-		tlog.Fatal.Printf("Invalid command line: %s. Try '%s -help'.", prettyArgs(), tlog.ProgramName)
+		tlog.Fatal.Printf("Invalid command line: %s: %v. Try '%s -help'.", prettyArgs(), err, tlog.ProgramName)
 		os.Exit(exitcodes.Usage)
 	}
 	// We want to know if -scryptn was passed explicitly
