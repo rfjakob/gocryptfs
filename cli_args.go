@@ -1,11 +1,11 @@
 package main
 
-// Should be initialized before anything else.
-// This import line MUST be in the alphabitcally first source code file of
-// package main!
-import _ "github.com/rfjakob/gocryptfs/internal/ensurefds012"
-
 import (
+	// Should be initialized before anything else.
+	// This import line MUST be in the alphabetically first source code file of
+	// package main!
+	_ "github.com/rfjakob/gocryptfs/internal/ensurefds012"
+
 	"fmt"
 	"net"
 	"os"
