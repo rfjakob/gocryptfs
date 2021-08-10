@@ -3,6 +3,8 @@ package main
 import (
 	"reflect"
 	"testing"
+
+	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
 )
 
 // TestPrefixOArgs checks that the "-o x,y,z" parsing works correctly.
@@ -72,6 +74,108 @@ func TestPrefixOArgs(t *testing.T) {
 		e := (err != nil)
 		if !reflect.DeepEqual(o, tc.o) || e != tc.e {
 			t.Errorf("\n  in=%q\nwant=%q err=%v\n got=%q err=%v", tc.i, tc.o, tc.e, o, e)
+		}
+	}
+}
+
+func TestConvertToDoubleDash(t *testing.T) {
+	testcases := []struct {
+		// i is the input
+		i []string
+		// o is the expected output
+		o []string
+	}{
+		{
+			i: nil,
+			o: nil,
+		},
+		{
+			i: []string{"gocryptfs"},
+			o: []string{"gocryptfs"},
+		},
+		{
+			i: []string{"gocryptfs", "foo"},
+			o: []string{"gocryptfs", "foo"},
+		},
+		{
+			i: []string{"gocryptfs", "-v", "-quiet"},
+			o: []string{"gocryptfs", "--v", "--quiet"},
+		},
+		{
+			i: []string{"gocryptfs", "--", "-foo"},
+			o: []string{"gocryptfs", "--", "-foo"},
+		},
+	}
+	for _, tc := range testcases {
+		o := convertToDoubleDash(tc.i)
+		if !reflect.DeepEqual(o, tc.o) {
+			t.Errorf("in=%q\nwant=%q\nhave=%q", tc.i, tc.o, o)
+		}
+	}
+}
+
+func TestParseCliOpts(t *testing.T) {
+	defaultArgs := argContainer{
+		longnames: true,
+		raw64:     true,
+		hkdf:      true,
+		openssl:   stupidgcm.PreferOpenSSL(), // depends on CPU and build flags
+		scryptn:   16,
+	}
+
+	type testcaseContainer struct {
+		// i is the input
+		i []string
+		// o is the expected output
+		o argContainer
+	}
+
+	var testcases []testcaseContainer
+
+	testcases = append(testcases, testcaseContainer{
+		i: []string{"gocryptfs"},
+		o: defaultArgs,
+	})
+
+	o := defaultArgs
+	o.quiet = true
+	testcases = append(testcases, testcaseContainer{
+		i: []string{"gocryptfs", "-q"},
+		o: o,
+	})
+	testcases = append(testcases, testcaseContainer{
+		i: []string{"gocryptfs", "--q"},
+		o: o,
+	})
+	testcases = append(testcases, testcaseContainer{
+		i: []string{"gocryptfs", "-quiet"},
+		o: o,
+	})
+	testcases = append(testcases, testcaseContainer{
+		i: []string{"gocryptfs", "--quiet"},
+		o: o,
+	})
+
+	o = defaultArgs
+	o.exclude = []string{"foo", "bar"}
+	testcases = append(testcases, testcaseContainer{
+		i: []string{"gocryptfs", "-e", "foo", "-e", "bar"},
+		o: o,
+	})
+	testcases = append(testcases, testcaseContainer{
+		i: []string{"gocryptfs", "--exclude", "foo", "--exclude", "bar"},
+		o: o,
+	})
+	/* TODO BROKEN
+	testcases = append(testcases, testcaseContainer{
+		i: []string{"gocryptfs", "--exclude", "foo", "-e", "bar"},
+		o: o,
+	})
+	*/
+	for _, tc := range testcases {
+		o := parseCliOpts(tc.i)
+		if !reflect.DeepEqual(o, tc.o) {
+			t.Errorf("in=%v\nwant=%v\nhave=%v", tc.i, tc.o, o)
 		}
 	}
 }

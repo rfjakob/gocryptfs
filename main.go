@@ -166,7 +166,7 @@ func main() {
 	var err error
 	// Parse all command-line options (i.e. arguments starting with "-")
 	// into "args". Path arguments are parsed below.
-	args := parseCliOpts()
+	args := parseCliOpts(os.Args)
 	// Fork a child into the background if "-fg" is not set AND we are mounting
 	// a filesystem. The child will do all the work.
 	if !args.fg && flagSet.NArg() == 2 {

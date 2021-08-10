@@ -114,9 +114,15 @@ func prefixOArgs(osArgs []string) ([]string, error) {
 func convertToDoubleDash(osArgs []string) (out []string) {
 	out = append(out, osArgs...)
 	for i, v := range out {
+		// Leave "-h" alone so the help text keeps working
 		if v == "-h" {
 			continue
 		}
+		// Don't touch anything after "--"
+		if v == "--" {
+			break
+		}
+		// Convert "-foo" to "--foo"
 		if len(v) >= 2 && v[0] == '-' && v[1] != '-' {
 			out[i] = "-" + out[i]
 		}
@@ -125,11 +131,11 @@ func convertToDoubleDash(osArgs []string) (out []string) {
 }
 
 // parseCliOpts - parse command line options (i.e. arguments that start with "-")
-func parseCliOpts() (args argContainer) {
+func parseCliOpts(osArgs []string) (args argContainer) {
 	var err error
 	var opensslAuto string
 
-	osArgsPreprocessed, err := prefixOArgs(os.Args)
+	osArgsPreprocessed, err := prefixOArgs(osArgs)
 	if err != nil {
 		tlog.Fatal.Println(err)
 		os.Exit(exitcodes.Usage)
