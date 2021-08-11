@@ -118,7 +118,7 @@ func (f *File) createHeader() (fileID []byte, err error) {
 	h := contentenc.RandomHeader()
 	buf := h.Pack()
 	// Prevent partially written (=corrupt) header by preallocating the space beforehand
-	if !f.rootNode.args.NoPrealloc && f.rootNode.quirks&quirkBrokenFalloc == 0 {
+	if !f.rootNode.args.NoPrealloc && f.rootNode.quirks&syscallcompat.QuirkBrokenFalloc == 0 {
 		err = syscallcompat.EnospcPrealloc(f.intFd(), 0, contentenc.HeaderLen)
 		if err != nil {
 			if !syscallcompat.IsENOSPC(err) {

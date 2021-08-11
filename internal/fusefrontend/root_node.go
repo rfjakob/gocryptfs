@@ -79,7 +79,7 @@ func NewRootNode(args Args, c *contentenc.ContentEnc, n *nametransform.NameTrans
 		contentEnc:    c,
 		inoMap:        inomap.New(),
 		dirCache:      dirCache{ivLen: ivLen},
-		quirks:        detectQuirks(args.Cipherdir),
+		quirks:        syscallcompat.DetectQuirks(args.Cipherdir),
 	}
 	return rn
 }
