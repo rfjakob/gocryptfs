@@ -44,4 +44,4 @@ ci:
 	# (we should not need any!)
 	GOPROXY=off ./build.bash
 	# Delete "vendor" dir
-	git clean -dxff
+	rm -R vendor
