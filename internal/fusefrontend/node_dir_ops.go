@@ -35,6 +35,7 @@ func haveDsstore(entries []fuse.DirEntry) bool {
 // should be a handle to the parent directory, cName is the name of the new
 // directory and mode specifies the access permissions to use.
 func (n *Node) mkdirWithIv(dirfd int, cName string, mode uint32, context *fuse.Context) error {
+
 	rn := n.rootNode()
 	// Between the creation of the directory and the creation of gocryptfs.diriv
 	// the directory is inconsistent. Take the lock to prevent other readers
@@ -48,7 +49,7 @@ func (n *Node) mkdirWithIv(dirfd int, cName string, mode uint32, context *fuse.C
 	dirfd2, err := syscallcompat.Openat(dirfd, cName, syscall.O_DIRECTORY|syscall.O_NOFOLLOW|syscallcompat.O_PATH, 0)
 	if err == nil {
 		// Create gocryptfs.diriv
-		err = nametransform.WriteDirIVAt(dirfd2)
+		err = nametransform.WriteDirIVAt(dirfd2, !rn.args.ZeroDirIV)
 		syscall.Close(dirfd2)
 	}
 	if err != nil {

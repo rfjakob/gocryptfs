@@ -1,7 +1,6 @@
 package nametransform
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -34,9 +33,6 @@ func ReadDirIVAt(dirfd int) (iv []byte, err error) {
 	return fdReadDirIV(fd)
 }
 
-// allZeroDirIV is preallocated to quickly check if the data read from disk is all zero
-var allZeroDirIV = make([]byte, DirIVLen)
-
 // fdReadDirIV reads and verifies the DirIV from an opened gocryptfs.diriv file.
 func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 	// We want to detect if the file is bigger than DirIVLen, so
@@ -50,9 +46,6 @@ func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 	if len(iv) != DirIVLen {
 		return nil, fmt.Errorf("wanted %d bytes, got %d", DirIVLen, len(iv))
 	}
-	if bytes.Equal(iv, allZeroDirIV) {
-		return nil, fmt.Errorf("diriv is all-zero")
-	}
 	return iv, nil
 }
 
@@ -60,8 +53,13 @@ func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 // "dirfd". On error we try to delete the incomplete file.
 // This function is exported because it is used from fusefrontend, main,
 // and also the automated tests.
-func WriteDirIVAt(dirfd int) error {
-	iv := cryptocore.RandBytes(DirIVLen)
+func WriteDirIVAt(dirfd int, randomInitialization bool) error {
+	var iv []byte
+	if randomInitialization {
+		iv = cryptocore.RandBytes(DirIVLen)
+	} else {
+		iv = make([]byte, DirIVLen)
+	}
 	// 0400 permissions: gocryptfs.diriv should never be modified after creation.
 	// Don't use "ioutil.WriteFile", it causes trouble on NFS:
 	// https://github.com/rfjakob/gocryptfs/commit/7d38f80a78644c8ec4900cc990bfb894387112ed
