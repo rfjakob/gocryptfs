@@ -66,6 +66,11 @@ func doMount(args *argContainer) {
 	}
 	if args.nonempty {
 		err = isDir(args.mountpoint)
+	} else if strings.HasPrefix(args.mountpoint, "/dev/fd/") {
+		// Magic fuse fd syntax, do nothing and let go-fuse figure it out.
+		//
+		// See https://github.com/libfuse/libfuse/commit/64e11073b9347fcf9c6d1eea143763ba9e946f70
+		// and `drop_privileges` in `man mount.fuse3` for background.
 	} else {
 		err = isEmptyDir(args.mountpoint)
 		// OSXFuse will create the mountpoint for us ( https://github.com/rfjakob/gocryptfs/issues/194 )
