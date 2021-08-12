@@ -545,6 +545,11 @@ useful in regression testing.
 
 Applies to: all actions.
 
+#### -zerodiriv
+Create diriv as all-zero files
+
+Applies to: all actions without `-plaintextnames`.
+
 #### \-\-
 Stop option parsing. Helpful when CIPHERDIR may start with a
 dash "-".

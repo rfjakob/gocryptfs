@@ -103,7 +103,7 @@ func initDir(args *argContainer) {
 		// Open cipherdir (following symlinks)
 		dirfd, err := syscall.Open(args.cipherdir, syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
 		if err == nil {
-			err = nametransform.WriteDirIVAt(dirfd)
+			err = nametransform.WriteDirIVAt(dirfd, !args.zerodiriv)
 			syscall.Close(dirfd)
 		}
 		if err != nil {
