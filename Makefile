@@ -16,6 +16,7 @@ root_test:
 format:
 	go fmt ./...
 
+# Keep in sync with uninstall!
 .phony: install
 install:
 	install -Dm755 -t "$(DESTDIR)/usr/bin/" gocryptfs
@@ -23,6 +24,14 @@ install:
 	install -Dm644 -t "$(DESTDIR)/usr/share/man/man1/" Documentation/gocryptfs.1
 	install -Dm644 -t "$(DESTDIR)/usr/share/man/man1/" Documentation/gocryptfs-xray.1
 	install -Dm644 -t "$(DESTDIR)/usr/share/licenses/gocryptfs" LICENSE
+
+.phony: uninstall
+uninstall:
+	rm -f "$(DESTDIR)/usr/bin/gocryptfs"
+	rm -f "$(DESTDIR)/usr/bin/gocryptfs-xray"
+	rm -f "$(DESTDIR)/usr/share/man/man1/gocryptfs.1"
+	rm -f "$(DESTDIR)/usr/share/man/man1/gocryptfs-xray.1"
+	rm -f "$(DESTDIR)/usr/share/licenses/gocryptfs/LICENSE"
 
 .phony: ci
 ci:
