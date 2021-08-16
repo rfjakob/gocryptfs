@@ -8,8 +8,23 @@ on:
 
 jobs:
   build:
+    strategy:
+      matrix:
+        go:
+          - "1.11.x" # Debian 10 "Buster"
+          - "1.13.x" # Ubuntu 20.04 LTS "focal"
+          - "1.15.x" # Debian 11 "Bullseye"
+          - "1.16.x" # Golang upstream stable
+          - "1.17.x" # Golang upstream stable
+      # Don't cancel everything when one Go version fails
+      fail-fast: false
     runs-on: ubuntu-latest
     steps:
+
+    - name: Install Go ${{ matrix.go }}
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go }}
 
     # Looks like Github Actions leaks fds to child processes
     # https://github.com/actions/runner/issues/1188
@@ -26,7 +41,7 @@ jobs:
     - run: ./build-without-openssl.bash
     - uses: actions/upload-artifact@v2
       with:
-        name: gocryptfs static binary
+        name: gocryptfs static binary (Go ${{ matrix.go }})
         path: gocryptfs
 
     # Actual test steps are in the Makefile
