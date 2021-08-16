@@ -336,6 +336,7 @@ func TestBtrfsQuirks(t *testing.T) {
 	cmd := exec.Command("mkfs.btrfs", img)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
+		t.Logf("%q", cmd.Args)
 		t.Log(string(out))
 		t.Fatal(err)
 	}
