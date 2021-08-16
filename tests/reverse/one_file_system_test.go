@@ -3,7 +3,6 @@ package reverse
 import (
 	"io/ioutil"
 	"net/url"
-	"os"
 	"runtime"
 	"syscall"
 	"testing"
@@ -28,21 +27,17 @@ func doTestOneFileSystem(t *testing.T, plaintextnames bool) {
 	// Copied from inomap
 	const maxPassthruIno = 1<<48 - 1
 
-	entries, err := os.ReadDir(mnt)
+	entries, err := ioutil.ReadDir(mnt)
 	if err != nil {
 		t.Fatal(err)
 	}
 	mountpoints := []string{}
 	for _, e := range entries {
-		i, err := e.Info()
-		if err != nil {
-			continue
-		}
 		if !e.IsDir() {
 			// We are only interested in directories
 			continue
 		}
-		st := i.Sys().(*syscall.Stat_t)
+		st := e.Sys().(*syscall.Stat_t)
 		// The inode numbers of files with a different device number are remapped
 		// to something above maxPassthruIno
 		if st.Ino > maxPassthruIno {
@@ -53,7 +48,7 @@ func doTestOneFileSystem(t *testing.T, plaintextnames bool) {
 		t.Skip("no mountpoints found, nothing to test")
 	}
 	for _, m := range mountpoints {
-		e, err := os.ReadDir(mnt + "/" + m)
+		e, err := ioutil.ReadDir(mnt + "/" + m)
 		if err != nil {
 			t.Error(err)
 		}
