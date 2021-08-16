@@ -18,6 +18,8 @@ import (
 	"log"
 	"sync"
 	"syscall"
+
+	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
 const (
@@ -56,7 +58,11 @@ func New() *InoMap {
 	}
 }
 
+var spillWarn sync.Once
+
 func (m *InoMap) spill(in QIno) (out uint64) {
+	spillWarn.Do(func() { tlog.Warn.Printf("InoMap: opening spillMap for %v", in) })
+
 	out, found := m.spillMap[in]
 	if found {
 		return out | spillBit
