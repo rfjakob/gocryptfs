@@ -275,6 +275,7 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 		Suid:            args.suid,
 		KernelCache:     args.kernel_cache,
 		SharedStorage:   args.sharedstorage,
+		OneFileSystem:   args.one_file_system,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {

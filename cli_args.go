@@ -30,7 +30,7 @@ type argContainer struct {
 	plaintextnames, quiet, nosyslog, wpanic,
 	longnames, allow_other, reverse, aessiv, nonempty, raw64,
 	noprealloc, speed, hkdf, serialize_reads, forcedecode, hh, info,
-	sharedstorage, devrandom, fsck bool
+	sharedstorage, devrandom, fsck, one_file_system bool
 	// Mount options with opposites
 	dev, nodev, suid, nosuid, exec, noexec, rw, ro, kernel_cache, acl bool
 	masterkey, mountpoint, cipherdir, cpuprofile,
@@ -178,6 +178,7 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.BoolVar(&args.sharedstorage, "sharedstorage", false, "Make concurrent access to a shared CIPHERDIR safer")
 	flagSet.BoolVar(&args.devrandom, "devrandom", false, "Use /dev/random for generating master key")
 	flagSet.BoolVar(&args.fsck, "fsck", false, "Run a filesystem check on CIPHERDIR")
+	flagSet.BoolVar(&args.one_file_system, "one-file-system", false, "Don't cross filesystem boundaries")
 
 	// Mount options with opposites
 	flagSet.BoolVar(&args.dev, "dev", false, "Allow device files")

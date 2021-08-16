@@ -91,6 +91,7 @@ func (n *Node) prepareAtSyscall(child string) (d *dirfdPlus, errno syscall.Errno
 // newChild attaches a new child inode to n.
 // The passed-in `st` will be modified to get a unique inode number.
 func (n *Node) newChild(ctx context.Context, st *syscall.Stat_t, out *fuse.EntryOut) *fs.Inode {
+	isOtherFilesystem := (uint64(st.Dev) != n.rootNode().rootDev)
 	// Get unique inode number
 	rn := n.rootNode()
 	rn.inoMap.TranslateStat(st)
@@ -101,7 +102,9 @@ func (n *Node) newChild(ctx context.Context, st *syscall.Stat_t, out *fuse.Entry
 		Gen:  1,
 		Ino:  st.Ino,
 	}
-	node := &Node{}
+	node := &Node{
+		isOtherFilesystem: isOtherFilesystem,
+	}
 	return n.NewInode(ctx, node, id)
 }
 

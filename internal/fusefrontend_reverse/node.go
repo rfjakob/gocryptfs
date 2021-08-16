@@ -22,6 +22,10 @@ import (
 // in a `gocryptfs -reverse` mount.
 type Node struct {
 	fs.Inode
+	// isOtherFilesystem is used for --one-filesystem.
+	// It is set when the device number of this file or directory
+	// is different from n.rootNode().rootDev.
+	isOtherFilesystem bool
 }
 
 // Lookup - FUSE call for discovering a file.
@@ -31,7 +35,14 @@ func (n *Node) Lookup(ctx context.Context, cName string, out *fuse.EntryOut) (ch
 	if t == typeDiriv {
 		// gocryptfs.diriv
 		return n.lookupDiriv(ctx, out)
-	} else if t == typeName {
+	}
+	rn := n.rootNode()
+	if rn.args.OneFileSystem && n.isOtherFilesystem {
+		// With --one-file-system, we present mountpoints as empty. That is,
+		// it contains only a gocryptfs.diriv file (allowed above).
+		return nil, syscall.ENOENT
+	}
+	if t == typeName {
 		// gocryptfs.longname.*.name
 		return n.lookupLongnameName(ctx, cName, out)
 	} else if t == typeConfig {

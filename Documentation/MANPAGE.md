@@ -331,6 +331,14 @@ See `-suid, -nosuid`.
 Send USR1 to the specified process after successful mount. This is
 used internally for daemonization.
 
+#### -one-file-system
+Don't cross filesystem boundaries (like rsync's `--one-file-system`).
+Mountpoints will appear as empty directories.
+
+Only applicable to reverse mode.
+
+Limitation: Mounted single files (yes this is possible) are NOT hidden.
+
 #### -rw, -ro
 Mount the filesystem read-write (`-rw`, default) or read-only (`-ro`).
 If both are specified, `-ro` takes precedence.

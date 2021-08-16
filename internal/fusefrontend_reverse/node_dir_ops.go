@@ -23,6 +23,22 @@ import (
 // This function is symlink-safe through use of openBackingDir() and
 // ReadDirIVAt().
 func (n *Node) Readdir(ctx context.Context) (stream fs.DirStream, errno syscall.Errno) {
+	// Virtual files: at least one gocryptfs.diriv file
+	virtualFiles := []fuse.DirEntry{
+		{Mode: virtualFileMode, Name: nametransform.DirIVFilename},
+	}
+	rn := n.rootNode()
+
+	// This directory is a mountpoint. Present it as empty.
+	if rn.args.OneFileSystem && n.isOtherFilesystem {
+		if rn.args.PlaintextNames {
+			return fs.NewListDirStream(nil), 0
+		} else {
+			// An "empty" directory still has a gocryptfs.diriv file!
+			return fs.NewListDirStream(virtualFiles), 0
+		}
+	}
+
 	d, errno := n.prepareAtSyscall("")
 	if errno != 0 {
 		return
@@ -41,18 +57,11 @@ func (n *Node) Readdir(ctx context.Context) (stream fs.DirStream, errno syscall.
 		return nil, fs.ToErrno(err)
 	}
 
-	rn := n.rootNode()
-
 	// Filter out excluded entries
 	entries = rn.excludeDirEntries(d, entries)
 
 	if rn.args.PlaintextNames {
 		return n.readdirPlaintextnames(entries)
-	}
-
-	// Virtual files: at least one gocryptfs.diriv file
-	virtualFiles := []fuse.DirEntry{
-		{Mode: virtualFileMode, Name: nametransform.DirIVFilename},
 	}
 
 	dirIV := pathiv.Derive(d.cPath, pathiv.PurposeDirIV)

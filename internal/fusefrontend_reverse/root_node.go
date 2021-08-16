@@ -36,17 +36,31 @@ type RootNode struct {
 	// inoMap translates inode numbers from different devices to unique inode
 	// numbers.
 	inoMap *inomap.InoMap
+	// rootDev stores the device number of the backing directory. Used for
+	// --one-file-system.
+	rootDev uint64
 }
 
 // NewRootNode returns an encrypted FUSE overlay filesystem.
 // In this case (reverse mode) the backing directory is plain-text and
 // ReverseFS provides an encrypted view.
 func NewRootNode(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) *RootNode {
+	var rootDev uint64
+	if args.OneFileSystem {
+		var st syscall.Stat_t
+		err := syscall.Stat(args.Cipherdir, &st)
+		if err != nil {
+			log.Panicf("Could not stat backing directory %q: %v", args.Cipherdir, err)
+		}
+		rootDev = uint64(st.Dev)
+	}
+
 	rn := &RootNode{
 		args:          args,
 		nameTransform: n,
 		contentEnc:    c,
 		inoMap:        inomap.New(),
+		rootDev:       rootDev,
 	}
 	if len(args.Exclude) > 0 || len(args.ExcludeWildcard) > 0 || len(args.ExcludeFrom) > 0 {
 		rn.excluder = prepareExcluder(args)

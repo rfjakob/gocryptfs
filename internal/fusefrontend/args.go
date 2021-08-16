@@ -49,4 +49,8 @@ type Args struct {
 	// SharedStorage disables caching & hard link tracking,
 	// enabled via cli flag "-sharedstorage"
 	SharedStorage bool
+	// OneFileSystem disables crossing filesystem boundaries,
+	// like rsync's `--one-file-system` does.
+	// Only applicable to reverse mode.
+	OneFileSystem bool
 }

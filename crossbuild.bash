@@ -5,7 +5,8 @@
 cd "$(dirname "$0")"
 
 export GO111MODULE=on
-B="go build -tags without_openssl"
+# Discard resulting binary by writing to /dev/null
+B="go build -tags without_openssl -o /dev/null"
 
 set -x
 
@@ -26,6 +27,3 @@ GOOS=darwin GOARCH=amd64 $B
 if go tool dist list | grep ios/arm64 ; then
 	GOOS=darwin GOARCH=arm64 $B
 fi
-
-# The cross-built binary is not useful on the compile host.
-rm gocryptfs
