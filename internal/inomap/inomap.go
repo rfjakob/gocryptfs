@@ -1,4 +1,4 @@
-// inomap translates (Dev, Flags, Ino) tuples to unique uint64
+// inomap translates (Dev, Tag, Ino) tuples to unique uint64
 // inode numbers.
 //
 // Format of the returned inode numbers:
@@ -6,11 +6,11 @@
 //   [spill bit = 0][15 bit namespace id][48 bit passthru inode number]
 //   [spill bit = 1][63 bit spill inode number                        ]
 //
-// Each (Dev, Flags) tuple gets a namespace id assigned. The original inode
+// Each (Dev, Tag) tuple gets a namespace id assigned. The original inode
 // number is then passed through in the lower 48 bits.
 //
 // If namespace ids are exhaused, or the original id is larger than 48 bits,
-// the whole (Dev, Flags, Ino) tuple gets mapped in the spill map, and the
+// the whole (Dev, Tag, Ino) tuple gets mapped in the spill map, and the
 // spill bit is set to 1.
 package inomap
 

@@ -15,8 +15,8 @@ type namespaceData struct {
 }
 
 // QIno = Qualified Inode number.
-// Uniquely identifies a backing file through the device number,
-// inode number pair.
+// Uniquely identifies a backing file through the
+// (device number, tag, inode number) tuple.
 type QIno struct {
 	namespaceData
 	// Stat_t.Ino is uint64 on 32- and 64-bit Linu
