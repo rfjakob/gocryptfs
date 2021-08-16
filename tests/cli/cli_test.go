@@ -882,7 +882,7 @@ func TestBadname(t *testing.T) {
 
 	for i := 0; i < len(results); i++ {
 		if !results[i] {
-			t.Errorf("Case %d failed: '%s' in [%s]", i+1, searchstrings[i], strings.Join(names, ","))
+			t.Errorf("Case %d failed: %q in [%q]", i+1, searchstrings[i], strings.Join(names, ","))
 		}
 	}
 }
