@@ -698,19 +698,19 @@ func TestSymlinkedCipherdir(t *testing.T) {
 }
 
 // TestBadname tests the `-badname` option
+//
+// Supported structure of badname: <ciphername><badname pattern><badname suffix>
+// "Visible" shows the success of function DecryptName (cipher -> plain)
+// "Access" shows the success of function EncryptAndHashBadName (plain -> cipher)
+// Case    Visible  Access  Description
+// Case 1     x       x     Access file without BadName suffix (default mode)
+// Case 2     x       x     Access file with BadName suffix which has a valid cipher file (will only be possible if file was created without badname option)
+// Case 3                   Access file with valid ciphername + BadName suffix (impossible since this would not be produced by DecryptName)
+// Case 4     x       x     Access file with decryptable part of name and Badname suffix (default badname case)
+// Case 5     x       x     Access file with undecryptable name and BadName suffix (e. g. when part of the cipher name was cut)
+// Case 6     x             Access file with multiple possible matches.
+// Case 7                   Access file with BadName suffix and non-matching pattern
 func TestBadname(t *testing.T) {
-	//Supported structure of badname: <ciphername><badname pattern><badname suffix>
-	//"Visible" shows the success of function DecryptName (cipher -> plain)
-	//"Access" shows the success of function EncryptAndHashBadName (plain -> cipher)
-	//Case    Visible  Access  Description
-	//Case 1     x       x     Access file without BadName suffix (default mode)
-	//Case 2     x       x     Access file with BadName suffix which has a valid cipher file (will only be possible if file was created without badname option)
-	//Case 3                   Access file with valid ciphername + BadName suffix (impossible since this would not be produced by DecryptName)
-	//Case 4     x       x     Access file with decryptable part of name and Badname suffix (default badname case)
-	//Case 5     x       x     Access file with undecryptable name and BadName suffix (e. g. when part of the cipher name was cut)
-	//Case 6     x             Access file with multiple possible matches.
-	//Case 7                   Access file with BadName suffix and non-matching pattern
-
 	dir := test_helpers.InitFS(t)
 	mnt := dir + ".mnt"
 	validFileName := "file"
@@ -721,7 +721,7 @@ func TestBadname(t *testing.T) {
 
 	file := mnt + "/" + validFileName
 	// Case 1: write one valid filename (empty content)
-	err := ioutil.WriteFile(file, []byte("Content Case 1."), 0600)
+	err := ioutil.WriteFile(file, nil, 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -783,8 +783,8 @@ func TestBadname(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	//Case 5: write invalid file which is not decodable (cropping the encrpyted file name)
-	err = ioutil.WriteFile(dir+"/"+encryptedfilename[:len(encryptedfilename)-2]+invalidSuffix, contentCipher[4], 0600)
+	//Case 5: write invalid file which is not decodable (replace last 2 bytes with percent sign)
+	err = ioutil.WriteFile(dir+"/"+encryptedfilename[:len(encryptedfilename)-2]+"%%"+invalidSuffix, contentCipher[4], 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -822,7 +822,7 @@ func TestBadname(t *testing.T) {
 		validFileName + nametransform.BadnameSuffix,
 		"",
 		validFileName + invalidSuffix + nametransform.BadnameSuffix,
-		encryptedfilename[:len(encryptedfilename)-2] + invalidSuffix + nametransform.BadnameSuffix,
+		encryptedfilename[:len(encryptedfilename)-2] + "%%" + invalidSuffix + nametransform.BadnameSuffix,
 		"",
 		validFileName + "wrongPattern" + nametransform.BadnameSuffix}
 	results := []bool{false, false, true, false, false, true, true}
