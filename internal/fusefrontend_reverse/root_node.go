@@ -109,6 +109,10 @@ func (rn *RootNode) findLongnameParent(fd int, diriv []byte, longname string) (p
 // isExcludedPlain finds out if the plaintext path "pPath" is
 // excluded (used when -exclude is passed by the user).
 func (rn *RootNode) isExcludedPlain(pPath string) bool {
+	// root dir can't be excluded
+	if pPath == "" {
+		return false
+	}
 	return rn.excluder != nil && rn.excluder.MatchesPath(pPath)
 }
 
