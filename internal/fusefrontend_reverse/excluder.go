@@ -20,12 +20,7 @@ func prepareExcluder(args fusefrontend.Args) *ignore.GitIgnore {
 	if len(patterns) == 0 {
 		log.Panic(patterns)
 	}
-	excluder, err := ignore.CompileIgnoreLines(patterns...)
-	if err != nil {
-		tlog.Fatal.Printf("Error compiling exclusion rules: %v", err)
-		os.Exit(exitcodes.ExcludeError)
-	}
-	return excluder
+	return ignore.CompileIgnoreLines(patterns...)
 }
 
 // getExclusionPatters prepares a list of patterns to be excluded.

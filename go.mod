@@ -9,12 +9,12 @@ require (
 	github.com/jacobsa/oglemock v0.0.0-20150831005832-e94d794d06ff // indirect
 	github.com/jacobsa/ogletest v0.0.0-20170503003838-80d50a735a11 // indirect
 	github.com/jacobsa/reqtrace v0.0.0-20150505043853-245c9e0234cb // indirect
-	github.com/pkg/xattr v0.4.1
-	github.com/rfjakob/eme v1.1.1
-	github.com/sabhiram/go-gitignore v0.0.0-20180611051255-d3107576ba94
+	github.com/pkg/xattr v0.4.3
+	github.com/rfjakob/eme v1.1.2
+	github.com/sabhiram/go-gitignore v0.0.0-20201211210132-54b8a0bf510f
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.5.1 // indirect
-	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
-	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e // indirect
-	golang.org/x/sys v0.0.0-20200501145240-bc7a7d42d5c3
+	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
+	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d // indirect
+	golang.org/x/sys v0.0.0-20210817190340-bfb29a6856f2
+	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
 )
