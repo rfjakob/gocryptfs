@@ -28,7 +28,9 @@ func TestFdXattr(t *testing.T) {
 	defer syscall.Close(fd)
 	buf := make([]byte, 1000)
 	sz, err := unix.Flistxattr(fd, buf)
-	if sz != 0 {
+	if err != nil {
+		t.Error(err)
+	} else if sz != 0 {
 		t.Errorf("expected zero size, got %d", sz)
 	}
 	val1 := []byte("123456789")
@@ -64,7 +66,9 @@ func TestFdXattr(t *testing.T) {
 		t.Error(err)
 	}
 	sz, err = unix.Flistxattr(fd, buf)
-	if sz != 0 {
+	if err != nil {
+		t.Error(err)
+	} else if sz != 0 {
 		t.Errorf("expected zero size, got %d", sz)
 	}
 }

@@ -354,23 +354,25 @@ func (n *Node) Symlink(ctx context.Context, target, name string, out *fuse.Entry
 	if !rn.args.PlaintextNames && nametransform.IsLongContent(cName) {
 		err = rn.nameTransform.WriteLongNameAt(dirfd, cName, name)
 		if err != nil {
-			errno = fs.ToErrno(err)
-			return
+			return nil, fs.ToErrno(err)
 		}
 		// Create "gocryptfs.longfile." symlink
 		err = syscallcompat.SymlinkatUser(cTarget, dirfd, cName, ctx2)
 		if err != nil {
 			nametransform.DeleteLongNameAt(dirfd, cName)
+			return nil, fs.ToErrno(err)
 		}
 	} else {
 		// Create symlink
 		err = syscallcompat.SymlinkatUser(cTarget, dirfd, cName, ctx2)
+		if err != nil {
+			return nil, fs.ToErrno(err)
+		}
 	}
 
 	st, err := syscallcompat.Fstatat2(dirfd, cName, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
-		errno = fs.ToErrno(err)
-		return
+		return nil, fs.ToErrno(err)
 	}
 	// Report the plaintext size, not the encrypted blob size
 	st.Size = int64(len(target))

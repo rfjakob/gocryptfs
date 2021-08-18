@@ -363,6 +363,9 @@ func TestMd5sumMaintainers(t *testing.T) {
 
 	cmd := exec.Command("md5sum", fn, fn, fn, fn)
 	out2, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatal(err)
+	}
 	out := string(out2)
 
 	// 195191 zero bytes have this md5sum

@@ -277,16 +277,13 @@ func (f *File) Read(ctx context.Context, buf []byte, off int64) (resultData fuse
 // Empty writes do nothing and are allowed.
 func (f *File) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
 	fileWasEmpty := false
-	// Get the file ID, create a new one if it does not exist yet.
-	var fileID []byte
 	// The caller has exclusively locked ContentLock, which blocks all other
 	// readers and writers. No need to take IDLock.
-	if f.fileTableEntry.ID != nil {
-		fileID = f.fileTableEntry.ID
-	} else {
-		// If the file ID is not cached, read it from disk
+	//
+	// If the file ID is not cached, read it from disk
+	if f.fileTableEntry.ID == nil {
 		var err error
-		fileID, err = f.readFileID()
+		fileID, err := f.readFileID()
 		// Write a new file header if the file is empty
 		if err == io.EOF {
 			fileID, err = f.createHeader()

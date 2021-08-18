@@ -33,6 +33,7 @@ func TestOpenNofollow(t *testing.T) {
 	os.Symlink(tmpDir+"/d1.renamed", tmpDir+"/d1")
 	fd, err = OpenDirNofollow(tmpDir, "d1/d2/d3")
 	if err == nil {
+		syscall.Close(fd)
 		t.Fatalf("should have failed")
 	}
 	if err != syscall.ELOOP && err != syscall.ENOTDIR {

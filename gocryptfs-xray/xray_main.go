@@ -154,9 +154,18 @@ func dumpMasterKey(fn string, fido2Path string) {
 		pw = readpassword.Once(nil, nil, "")
 	}
 	masterkey, err := cf.DecryptMasterKey(pw)
-	fmt.Println(hex.EncodeToString(masterkey))
+	// Purge password from memory
 	for i := range pw {
 		pw[i] = 0
+	}
+	if err != nil {
+		tlog.Fatal.Println(err)
+		os.Exit(exitcodes.LoadConf)
+	}
+	fmt.Println(hex.EncodeToString(masterkey))
+	// Purge masterkey from memory
+	for i := range masterkey {
+		masterkey[i] = 0
 	}
 }
 

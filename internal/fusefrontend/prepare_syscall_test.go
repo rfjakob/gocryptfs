@@ -63,8 +63,8 @@ func TestPrepareAtSyscall(t *testing.T) {
 	syscall.Close(dirfd)
 
 	dirfd, cName, errno = rn.prepareAtSyscall("dir1")
-	if err != nil {
-		t.Fatal(err)
+	if errno != 0 {
+		t.Fatal(errno)
 	}
 	if cName == "" {
 		t.Fatal("cName should not be empty")

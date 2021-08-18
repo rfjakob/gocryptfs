@@ -109,6 +109,9 @@ func TestAcl543(t *testing.T) {
 		t.Fatal(err)
 	}
 	fi, err := os.Stat(fn1)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if fi.Mode() != modeWant {
 		t.Fatalf("mode changed from %o to %o", modeWant, fi.Mode())
 	}
@@ -178,7 +181,7 @@ func TestXattrOverflow(t *testing.T) {
 	if sz != len(val) {
 		t.Errorf("wrong sz: want %d have %d", len(val), sz)
 	}
-	sz, err = unix.Lgetxattr(fn, attr, make([]byte, 1))
+	_, err = unix.Lgetxattr(fn, attr, make([]byte, 1))
 	if err != syscall.ERANGE {
 		t.Error(err)
 	}
@@ -195,7 +198,7 @@ func TestXattrOverflow(t *testing.T) {
 	if sz != szWant {
 		t.Errorf("wrong sz: want %d have %d", szWant, sz)
 	}
-	sz, err = unix.Llistxattr(fn, make([]byte, 1))
+	_, err = unix.Llistxattr(fn, make([]byte, 1))
 	if err != syscall.ERANGE {
 		t.Error(err)
 	}
