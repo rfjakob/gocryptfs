@@ -51,7 +51,7 @@ ci:
 	go clean -modcache
 	# GOPROXY=off makes sure we fail instead of making network requests
 	# (we should not need any!)
-	# "-mod=vendor" is required for Go 1.11
+	# "-mod=vendor" is required for Go 1.13
 	GOPROXY=off ./build.bash -mod=vendor
 	# Delete "vendor" dir
 	rm -R vendor
