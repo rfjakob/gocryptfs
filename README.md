@@ -101,7 +101,7 @@ as well as in the go-fuse library.
 Compile
 -------
 
-Install Go 1.11 or higher:
+Install Go 1.13 or higher:
 
 * Debian/Ubuntu: `apt install golang`
 * Fedora: `dnf install golang`
@@ -178,7 +178,7 @@ On CPUs without AES-NI, gocryptfs uses OpenSSL through a thin wrapper called `st
 This provides a 4x speedup compared to Go's builtin AES-GCM
 implementation. See [CPU-Benchmarks](https://github.com/rfjakob/gocryptfs/wiki/CPU-Benchmarks)
 for details, or run `gocryptfs -speed` to see the encryption performance of your CPU.
-Example for a CPU without AES-NI:
+Example for a CPU with AES-NI:
 
 ```
 $ ./gocryptfs -speed
@@ -208,7 +208,7 @@ RM:    2,367
 Changelog
 ---------
 
-v2.1 (IN PROGRESS)
+v2.1, 2021-08-18
 * `-fido2`: do not request PIN on `gocryptfs -init` fixing `FIDO_ERR_UNSUPPORTED_OPTION` with YubiKey
   ([#571](https://github.com/rfjakob/gocryptfs/issues/571))
 * `-sharedstorage`: present stable inode numbers, fixing getcwd failures
@@ -216,14 +216,16 @@ v2.1 (IN PROGRESS)
 * `-badname`: make it possible to access content of invalid file names ([#568](https://github.com/rfjakob/gocryptfs/pull/568)).
   Thanks @DerDonut!
 * Implement recursive `gocryptfs.diriv` caching to fix exponential runtime with deep directories
-  (84e702126ac4f017e12150532bfaed675dee2927)
+  ([commit](https://github.com/rfjakob/gocryptfs/commit/84e702126ac4f017e12150532bfaed675dee2927)])
 * Implements fsync on directories ([#587](https://github.com/rfjakob/gocryptfs/issues/587))
 * `-reverse`: implement `-one-file-system` ([#475](https://github.com/rfjakob/gocryptfs/issues/475))
 * `-reverse`: allow exclude-all-but ([#588](https://github.com/rfjakob/gocryptfs/issues/588))
   * Example: `gocryptfs -reverse -exclude-wildcard '*' -exclude-wildcard '!/my-important-files' /home/user /mnt/user.encrypted`
 * macOS: Fix `panic: using reserved ID 1` on ExFAT ([#585](https://github.com/rfjakob/gocryptfs/issues/585))
 * Switch to `pflag` cli parsing library to support flags and arguments in any order
-  (f53f52b0464f747a370618bcdf152fad585f1eb5, [#590](https://github.com/rfjakob/gocryptfs/issues/590))
+  ([#590](https://github.com/rfjakob/gocryptfs/issues/590))
+* Drop support for Go 1.11 & Go 1.12 ([commit](https://github.com/rfjakob/gocryptfs/commit/a5f88e86d186cdbc67e1efabd7aacf389775e027))
+  * You must have Go 1.13 or newer now
 
 v2.0.1, 2021-06-07
 * Fix symlink creation reporting the wrong size, causing git to report it as modified
