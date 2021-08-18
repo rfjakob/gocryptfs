@@ -33,6 +33,7 @@ func doTestExcludeTestFs(t *testing.T, flag string) {
 		"/longfile3" + x240,           // a leading / anchors the match at the root
 		"*~",                          // wildcards are supported
 		"dir1/**/exclude",             // ** matches any number of directories
+		"file3/",                      // pattern with trailing slash should not match a file
 	}
 	// pVisible are plaintext paths that should be visible in the encrypted view
 	pVisible := []string{
@@ -43,6 +44,7 @@ func doTestExcludeTestFs(t *testing.T, flag string) {
 		"longdir1" + x240 + "/file1",
 		"longdir2" + x240 + "/file",
 		"longfile1" + x240,
+		"file3",
 	}
 	// pHidden are plaintext paths that should be hidden in the encrypted view
 	pHidden := []string{
