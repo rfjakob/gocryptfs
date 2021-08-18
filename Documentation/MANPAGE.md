@@ -192,7 +192,7 @@ You need root permissions to use `-dev`.
 #### -e PATH, -exclude PATH
 Only for reverse mode: exclude relative plaintext path from the encrypted
 view, matching only from root of mounted filesystem. Can be passed multiple
-times. No wildcards.
+times.
 
 Example that excludes the directories "Music" and "Movies" from the root
 directory:
@@ -209,7 +209,11 @@ Example to exclude all `.mp3` files in any directory:
 
     gocryptfs -reverse -exclude-wildcard '*.mp3' /home/user /mnt/user.encrypted
 
-See also `-exclude`, `-exclude-from` and the [EXCLUDING FILES](#excluding-files) section.
+Example to to exclude everything but the directory 'important' in the root dir:
+
+    gocryptfs -reverse -exclude-wildcard '*' -exclude-wildcard '!/important' /home/user /mnt/user.encrypted
+
+See also `-exclude-from` and the [EXCLUDING FILES](#excluding-files) section.
 
 #### -exclude-from FILE
 Only for reverse mode: reads gitignore patterns
