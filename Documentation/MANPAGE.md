@@ -192,22 +192,27 @@ You need root permissions to use `-dev`.
 #### -e PATH, -exclude PATH
 Only for reverse mode: exclude relative plaintext path from the encrypted
 view, matching only from root of mounted filesystem. Can be passed multiple
-times. Example:
+times. No wildcards.
+
+Example that excludes the directories "Music" and "Movies" from the root
+directory:
 
     gocryptfs -reverse -exclude Music -exclude Movies /home/user /mnt/user.encrypted
 
 See also `-exclude-wildcard`, `-exclude-from` and the [EXCLUDING FILES](#excluding-files) section.
 
-#### -ew PATH, -exclude-wildcard PATH
-Only for reverse mode: exclude paths from the encrypted view, matching anywhere.
-Wildcards supported. Can be passed multiple times. Example:
+#### -ew GITIGNORE-PATTERN, -exclude-wildcard GITIGNORE-PATTERN
+Only for reverse mode: exclude paths from the encrypted view in gitignore(5) syntax,
+wildcards supported. Pass multiple times for multiple patterns.
 
-    gocryptfs -reverse -exclude-wildcard '*~' /home/user /mnt/user.encrypted
+Example to exclude all `.mp3` files in any directory:
+
+    gocryptfs -reverse -exclude-wildcard '*.mp3' /home/user /mnt/user.encrypted
 
 See also `-exclude`, `-exclude-from` and the [EXCLUDING FILES](#excluding-files) section.
 
 #### -exclude-from FILE
-Only for reverse mode: reads exclusion patters (using `-exclude-wildcard` syntax)
+Only for reverse mode: reads gitignore patterns
 from a file. Can be passed multiple times. Example:
 
     gocryptfs -reverse -exclude-from ~/crypt-exclusions /home/user /mnt/user.encrypted
@@ -550,16 +555,17 @@ the `-exclude`, `-exclude-wildcard` and `-exclude-from` options.
 
 `-exclude` matches complete paths, so `-exclude file.txt` only excludes a file
 named `file.txt` in the root of the mounted filesystem; files named `file.txt`
-in subdirectories are still visible. (This option is kept for compatibility
-with the behavior up to version 1.6.x)
+in subdirectories are still visible. Wildcards are NOT supported.
+This option is kept for compatibility with the behavior up to version 1.6.x.
+New users should use `-exclude-wildcard` instead.
 
-`-exclude-wildcard` matches files anywhere, so `-exclude-wildcard file.txt`
+`-exclude-wildcard` uses gitignore syntax and matches files anywhere, so `-exclude-wildcard file.txt`
 excludes files named `file.txt` in any directory. If you want to match complete
 paths, you can prefix the filename with a `/`: `-exclude-wildcard /file.txt`
 excludes only `file.txt` in the root of the mounted filesystem.
 
-If there are many exclusions, you can use `-exclude-from` to read exclusion
-patterns from a file. The syntax is that of `-exclude-wildcard`, so use a
+If there are many exclusions, you can use `-exclude-from` to read gitignore
+patterns from a file. As with `-exclude-wildcard`, use a
 leading `/` to match complete paths.
 
 The rules for exclusion are that of [gitignore](https://git-scm.com/docs/gitignore#_pattern_format).
@@ -649,4 +655,4 @@ See also: https://github.com/rfjakob/gocryptfs/blob/master/internal/exitcodes/ex
 
 SEE ALSO
 ========
-mount(2) fuse(8) fallocate(2) encfs(1)
+mount(2) fuse(8) fallocate(2) encfs(1) gitignore(5)
