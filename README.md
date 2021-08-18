@@ -213,6 +213,17 @@ v2.1 (IN PROGRESS)
   ([#571](https://github.com/rfjakob/gocryptfs/issues/571))
 * `-sharedstorage`: present stable inode numbers, fixing getcwd failures
   ([#584](https://github.com/rfjakob/gocryptfs/issues/584))
+* `-badname`: make it possible to access content of invalid file names ([#568](https://github.com/rfjakob/gocryptfs/pull/568)).
+  Thanks @DerDonut!
+* Implement recursive `gocryptfs.diriv` caching to fix exponential runtime with deep directories
+  (84e702126ac4f017e12150532bfaed675dee2927)
+* Implements fsync on directories ([#587](https://github.com/rfjakob/gocryptfs/issues/587))
+* `-reverse`: implement `-one-file-system` ([#475](https://github.com/rfjakob/gocryptfs/issues/475))
+* `-reverse`: allow exclude-all-but ([#588](https://github.com/rfjakob/gocryptfs/issues/588))
+  * Example: `gocryptfs -reverse -exclude-wildcard '*' -exclude-wildcard '!/my-important-files' /home/user /mnt/user.encrypted`
+* macOS: Fix `panic: using reserved ID 1` on ExFAT ([#585](https://github.com/rfjakob/gocryptfs/issues/585))
+* Switch to `pflag` cli parsing library to support flags and arguments in any order
+  (f53f52b0464f747a370618bcdf152fad585f1eb5, [#590](https://github.com/rfjakob/gocryptfs/issues/590))
 
 v2.0.1, 2021-06-07
 * Fix symlink creation reporting the wrong size, causing git to report it as modified
