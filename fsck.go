@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
+	"sort"
 	"sync"
 	"syscall"
 
@@ -96,6 +96,8 @@ func (ck *fsckObj) dir(relPath string) {
 		ck.markCorrupt(relPath)
 		return
 	}
+	// Sort alphabetically to make fsck runs deterministic
+	sort.Strings(entries)
 	for _, entry := range entries {
 		if ck.abort {
 			return
@@ -319,20 +321,6 @@ func fsck(args *argContainer) (exitcode int) {
 	}
 	fmt.Printf("fsck summary: %d corrupt files, %d files skipped\n", len(ck.corruptList), len(ck.skippedList))
 	return exitcodes.FsckErrors
-}
-
-type sortableDirEntries []fuse.DirEntry
-
-func (s sortableDirEntries) Len() int {
-	return len(s)
-}
-
-func (s sortableDirEntries) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func (s sortableDirEntries) Less(i, j int) bool {
-	return strings.Compare(s[i].Name, s[j].Name) < 0
 }
 
 func inum(f *os.File) uint64 {
