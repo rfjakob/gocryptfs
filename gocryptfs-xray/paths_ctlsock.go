@@ -31,7 +31,7 @@ func transformPaths(socketPath string, req *ctlsock.RequestStruct, in *string, s
 		separator = '\000'
 	}
 	r := bufio.NewReader(os.Stdin)
-	for eof := false; eof == false; line++ {
+	for eof := false; !eof; line++ {
 		val, err := r.ReadBytes(separator)
 		if len(val) == 0 {
 			break

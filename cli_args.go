@@ -255,16 +255,16 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 		}
 	}
 	// "-forcedecode" only works with openssl. Check compilation and command line parameters
-	if args.forcedecode == true {
-		if stupidgcm.BuiltWithoutOpenssl == true {
+	if args.forcedecode {
+		if stupidgcm.BuiltWithoutOpenssl {
 			tlog.Fatal.Printf("The -forcedecode flag requires openssl support, but gocryptfs was compiled without it!")
 			os.Exit(exitcodes.Usage)
 		}
-		if args.aessiv == true {
+		if args.aessiv {
 			tlog.Fatal.Printf("The -forcedecode and -aessiv flags are incompatible because they use different crypto libs (openssl vs native Go)")
 			os.Exit(exitcodes.Usage)
 		}
-		if args.reverse == true {
+		if args.reverse {
 			tlog.Fatal.Printf("The reverse mode and the -forcedecode option are not compatible")
 			os.Exit(exitcodes.Usage)
 		}

@@ -20,7 +20,7 @@ func TestAesgcmXray(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Compare(out, expected) != 0 {
+	if !bytes.Equal(out, expected) {
 		t.Errorf("Unexpected output")
 		fmt.Printf("expected:\n%s", string(expected))
 		fmt.Printf("have:\n%s", string(out))
@@ -37,7 +37,7 @@ func TestAessivXray(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Compare(out, expected) != 0 {
+	if !bytes.Equal(out, expected) {
 		t.Errorf("Unexpected output")
 		fmt.Printf("expected:\n%s", string(expected))
 		fmt.Printf("have:\n%s", string(out))

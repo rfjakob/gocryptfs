@@ -224,7 +224,7 @@ func (g *StupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
 	if res != 1 {
 		// The error code must always be checked by the calling function, because the decrypted buffer
 		// may contain corrupted data that we are returning in case the user forced reads
-		if g.forceDecode == true {
+		if g.forceDecode {
 			return append(dst, buf...), ErrAuth
 		}
 		return nil, ErrAuth

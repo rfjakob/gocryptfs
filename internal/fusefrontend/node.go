@@ -456,7 +456,7 @@ func (n *Node) Rename(ctx context.Context, name string, newParent fs.InodeEmbedd
 		}
 	}
 	if err != nil {
-		if nametransform.IsLongContent(cName2) && nameFileAlreadyThere == false {
+		if nametransform.IsLongContent(cName2) && !nameFileAlreadyThere {
 			// Roll back .name creation unless the .name file was already there
 			nametransform.DeleteLongNameAt(dirfd2, cName2)
 		}

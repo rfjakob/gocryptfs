@@ -470,10 +470,7 @@ func haveFusermount2() bool {
 	// libfuse 2: fusermount version: 2.9.9
 	// libfuse 3: fusermount3 version: 3.9.0
 	v := out.String()
-	if strings.HasPrefix(v, "fusermount version") {
-		return true
-	}
-	return false
+	return strings.HasPrefix(v, "fusermount version")
 }
 
 func handleSigint(srv *fuse.Server, mountpoint string) {

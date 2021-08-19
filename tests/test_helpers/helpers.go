@@ -335,7 +335,7 @@ func VerifyExistence(t *testing.T, path string) bool {
 	dir := filepath.Dir(path)
 	name := filepath.Base(path)
 	d, err := os.Open(dir)
-	if err != nil && open == true {
+	if err != nil && open {
 		t.Errorf("VerifyExistence: we can open the file but not the parent dir!? err=%v", err)
 	} else if err == nil {
 		defer d.Close()
