@@ -8,8 +8,6 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-var testPw = []byte("test")
-
 func TestMain(m *testing.M) {
 	// Shut up info output
 	tlog.Info.Enabled = false

@@ -12,18 +12,6 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
 
-// abs basically returns storage dir + "/" + relPath.
-// It takes an error parameter so it can directly wrap decryptPath like this:
-// a, err := rfs.abs(rfs.decryptPath(relPath))
-// abs never generates an error on its own. In other words, abs(p, nil) never
-// fails.
-func (rfs *RootNode) abs(relPath string, err error) (string, error) {
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(rfs.args.Cipherdir, relPath), nil
-}
-
 // rDecryptName decrypts the ciphertext name "cName", given the dirIV of the
 // directory "cName" lies in. The relative plaintext path to the directory
 // "pDir" is used if a "gocryptfs.longname.XYZ.name" must be resolved.

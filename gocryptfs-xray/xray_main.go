@@ -20,9 +20,6 @@ import (
 // GitVersion is the gocryptfs version according to git, set by build.bash
 var GitVersion = "[GitVersion not set - please compile using ./build.bash]"
 
-// GitVersionFuse is the go-fuse library version, set by build.bash
-var GitVersionFuse = "[GitVersionFuse not set - please compile using ./build.bash]"
-
 // BuildDate is a date string like "2017-09-06", set by build.bash
 var BuildDate = "0000-00-00"
 

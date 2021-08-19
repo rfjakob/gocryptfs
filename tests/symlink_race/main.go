@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"syscall"
-	"time"
 )
 
 const (
@@ -41,19 +40,6 @@ func renameLoop() {
 			continue
 		}
 		fmt.Printf(".")
-	}
-}
-
-func chmodLoop() {
-	var err error
-	for {
-		err = syscall.Chmod(testFile, 0777)
-		if err != nil {
-			fmt.Printf("Chmod() failed: %v\n", err)
-		} else {
-			fmt.Printf("Chmod() ok\n")
-		}
-		time.Sleep(100 * time.Microsecond)
 	}
 }
 

@@ -306,16 +306,6 @@ func TestFileHoles(t *testing.T) {
 	}
 }
 
-// sContains - does the slice of strings "haystack" contain "needle"?
-func sContains(haystack []string, needle string) bool {
-	for _, element := range haystack {
-		if element == needle {
-			return true
-		}
-	}
-	return false
-}
-
 func TestRmwRace(t *testing.T) {
 
 	runtime.GOMAXPROCS(10)
