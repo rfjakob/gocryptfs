@@ -10,7 +10,7 @@ import (
 	"log/syslog"
 	"os"
 
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 const (
@@ -106,7 +106,7 @@ var Warn *toggledLogger
 var Fatal *toggledLogger
 
 func init() {
-	if terminal.IsTerminal(int(os.Stdout.Fd())) {
+	if term.IsTerminal(int(os.Stdout.Fd())) {
 		ColorReset = "\033[0m"
 		ColorGrey = "\033[2m"
 		ColorRed = "\033[31m"
@@ -171,7 +171,7 @@ func PrintMasterkeyReminder(key []byte) {
 		// Quiet mode
 		return
 	}
-	if !terminal.IsTerminal(int(os.Stdout.Fd())) {
+	if !term.IsTerminal(int(os.Stdout.Fd())) {
 		// We don't want the master key to end up in a log file
 		Info.Printf("Not running on a terminal, suppressing master key display\n")
 		return
