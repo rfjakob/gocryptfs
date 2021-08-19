@@ -136,7 +136,6 @@ func writeTillFull(t *testing.T, path string) (int, syscall.Errno) {
 		}
 		sz += n
 	}
-	return sz, 0
 }
 
 // TestDiskFull needs root permissions because it creates a loop disk

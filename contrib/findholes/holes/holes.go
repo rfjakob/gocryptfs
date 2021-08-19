@@ -121,7 +121,7 @@ func Find(fd int) (segments []Segment, err error) {
 		if err == syscall.ENXIO {
 			segments = append(segments,
 				Segment{totalSize, SegmentEOF})
-			return segments, nil
+			break
 		}
 		if err != nil {
 			return nil, err
@@ -136,7 +136,7 @@ func Find(fd int) (segments []Segment, err error) {
 	return segments, nil
 }
 
-// Verify the gives `segments` using a full bytewise file scan
+// Verify `segments` using a full bytewise file scan
 func Verify(fd int, segments []Segment) (err error) {
 	last := segments[len(segments)-1]
 	if last.Type != SegmentEOF {
