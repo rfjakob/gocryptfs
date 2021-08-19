@@ -49,7 +49,7 @@ func doInit() {
 	X255 = string(bytes.Repeat([]byte("X"), 255))
 	MountInfo = make(map[string]mountInfo)
 	// Something like /tmp/gocryptfs-test-parent-1234
-	testParentDir := fmt.Sprintf("%s/gocryptfs-test-parent-%d", os.TempDir(), os.Getuid())
+	testParentDir = fmt.Sprintf("%s/gocryptfs-test-parent-%d", os.TempDir(), os.Getuid())
 	os.MkdirAll(testParentDir, 0755)
 	if !isExt4(testParentDir) {
 		fmt.Printf("test_helpers: warning: testParentDir %q does not reside on ext4, we will miss failures caused by ino reuse\n", testParentDir)
