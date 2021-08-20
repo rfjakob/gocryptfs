@@ -103,6 +103,14 @@ Defaults are fine.
 Use the AES-SIV encryption mode. This is slower than GCM but is
 secure with deterministic nonces as used in "-reverse" mode.
 
+#### -deterministic-names
+Disable file name randomisation and creation of `gocryptfs.diriv` files.
+This can prevent sync conflicts conflicts when synchronising files, but
+leaks information about identical file names across directories
+("Identical names leak" in https://nuetzlich.net/gocryptfs/comparison/#file-names ).
+
+The resulting `gocryptfs.conf` has "DirIV" missing from "FeatureFlags".
+
 #### -devrandom
 Use `/dev/random` for generating the master key instead of the default Go
 implementation. This is especially useful on embedded systems with Go versions
@@ -544,11 +552,6 @@ When encountering a warning, panic and exit immediately. This is
 useful in regression testing.
 
 Applies to: all actions.
-
-#### -zerodiriv
-Create diriv as all-zero files
-
-Applies to: all actions without `-plaintextnames`.
 
 #### \-\-
 Stop option parsing. Helpful when CIPHERDIR may start with a

@@ -3,11 +3,13 @@ package deterministic_names
 // integration tests that target "-deterministic-names" specifically
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
@@ -19,8 +21,18 @@ var testPw = []byte("test")
 // Create and mount "-deterministic-names" fs
 func TestMain(m *testing.M) {
 	cDir = test_helpers.InitFS(nil, "-deterministic-names")
+	// Check config file sanity
+	_, c, err := configfile.LoadAndDecrypt(cDir+"/"+configfile.ConfDefaultName, testPw)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	if c.IsFeatureFlagSet(configfile.FlagDirIV) {
+		fmt.Println("DirIV flag should be off")
+		os.Exit(1)
+	}
 	pDir = cDir + ".mnt"
-	test_helpers.MountOrExit(cDir, pDir, "-deterministic-names", "-extpass", "echo test")
+	test_helpers.MountOrExit(cDir, pDir, "-extpass", "echo test")
 	r := m.Run()
 	test_helpers.UnmountPanic(pDir)
 	os.Exit(r)

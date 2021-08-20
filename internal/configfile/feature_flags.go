@@ -45,7 +45,6 @@ var knownFlags = map[flagIota]string{
 
 // Filesystems that do not have these feature flags set are deprecated.
 var requiredFlagsNormal = []flagIota{
-	FlagDirIV,
 	FlagEMENames,
 	FlagGCMIV128,
 }

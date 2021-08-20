@@ -995,3 +995,9 @@ func TestMountCreat(t *testing.T) {
 		test_helpers.UnmountPanic(mnt)
 	}
 }
+
+// Test -init -deterministic-names
+func TestInitDeterministicNames(t *testing.T) {
+	dir := test_helpers.InitFS(t, "-deterministic-names")
+
+}

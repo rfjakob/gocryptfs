@@ -80,7 +80,8 @@ func randBytesDevRandom(n int) []byte {
 // "password" and write it to "filename".
 // Uses scrypt with cost parameter logN.
 func Create(filename string, password []byte, plaintextNames bool,
-	logN int, creator string, aessiv bool, devrandom bool, fido2CredentialID []byte, fido2HmacSalt []byte) error {
+	logN int, creator string, aessiv bool, devrandom bool,
+	fido2CredentialID []byte, fido2HmacSalt []byte, deterministicNames bool) error {
 	var cf ConfFile
 	cf.filename = filename
 	cf.Creator = creator
@@ -92,7 +93,9 @@ func Create(filename string, password []byte, plaintextNames bool,
 	if plaintextNames {
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagPlaintextNames])
 	} else {
-		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagDirIV])
+		if !deterministicNames {
+			cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagDirIV])
+		}
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagEMENames])
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagLongNames])
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagRaw64])
