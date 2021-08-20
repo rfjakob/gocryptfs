@@ -8,7 +8,6 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fs"
 
-	"github.com/rfjakob/gocryptfs/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 )
 
@@ -73,7 +72,7 @@ func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno sy
 	// Cache store
 	if !rn.args.PlaintextNames {
 		var err error
-		iv, err = nametransform.ReadDirIVAt(dirfd)
+		iv, err = rn.nameTransform.ReadDirIVAt(dirfd)
 		if err != nil {
 			syscall.Close(dirfd)
 			return -1, "", fs.ToErrno(err)

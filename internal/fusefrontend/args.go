@@ -53,6 +53,6 @@ type Args struct {
 	// like rsync's `--one-file-system` does.
 	// Only applicable to reverse mode.
 	OneFileSystem bool
-	// ZeroDirIV creates diriv files as all-zero files
-	ZeroDirIV bool
+	// DeterministicNames disables gocryptfs.diriv files
+	DeterministicNames bool
 }

@@ -114,7 +114,7 @@ func ReadLongNameAt(dirfd int, cName string) (string, error) {
 func DeleteLongNameAt(dirfd int, hashName string) error {
 	err := syscallcompat.Unlinkat(dirfd, hashName+LongNameSuffix, 0)
 	if err != nil {
-		tlog.Warn.Printf("DeleteLongName: %v", err)
+		tlog.Warn.Printf("DeleteLongNameAt: %v", err)
 	}
 	return err
 }
@@ -128,7 +128,7 @@ func (n *NameTransform) WriteLongNameAt(dirfd int, hashName string, plainName st
 	plainName = filepath.Base(plainName)
 
 	// Encrypt the basename
-	dirIV, err := ReadDirIVAt(dirfd)
+	dirIV, err := n.ReadDirIVAt(dirfd)
 	if err != nil {
 		return err
 	}

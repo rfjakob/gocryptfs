@@ -55,20 +55,28 @@ var matrix = []testcaseMatrix{
 	// -serialize_reads
 	{false, "auto", false, false, []string{"-serialize_reads"}},
 	{false, "auto", false, false, []string{"-sharedstorage"}},
+	{false, "auto", false, false, []string{"-deterministic-names"}},
 }
 
 // This is the entry point for the tests
 func TestMain(m *testing.M) {
 	// Make "testing.Verbose()" return the correct value
 	flag.Parse()
-	for _, testcase = range matrix {
+	var i int
+	for i, testcase = range matrix {
 		if testcase.openssl == "true" && stupidgcm.BuiltWithoutOpenssl {
 			continue
 		}
 		if testing.Verbose() {
 			fmt.Printf("matrix: testcase = %#v\n", testcase)
 		}
-		test_helpers.ResetTmpDir(!testcase.plaintextnames)
+		createDirIV := true
+		if testcase.plaintextnames {
+			createDirIV = false
+		} else if len(testcase.extraArgs) == 1 && testcase.extraArgs[0] == "-deterministic-names" {
+			createDirIV = false
+		}
+		test_helpers.ResetTmpDir(createDirIV)
 		opts := []string{"-zerokey"}
 		//opts = append(opts, "-fusedebug")
 		opts = append(opts, fmt.Sprintf("-openssl=%v", testcase.openssl))
@@ -90,6 +98,7 @@ func TestMain(m *testing.M) {
 		}
 		test_helpers.UnmountPanic(test_helpers.DefaultPlainDir)
 		if r != 0 {
+			fmt.Printf("TestMain: matrix[%d] = %#v failed\n", i, testcase)
 			os.Exit(r)
 		}
 	}

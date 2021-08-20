@@ -19,7 +19,7 @@ func newTestFS(args Args) *RootNode {
 	key := make([]byte, cryptocore.KeyLen)
 	cCore := cryptocore.New(key, cryptocore.BackendGoGCM, contentenc.DefaultIVBits, true, false)
 	cEnc := contentenc.New(cCore, contentenc.DefaultBS, false)
-	n := nametransform.New(cCore.EMECipher, true, true, nil)
+	n := nametransform.New(cCore.EMECipher, true, true, nil, false)
 	rn := NewRootNode(args, cEnc, n)
 	oneSec := time.Second
 	options := &fs.Options{

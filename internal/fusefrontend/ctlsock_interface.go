@@ -32,7 +32,7 @@ func (rn *RootNode) EncryptPath(plainPath string) (cipherPath string, err error)
 	parts := strings.Split(plainPath, "/")
 	wd := dirfd
 	for i, part := range parts {
-		dirIV, err := nametransform.ReadDirIVAt(wd)
+		dirIV, err := rn.nameTransform.ReadDirIVAt(wd)
 		if err != nil {
 			return "", err
 		}
@@ -78,7 +78,7 @@ func (rn *RootNode) DecryptPath(cipherPath string) (plainPath string, err error)
 	parts := strings.Split(cipherPath, "/")
 	wd := dirfd
 	for i, part := range parts {
-		dirIV, err := nametransform.ReadDirIVAt(wd)
+		dirIV, err := rn.nameTransform.ReadDirIVAt(wd)
 		if err != nil {
 			return "", err
 		}

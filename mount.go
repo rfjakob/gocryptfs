@@ -261,22 +261,22 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 		args.allow_other = true
 	}
 	frontendArgs := fusefrontend.Args{
-		Cipherdir:       args.cipherdir,
-		PlaintextNames:  args.plaintextnames,
-		LongNames:       args.longnames,
-		ConfigCustom:    args._configCustom,
-		NoPrealloc:      args.noprealloc,
-		SerializeReads:  args.serialize_reads,
-		ForceDecode:     args.forcedecode,
-		ForceOwner:      args._forceOwner,
-		Exclude:         args.exclude,
-		ExcludeWildcard: args.excludeWildcard,
-		ExcludeFrom:     args.excludeFrom,
-		Suid:            args.suid,
-		KernelCache:     args.kernel_cache,
-		SharedStorage:   args.sharedstorage,
-		OneFileSystem:   args.one_file_system,
-		ZeroDirIV:       args.zerodiriv,
+		Cipherdir:          args.cipherdir,
+		PlaintextNames:     args.plaintextnames,
+		LongNames:          args.longnames,
+		ConfigCustom:       args._configCustom,
+		NoPrealloc:         args.noprealloc,
+		SerializeReads:     args.serialize_reads,
+		ForceDecode:        args.forcedecode,
+		ForceOwner:         args._forceOwner,
+		Exclude:            args.exclude,
+		ExcludeWildcard:    args.excludeWildcard,
+		ExcludeFrom:        args.excludeFrom,
+		Suid:               args.suid,
+		KernelCache:        args.kernel_cache,
+		SharedStorage:      args.sharedstorage,
+		OneFileSystem:      args.one_file_system,
+		DeterministicNames: args.deterministic_names,
 	}
 	// confFile is nil when "-zerokey" or "-masterkey" was used
 	if confFile != nil {
@@ -300,7 +300,8 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 	// Init crypto backend
 	cCore := cryptocore.New(masterkey, cryptoBackend, contentenc.DefaultIVBits, args.hkdf, args.forcedecode)
 	cEnc := contentenc.New(cCore, contentenc.DefaultBS, args.forcedecode)
-	nameTransform := nametransform.New(cCore.EMECipher, frontendArgs.LongNames, args.raw64, []string(args.badname))
+	nameTransform := nametransform.New(cCore.EMECipher, frontendArgs.LongNames,
+		args.raw64, []string(args.badname), frontendArgs.DeterministicNames)
 	// After the crypto backend is initialized,
 	// we can purge the master key from memory.
 	for i := range masterkey {

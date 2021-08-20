@@ -34,9 +34,14 @@ func haveDsstore(entries []fuse.DirEntry) bool {
 // mkdirWithIv - create a new directory and corresponding diriv file. dirfd
 // should be a handle to the parent directory, cName is the name of the new
 // directory and mode specifies the access permissions to use.
+// If DeterministicNames is set, the diriv file is NOT created.
 func (n *Node) mkdirWithIv(dirfd int, cName string, mode uint32, context *fuse.Context) error {
-
 	rn := n.rootNode()
+
+	if rn.args.DeterministicNames {
+		return syscallcompat.MkdiratUser(dirfd, cName, mode, context)
+	}
+
 	// Between the creation of the directory and the creation of gocryptfs.diriv
 	// the directory is inconsistent. Take the lock to prevent other readers
 	// from seeing it.
@@ -49,7 +54,7 @@ func (n *Node) mkdirWithIv(dirfd int, cName string, mode uint32, context *fuse.C
 	dirfd2, err := syscallcompat.Openat(dirfd, cName, syscall.O_DIRECTORY|syscall.O_NOFOLLOW|syscallcompat.O_PATH, 0)
 	if err == nil {
 		// Create gocryptfs.diriv
-		err = nametransform.WriteDirIVAt(dirfd2, !rn.args.ZeroDirIV)
+		err = nametransform.WriteDirIVAt(dirfd2)
 		syscall.Close(dirfd2)
 	}
 	if err != nil {
@@ -90,62 +95,67 @@ func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.En
 			return nil, fs.ToErrno(err)
 		}
 		st = syscallcompat.Unix2syscall(ust)
+
+		// Create child node & return
+		ch := n.newChild(ctx, &st, out)
+		return ch, 0
+
+	}
+
+	// We need write and execute permissions to create gocryptfs.diriv.
+	// Also, we need read permissions to open the directory (to avoid
+	// race-conditions between getting and setting the mode).
+	origMode := mode
+	mode = mode | 0700
+
+	// Handle long file name
+	if nametransform.IsLongContent(cName) {
+		// Create ".name"
+		err := rn.nameTransform.WriteLongNameAt(dirfd, cName, name)
+		if err != nil {
+			return nil, fs.ToErrno(err)
+		}
+		// Create directory & rollback .name file on error
+		err = rn.mkdirWithIv(dirfd, cName, mode, context)
+		if err != nil {
+			nametransform.DeleteLongNameAt(dirfd, cName)
+			return nil, fs.ToErrno(err)
+		}
 	} else {
-		// We need write and execute permissions to create gocryptfs.diriv.
-		// Also, we need read permissions to open the directory (to avoid
-		// race-conditions between getting and setting the mode).
-		origMode := mode
-		mode = mode | 0700
-
-		// Handle long file name
-		if nametransform.IsLongContent(cName) {
-			// Create ".name"
-			err := rn.nameTransform.WriteLongNameAt(dirfd, cName, name)
-			if err != nil {
-				return nil, fs.ToErrno(err)
-			}
-
-			// Create directory
-			err = rn.mkdirWithIv(dirfd, cName, mode, context)
-			if err != nil {
-				nametransform.DeleteLongNameAt(dirfd, cName)
-				return nil, fs.ToErrno(err)
-			}
-		} else {
-			err := rn.mkdirWithIv(dirfd, cName, mode, context)
-			if err != nil {
-				return nil, fs.ToErrno(err)
-			}
-		}
-
-		fd, err := syscallcompat.Openat(dirfd, cName,
-			syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
+		err := rn.mkdirWithIv(dirfd, cName, mode, context)
 		if err != nil {
-			tlog.Warn.Printf("Mkdir %q: Openat failed: %v", cName, err)
 			return nil, fs.ToErrno(err)
-		}
-		defer syscall.Close(fd)
-
-		err = syscall.Fstat(fd, &st)
-		if err != nil {
-			tlog.Warn.Printf("Mkdir %q: Fstat failed: %v", cName, err)
-			return nil, fs.ToErrno(err)
-		}
-
-		// Fix permissions
-		if origMode != mode {
-			// Preserve SGID bit if it was set due to inheritance.
-			origMode = uint32(st.Mode&^0777) | origMode
-			err = syscall.Fchmod(fd, origMode)
-			if err != nil {
-				tlog.Warn.Printf("Mkdir %q: Fchmod %#o -> %#o failed: %v", cName, mode, origMode, err)
-			}
 		}
 	}
 
-	// Create child node
-	ch := n.newChild(ctx, &st, out)
+	// Fill `st`
+	fd, err := syscallcompat.Openat(dirfd, cName,
+		syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
+	if err != nil {
+		tlog.Warn.Printf("Mkdir %q: Openat failed: %v", cName, err)
+		return nil, fs.ToErrno(err)
+	}
+	defer syscall.Close(fd)
 
+	err = syscall.Fstat(fd, &st)
+	if err != nil {
+		tlog.Warn.Printf("Mkdir %q: Fstat failed: %v", cName, err)
+		return nil, fs.ToErrno(err)
+	}
+
+	// Fix permissions
+	if origMode != mode {
+		// Preserve SGID bit if it was set due to inheritance.
+		origMode = uint32(st.Mode&^0777) | origMode
+		err = syscall.Fchmod(fd, origMode)
+		if err != nil {
+			tlog.Warn.Printf("Mkdir %q: Fchmod %#o -> %#o failed: %v", cName, mode, origMode, err)
+		}
+
+	}
+
+	// Create child node & return
+	ch := n.newChild(ctx, &st, out)
 	return ch, 0
 }
 
@@ -175,7 +185,7 @@ func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 	rn := n.rootNode()
 	if !rn.args.PlaintextNames {
 		// Read the DirIV from disk
-		cachedIV, err = nametransform.ReadDirIVAt(fd)
+		cachedIV, err = rn.nameTransform.ReadDirIVAt(fd)
 		if err != nil {
 			tlog.Warn.Printf("OpenDir %q: could not read %s: %v", cDirName, nametransform.DirIVFilename, err)
 			return nil, syscall.EIO
@@ -196,7 +206,7 @@ func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 			plain = append(plain, cipherEntries[i])
 			continue
 		}
-		if cName == nametransform.DirIVFilename {
+		if !rn.args.DeterministicNames && cName == nametransform.DirIVFilename {
 			// silently ignore "gocryptfs.diriv" everywhere if dirIV is enabled
 			continue
 		}
@@ -248,6 +258,15 @@ func (n *Node) Rmdir(ctx context.Context, name string) (code syscall.Errno) {
 		// Unlinkat with AT_REMOVEDIR is equivalent to Rmdir
 		err := unix.Unlinkat(parentDirFd, cName, unix.AT_REMOVEDIR)
 		return fs.ToErrno(err)
+	}
+	if rn.args.DeterministicNames {
+		if err := unix.Unlinkat(parentDirFd, cName, unix.AT_REMOVEDIR); err != nil {
+			return fs.ToErrno(err)
+		}
+		if nametransform.IsLongContent(cName) {
+			nametransform.DeleteLongNameAt(parentDirFd, cName)
+		}
+		return 0
 	}
 	// Unless we are running as root, we need read, write and execute permissions
 	// to handle gocryptfs.diriv.

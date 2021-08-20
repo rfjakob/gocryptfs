@@ -99,11 +99,11 @@ func initDir(args *argContainer) {
 	}
 	// Forward mode with filename encryption enabled needs a gocryptfs.diriv file
 	// in the root dir
-	if !args.plaintextnames && !args.reverse {
+	if !args.plaintextnames && !args.reverse && !args.deterministic_names {
 		// Open cipherdir (following symlinks)
 		dirfd, err := syscall.Open(args.cipherdir, syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
 		if err == nil {
-			err = nametransform.WriteDirIVAt(dirfd, !args.zerodiriv)
+			err = nametransform.WriteDirIVAt(dirfd)
 			syscall.Close(dirfd)
 		}
 		if err != nil {

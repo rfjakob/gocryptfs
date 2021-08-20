@@ -1,6 +1,7 @@
 package nametransform
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -22,7 +23,11 @@ const (
 // ReadDirIVAt reads "gocryptfs.diriv" from the directory that is opened as "dirfd".
 // Using the dirfd makes it immune to concurrent renames of the directory.
 // Retries on EINTR.
-func ReadDirIVAt(dirfd int) (iv []byte, err error) {
+// If deterministicNames is set it returns an all-zero slice.
+func (n *NameTransform) ReadDirIVAt(dirfd int) (iv []byte, err error) {
+	if n.deterministicNames {
+		return make([]byte, DirIVLen), nil
+	}
 	fdRaw, err := syscallcompat.Openat(dirfd, DirIVFilename,
 		syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
@@ -32,6 +37,9 @@ func ReadDirIVAt(dirfd int) (iv []byte, err error) {
 	defer fd.Close()
 	return fdReadDirIV(fd)
 }
+
+// allZeroDirIV is preallocated to quickly check if the data read from disk is all zero
+var allZeroDirIV = make([]byte, DirIVLen)
 
 // fdReadDirIV reads and verifies the DirIV from an opened gocryptfs.diriv file.
 func fdReadDirIV(fd *os.File) (iv []byte, err error) {
@@ -46,6 +54,9 @@ func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 	if len(iv) != DirIVLen {
 		return nil, fmt.Errorf("wanted %d bytes, got %d", DirIVLen, len(iv))
 	}
+	if bytes.Equal(iv, allZeroDirIV) {
+		return nil, fmt.Errorf("diriv is all-zero")
+	}
 	return iv, nil
 }
 
@@ -53,13 +64,8 @@ func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 // "dirfd". On error we try to delete the incomplete file.
 // This function is exported because it is used from fusefrontend, main,
 // and also the automated tests.
-func WriteDirIVAt(dirfd int, randomInitialization bool) error {
-	var iv []byte
-	if randomInitialization {
-		iv = cryptocore.RandBytes(DirIVLen)
-	} else {
-		iv = make([]byte, DirIVLen)
-	}
+func WriteDirIVAt(dirfd int) error {
+	iv := cryptocore.RandBytes(DirIVLen)
 	// 0400 permissions: gocryptfs.diriv should never be modified after creation.
 	// Don't use "ioutil.WriteFile", it causes trouble on NFS:
 	// https://github.com/rfjakob/gocryptfs/commit/7d38f80a78644c8ec4900cc990bfb894387112ed
