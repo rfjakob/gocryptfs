@@ -208,6 +208,11 @@ RM:    2,367
 Changelog
 ---------
 
+v2.2, IN PROGRESS
+* `-deterministic-names`: new option for `-init`, both for reverse and forward mode.
+   Disables file name randomisation & `gocryptfs.diriv` files
+   ([#151](https://github.com/rfjakob/gocryptfs/issues/151), [#402](https://github.com/rfjakob/gocryptfs/issues/402), [#592](https://github.com/rfjakob/gocryptfs/pull/592))
+
 v2.1, 2021-08-18
 * `-fido2`: do not request PIN on `gocryptfs -init` fixing `FIDO_ERR_UNSUPPORTED_OPTION` with YubiKey
   ([#571](https://github.com/rfjakob/gocryptfs/issues/571))
