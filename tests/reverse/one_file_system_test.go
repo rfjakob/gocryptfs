@@ -1,8 +1,9 @@
-package reverse
+package reverse_test
 
 import (
 	"io/ioutil"
 	"net/url"
+	"os"
 	"runtime"
 	"syscall"
 	"testing"
@@ -10,7 +11,10 @@ import (
 	"github.com/rfjakob/gocryptfs/tests/test_helpers"
 )
 
-func doTestOneFileSystem(t *testing.T, plaintextnames bool) {
+func TestOneFileSystem(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("only works on linux")
+	}
 	// Let's not explode with "TempDir: pattern contains path separator"
 	myEscapedName := url.PathEscape(t.Name())
 	mnt, err := ioutil.TempDir(test_helpers.TmpDir, myEscapedName)
@@ -20,6 +24,8 @@ func doTestOneFileSystem(t *testing.T, plaintextnames bool) {
 	cliArgs := []string{"-reverse", "-zerokey", "-one-file-system"}
 	if plaintextnames {
 		cliArgs = append(cliArgs, "-plaintextnames")
+	} else if deterministic_names {
+		cliArgs = append(cliArgs, "-deterministic-names")
 	}
 	test_helpers.MountOrFatal(t, "/", mnt, cliArgs...)
 	defer test_helpers.UnmountErr(mnt)
@@ -48,25 +54,22 @@ func doTestOneFileSystem(t *testing.T, plaintextnames bool) {
 		t.Skip("no mountpoints found, nothing to test")
 	}
 	for _, m := range mountpoints {
-		e, err := ioutil.ReadDir(mnt + "/" + m)
+		dir, err := os.Open(mnt + "/" + m)
+		if err != nil {
+			t.Error(err)
+		}
+		defer dir.Close()
+		e, err := dir.Readdirnames(-1)
 		if err != nil {
 			t.Error(err)
 		}
 		expected := 1
-		if plaintextnames {
+		if plaintextnames || deterministic_names {
 			expected = 0
 		}
 		if len(e) != expected {
-			t.Errorf("mountpoint %q does not look empty: %v", m, e)
+			t.Errorf("mountpoint %q should have %d entries, actually has: %v", m, expected, e)
 		}
 	}
 	t.Logf("tested %d mountpoints: %v", len(mountpoints), mountpoints)
-}
-
-func TestOneFileSystem(t *testing.T) {
-	if runtime.GOOS != "linux" {
-		t.Skip("only works on linux")
-	}
-	t.Run("normal", func(t *testing.T) { doTestOneFileSystem(t, false) })
-	t.Run("plaintextnames", func(t *testing.T) { doTestOneFileSystem(t, true) })
 }

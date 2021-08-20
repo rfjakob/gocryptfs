@@ -2,6 +2,7 @@ package fusefrontend_reverse
 
 import (
 	"encoding/base64"
+	"log"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -72,7 +73,7 @@ func (rn *RootNode) decryptPath(cPath string) (string, error) {
 		// Start at the top and recurse
 		currentCipherDir := filepath.Join(parts[:i]...)
 		currentPlainDir := filepath.Join(transformedParts[:i]...)
-		dirIV := pathiv.Derive(currentCipherDir, pathiv.PurposeDirIV)
+		dirIV := rn.deriveDirIV(currentCipherDir)
 		transformedPart, err := rn.rDecryptName(parts[i], dirIV, currentPlainDir)
 		if err != nil {
 			return "", err
@@ -81,6 +82,17 @@ func (rn *RootNode) decryptPath(cPath string) (string, error) {
 	}
 	pRelPath := filepath.Join(transformedParts...)
 	return pRelPath, nil
+}
+
+// deriveDirIV wraps pathiv.Derive but takes DeterministicNames into account.
+func (rn *RootNode) deriveDirIV(cPath string) []byte {
+	if rn.args.PlaintextNames {
+		log.Panic("BUG: deriveDirIV called but PlaintextNames is set")
+	}
+	if rn.args.DeterministicNames {
+		return make([]byte, nametransform.DirIVLen)
+	}
+	return pathiv.Derive(cPath, pathiv.PurposeDirIV)
 }
 
 // openBackingDir receives an already decrypted relative path

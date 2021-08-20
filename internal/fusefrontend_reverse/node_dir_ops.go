@@ -13,7 +13,6 @@ import (
 	"github.com/rfjakob/gocryptfs/internal/configfile"
 	"github.com/rfjakob/gocryptfs/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/internal/nametransform"
-	"github.com/rfjakob/gocryptfs/internal/pathiv"
 	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/internal/tlog"
 )
@@ -23,20 +22,16 @@ import (
 // This function is symlink-safe through use of openBackingDir() and
 // ReadDirIVAt().
 func (n *Node) Readdir(ctx context.Context) (stream fs.DirStream, errno syscall.Errno) {
-	// Virtual files: at least one gocryptfs.diriv file
-	virtualFiles := []fuse.DirEntry{
-		{Mode: virtualFileMode, Name: nametransform.DirIVFilename},
-	}
 	rn := n.rootNode()
+	// Should we present a virtual gocryptfs.diriv?
+	var virtualFiles []fuse.DirEntry
+	if !rn.args.PlaintextNames && !rn.args.DeterministicNames {
+		virtualFiles = append(virtualFiles, fuse.DirEntry{Mode: virtualFileMode, Name: nametransform.DirIVFilename})
+	}
 
 	// This directory is a mountpoint. Present it as empty.
 	if rn.args.OneFileSystem && n.isOtherFilesystem {
-		if rn.args.PlaintextNames {
-			return fs.NewListDirStream(nil), 0
-		} else {
-			// An "empty" directory still has a gocryptfs.diriv file!
-			return fs.NewListDirStream(virtualFiles), 0
-		}
+		return fs.NewListDirStream(virtualFiles), 0
 	}
 
 	d, errno := n.prepareAtSyscall("")
@@ -64,7 +59,7 @@ func (n *Node) Readdir(ctx context.Context) (stream fs.DirStream, errno syscall.
 		return n.readdirPlaintextnames(entries)
 	}
 
-	dirIV := pathiv.Derive(d.cPath, pathiv.PurposeDirIV)
+	dirIV := rn.deriveDirIV(d.cPath)
 	// Encrypt names
 	for i := range entries {
 		var cName string

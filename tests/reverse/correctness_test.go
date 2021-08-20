@@ -119,10 +119,10 @@ func TestConfigMapping(t *testing.T) {
 	}
 }
 
-// Check that the access() syscall works on virtual files
-func TestAccessVirtual(t *testing.T) {
-	if plaintextnames {
-		t.Skip("test makes no sense for plaintextnames")
+// Check that the access() syscall works on virtual gocryptfs.diriv files
+func TestAccessVirtualDirIV(t *testing.T) {
+	if plaintextnames || deterministic_names {
+		t.Skip("test makes no sense for plaintextnames or deterministic_names")
 	}
 	var R_OK uint32 = 4
 	var W_OK uint32 = 2

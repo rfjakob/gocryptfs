@@ -43,9 +43,11 @@ func (n *Node) lookupFileType(cName string) fileType {
 	rn := n.rootNode()
 	// In -plaintextname mode, neither diriv nor longname files exist.
 	if !rn.args.PlaintextNames {
-		// Is it a gocryptfs.diriv file?
-		if cName == nametransform.DirIVFilename {
-			return typeDiriv
+		if !rn.args.DeterministicNames {
+			// Is it a gocryptfs.diriv file?
+			if cName == nametransform.DirIVFilename {
+				return typeDiriv
+			}
 		}
 		// Is it a gocryptfs.longname.*.name file?
 		if t := nametransform.NameType(cName); t == nametransform.LongNameFilename {

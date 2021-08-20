@@ -130,8 +130,10 @@ func TestVirtualFileIno(t *testing.T) {
 	}
 	// Lower 48 bits should come from the backing file
 	const mask = 0xffffffffffff
-	if origInos.parent&mask != cipherInos.diriv&mask {
-		t.Errorf("diriv ino mismatch: %#x vs %#x", origInos.parent, cipherInos.diriv)
+	if !deterministic_names { // no diriv files with -deterministic-names
+		if origInos.parent&mask != cipherInos.diriv&mask {
+			t.Errorf("diriv ino mismatch: %#x vs %#x", origInos.parent, cipherInos.diriv)
+		}
 	}
 	if origInos.child != cipherInos.child {
 		t.Errorf("child ino mismatch: %d vs %d", origInos.child, cipherInos.child)

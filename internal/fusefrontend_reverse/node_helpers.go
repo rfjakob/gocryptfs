@@ -2,6 +2,7 @@ package fusefrontend_reverse
 
 import (
 	"context"
+	"log"
 	"path/filepath"
 	"syscall"
 
@@ -129,8 +130,8 @@ func (n *Node) lookupLongnameName(ctx context.Context, nameFile string, out *fus
 		return
 	}
 	defer syscall.Close(fd)
-	diriv := pathiv.Derive(d.cPath, pathiv.PurposeDirIV)
 	rn := n.rootNode()
+	diriv := rn.deriveDirIV(d.cPath)
 	pName, cFullname, errno := rn.findLongnameParent(fd, diriv, nameFile)
 	if errno != 0 {
 		return
@@ -160,6 +161,10 @@ func (n *Node) lookupLongnameName(ctx context.Context, nameFile string, out *fus
 
 // lookupDiriv returns a new Inode for a gocryptfs.diriv file inside `n`.
 func (n *Node) lookupDiriv(ctx context.Context, out *fuse.EntryOut) (ch *fs.Inode, errno syscall.Errno) {
+	if rn := n.rootNode(); rn.args.DeterministicNames {
+		log.Panic("BUG: lookupDiriv called but DeterministicNames is set")
+	}
+
 	d, errno := n.prepareAtSyscall("")
 	if errno != 0 {
 		return

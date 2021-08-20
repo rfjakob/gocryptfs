@@ -7,7 +7,6 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/rfjakob/gocryptfs/internal/ctlsocksrv"
-	"github.com/rfjakob/gocryptfs/internal/pathiv"
 )
 
 // Verify that the interface is implemented.
@@ -22,7 +21,7 @@ func (rn *RootNode) EncryptPath(plainPath string) (string, error) {
 	cipherPath := ""
 	parts := strings.Split(plainPath, "/")
 	for _, part := range parts {
-		dirIV := pathiv.Derive(cipherPath, pathiv.PurposeDirIV)
+		dirIV := rn.deriveDirIV(cipherPath)
 		encryptedPart, err := rn.nameTransform.EncryptName(part, dirIV)
 		if err != nil {
 			return "", err

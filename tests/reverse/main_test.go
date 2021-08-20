@@ -2,6 +2,7 @@ package reverse_test
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"testing"
 
@@ -9,7 +10,12 @@ import (
 )
 
 var x240 = string(bytes.Repeat([]byte("x"), 240))
+
+// plaintextnames is true when the currently running test has -plaintextnames active
 var plaintextnames bool
+
+// deterministic_names is true when the currently running test has -deterministic-names active
+var deterministic_names bool
 
 // dirA is a normal directory
 var dirA string
@@ -24,10 +30,22 @@ var dirC string
 // to "dirC".
 func TestMain(m *testing.M) {
 	var r int
-	for _, plaintextnames = range []bool{false, true} {
+
+	testcases := []struct {
+		plaintextnames      bool
+		deterministic_names bool
+	}{
+		{false, false},
+		{true, false},
+		{false, true},
+	}
+	for i, tc := range testcases {
 		argsA := []string{"-reverse"}
-		if plaintextnames {
+		plaintextnames, deterministic_names = tc.plaintextnames, tc.deterministic_names
+		if tc.plaintextnames {
 			argsA = append(argsA, "-plaintextnames")
+		} else if tc.deterministic_names {
+			argsA = append(argsA, "-deterministic-names")
 		}
 		dirA = test_helpers.InitFS(nil, argsA...)
 		dirB = test_helpers.TmpDir + "/b"
@@ -49,6 +67,7 @@ func TestMain(m *testing.M) {
 		os.RemoveAll(dirC)
 
 		if r != 0 {
+			fmt.Printf("testcases[%d] = %#v failed\n", i, tc)
 			os.Exit(r)
 		}
 	}
