@@ -122,11 +122,6 @@ harvest enough entropy.
 Use HKDF to derive separate keys for content and name encryption from
 the master key. Default true.
 
-#### -nosyslog
-Diagnostic messages are normally redirected to syslog once gocryptfs
-daemonizes. This option disables the redirection and messages will
-continue be printed to stdout and stderr.
-
 #### -plaintextnames
 Do not encrypt file names and symlink targets.
 
@@ -343,6 +338,11 @@ https://github.com/rfjakob/gocryptfs/issues/63 .
 
 #### -nosuid
 See `-suid, -nosuid`.
+
+#### -nosyslog
+Diagnostic messages are normally redirected to syslog once gocryptfs
+daemonizes. This option disables the redirection and messages will
+continue be printed to stdout and stderr.
 
 #### -notifypid int
 Send USR1 to the specified process after successful mount. This is
