@@ -76,44 +76,75 @@ func randBytesDevRandom(n int) []byte {
 	return b
 }
 
-// Create - create a new config with a random key encrypted with
-// "password" and write it to "filename".
-// Uses scrypt with cost parameter logN.
+// CreateArgs exists because the argument list to Create became too long.
+type CreateArgs struct {
+	Filename           string
+	Password           []byte
+	PlaintextNames     bool
+	LogN               int
+	Creator            string
+	AESSIV             bool
+	Devrandom          bool
+	Fido2CredentialID  []byte
+	Fido2HmacSalt      []byte
+	DeterministicNames bool
+}
+
 func Create(filename string, password []byte, plaintextNames bool,
 	logN int, creator string, aessiv bool, devrandom bool,
 	fido2CredentialID []byte, fido2HmacSalt []byte, deterministicNames bool) error {
+	args := CreateArgs{
+		Filename:           filename,
+		Password:           password,
+		PlaintextNames:     plaintextNames,
+		LogN:               logN,
+		Creator:            creator,
+		AESSIV:             aessiv,
+		Devrandom:          devrandom,
+		Fido2CredentialID:  fido2CredentialID,
+		Fido2HmacSalt:      fido2HmacSalt,
+		DeterministicNames: deterministicNames,
+	}
+	log.Panicf("Use Create2(%#v) instead\n", args)
+	return nil
+}
+
+// Create - create a new config with a random key encrypted with
+// "Password" and write it to "Filename".
+// Uses scrypt with cost parameter "LogN".
+func Create2(args *CreateArgs) error {
 	var cf ConfFile
-	cf.filename = filename
-	cf.Creator = creator
+	cf.filename = args.Filename
+	cf.Creator = args.Creator
 	cf.Version = contentenc.CurrentVersion
 
 	// Set feature flags
 	cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagGCMIV128])
 	cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagHKDF])
-	if plaintextNames {
+	if args.PlaintextNames {
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagPlaintextNames])
 	} else {
-		if !deterministicNames {
+		if !args.DeterministicNames {
 			cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagDirIV])
 		}
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagEMENames])
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagLongNames])
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagRaw64])
 	}
-	if aessiv {
+	if args.AESSIV {
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagAESSIV])
 	}
-	if len(fido2CredentialID) > 0 {
+	if len(args.Fido2CredentialID) > 0 {
 		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagFIDO2])
 		cf.FIDO2 = &FIDO2Params{
-			CredentialID: fido2CredentialID,
-			HMACSalt:     fido2HmacSalt,
+			CredentialID: args.Fido2CredentialID,
+			HMACSalt:     args.Fido2HmacSalt,
 		}
 	}
 	{
 		// Generate new random master key
 		var key []byte
-		if devrandom {
+		if args.Devrandom {
 			key = randBytesDevRandom(cryptocore.KeyLen)
 		} else {
 			key = cryptocore.RandBytes(cryptocore.KeyLen)
@@ -122,7 +153,7 @@ func Create(filename string, password []byte, plaintextNames bool,
 		// Encrypt it using the password
 		// This sets ScryptObject and EncryptedKey
 		// Note: this looks at the FeatureFlags, so call it AFTER setting them.
-		cf.EncryptKey(key, password, logN)
+		cf.EncryptKey(key, args.Password, args.LogN)
 		for i := range key {
 			key[i] = 0
 		}

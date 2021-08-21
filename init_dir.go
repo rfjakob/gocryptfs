@@ -86,9 +86,17 @@ func initDir(args *argContainer) {
 			fido2HmacSalt = nil
 		}
 		creator := tlog.ProgramName + " " + GitVersion
-		err = configfile.Create(args.config, password, args.plaintextnames,
-			args.scryptn, creator, args.aessiv, args.devrandom, fido2CredentialID, fido2HmacSalt,
-			args.deterministic_names)
+		err = configfile.Create2(&configfile.CreateArgs{
+			Filename:           args.config,
+			Password:           password,
+			PlaintextNames:     args.plaintextnames,
+			LogN:               args.scryptn,
+			Creator:            creator,
+			AESSIV:             args.aessiv,
+			Devrandom:          args.devrandom,
+			Fido2CredentialID:  fido2CredentialID,
+			Fido2HmacSalt:      fido2HmacSalt,
+			DeterministicNames: args.deterministic_names})
 		if err != nil {
 			tlog.Fatal.Println(err)
 			os.Exit(exitcodes.WriteConf)
