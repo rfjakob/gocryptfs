@@ -59,7 +59,8 @@ type CryptoCore struct {
 	AEADBackend AEADTypeEnum
 	// GCM needs unique IVs (nonces)
 	IVGenerator *nonceGenerator
-	IVLen       int
+	// IVLen in bytes
+	IVLen int
 }
 
 // New returns a new CryptoCore object or panics.
@@ -75,10 +76,11 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 		len(key), aeadType, IVBitLen, useHKDF, forceDecode)
 
 	if len(key) != KeyLen {
-		log.Panic(fmt.Sprintf("Unsupported key length %d", len(key)))
+		log.Panicf("Unsupported key length of %d bytes", len(key))
 	}
-	// We want the IV size in bytes
-	IVLen := IVBitLen / 8
+	if IVBitLen != 96 && IVBitLen != 128 {
+		log.Panicf("Unsupported IV length of %d bits", IVBitLen)
+	}
 
 	// Initialize EME for filename encryption.
 	var emeCipher *eme.EMECipher
@@ -107,12 +109,14 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 		if useHKDF {
 			gcmKey = hkdfDerive(key, hkdfInfoGCMContent, KeyLen)
 		} else {
+			// Filesystems created by gocryptfs v0.7 through v1.2 don't use HKDF.
+			// Example: tests/example_filesystems/v0.9
 			gcmKey = append([]byte{}, key...)
 		}
 		switch aeadType {
 		case BackendOpenSSL:
-			if IVLen != 16 {
-				log.Panic("stupidgcm only supports 128-bit IVs")
+			if IVBitLen != 128 {
+				log.Panicf("stupidgcm only supports 128-bit IVs, you wanted %d", IVBitLen)
 			}
 			aeadCipher = stupidgcm.New(gcmKey, forceDecode)
 		case BackendGoGCM:
@@ -120,7 +124,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 			if err != nil {
 				log.Panic(err)
 			}
-			aeadCipher, err = cipher.NewGCMWithNonceSize(goGcmBlockCipher, IVLen)
+			aeadCipher, err = cipher.NewGCMWithNonceSize(goGcmBlockCipher, IVBitLen/8)
 			if err != nil {
 				log.Panic(err)
 			}
@@ -129,9 +133,9 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 			gcmKey[i] = 0
 		}
 	} else if aeadType == BackendAESSIV {
-		if IVLen != 16 {
-			// SIV supports any nonce size, but we only use 16.
-			log.Panic("AES-SIV must use 16-byte nonces")
+		if IVBitLen != 128 {
+			// SIV supports any nonce size, but we only use 128.
+			log.Panicf("AES-SIV must use 128-bit IVs, you wanted %d", IVBitLen)
 		}
 		// AES-SIV uses 1/2 of the key for authentication, 1/2 for
 		// encryption, so we need a 64-bytes key for AES-256. Derive it from
@@ -156,8 +160,8 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 		EMECipher:   emeCipher,
 		AEADCipher:  aeadCipher,
 		AEADBackend: aeadType,
-		IVGenerator: &nonceGenerator{nonceLen: IVLen},
-		IVLen:       IVLen,
+		IVGenerator: &nonceGenerator{nonceLen: IVBitLen / 8},
+		IVLen:       IVBitLen / 8,
 	}
 }
 
