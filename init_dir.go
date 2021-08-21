@@ -96,7 +96,8 @@ func initDir(args *argContainer) {
 			Devrandom:          args.devrandom,
 			Fido2CredentialID:  fido2CredentialID,
 			Fido2HmacSalt:      fido2HmacSalt,
-			DeterministicNames: args.deterministic_names})
+			DeterministicNames: args.deterministic_names,
+			XChaCha20Poly1305:  args.xchacha})
 		if err != nil {
 			tlog.Fatal.Println(err)
 			os.Exit(exitcodes.WriteConf)

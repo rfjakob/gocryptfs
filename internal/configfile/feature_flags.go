@@ -11,7 +11,8 @@ const (
 	// This flag is mandatory since gocryptfs v1.0.
 	FlagEMENames
 	// FlagGCMIV128 indicates 128-bit GCM IVs.
-	// This flag is mandatory since gocryptfs v1.0.
+	// This flag is mandatory since gocryptfs v1.0,
+	// except when XChaCha20Poly1305 is used.
 	FlagGCMIV128
 	// FlagLongNames allows file names longer than 176 bytes.
 	FlagLongNames
@@ -46,20 +47,8 @@ var knownFlags = map[flagIota]string{
 	FlagXChaCha20Poly1305: "XChaCha20Poly1305",
 }
 
-// Filesystems that do not have these feature flags set are deprecated.
-var requiredFlagsNormal = []flagIota{
-	FlagEMENames,
-	FlagGCMIV128,
-}
-
-// Filesystems without filename encryption obviously don't have or need the
-// filename related feature flags.
-var requiredFlagsPlaintextNames = []flagIota{
-	FlagGCMIV128,
-}
-
 // isFeatureFlagKnown verifies that we understand a feature flag.
-func (cf *ConfFile) isFeatureFlagKnown(flag string) bool {
+func isFeatureFlagKnown(flag string) bool {
 	for _, knownFlag := range knownFlags {
 		if knownFlag == flag {
 			return true

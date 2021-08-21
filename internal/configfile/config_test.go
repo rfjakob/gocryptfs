@@ -152,15 +152,14 @@ func TestIsFeatureFlagKnown(t *testing.T) {
 		testKnownFlags = append(testKnownFlags, f)
 	}
 
-	var cf ConfFile
 	for _, f := range testKnownFlags {
-		if !cf.isFeatureFlagKnown(f) {
+		if !isFeatureFlagKnown(f) {
 			t.Errorf("flag %q should be known", f)
 		}
 	}
 
 	f := "StrangeFeatureFlag"
-	if cf.isFeatureFlagKnown(f) {
+	if isFeatureFlagKnown(f) {
 		t.Errorf("flag %q should be NOT known", f)
 	}
 }

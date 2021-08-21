@@ -88,39 +88,51 @@ type CreateArgs struct {
 	Fido2CredentialID  []byte
 	Fido2HmacSalt      []byte
 	DeterministicNames bool
+	XChaCha20Poly1305  bool
 }
 
 // Create - create a new config with a random key encrypted with
 // "Password" and write it to "Filename".
 // Uses scrypt with cost parameter "LogN".
 func Create(args *CreateArgs) error {
-	var cf ConfFile
-	cf.filename = args.Filename
-	cf.Creator = args.Creator
-	cf.Version = contentenc.CurrentVersion
-
-	// Set feature flags
-	cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagGCMIV128])
-	cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagHKDF])
+	cf := ConfFile{
+		filename: args.Filename,
+		Creator:  args.Creator,
+		Version:  contentenc.CurrentVersion,
+	}
+	// Feature flags
+	cf.setFeatureFlag(FlagHKDF)
+	if args.XChaCha20Poly1305 {
+		cf.setFeatureFlag(FlagXChaCha20Poly1305)
+	} else {
+		// 128-bit IVs are mandatory for AES-GCM (default is 96!) and AES-SIV,
+		// XChaCha20Poly1305 uses even an even longer IV of 192 bits.
+		cf.setFeatureFlag(FlagGCMIV128)
+	}
 	if args.PlaintextNames {
-		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagPlaintextNames])
+		cf.setFeatureFlag(FlagPlaintextNames)
 	} else {
 		if !args.DeterministicNames {
-			cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagDirIV])
+			cf.setFeatureFlag(FlagDirIV)
 		}
-		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagEMENames])
-		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagLongNames])
-		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagRaw64])
+		cf.setFeatureFlag(FlagEMENames)
+		cf.setFeatureFlag(FlagLongNames)
+		cf.setFeatureFlag(FlagRaw64)
 	}
 	if args.AESSIV {
-		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagAESSIV])
+		cf.setFeatureFlag(FlagAESSIV)
 	}
 	if len(args.Fido2CredentialID) > 0 {
-		cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[FlagFIDO2])
+		cf.setFeatureFlag(FlagFIDO2)
 		cf.FIDO2 = &FIDO2Params{
 			CredentialID: args.Fido2CredentialID,
 			HMACSalt:     args.Fido2HmacSalt,
 		}
+	}
+	// Catch bugs and invalid cli flag combinations early
+	cf.ScryptObject = NewScryptKDF(args.LogN)
+	if err := cf.Validate(); err != nil {
+		return err
 	}
 	{
 		// Generate new random master key
@@ -193,48 +205,20 @@ func Load(filename string) (*ConfFile, error) {
 		return nil, err
 	}
 
-	if cf.Version != contentenc.CurrentVersion {
-		return nil, fmt.Errorf("Unsupported on-disk format %d", cf.Version)
-	}
-
-	// Check that all set feature flags are known
-	for _, flag := range cf.FeatureFlags {
-		if !cf.isFeatureFlagKnown(flag) {
-			return nil, fmt.Errorf("Unsupported feature flag %q", flag)
-		}
-	}
-
-	// Check that all required feature flags are set
-	var requiredFlags []flagIota
-	if cf.IsFeatureFlagSet(FlagPlaintextNames) {
-		requiredFlags = requiredFlagsPlaintextNames
-	} else {
-		requiredFlags = requiredFlagsNormal
-	}
-	deprecatedFs := false
-	for _, i := range requiredFlags {
-		if !cf.IsFeatureFlagSet(i) {
-			fmt.Fprintf(os.Stderr, "Required feature flag %q is missing\n", knownFlags[i])
-			deprecatedFs = true
-		}
-	}
-	if deprecatedFs {
-		fmt.Fprintf(os.Stderr, tlog.ColorYellow+`
-    The filesystem was created by gocryptfs v0.6 or earlier. This version of
-    gocryptfs can no longer mount the filesystem.
-    Please download gocryptfs v0.11 and upgrade your filesystem,
-    see https://github.com/rfjakob/gocryptfs/v2/wiki/Upgrading for instructions.
-
-    If you have trouble upgrading, join the discussion at
-    https://github.com/rfjakob/gocryptfs/v2/issues/29 .
-
-`+tlog.ColorReset)
-
-		return nil, exitcodes.NewErr("Deprecated filesystem", exitcodes.DeprecatedFS)
+	if err := cf.Validate(); err != nil {
+		return nil, exitcodes.NewErr(err.Error(), exitcodes.DeprecatedFS)
 	}
 
 	// All good
 	return &cf, nil
+}
+
+func (cf *ConfFile) setFeatureFlag(flag flagIota) {
+	if cf.IsFeatureFlagSet(flag) {
+		// Already set, ignore
+		return
+	}
+	cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[flag])
 }
 
 // DecryptMasterKey decrypts the masterkey stored in cf.EncryptedKey using
@@ -293,6 +277,9 @@ func (cf *ConfFile) EncryptKey(key []byte, password []byte, logN int) {
 // then rename over "filename".
 // This way a password change atomically replaces the file.
 func (cf *ConfFile) WriteFile() error {
+	if err := cf.Validate(); err != nil {
+		return err
+	}
 	tmp := cf.filename + ".tmp"
 	// 0400 permissions: gocryptfs.conf should be kept secret and never be written to.
 	fd, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0400)
