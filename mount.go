@@ -19,6 +19,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/crypto/chacha20poly1305"
+
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 
@@ -249,11 +251,16 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 	// Reconciliate CLI and config file arguments into a fusefrontend.Args struct
 	// that is passed to the filesystem implementation
 	cryptoBackend := cryptocore.BackendGoGCM
+	IVBits := contentenc.DefaultIVBits
 	if args.openssl {
 		cryptoBackend = cryptocore.BackendOpenSSL
 	}
 	if args.aessiv {
 		cryptoBackend = cryptocore.BackendAESSIV
+	}
+	if args.xchacha {
+		cryptoBackend = cryptocore.BackendXChaCha20Poly1305
+		IVBits = chacha20poly1305.NonceSizeX * 8
 	}
 	// forceOwner implies allow_other, as documented.
 	// Set this early, so args.allow_other can be relied on below this point.
@@ -287,9 +294,22 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 		args.hkdf = confFile.IsFeatureFlagSet(configfile.FlagHKDF)
 		if confFile.IsFeatureFlagSet(configfile.FlagAESSIV) {
 			cryptoBackend = cryptocore.BackendAESSIV
+			IVBits = contentenc.DefaultIVBits
 		} else if args.reverse {
 			tlog.Fatal.Printf("AES-SIV is required by reverse mode, but not enabled in the config file")
 			os.Exit(exitcodes.Usage)
+		}
+		if confFile.IsFeatureFlagSet(configfile.FlagXChaCha20Poly1305) {
+			cryptoBackend = cryptocore.BackendXChaCha20Poly1305
+			IVBits = chacha20poly1305.NonceSizeX * 8
+		}
+		// If neither AES-SIV nor XChaCha are selected, we must be using AES-GCM
+		if !confFile.IsFeatureFlagSet(configfile.FlagAESSIV) && !confFile.IsFeatureFlagSet(configfile.FlagXChaCha20Poly1305) {
+			cryptoBackend = cryptocore.BackendGoGCM
+			if args.openssl {
+				cryptoBackend = cryptocore.BackendOpenSSL
+			}
+			IVBits = contentenc.DefaultIVBits
 		}
 	}
 	// If allow_other is set and we run as root, try to give newly created files to
@@ -299,7 +319,7 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 	}
 
 	// Init crypto backend
-	cCore := cryptocore.New(masterkey, cryptoBackend, contentenc.DefaultIVBits, args.hkdf, args.forcedecode)
+	cCore := cryptocore.New(masterkey, cryptoBackend, IVBits, args.hkdf, args.forcedecode)
 	cEnc := contentenc.New(cCore, contentenc.DefaultBS, args.forcedecode)
 	nameTransform := nametransform.New(cCore.EMECipher, frontendArgs.LongNames,
 		args.raw64, []string(args.badname), frontendArgs.DeterministicNames)

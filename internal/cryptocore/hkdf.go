@@ -10,9 +10,10 @@ import (
 const (
 	// "info" data that HKDF mixes into the generated key to make it unique.
 	// For convenience, we use a readable string.
-	hkdfInfoEMENames   = "EME filename encryption"
-	hkdfInfoGCMContent = "AES-GCM file content encryption"
-	hkdfInfoSIVContent = "AES-SIV file content encryption"
+	hkdfInfoEMENames               = "EME filename encryption"
+	hkdfInfoGCMContent             = "AES-GCM file content encryption"
+	hkdfInfoSIVContent             = "AES-SIV file content encryption"
+	hkdfInfoXChaChaPoly1305Content = "XChaCha20-Poly1305 file content encryption"
 )
 
 // hkdfDerive derives "outLen" bytes from "masterkey" and "info" using

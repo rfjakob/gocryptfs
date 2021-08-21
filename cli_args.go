@@ -30,7 +30,8 @@ type argContainer struct {
 	plaintextnames, quiet, nosyslog, wpanic,
 	longnames, allow_other, reverse, aessiv, nonempty, raw64,
 	noprealloc, speed, hkdf, serialize_reads, forcedecode, hh, info,
-	sharedstorage, devrandom, fsck, one_file_system, deterministic_names bool
+	sharedstorage, devrandom, fsck, one_file_system, deterministic_names,
+	xchacha bool
 	// Mount options with opposites
 	dev, nodev, suid, nosuid, exec, noexec, rw, ro, kernel_cache, acl bool
 	masterkey, mountpoint, cipherdir, cpuprofile,
@@ -180,6 +181,7 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.BoolVar(&args.fsck, "fsck", false, "Run a filesystem check on CIPHERDIR")
 	flagSet.BoolVar(&args.one_file_system, "one-file-system", false, "Don't cross filesystem boundaries")
 	flagSet.BoolVar(&args.deterministic_names, "deterministic-names", false, "Disable diriv file name randomisation")
+	flagSet.BoolVar(&args.xchacha, "xchacha", false, "Use XChaCha20-Poly1305 file content encryption")
 
 	// Mount options with opposites
 	flagSet.BoolVar(&args.dev, "dev", false, "Allow device files")

@@ -28,19 +28,22 @@ const (
 	// FlagFIDO2 means that "-fido2" was used when creating the filesystem.
 	// The masterkey is protected using a FIDO2 token instead of a password.
 	FlagFIDO2
+	// FlagXChaCha20Poly1305 means we use XChaCha20-Poly1305 file content encryption
+	FlagXChaCha20Poly1305
 )
 
 // knownFlags stores the known feature flags and their string representation
 var knownFlags = map[flagIota]string{
-	FlagPlaintextNames: "PlaintextNames",
-	FlagDirIV:          "DirIV",
-	FlagEMENames:       "EMENames",
-	FlagGCMIV128:       "GCMIV128",
-	FlagLongNames:      "LongNames",
-	FlagAESSIV:         "AESSIV",
-	FlagRaw64:          "Raw64",
-	FlagHKDF:           "HKDF",
-	FlagFIDO2:          "FIDO2",
+	FlagPlaintextNames:    "PlaintextNames",
+	FlagDirIV:             "DirIV",
+	FlagEMENames:          "EMENames",
+	FlagGCMIV128:          "GCMIV128",
+	FlagLongNames:         "LongNames",
+	FlagAESSIV:            "AESSIV",
+	FlagRaw64:             "Raw64",
+	FlagHKDF:              "HKDF",
+	FlagFIDO2:             "FIDO2",
+	FlagXChaCha20Poly1305: "XChaCha20Poly1305",
 }
 
 // Filesystems that do not have these feature flags set are deprecated.

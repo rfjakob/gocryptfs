@@ -10,6 +10,8 @@ import (
 	"log"
 	"runtime"
 
+	"golang.org/x/crypto/chacha20poly1305"
+
 	"github.com/rfjakob/eme"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/siv_aead"
@@ -29,11 +31,17 @@ type AEADTypeEnum int
 
 const (
 	// BackendOpenSSL specifies the OpenSSL backend.
+	// "AES-GCM-256-OpenSSL" in gocryptfs -speed.
 	BackendOpenSSL AEADTypeEnum = 3
 	// BackendGoGCM specifies the Go based GCM backend.
+	// "AES-GCM-256-Go" in gocryptfs -speed.
 	BackendGoGCM AEADTypeEnum = 4
 	// BackendAESSIV specifies an AESSIV backend.
+	// "AES-SIV-512-Go" in gocryptfs -speed.
 	BackendAESSIV AEADTypeEnum = 5
+	// BackendXChaCha20Poly1305 specifies XChaCha20-Poly1305-Go.
+	// "XChaCha20-Poly1305-Go" in gocryptfs -speed.
+	BackendXChaCha20Poly1305 AEADTypeEnum = 6
 )
 
 func (a AEADTypeEnum) String() string {
@@ -78,7 +86,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 	if len(key) != KeyLen {
 		log.Panicf("Unsupported key length of %d bytes", len(key))
 	}
-	if IVBitLen != 96 && IVBitLen != 128 {
+	if IVBitLen != 96 && IVBitLen != 128 && IVBitLen != chacha20poly1305.NonceSizeX*8 {
 		log.Panicf("Unsupported IV length of %d bits", IVBitLen)
 	}
 
@@ -152,8 +160,26 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 		for i := range key64 {
 			key64[i] = 0
 		}
+	} else if aeadType == BackendXChaCha20Poly1305 {
+		// We don't support legacy modes with XChaCha20-Poly1305
+		if IVBitLen != chacha20poly1305.NonceSizeX*8 {
+			log.Panicf("XChaCha20-Poly1305 must use 192-bit IVs, you wanted %d", IVBitLen)
+		}
+		if !useHKDF {
+			log.Panic("XChaCha20-Poly1305 must use HKDF, but it is disabled")
+		}
+		derivedKey := hkdfDerive(key, hkdfInfoXChaChaPoly1305Content, chacha20poly1305.KeySize)
+		aeadCipher, err = chacha20poly1305.NewX(derivedKey)
+		if err != nil {
+			log.Panic(err)
+		}
 	} else {
-		log.Panic("unknown backend cipher")
+		log.Panicf("unknown cipher backend %q", aeadType.String())
+	}
+
+	if aeadCipher.NonceSize()*8 != IVBitLen {
+		log.Panicf("Mismatched aeadCipher.NonceSize*8=%d and IVBitLen=%d bits",
+			aeadCipher.NonceSize()*8, IVBitLen)
 	}
 
 	return &CryptoCore{
