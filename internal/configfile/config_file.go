@@ -90,29 +90,10 @@ type CreateArgs struct {
 	DeterministicNames bool
 }
 
-func Create(filename string, password []byte, plaintextNames bool,
-	logN int, creator string, aessiv bool, devrandom bool,
-	fido2CredentialID []byte, fido2HmacSalt []byte, deterministicNames bool) error {
-	args := CreateArgs{
-		Filename:           filename,
-		Password:           password,
-		PlaintextNames:     plaintextNames,
-		LogN:               logN,
-		Creator:            creator,
-		AESSIV:             aessiv,
-		Devrandom:          devrandom,
-		Fido2CredentialID:  fido2CredentialID,
-		Fido2HmacSalt:      fido2HmacSalt,
-		DeterministicNames: deterministicNames,
-	}
-	log.Panicf("Use Create2(%#v) instead\n", args)
-	return nil
-}
-
 // Create - create a new config with a random key encrypted with
 // "Password" and write it to "Filename".
 // Uses scrypt with cost parameter "LogN".
-func Create2(args *CreateArgs) error {
+func Create(args *CreateArgs) error {
 	var cf ConfFile
 	cf.filename = args.Filename
 	cf.Creator = args.Creator

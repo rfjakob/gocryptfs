@@ -62,7 +62,7 @@ func TestLoadV2StrangeFeature(t *testing.T) {
 }
 
 func TestCreateConfDefault(t *testing.T) {
-	err := Create2(&CreateArgs{
+	err := Create(&CreateArgs{
 		Filename: "config_test/tmp.conf",
 		Password: testPw,
 		LogN:     10,
@@ -87,7 +87,7 @@ func TestCreateConfDefault(t *testing.T) {
 }
 
 func TestCreateConfDevRandom(t *testing.T) {
-	err := Create2(&CreateArgs{
+	err := Create(&CreateArgs{
 		Filename:  "config_test/tmp.conf",
 		Password:  testPw,
 		LogN:      10,
@@ -99,7 +99,7 @@ func TestCreateConfDevRandom(t *testing.T) {
 }
 
 func TestCreateConfPlaintextnames(t *testing.T) {
-	err := Create2(&CreateArgs{
+	err := Create(&CreateArgs{
 		Filename:       "config_test/tmp.conf",
 		Password:       testPw,
 		PlaintextNames: true,
@@ -125,7 +125,7 @@ func TestCreateConfPlaintextnames(t *testing.T) {
 
 // Reverse mode uses AESSIV
 func TestCreateConfFileAESSIV(t *testing.T) {
-	err := Create2(&CreateArgs{
+	err := Create(&CreateArgs{
 		Filename: "config_test/tmp.conf",
 		Password: testPw,
 		LogN:     10,

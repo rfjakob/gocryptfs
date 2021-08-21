@@ -86,7 +86,7 @@ func initDir(args *argContainer) {
 			fido2HmacSalt = nil
 		}
 		creator := tlog.ProgramName + " " + GitVersion
-		err = configfile.Create2(&configfile.CreateArgs{
+		err = configfile.Create(&configfile.CreateArgs{
 			Filename:           args.config,
 			Password:           password,
 			PlaintextNames:     args.plaintextnames,
