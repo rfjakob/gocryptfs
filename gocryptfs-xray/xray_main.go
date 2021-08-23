@@ -24,26 +24,22 @@ var GitVersion = "[GitVersion not set - please compile using ./build.bash]"
 var BuildDate = "0000-00-00"
 
 const (
-	ivLen      = contentenc.DefaultIVBits / 8
-	authTagLen = cryptocore.AuthTagLen
-	blockSize  = contentenc.DefaultBS + ivLen + cryptocore.AuthTagLen
-	myName     = "gocryptfs-xray"
+	myName = "gocryptfs-xray"
 )
+
+// blockSize is the ciphertext block size including overheads
+func blockSize(alg cryptocore.AEADTypeEnum) int {
+	return alg.NonceSize + contentenc.DefaultBS + cryptocore.AuthTagLen
+}
 
 func errExit(err error) {
 	fmt.Println(err)
 	os.Exit(1)
 }
 
-func prettyPrintHeader(h *contentenc.FileHeader, aessiv bool) {
+func prettyPrintHeader(h *contentenc.FileHeader, algo cryptocore.AEADTypeEnum) {
 	id := hex.EncodeToString(h.ID)
-	msg := "Header: Version: %d, Id: %s"
-	if aessiv {
-		msg += ", assuming AES-SIV mode"
-	} else {
-		msg += ", assuming AES-GCM mode"
-	}
-	fmt.Printf(msg+"\n", h.Version, id)
+	fmt.Printf("Header: Version: %d, Id: %s, assuming %s mode\n", h.Version, id, algo.Name)
 }
 
 // printVersion prints a version string like this:
@@ -79,21 +75,25 @@ func sum(x ...*bool) (s int) {
 	return s
 }
 
+type argContainer struct {
+	dumpmasterkey *bool
+	decryptPaths  *bool
+	encryptPaths  *bool
+	aessiv        *bool
+	xchacha       *bool
+	sep0          *bool
+	fido2         *string
+	version       *bool
+}
+
 func main() {
-	var args struct {
-		dumpmasterkey *bool
-		decryptPaths  *bool
-		encryptPaths  *bool
-		aessiv        *bool
-		sep0          *bool
-		fido2         *string
-		version       *bool
-	}
+	var args argContainer
 	args.dumpmasterkey = flag.Bool("dumpmasterkey", false, "Decrypt and dump the master key")
 	args.decryptPaths = flag.Bool("decrypt-paths", false, "Decrypt file paths using gocryptfs control socket")
 	args.encryptPaths = flag.Bool("encrypt-paths", false, "Encrypt file paths using gocryptfs control socket")
 	args.sep0 = flag.Bool("0", false, "Use \\0 instead of \\n as separator")
 	args.aessiv = flag.Bool("aessiv", false, "Assume AES-SIV mode instead of AES-GCM")
+	args.xchacha = flag.Bool("xchacha", false, "Assume XChaCha20-Poly1305 mode instead of AES-GCM")
 	args.fido2 = flag.String("fido2", "", "Protect the masterkey using a FIDO2 token instead of a password")
 	args.version = flag.Bool("version", false, "Print version information")
 
@@ -121,15 +121,15 @@ func main() {
 	if *args.encryptPaths {
 		encryptPaths(fn, *args.sep0)
 	}
-	fd, err := os.Open(fn)
+	f, err := os.Open(fn)
 	if err != nil {
 		errExit(err)
 	}
-	defer fd.Close()
+	defer f.Close()
 	if *args.dumpmasterkey {
 		dumpMasterKey(fn, *args.fido2)
 	} else {
-		inspectCiphertext(fd, *args.aessiv)
+		inspectCiphertext(&args, f)
 	}
 }
 
@@ -166,7 +166,13 @@ func dumpMasterKey(fn string, fido2Path string) {
 	}
 }
 
-func inspectCiphertext(fd *os.File, aessiv bool) {
+func inspectCiphertext(args *argContainer, fd *os.File) {
+	algo := cryptocore.BackendGoGCM
+	if *args.aessiv {
+		algo = cryptocore.BackendAESSIV
+	} else if *args.xchacha {
+		algo = cryptocore.BackendXChaCha20Poly1305
+	}
 	headerBytes := make([]byte, contentenc.HeaderLen)
 	n, err := fd.ReadAt(headerBytes, 0)
 	if err == io.EOF && n == 0 {
@@ -182,11 +188,11 @@ func inspectCiphertext(fd *os.File, aessiv bool) {
 	if err != nil {
 		errExit(err)
 	}
-	prettyPrintHeader(header, aessiv)
+	prettyPrintHeader(header, algo)
 	var i int64
-	buf := make([]byte, blockSize)
+	buf := make([]byte, blockSize(algo))
 	for i = 0; ; i++ {
-		off := contentenc.HeaderLen + i*blockSize
+		off := contentenc.HeaderLen + i*int64(blockSize(algo))
 		n, err := fd.ReadAt(buf, off)
 		if err != nil && err != io.EOF {
 			errExit(err)
@@ -195,15 +201,15 @@ func inspectCiphertext(fd *os.File, aessiv bool) {
 			break
 		}
 		// A block contains at least the IV, the Auth Tag and 1 data byte
-		if n < ivLen+authTagLen+1 {
+		if n < algo.NonceSize+cryptocore.AuthTagLen+1 {
 			errExit(fmt.Errorf("corrupt block: truncated data, len=%d", n))
 		}
 		data := buf[:n]
 		// Parse block data
-		iv := data[:ivLen]
-		tag := data[len(data)-authTagLen:]
-		if aessiv {
-			tag = data[ivLen : ivLen+authTagLen]
+		iv := data[:algo.NonceSize]
+		tag := data[len(data)-cryptocore.AuthTagLen:]
+		if *args.aessiv {
+			tag = data[algo.NonceSize : algo.NonceSize+cryptocore.AuthTagLen]
 		}
 		fmt.Printf("Block %2d: IV: %s, Tag: %s, Offset: %5d Len: %d\n",
 			i, hex.EncodeToString(iv), hex.EncodeToString(tag), off, len(data))
