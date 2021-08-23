@@ -1,6 +1,5 @@
+// package cli tests CLI operations like "-init", "-password" etc
 package cli
-
-// Test CLI operations like "-init", "-password" etc
 
 import (
 	"fmt"
