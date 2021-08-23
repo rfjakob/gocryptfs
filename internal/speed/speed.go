@@ -14,6 +14,7 @@ import (
 
 	"golang.org/x/crypto/chacha20poly1305"
 
+	"github.com/rfjakob/gocryptfs/v2/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/v2/internal/siv_aead"
 	"github.com/rfjakob/gocryptfs/v2/internal/stupidgcm"
 )
@@ -31,10 +32,10 @@ func Run() {
 		f         func(*testing.B)
 		preferred bool
 	}{
-		{name: "AES-GCM-256-OpenSSL", f: bStupidGCM, preferred: stupidgcm.PreferOpenSSL()},
-		{name: "AES-GCM-256-Go", f: bGoGCM, preferred: !stupidgcm.PreferOpenSSL()},
-		{name: "AES-SIV-512-Go", f: bAESSIV, preferred: false},
-		{name: "XChaCha20-Poly1305-Go", f: bChacha20poly1305, preferred: false},
+		{name: cryptocore.BackendOpenSSL.Name, f: bStupidGCM, preferred: stupidgcm.PreferOpenSSL()},
+		{name: cryptocore.BackendGoGCM.Name, f: bGoGCM, preferred: !stupidgcm.PreferOpenSSL()},
+		{name: cryptocore.BackendAESSIV.Name, f: bAESSIV, preferred: false},
+		{name: cryptocore.BackendXChaCha20Poly1305.Name, f: bChacha20poly1305, preferred: false},
 	}
 	for _, b := range bTable {
 		fmt.Printf("%-20s\t", b.name)
@@ -46,7 +47,7 @@ func Run() {
 		}
 		if b.preferred {
 			fmt.Printf("\t(selected in auto mode)\n")
-		} else if b.name == "XChaCha20-Poly1305-Go" {
+		} else if b.name == cryptocore.BackendXChaCha20Poly1305.Name {
 			fmt.Printf("\t(benchmark only, not selectable yet)\n")
 		} else {
 			fmt.Printf("\t\n")
