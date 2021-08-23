@@ -156,7 +156,13 @@ func TestFallocate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = syscallcompat.Fallocate(fd, FALLOC_DEFAULT, 0, 8110)
+	var plain int64 = 8110
+	if testcase.isSet("-xchacha") {
+		// xchacha has 24 byte ivs instead of 16. 8kiB are two blocks, so
+		// 2x8=16 bytes more.
+		plain = plain - 16
+	}
+	err = syscallcompat.Fallocate(fd, FALLOC_DEFAULT, 0, plain)
 	if err != nil {
 		t.Fatal(err)
 	}

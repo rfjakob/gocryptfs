@@ -39,6 +39,16 @@ type testcaseMatrix struct {
 	extraArgs      []string
 }
 
+// isSet finds out if `extraArg` is set in `tc.extraArgs`
+func (tc *testcaseMatrix) isSet(extraArg string) bool {
+	for _, v := range tc.extraArgs {
+		if v == extraArg {
+			return true
+		}
+	}
+	return false
+}
+
 var matrix = []testcaseMatrix{
 	// Normal
 	{false, "auto", false, false, nil},
@@ -56,6 +66,7 @@ var matrix = []testcaseMatrix{
 	{false, "auto", false, false, []string{"-serialize_reads"}},
 	{false, "auto", false, false, []string{"-sharedstorage"}},
 	{false, "auto", false, false, []string{"-deterministic-names"}},
+	{false, "auto", false, true, []string{"-xchacha"}},
 }
 
 // This is the entry point for the tests
@@ -73,7 +84,7 @@ func TestMain(m *testing.M) {
 		createDirIV := true
 		if testcase.plaintextnames {
 			createDirIV = false
-		} else if len(testcase.extraArgs) == 1 && testcase.extraArgs[0] == "-deterministic-names" {
+		} else if testcase.isSet("-deterministic-names") {
 			createDirIV = false
 		}
 		test_helpers.ResetTmpDir(createDirIV)
