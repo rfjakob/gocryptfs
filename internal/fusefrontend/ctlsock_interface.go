@@ -6,10 +6,10 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/rfjakob/gocryptfs/internal/ctlsocksrv"
-	"github.com/rfjakob/gocryptfs/internal/nametransform"
-	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
-	"github.com/rfjakob/gocryptfs/internal/tlog"
+	"github.com/rfjakob/gocryptfs/v2/internal/ctlsocksrv"
+	"github.com/rfjakob/gocryptfs/v2/internal/nametransform"
+	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
+	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
 var _ ctlsocksrv.Interface = &RootNode{} // Verify that interface is implemented.

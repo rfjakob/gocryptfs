@@ -22,16 +22,16 @@ import (
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 
-	"github.com/rfjakob/gocryptfs/internal/configfile"
-	"github.com/rfjakob/gocryptfs/internal/contentenc"
-	"github.com/rfjakob/gocryptfs/internal/cryptocore"
-	"github.com/rfjakob/gocryptfs/internal/ctlsocksrv"
-	"github.com/rfjakob/gocryptfs/internal/exitcodes"
-	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
-	"github.com/rfjakob/gocryptfs/internal/fusefrontend_reverse"
-	"github.com/rfjakob/gocryptfs/internal/nametransform"
-	"github.com/rfjakob/gocryptfs/internal/openfiletable"
-	"github.com/rfjakob/gocryptfs/internal/tlog"
+	"github.com/rfjakob/gocryptfs/v2/internal/configfile"
+	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/v2/internal/cryptocore"
+	"github.com/rfjakob/gocryptfs/v2/internal/ctlsocksrv"
+	"github.com/rfjakob/gocryptfs/v2/internal/exitcodes"
+	"github.com/rfjakob/gocryptfs/v2/internal/fusefrontend"
+	"github.com/rfjakob/gocryptfs/v2/internal/fusefrontend_reverse"
+	"github.com/rfjakob/gocryptfs/v2/internal/nametransform"
+	"github.com/rfjakob/gocryptfs/v2/internal/openfiletable"
+	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
 // AfterUnmount is called after the filesystem has been unmounted.
@@ -73,7 +73,7 @@ func doMount(args *argContainer) {
 		// and `drop_privileges` in `man mount.fuse3` for background.
 	} else {
 		err = isEmptyDir(args.mountpoint)
-		// OSXFuse will create the mountpoint for us ( https://github.com/rfjakob/gocryptfs/issues/194 )
+		// OSXFuse will create the mountpoint for us ( https://github.com/rfjakob/gocryptfs/v2/issues/194 )
 		if runtime.GOOS == "darwin" && os.IsNotExist(err) {
 			tlog.Info.Printf("Mountpoint %q does not exist, but should be created by OSXFuse",
 				args.mountpoint)

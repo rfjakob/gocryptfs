@@ -11,7 +11,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/rfjakob/gocryptfs/tests/test_helpers"
+	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
 )
 
 func TestFdXattr(t *testing.T) {

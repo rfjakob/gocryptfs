@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rfjakob/gocryptfs/internal/tlog"
+	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
 // serializerState is used by the Wait and Done functions

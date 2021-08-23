@@ -17,7 +17,7 @@ BenchmarkScrypt14-2	      20	  92561590 ns/op ... 92ms
 BenchmarkScrypt15-2	      10	 183971593 ns/op
 BenchmarkScrypt16-2	       3	 368506365 ns/op
 BenchmarkScrypt17-2	       2	 755502608 ns/op ... 755ms
-ok  	github.com/rfjakob/gocryptfs/cryptfs	18.772s
+ok  	github.com/rfjakob/gocryptfs/v2/cryptfs	18.772s
 */
 
 func benchmarkScryptN(n int, b *testing.B) {

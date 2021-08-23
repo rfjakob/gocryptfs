@@ -27,7 +27,7 @@ func TestGetdents(t *testing.T) {
 
 // skipOnGccGo skips the emulateGetdents test when we are
 // running linux and were compiled with gccgo. The test is known to fail
-// (https://github.com/rfjakob/gocryptfs/issues/201), but getdents emulation
+// (https://github.com/rfjakob/gocryptfs/v2/issues/201), but getdents emulation
 // is not used on linux, so let's skip the test and ignore the failure.
 func skipOnGccGo(t *testing.T) {
 	if !emulate || runtime.GOOS != "linux" {

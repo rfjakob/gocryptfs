@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/rfjakob/gocryptfs/internal/fusefrontend"
+	"github.com/rfjakob/gocryptfs/v2/internal/fusefrontend"
 )
 
 func TestShouldPrefixExcludeValuesWithSlash(t *testing.T) {

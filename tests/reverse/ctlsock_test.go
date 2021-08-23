@@ -5,8 +5,8 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/rfjakob/gocryptfs/ctlsock"
-	"github.com/rfjakob/gocryptfs/tests/test_helpers"
+	"github.com/rfjakob/gocryptfs/v2/ctlsock"
+	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
 )
 
 var ctlSockTestCases = [][]string{

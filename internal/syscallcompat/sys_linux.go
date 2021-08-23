@@ -15,7 +15,7 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 
-	"github.com/rfjakob/gocryptfs/internal/tlog"
+	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
 const (
@@ -48,7 +48,7 @@ func EnospcPrealloc(fd int, off int64, len int64) (err error) {
 		}
 		if err == syscall.EOPNOTSUPP {
 			// ZFS and ext3 do not support fallocate. Warn but continue anyway.
-			// https://github.com/rfjakob/gocryptfs/issues/22
+			// https://github.com/rfjakob/gocryptfs/v2/issues/22
 			preallocWarn.Do(func() {
 				tlog.Warn.Printf("Warning: The underlying filesystem " +
 					"does not support fallocate(2). gocryptfs will continue working " +

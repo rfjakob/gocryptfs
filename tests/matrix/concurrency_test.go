@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/rfjakob/gocryptfs/tests/test_helpers"
+	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
 )
 
-// https://github.com/rfjakob/gocryptfs/issues/363
+// https://github.com/rfjakob/gocryptfs/v2/issues/363
 //
 // Note: this test calls log.Fatal() instead of t.Fatal() because apparently,
 // calling t.Fatal() from a goroutine hangs the test.
@@ -73,7 +73,7 @@ func TestConcurrentReadWrite(t *testing.T) {
 	wg.Wait()
 }
 
-// https://github.com/rfjakob/gocryptfs/issues/363
+// https://github.com/rfjakob/gocryptfs/v2/issues/363
 //
 // Note: this test calls log.Fatal() instead of t.Fatal() because apparently,
 // calling t.Fatal() from a goroutine hangs the test.

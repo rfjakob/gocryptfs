@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/rfjakob/gocryptfs/internal/exitcodes"
+	"github.com/rfjakob/gocryptfs/v2/internal/exitcodes"
 )
 
 type StupidGCM struct{}

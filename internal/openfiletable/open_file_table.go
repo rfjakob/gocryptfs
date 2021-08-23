@@ -8,7 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/rfjakob/gocryptfs/internal/inomap"
+	"github.com/rfjakob/gocryptfs/v2/internal/inomap"
 )
 
 // wlock - serializes write accesses to each file (identified by inode number)

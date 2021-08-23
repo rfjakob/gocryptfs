@@ -4,11 +4,11 @@ import (
 	"sync/atomic"
 	"syscall"
 
-	"github.com/rfjakob/gocryptfs/internal/tlog"
+	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 
 	"github.com/hanwen/go-fuse/v2/fs"
 
-	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
+	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 )
 
 // prepareAtSyscall returns a (dirfd, cName) pair that can be used

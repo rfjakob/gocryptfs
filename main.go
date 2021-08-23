@@ -1,5 +1,5 @@
 // gocryptfs is an encrypted overlay filesystem written in Go.
-// See README.md ( https://github.com/rfjakob/gocryptfs/blob/master/README.md )
+// See README.md ( https://github.com/rfjakob/gocryptfs/v2/blob/master/README.md )
 // and the official website ( https://nuetzlich.net/gocryptfs/ ) for details.
 package main
 
@@ -14,14 +14,14 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 
-	"github.com/rfjakob/gocryptfs/internal/configfile"
-	"github.com/rfjakob/gocryptfs/internal/contentenc"
-	"github.com/rfjakob/gocryptfs/internal/exitcodes"
-	"github.com/rfjakob/gocryptfs/internal/fido2"
-	"github.com/rfjakob/gocryptfs/internal/readpassword"
-	"github.com/rfjakob/gocryptfs/internal/speed"
-	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
-	"github.com/rfjakob/gocryptfs/internal/tlog"
+	"github.com/rfjakob/gocryptfs/v2/internal/configfile"
+	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/v2/internal/exitcodes"
+	"github.com/rfjakob/gocryptfs/v2/internal/fido2"
+	"github.com/rfjakob/gocryptfs/v2/internal/readpassword"
+	"github.com/rfjakob/gocryptfs/v2/internal/speed"
+	"github.com/rfjakob/gocryptfs/v2/internal/stupidgcm"
+	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
 // GitVersion is the gocryptfs version according to git, set by build.bash

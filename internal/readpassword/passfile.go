@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"os"
 
-	"github.com/rfjakob/gocryptfs/internal/exitcodes"
-	"github.com/rfjakob/gocryptfs/internal/tlog"
+	"github.com/rfjakob/gocryptfs/v2/internal/exitcodes"
+	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
 // readPassFileConcatenate reads the first line from each file name and

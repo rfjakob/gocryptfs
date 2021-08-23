@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rfjakob/gocryptfs/tests/test_helpers"
+	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
 
-	"github.com/rfjakob/gocryptfs/contrib/findholes/holes"
+	"github.com/rfjakob/gocryptfs/v2/contrib/findholes/holes"
 )
 
 func findHolesPretty(t *testing.T, path string) string {

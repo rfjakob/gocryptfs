@@ -9,7 +9,7 @@ BenchmarkStupidGCM-2   	  100000	     22552 ns/op	 181.62 MB/s
 BenchmarkGoGCM-2       	   20000	     81871 ns/op	  50.03 MB/s
 BenchmarkAESSIV-2      	   10000	    104623 ns/op	  39.15 MB/s
 PASS
-ok  	github.com/rfjakob/gocryptfs/internal/speed	6.022s
+ok  	github.com/rfjakob/gocryptfs/v2/internal/speed	6.022s
 */
 
 import (

@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/rfjakob/gocryptfs/tests/test_helpers"
+	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
 )
 
 // Test Mkdir and Rmdir
@@ -34,7 +34,7 @@ func TestDirOverwrite(t *testing.T) {
 }
 
 // Test that we can create and remove a directory regardless of the permission it has
-// https://github.com/rfjakob/gocryptfs/issues/354
+// https://github.com/rfjakob/gocryptfs/v2/issues/354
 func TestRmdirPerms(t *testing.T) {
 	for _, perm := range []uint32{0000, 0100, 0200, 0300, 0400, 0500, 0600, 0700} {
 		dir := fmt.Sprintf("TestRmdir%#o", perm)

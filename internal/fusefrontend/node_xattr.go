@@ -9,7 +9,7 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 
-	"github.com/rfjakob/gocryptfs/internal/tlog"
+	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
 // -1 as uint32
@@ -24,7 +24,7 @@ var xattrNameIV = []byte("xattr_name_iv_xx")
 var xattrStorePrefix = "user.gocryptfs."
 
 // We get one read of this xattr for each write -
-// see https://github.com/rfjakob/gocryptfs/issues/515 for details.
+// see https://github.com/rfjakob/gocryptfs/v2/issues/515 for details.
 var xattrCapability = "security.capability"
 
 // isAcl returns true if the attribute name is for storing ACLs
@@ -41,7 +41,7 @@ func (n *Node) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, 
 	rn := n.rootNode()
 	// If we are not mounted with -suid, reading the capability xattr does not
 	// make a lot of sense, so reject the request and gain a massive speedup.
-	// See https://github.com/rfjakob/gocryptfs/issues/515 .
+	// See https://github.com/rfjakob/gocryptfs/v2/issues/515 .
 	if !rn.args.Suid && attr == xattrCapability {
 		// Returning EOPNOTSUPP is what we did till
 		// ca9e912a28b901387e1dbb85f6c531119f2d5ef2 "fusefrontend: drop xattr user namespace restriction"

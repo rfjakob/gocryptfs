@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/rfjakob/gocryptfs/tests/test_helpers"
+	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
 )
 
 func TestMain(m *testing.M) {
@@ -239,7 +239,7 @@ func TestMvWarningSymlink(t *testing.T) {
 	if err != nil {
 		t.Log(string(out))
 		if runtime.GOOS == "darwin" {
-			t.Skip("mv on darwin chokes on broken symlinks, see https://github.com/rfjakob/gocryptfs/issues/349")
+			t.Skip("mv on darwin chokes on broken symlinks, see https://github.com/rfjakob/gocryptfs/v2/issues/349")
 		}
 		t.Fatal(err)
 	}

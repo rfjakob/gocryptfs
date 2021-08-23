@@ -3,12 +3,12 @@ package syscallcompat
 import (
 	"golang.org/x/sys/unix"
 
-	"github.com/rfjakob/gocryptfs/internal/tlog"
+	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
 func DetectQuirks(cipherdir string) (q uint64) {
 	const (
-		// From https://github.com/rfjakob/gocryptfs/issues/585#issuecomment-887370065
+		// From https://github.com/rfjakob/gocryptfs/v2/issues/585#issuecomment-887370065
 		FstypenameExfat = "exfat"
 	)
 
@@ -31,9 +31,9 @@ func DetectQuirks(cipherdir string) (q uint64) {
 	tlog.Debug.Printf("DetectQuirks: Fstypename=%q\n", fstypename)
 
 	// On MacOS ExFAT, all empty files share inode number 1:
-	// https://github.com/rfjakob/gocryptfs/issues/585
+	// https://github.com/rfjakob/gocryptfs/v2/issues/585
 	if fstypename == FstypenameExfat {
-		logQuirk("ExFAT detected, disabling hard links. See https://github.com/rfjakob/gocryptfs/issues/585 for why.")
+		logQuirk("ExFAT detected, disabling hard links. See https://github.com/rfjakob/gocryptfs/v2/issues/585 for why.")
 		q |= QuirkDuplicateIno1
 	}
 

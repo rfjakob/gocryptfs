@@ -12,11 +12,11 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/rfjakob/gocryptfs/internal/syscallcompat"
+	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 
 	"golang.org/x/sys/unix"
 
-	"github.com/rfjakob/gocryptfs/tests/test_helpers"
+	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
 )
 
 func asUser(uid int, gid int, supplementaryGroups []int, f func() error) error {

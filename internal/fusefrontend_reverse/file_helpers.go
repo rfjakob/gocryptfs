@@ -5,9 +5,9 @@ import (
 	"io"
 	"sync"
 
-	"github.com/rfjakob/gocryptfs/internal/contentenc"
-	"github.com/rfjakob/gocryptfs/internal/pathiv"
-	"github.com/rfjakob/gocryptfs/internal/tlog"
+	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/v2/internal/pathiv"
+	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
 var inodeTable sync.Map

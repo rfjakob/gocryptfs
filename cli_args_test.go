@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/rfjakob/gocryptfs/internal/stupidgcm"
+	"github.com/rfjakob/gocryptfs/v2/internal/stupidgcm"
 )
 
 // TestPrefixOArgs checks that the "-o x,y,z" parsing works correctly.
