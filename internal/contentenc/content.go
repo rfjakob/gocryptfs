@@ -17,9 +17,6 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
-// NonceMode determines how nonces are created.
-type NonceMode int
-
 const (
 	// DefaultBS is the default plaintext block size
 	DefaultBS = 4096
@@ -28,15 +25,6 @@ const (
 	// master key in the config file is encrypted with a 96-bit IV for
 	// gocryptfs v1.2 and earlier. v1.3 switched to 128 bit.
 	DefaultIVBits = 128
-
-	_ = iota // skip zero
-	// RandomNonce chooses a random nonce.
-	RandomNonce NonceMode = iota
-	// ReverseDeterministicNonce chooses a deterministic nonce, suitable for
-	// use in reverse mode.
-	ReverseDeterministicNonce NonceMode = iota
-	// ExternalNonce derives a nonce from external sources.
-	ExternalNonce NonceMode = iota
 )
 
 // ContentEnc is used to encipher and decipher file content.
