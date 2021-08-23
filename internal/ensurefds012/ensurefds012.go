@@ -1,5 +1,3 @@
-package ensurefds012
-
 // Package ensurefds012 ensures that file descriptors 0,1,2 are open. It opens
 // multiple copies of /dev/null as required.
 // The Go stdlib as well as the gocryptfs code rely on the fact that
@@ -28,6 +26,7 @@ package ensurefds012
 //   lrwx------. 1 jakob jakob 64 Jan  5 15:54 4 -> 'anon_inode:[eventpoll]'
 //
 // See https://github.com/rfjakob/gocryptfs/issues/320 for details.
+package ensurefds012
 
 import (
 	"os"
