@@ -325,3 +325,18 @@ func getKeyEncrypter(scryptHash []byte, useHKDF bool) *contentenc.ContentEnc {
 	ce := contentenc.New(cc, 4096, false)
 	return ce
 }
+
+// ContentEncryption tells us which content encryption algorithm is selected
+func (cf *ConfFile) ContentEncryption() (algo cryptocore.AEADTypeEnum, err error) {
+	if err := cf.Validate(); err != nil {
+		return cryptocore.AEADTypeEnum{}, err
+	}
+	if cf.IsFeatureFlagSet(FlagXChaCha20Poly1305) {
+		return cryptocore.BackendXChaCha20Poly1305, nil
+	}
+	if cf.IsFeatureFlagSet(FlagAESSIV) {
+		return cryptocore.BackendAESSIV, nil
+	}
+	// If neither AES-SIV nor XChaCha are selected, we must be using AES-GCM
+	return cryptocore.BackendGoGCM, nil
+}

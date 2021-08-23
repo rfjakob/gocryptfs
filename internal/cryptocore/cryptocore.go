@@ -6,7 +6,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/sha512"
-	"fmt"
 	"log"
 	"runtime"
 
@@ -20,42 +19,34 @@ import (
 )
 
 const (
-	// KeyLen is the cipher key length in bytes.  32 for AES-256.
+	// KeyLen is the cipher key length in bytes. All backends use 32 bytes.
 	KeyLen = 32
-	// AuthTagLen is the length of a GCM auth tag in bytes.
+	// AuthTagLen is the length of a authentication tag in bytes.
+	// All backends use 16 bytes.
 	AuthTagLen = 16
 )
 
 // AEADTypeEnum indicates the type of AEAD backend in use.
-type AEADTypeEnum int
-
-const (
-	// BackendOpenSSL specifies the OpenSSL backend.
-	// "AES-GCM-256-OpenSSL" in gocryptfs -speed.
-	BackendOpenSSL AEADTypeEnum = 3
-	// BackendGoGCM specifies the Go based GCM backend.
-	// "AES-GCM-256-Go" in gocryptfs -speed.
-	BackendGoGCM AEADTypeEnum = 4
-	// BackendAESSIV specifies an AESSIV backend.
-	// "AES-SIV-512-Go" in gocryptfs -speed.
-	BackendAESSIV AEADTypeEnum = 5
-	// BackendXChaCha20Poly1305 specifies XChaCha20-Poly1305-Go.
-	// "XChaCha20-Poly1305-Go" in gocryptfs -speed.
-	BackendXChaCha20Poly1305 AEADTypeEnum = 6
-)
-
-func (a AEADTypeEnum) String() string {
-	switch a {
-	case BackendOpenSSL:
-		return "BackendOpenSSL"
-	case BackendGoGCM:
-		return "BackendGoGCM"
-	case BackendAESSIV:
-		return "BackendAESSIV"
-	default:
-		return fmt.Sprintf("%d", a)
-	}
+type AEADTypeEnum struct {
+	Name      string
+	NonceSize int
 }
+
+// BackendOpenSSL specifies the OpenSSL backend.
+// "AES-GCM-256-OpenSSL" in gocryptfs -speed.
+var BackendOpenSSL AEADTypeEnum = AEADTypeEnum{"AES-GCM-256-OpenSSL", 16}
+
+// BackendGoGCM specifies the Go based GCM backend.
+// "AES-GCM-256-Go" in gocryptfs -speed.
+var BackendGoGCM AEADTypeEnum = AEADTypeEnum{"AES-GCM-256-Go", 16}
+
+// BackendAESSIV specifies an AESSIV backend.
+// "AES-SIV-512-Go" in gocryptfs -speed.
+var BackendAESSIV AEADTypeEnum = AEADTypeEnum{"AES-SIV-512-Go", siv_aead.NonceSize}
+
+// BackendXChaCha20Poly1305 specifies XChaCha20-Poly1305-Go.
+// "XChaCha20-Poly1305-Go" in gocryptfs -speed.
+var BackendXChaCha20Poly1305 AEADTypeEnum = AEADTypeEnum{"XChaCha20-Poly1305-Go", chacha20poly1305.NonceSizeX}
 
 // CryptoCore is the low level crypto implementation.
 type CryptoCore struct {
@@ -174,7 +165,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 			log.Panic(err)
 		}
 	} else {
-		log.Panicf("unknown cipher backend %q", aeadType.String())
+		log.Panicf("unknown cipher backend %q", aeadType.Name)
 	}
 
 	if aeadCipher.NonceSize()*8 != IVBitLen {
@@ -203,7 +194,7 @@ type wiper interface {
 func (c *CryptoCore) Wipe() {
 	be := c.AEADBackend
 	if be == BackendOpenSSL || be == BackendAESSIV {
-		tlog.Debug.Printf("CryptoCore.Wipe: Wiping AEADBackend %d key", be)
+		tlog.Debug.Printf("CryptoCore.Wipe: Wiping AEADBackend %s key", be.Name)
 		// We don't use "x, ok :=" because we *want* to crash loudly if the
 		// type assertion fails.
 		w := c.AEADCipher.(wiper)

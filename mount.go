@@ -292,24 +292,18 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 		frontendArgs.DeterministicNames = !confFile.IsFeatureFlagSet(configfile.FlagDirIV)
 		args.raw64 = confFile.IsFeatureFlagSet(configfile.FlagRaw64)
 		args.hkdf = confFile.IsFeatureFlagSet(configfile.FlagHKDF)
-		if confFile.IsFeatureFlagSet(configfile.FlagAESSIV) {
-			cryptoBackend = cryptocore.BackendAESSIV
-			IVBits = contentenc.DefaultIVBits
-		} else if args.reverse {
+		cryptoBackend, err = confFile.ContentEncryption()
+		if err != nil {
+			tlog.Fatal.Printf("%v", err)
+			os.Exit(exitcodes.DeprecatedFS)
+		}
+		IVBits = cryptoBackend.NonceSize * 8
+		if cryptoBackend != cryptocore.BackendAESSIV && args.reverse {
 			tlog.Fatal.Printf("AES-SIV is required by reverse mode, but not enabled in the config file")
 			os.Exit(exitcodes.Usage)
 		}
-		if confFile.IsFeatureFlagSet(configfile.FlagXChaCha20Poly1305) {
-			cryptoBackend = cryptocore.BackendXChaCha20Poly1305
-			IVBits = chacha20poly1305.NonceSizeX * 8
-		}
-		// If neither AES-SIV nor XChaCha are selected, we must be using AES-GCM
-		if !confFile.IsFeatureFlagSet(configfile.FlagAESSIV) && !confFile.IsFeatureFlagSet(configfile.FlagXChaCha20Poly1305) {
-			cryptoBackend = cryptocore.BackendGoGCM
-			if args.openssl {
-				cryptoBackend = cryptocore.BackendOpenSSL
-			}
-			IVBits = contentenc.DefaultIVBits
+		if cryptoBackend == cryptocore.BackendGoGCM && args.openssl {
+			cryptoBackend = cryptocore.BackendOpenSSL
 		}
 	}
 	// If allow_other is set and we run as root, try to give newly created files to

@@ -19,6 +19,11 @@ const (
 	// KeyLen is the required key length. The SIV algorithm supports other lengths,
 	// but we only support 64.
 	KeyLen = 64
+	// NonceSize is the required nonce/IV length.
+	// SIV supports any nonce size, but in gocryptfs we exclusively use 16.
+	NonceSize = 16
+	// Overhead is the number of bytes added for integrity checking
+	Overhead = 16
 )
 
 // New returns a new cipher.AEAD implementation.
@@ -42,11 +47,11 @@ func new2(keyIn []byte) cipher.AEAD {
 
 func (s *sivAead) NonceSize() int {
 	// SIV supports any nonce size, but in gocryptfs we exclusively use 16.
-	return 16
+	return NonceSize
 }
 
 func (s *sivAead) Overhead() int {
-	return 16
+	return Overhead
 }
 
 // Seal encrypts "in" using "nonce" and "authData" and appends the result to "dst"
