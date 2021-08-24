@@ -212,6 +212,9 @@ v2.2, IN PROGRESS
 * `-deterministic-names`: new option for `-init`, both for reverse and forward mode.
    Disables file name randomisation & `gocryptfs.diriv` files
    ([#151](https://github.com/rfjakob/gocryptfs/issues/151), [#402](https://github.com/rfjakob/gocryptfs/issues/402), [#592](https://github.com/rfjakob/gocryptfs/pull/592))
+* `-xchacha`: new option for `-init` (forward mode only). Selects XChaCha20-Poly1305 for content encryption.
+  Gives [better performance on embedded CPUs](https://gist.github.com/rfjakob/b28383f4c84263ac7c5388ccc262e38b)
+  ([#452](https://github.com/rfjakob/gocryptfs/issues/452))
 
 v2.1, 2021-08-18
 * `-fido2`: do not request PIN on `gocryptfs -init` fixing `FIDO_ERR_UNSUPPORTED_OPTION` with YubiKey
