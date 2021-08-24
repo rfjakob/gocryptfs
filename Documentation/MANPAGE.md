@@ -100,8 +100,10 @@ Available options for `-init` are listed below. Usually, you don't need any.
 Defaults are fine.
 
 #### -aessiv
-Use the AES-SIV encryption mode. This is slower than GCM but is
+Use the AES-SIV encryption mode. This is slower than AES-GCM but is
 secure with deterministic nonces as used in "-reverse" mode.
+
+Run `gocryptfs -speed` to find out if and how much slower.
 
 #### -deterministic-names
 Disable file name randomisation and creation of `gocryptfs.diriv` files.
@@ -141,6 +143,12 @@ scrypt cost parameter expressed as scryptn=log2(N). Possible values are
 Setting this to a lower
 value speeds up mounting and reduces its memory needs, but makes
 the password susceptible to brute-force attacks. The default is 16.
+
+#### -xchacha
+Use XChaCha20-Poly1305 file content encryption. This should be much faster
+than AES-GCM on CPUs that lack AES acceleration.
+
+Run `gocryptfs -speed` to find out if and how much faster.
 
 MOUNT OPTIONS
 =============
