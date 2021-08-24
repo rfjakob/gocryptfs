@@ -382,3 +382,47 @@ func TestExampleFSv13reverse(t *testing.T) {
 	test_helpers.UnmountPanic(dirC)
 	test_helpers.UnmountPanic(dirB)
 }
+
+// gocryptfs v2.2 introduced -deterministic-names
+func TestExampleFSv22deterministicNames(t *testing.T) {
+	cDir := "v2.2-deterministic-names"
+	pDir := test_helpers.TmpDir + "/" + cDir
+	cDir = tmpFsPath + cDir
+	err := os.Mkdir(pDir, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test", opensslOpt)
+	checkExampleFSLongnames(t, pDir)
+	test_helpers.UnmountPanic(pDir)
+
+	pDir = pDir + "_m"
+	test_helpers.MountOrFatal(t, cDir, pDir, "-deterministic-names", "-masterkey",
+		"722733f5-b0f399f5-5465ad7a-f0bed125-"+
+			"e82de7b4-045e7608-a5e5c78e-04a1a61e",
+		opensslOpt)
+	checkExampleFSLongnames(t, pDir)
+	test_helpers.UnmountPanic(pDir)
+}
+
+// gocryptfs v2.2 introduced -xchacha
+func TestExampleFSv22xchacha(t *testing.T) {
+	cDir := "v2.2-xchacha"
+	pDir := test_helpers.TmpDir + "/" + cDir
+	cDir = tmpFsPath + cDir
+	err := os.Mkdir(pDir, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test", opensslOpt)
+	checkExampleFSLongnames(t, pDir)
+	test_helpers.UnmountPanic(pDir)
+
+	pDir = pDir + "_m"
+	test_helpers.MountOrFatal(t, cDir, pDir, "-xchacha", "-masterkey",
+		"44670e7e-32475bfc-bdfb8a8c-be17a767-"+
+			"0679cac0-be705d8c-af41c411-28c40f26",
+		opensslOpt)
+	checkExampleFSLongnames(t, pDir)
+	test_helpers.UnmountPanic(pDir)
+}
