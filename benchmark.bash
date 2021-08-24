@@ -16,6 +16,7 @@ OPT_LOOPBACK=0
 OPT_OPENSSL=""
 OPT_DIR=""
 DD_ONLY=""
+OPT_XCHACHA=""
 
 while [[ $# -gt 0 ]] ; do
 	case $1 in
@@ -37,6 +38,9 @@ while [[ $# -gt 0 ]] ; do
 			;;
 		-loopback)
 			OPT_LOOPBACK=1
+			;;
+		-xchacha)
+			OPT_XCHACHA="-xchacha"
 			;;
 		-*)
 			echo "Invalid option: $1"
@@ -78,10 +82,10 @@ elif [[ $OPT_LOOPBACK -eq 1 ]]; then
 	"$HOME/go/src/github.com/hanwen/go-fuse/example/loopback/loopback" "$MNT" "$CRYPT" &
 	sleep 0.5
 else
-	echo -n "Testing gocryptfs at $CRYPT: "
+	echo -n "Testing gocryptfs $OPT_XCHACHA $OPT_OPENSSL at $CRYPT: "
 	gocryptfs -version
-	gocryptfs -q -init -extpass="echo test" -scryptn=10 "$CRYPT"
-	gocryptfs -q -extpass="echo test" $OPT_OPENSSL "$CRYPT" "$MNT"
+	gocryptfs $OPT_XCHACHA -q -init -extpass="echo test" -scryptn=10 "$CRYPT"
+	gocryptfs $OPT_OPENSSL -q -extpass="echo test" "$CRYPT" "$MNT"
 fi
 
 # Make sure we have actually mounted something
