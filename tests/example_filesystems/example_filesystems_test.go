@@ -426,3 +426,25 @@ func TestExampleFSv22xchacha(t *testing.T) {
 	checkExampleFSLongnames(t, pDir)
 	test_helpers.UnmountPanic(pDir)
 }
+
+// gocryptfs v2.2 introduced -xchacha and -deterministic-names
+func TestExampleFSv22xchachaDeterministicNames(t *testing.T) {
+	cDir := "v2.2-xchacha-deterministic-names"
+	pDir := test_helpers.TmpDir + "/" + cDir
+	cDir = tmpFsPath + cDir
+	err := os.Mkdir(pDir, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test", opensslOpt)
+	checkExampleFSLongnames(t, pDir)
+	test_helpers.UnmountPanic(pDir)
+
+	pDir = pDir + "_m"
+	test_helpers.MountOrFatal(t, cDir, pDir, "-xchacha", "-deterministic-names", "-masterkey",
+		"beba88a9-c6cd1dc0-b69c6f9d-9daea493-"+
+			"9ae87082-4ffc40bf-b44e52db-3933af39",
+		opensslOpt)
+	checkExampleFSLongnames(t, pDir)
+	test_helpers.UnmountPanic(pDir)
+}
