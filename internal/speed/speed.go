@@ -48,7 +48,7 @@ func Run() {
 		if b.preferred {
 			fmt.Printf("\t(selected in auto mode)\n")
 		} else if b.name == cryptocore.BackendXChaCha20Poly1305.Name {
-			fmt.Printf("\t(benchmark only, not selectable yet)\n")
+			fmt.Printf("\t(use via -xchacha flag)\n")
 		} else {
 			fmt.Printf("\t\n")
 		}
