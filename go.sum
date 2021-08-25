@@ -1,7 +1,7 @@
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/hanwen/go-fuse/v2 v2.1.1-0.20210802120645-15a8bb029a4e h1:mykFj7/XZmUTy/rRWaqbqHJEFU+dXfLmuigEWTlgECE=
-github.com/hanwen/go-fuse/v2 v2.1.1-0.20210802120645-15a8bb029a4e/go.mod h1:B1nGE/6RBFyBRC1RRnf23UpwCdyJ31eukw34oAKukAc=
+github.com/hanwen/go-fuse/v2 v2.1.1-0.20210825070001-74a933d6e856 h1:rQb7H5igQ2oIeT+Ul1UtIsGhUiSGeCoyLg84otnHdXU=
+github.com/hanwen/go-fuse/v2 v2.1.1-0.20210825070001-74a933d6e856/go.mod h1:B1nGE/6RBFyBRC1RRnf23UpwCdyJ31eukw34oAKukAc=
 github.com/jacobsa/crypto v0.0.0-20190317225127-9f44e2d11115 h1:YuDUUFNM21CAbyPOpOP8BicaTD/0klJEKt5p8yuw+uY=
 github.com/jacobsa/crypto v0.0.0-20190317225127-9f44e2d11115/go.mod h1:LadVJg0XuawGk+8L1rYnIED8451UyNxEMdTWCEt5kmU=
 github.com/jacobsa/oglematchers v0.0.0-20150720000706-141901ea67cd h1:9GCSedGjMcLZCrusBZuo4tyKLpKUPenUUqi34AkuFmA=
