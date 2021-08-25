@@ -5,9 +5,7 @@ package configfile
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"log"
 	"syscall"
 
 	"os"
@@ -61,21 +59,6 @@ type ConfFile struct {
 	filename string
 }
 
-// randBytesDevRandom gets "n" random bytes from /dev/random or panics
-func randBytesDevRandom(n int) []byte {
-	f, err := os.Open("/dev/random")
-	if err != nil {
-		log.Panic("Failed to open /dev/random: " + err.Error())
-	}
-	defer f.Close()
-	b := make([]byte, n)
-	_, err = io.ReadFull(f, b)
-	if err != nil {
-		log.Panic("Failed to read random bytes: " + err.Error())
-	}
-	return b
-}
-
 // CreateArgs exists because the argument list to Create became too long.
 type CreateArgs struct {
 	Filename           string
@@ -84,7 +67,6 @@ type CreateArgs struct {
 	LogN               int
 	Creator            string
 	AESSIV             bool
-	Devrandom          bool
 	Fido2CredentialID  []byte
 	Fido2HmacSalt      []byte
 	DeterministicNames bool
@@ -136,12 +118,7 @@ func Create(args *CreateArgs) error {
 	}
 	{
 		// Generate new random master key
-		var key []byte
-		if args.Devrandom {
-			key = randBytesDevRandom(cryptocore.KeyLen)
-		} else {
-			key = cryptocore.RandBytes(cryptocore.KeyLen)
-		}
+		key := cryptocore.RandBytes(cryptocore.KeyLen)
 		tlog.PrintMasterkeyReminder(key)
 		// Encrypt it using the password
 		// This sets ScryptObject and EncryptedKey

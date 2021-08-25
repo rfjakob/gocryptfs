@@ -30,7 +30,7 @@ type argContainer struct {
 	plaintextnames, quiet, nosyslog, wpanic,
 	longnames, allow_other, reverse, aessiv, nonempty, raw64,
 	noprealloc, speed, hkdf, serialize_reads, forcedecode, hh, info,
-	sharedstorage, devrandom, fsck, one_file_system, deterministic_names,
+	sharedstorage, fsck, one_file_system, deterministic_names,
 	xchacha bool
 	// Mount options with opposites
 	dev, nodev, suid, nosuid, exec, noexec, rw, ro, kernel_cache, acl bool
@@ -177,7 +177,6 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.BoolVar(&args.hh, "hh", false, "Show this long help text")
 	flagSet.BoolVar(&args.info, "info", false, "Display information about CIPHERDIR")
 	flagSet.BoolVar(&args.sharedstorage, "sharedstorage", false, "Make concurrent access to a shared CIPHERDIR safer")
-	flagSet.BoolVar(&args.devrandom, "devrandom", false, "Use /dev/random for generating master key")
 	flagSet.BoolVar(&args.fsck, "fsck", false, "Run a filesystem check on CIPHERDIR")
 	flagSet.BoolVar(&args.one_file_system, "one-file-system", false, "Don't cross filesystem boundaries")
 	flagSet.BoolVar(&args.deterministic_names, "deterministic-names", false, "Disable diriv file name randomisation")
@@ -228,11 +227,16 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.DurationVar(&args.idle, "idle", 0, "Auto-unmount after specified idle duration (ignored in reverse mode). "+
 		"Durations are specified like \"500s\" or \"2h45m\". 0 means stay mounted indefinitely.")
 
-	var nofail bool
-	flagSet.BoolVar(&nofail, "nofail", false, "Ignored for /etc/fstab compatibility")
-
 	var dummyString string
 	flagSet.StringVar(&dummyString, "o", "", "For compatibility with mount(1), options can be also passed as a comma-separated list to -o on the end.")
+
+	// Ignored flags
+	{
+		var tmp bool
+		flagSet.BoolVar(&tmp, "nofail", false, "Ignored for /etc/fstab compatibility")
+		flagSet.BoolVar(&tmp, "devrandom", false, "Deprecated (ignored for compatibility)")
+	}
+
 	// Actual parsing
 	err = flagSet.Parse(osArgsPreprocessed[1:])
 	if err == flag.ErrHelp {

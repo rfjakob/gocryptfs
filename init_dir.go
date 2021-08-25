@@ -93,7 +93,6 @@ func initDir(args *argContainer) {
 			LogN:               args.scryptn,
 			Creator:            creator,
 			AESSIV:             args.aessiv,
-			Devrandom:          args.devrandom,
 			Fido2CredentialID:  fido2CredentialID,
 			Fido2HmacSalt:      fido2HmacSalt,
 			DeterministicNames: args.deterministic_names,

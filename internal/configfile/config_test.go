@@ -86,18 +86,6 @@ func TestCreateConfDefault(t *testing.T) {
 	}
 }
 
-func TestCreateConfDevRandom(t *testing.T) {
-	err := Create(&CreateArgs{
-		Filename:  "config_test/tmp.conf",
-		Password:  testPw,
-		LogN:      10,
-		Creator:   "test",
-		Devrandom: true})
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestCreateConfPlaintextnames(t *testing.T) {
 	err := Create(&CreateArgs{
 		Filename:       "config_test/tmp.conf",

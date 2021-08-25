@@ -114,11 +114,10 @@ leaks information about identical file names across directories
 The resulting `gocryptfs.conf` has "DirIV" missing from "FeatureFlags".
 
 #### -devrandom
-Use `/dev/random` for generating the master key instead of the default Go
-implementation. This is especially useful on embedded systems with Go versions
-prior to 1.9, which fall back to weak random data when the getrandom syscall
-is blocking. Using this option can block indefinitely when the kernel cannot
-harvest enough entropy.
+Obsolete and ignored on gocryptfs v2.2 and later.
+
+See https://github.com/rfjakob/gocryptfs/commit/f3c777d5eaa682d878c638192311e52f9c204294
+and https://github.com/rfjakob/gocryptfs/issues/596 for background info.
 
 #### -hkdf
 Use HKDF to derive separate keys for content and name encryption from
