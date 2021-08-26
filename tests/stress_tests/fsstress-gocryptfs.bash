@@ -23,7 +23,7 @@ MYNAME=$(basename $0)
 source ../fuse-unmount.bash
 
 # fsstress binary
-FSSTRESS=$HOME/fuse-xfstests/ltp/fsstress
+FSSTRESS=/opt/fuse-xfstests/ltp/fsstress
 if [[ ! -x $FSSTRESS ]]
 then
 	echo "$MYNAME: fsstress binary not found at $FSSTRESS"
