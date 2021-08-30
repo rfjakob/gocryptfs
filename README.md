@@ -203,6 +203,7 @@ v2.2, IN PROGRESS
   Gives [better performance on embedded CPUs](https://gist.github.com/rfjakob/b28383f4c84263ac7c5388ccc262e38b)
   ([#452](https://github.com/rfjakob/gocryptfs/issues/452))
    * New feature flag! You need gocryptfs v2.2 or higher to mount a filesystem that uses this flag.
+   * Test with `gocryptfs -speed` what is fastest for your CPU, or read [here](https://github.com/rfjakob/gocryptfs/issues/452#issuecomment-908559414)
 * `-serialize_reads`: get rid of delay logic by taking advantage of the kernel flag
   `FUSE_CAP_ASYNC_READ`
   ([go-fuse commit](https://github.com/hanwen/go-fuse/commit/15a8bb029a4e1a51e10043c370970596b1fbb737),
