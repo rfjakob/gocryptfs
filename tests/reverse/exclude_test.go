@@ -128,7 +128,7 @@ func TestExcludeTestFs(t *testing.T) {
 }
 
 // Exclude everything using "/*", then selectively include only dir1 using "!/dir1"
-// https://github.com/rfjakob/gocryptfs/v2/issues/588
+// https://github.com/rfjakob/gocryptfs/issues/588
 func TestExcludeAllOnlyDir1(t *testing.T) {
 	// --exclude-wildcard patterns, gitignore syntax
 	patterns := []string{

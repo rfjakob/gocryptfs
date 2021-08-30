@@ -1,6 +1,6 @@
 /*
 Small tool to try to debug unix.Getdents problems on CIFS mounts
-( https://github.com/rfjakob/gocryptfs/v2/issues/483 )
+( https://github.com/rfjakob/gocryptfs/issues/483 )
 
 Example output:
 

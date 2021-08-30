@@ -40,7 +40,7 @@ type Args struct {
 	// Suid is true if the filesystem has been mounted with the "-suid" flag.
 	// If it is false, we can ignore the GETXATTR "security.capability" calls,
 	// which are a performance problem for writes. See
-	// https://github.com/rfjakob/gocryptfs/v2/issues/515 for details.
+	// https://github.com/rfjakob/gocryptfs/issues/515 for details.
 	Suid bool
 	// Enable the FUSE kernel_cache option
 	KernelCache bool

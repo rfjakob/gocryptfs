@@ -25,7 +25,7 @@
 //   l-wx------. 1 jakob jakob 64 Jan  5 15:54 3 -> /dev/null
 //   lrwx------. 1 jakob jakob 64 Jan  5 15:54 4 -> 'anon_inode:[eventpoll]'
 //
-// See https://github.com/rfjakob/gocryptfs/v2/issues/320 for details.
+// See https://github.com/rfjakob/gocryptfs/issues/320 for details.
 package ensurefds012
 
 import (

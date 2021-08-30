@@ -774,7 +774,7 @@ func TestMkfifo(t *testing.T) {
 }
 
 // TestMagicNames verifies that "magic" names are handled correctly
-// https://github.com/rfjakob/gocryptfs/v2/issues/174
+// https://github.com/rfjakob/gocryptfs/issues/174
 func TestMagicNames(t *testing.T) {
 	names := []string{"warmup1", "warmup2", "gocryptfs.longname.QhUr5d9FHerwEs--muUs6_80cy6JRp89c1otLwp92Cs", "gocryptfs.diriv"}
 	for _, n := range names {
@@ -891,7 +891,7 @@ func TestStatfs(t *testing.T) {
 }
 
 // gocryptfs 2.0 reported the ciphertext size on symlink creation, causing
-// confusion: https://github.com/rfjakob/gocryptfs/v2/issues/574
+// confusion: https://github.com/rfjakob/gocryptfs/issues/574
 func TestSymlinkSize(t *testing.T) {
 	p := filepath.Join(test_helpers.DefaultPlainDir, t.Name())
 	// SYMLINK reports the size to the kernel
@@ -911,7 +911,7 @@ func TestSymlinkSize(t *testing.T) {
 // TestPwd check that /usr/bin/pwd works inside gocryptfs.
 //
 // This was broken in gocryptfs v2.0 with -sharedstorage:
-// https://github.com/rfjakob/gocryptfs/v2/issues/584
+// https://github.com/rfjakob/gocryptfs/issues/584
 func TestPwd(t *testing.T) {
 	dir := test_helpers.DefaultPlainDir
 	for i := 0; i < 3; i++ {

@@ -75,7 +75,7 @@ func doMount(args *argContainer) {
 		// and `drop_privileges` in `man mount.fuse3` for background.
 	} else {
 		err = isEmptyDir(args.mountpoint)
-		// OSXFuse will create the mountpoint for us ( https://github.com/rfjakob/gocryptfs/v2/issues/194 )
+		// OSXFuse will create the mountpoint for us ( https://github.com/rfjakob/gocryptfs/issues/194 )
 		if runtime.GOOS == "darwin" && os.IsNotExist(err) {
 			tlog.Info.Printf("Mountpoint %q does not exist, but should be created by OSXFuse",
 				args.mountpoint)

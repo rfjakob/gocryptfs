@@ -149,7 +149,7 @@ func TestFallocate(t *testing.T) {
 		}
 	}
 	// We used to allocate 18 bytes too much:
-	// https://github.com/rfjakob/gocryptfs/v2/issues/311
+	// https://github.com/rfjakob/gocryptfs/issues/311
 	//
 	// 8110 bytes of plaintext should get us exactly 8192 bytes of ciphertext.
 	err = file.Truncate(0)

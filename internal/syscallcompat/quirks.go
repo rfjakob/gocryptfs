@@ -6,12 +6,12 @@ import (
 
 const (
 	// QuirkBrokenFalloc means the falloc is broken.
-	// Preallocation on Btrfs is broken ( https://github.com/rfjakob/gocryptfs/v2/issues/395 )
-	// and slow ( https://github.com/rfjakob/gocryptfs/v2/issues/63 ).
+	// Preallocation on Btrfs is broken ( https://github.com/rfjakob/gocryptfs/issues/395 )
+	// and slow ( https://github.com/rfjakob/gocryptfs/issues/63 ).
 	QuirkBrokenFalloc = uint64(1 << iota)
 	// QuirkDuplicateIno1 means that we have duplicate inode numbers.
 	// On MacOS ExFAT, all empty files share inode number 1:
-	// https://github.com/rfjakob/gocryptfs/v2/issues/585
+	// https://github.com/rfjakob/gocryptfs/issues/585
 	QuirkDuplicateIno1
 )
 

@@ -60,9 +60,9 @@ func TestInitFilePerms(t *testing.T) {
 	syscall.Stat(dir+"/gocryptfs.diriv", &st)
 	perms = st.Mode & 0777
 	// From v1.7.1, these are created with 0440 permissions, see
-	// https://github.com/rfjakob/gocryptfs/v2/issues/387 .
+	// https://github.com/rfjakob/gocryptfs/issues/387 .
 	// From v2.0, created with 0444 perms, see
-	// https://github.com/rfjakob/gocryptfs/v2/issues/539 .
+	// https://github.com/rfjakob/gocryptfs/issues/539 .
 	if perms != 0444 {
 		t.Errorf("Wrong permissions for gocryptfs.diriv: %#o", perms)
 	}
@@ -441,7 +441,7 @@ func TestPasswdPasswordIncorrect(t *testing.T) {
 // Check that we correctly background on mount and close stderr and stdout.
 // Something like
 //   gocryptfs a b | cat
-// must not hang ( https://github.com/rfjakob/gocryptfs/v2/issues/130 ).
+// must not hang ( https://github.com/rfjakob/gocryptfs/issues/130 ).
 func TestMountBackground(t *testing.T) {
 	dir := test_helpers.InitFS(t)
 	mnt := dir + ".mnt"
@@ -557,7 +557,7 @@ func TestExcludeForward(t *testing.T) {
 }
 
 // Check that the config file can be read from a named pipe.
-// Make sure bug https://github.com/rfjakob/gocryptfs/v2/issues/258 does not come
+// Make sure bug https://github.com/rfjakob/gocryptfs/issues/258 does not come
 // back.
 func TestConfigPipe(t *testing.T) {
 	dir := test_helpers.InitFS(t)
@@ -580,7 +580,7 @@ func TestConfigPipe(t *testing.T) {
 }
 
 // Ciphertext dir and mountpoint contains a comma
-// https://github.com/rfjakob/gocryptfs/v2/issues/262
+// https://github.com/rfjakob/gocryptfs/issues/262
 func TestComma(t *testing.T) {
 	dir0 := test_helpers.InitFS(t)
 	dir := dir0 + ",foo,bar"
@@ -625,7 +625,7 @@ func TestIdle(t *testing.T) {
 }
 
 // Mount with idle timeout of 100ms read something every 10ms. The fs should
-// NOT get unmounted. Regression test for https://github.com/rfjakob/gocryptfs/v2/issues/421
+// NOT get unmounted. Regression test for https://github.com/rfjakob/gocryptfs/issues/421
 func TestNotIdle(t *testing.T) {
 	dir := test_helpers.InitFS(t)
 	mnt := dir + ".mnt"
@@ -663,7 +663,7 @@ func TestNotIdle(t *testing.T) {
 
 // TestSymlinkedCipherdir checks that if CIPHERDIR itself is a symlink, it is
 // followed.
-// https://github.com/rfjakob/gocryptfs/v2/issues/450
+// https://github.com/rfjakob/gocryptfs/issues/450
 func TestSymlinkedCipherdir(t *testing.T) {
 	dir := test_helpers.InitFS(t)
 	dirSymlink := dir + ".symlink"
@@ -909,7 +909,7 @@ func TestPassfileX2(t *testing.T) {
 }
 
 // TestInitNotEmpty checks that `gocryptfs -init` returns the right error code
-// if CIPHERDIR is not empty. See https://github.com/rfjakob/gocryptfs/v2/pull/503
+// if CIPHERDIR is not empty. See https://github.com/rfjakob/gocryptfs/pull/503
 func TestInitNotEmpty(t *testing.T) {
 	dir := test_helpers.TmpDir + "/" + t.Name()
 	if err := os.Mkdir(dir, 0700); err != nil {

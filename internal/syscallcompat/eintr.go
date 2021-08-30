@@ -12,7 +12,7 @@ import (
 // https://github.com/golang/go/blob/d2a80f3fb5b44450e0b304ac5a718f99c053d82a/src/os/file_posix.go#L243
 //
 // This is needed because CIFS throws lots of EINTR errors:
-// https://github.com/rfjakob/gocryptfs/v2/issues/483
+// https://github.com/rfjakob/gocryptfs/issues/483
 //
 // Don't use retryEINTR() with syscall.Close()!
 // See https://code.google.com/p/chromium/issues/detail?id=269623 .
