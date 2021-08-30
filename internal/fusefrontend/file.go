@@ -20,7 +20,6 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/v2/internal/inomap"
 	"github.com/rfjakob/gocryptfs/v2/internal/openfiletable"
-	"github.com/rfjakob/gocryptfs/v2/internal/serialize_reads"
 	"github.com/rfjakob/gocryptfs/v2/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
@@ -252,13 +251,7 @@ func (f *File) Read(ctx context.Context, buf []byte, off int64) (resultData fuse
 	defer f.fileTableEntry.ContentLock.RUnlock()
 
 	tlog.Debug.Printf("ino%d: FUSE Read: offset=%d length=%d", f.qIno.Ino, off, len(buf))
-	if f.rootNode.args.SerializeReads {
-		serialize_reads.Wait(off, len(buf))
-	}
 	out, errno := f.doRead(buf[:0], uint64(off), uint64(len(buf)))
-	if f.rootNode.args.SerializeReads {
-		serialize_reads.Done()
-	}
 	if errno != 0 {
 		return nil, errno
 	}
@@ -389,6 +382,7 @@ func (f *File) Write(ctx context.Context, data []byte, off int64) (uint32, sysca
 	// But if the write directly follows an earlier write, it cannot create a
 	// hole, and we can save one Stat() call.
 	if !f.isConsecutiveWrite(off) {
+		fmt.Printf("isConsecutiveWrite=false, off=%d\n", off)
 		errno := f.writePadHole(off)
 		if errno != 0 {
 			return 0, errno
