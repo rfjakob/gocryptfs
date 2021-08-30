@@ -382,7 +382,6 @@ func (f *File) Write(ctx context.Context, data []byte, off int64) (uint32, sysca
 	// But if the write directly follows an earlier write, it cannot create a
 	// hole, and we can save one Stat() call.
 	if !f.isConsecutiveWrite(off) {
-		fmt.Printf("isConsecutiveWrite=false, off=%d\n", off)
 		errno := f.writePadHole(off)
 		if errno != 0 {
 			return 0, errno
