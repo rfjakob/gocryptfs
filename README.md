@@ -55,30 +55,16 @@ A standalone Python tool that can decrypt files & file names is here:
 
 Installation
 ------------
-Precompiled binaries that work on all x86_64 Linux systems are available for download from the github releases page.
+Precompiled binaries that work on all x86_64 Linux systems are available
+for download from the github releases page. The `fuse` package from your
+distribution must be installed for mounting to work.
 
-On Debian, gocryptfs is available as a deb package:
-```bash
-apt install gocryptfs
-```
+gocryptfs is also available as a package in most distributions. Examples:
 
-On macOS, gocryptfs is available as a Homebrew formula:
-```bash
-brew install gocryptfs
-```
-
-Alternatively, gocryptfs is also available via [MacPorts](https://www.macports.org/) on macOS:
-```bash
-sudo port install gocryptfs
-```
-
-On Fedora, gocryptfs is available as an rpm package:
-```bash
-sudo dnf install gocryptfs
-```
-
-If you use the standalone binary, make sure you install the `fuse` package
-from your distributions package repository before running `gocryptfs`.
+* Debian, Ubuntu: `apt install gocryptfs`
+* Fedora: `dnf install gocryptfs`
+* Arch: `pacman -S gocryptfs`
+* MacPorts: `port install gocryptfs`
 
 See the [Quickstart](https://nuetzlich.net/gocryptfs/quickstart/) page for more info.
 
