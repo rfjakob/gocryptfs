@@ -28,7 +28,7 @@ unmount_leftovers() {
 
 (
 # Prevent multiple parallel test.bash instances as this causes
-# all kinds of mayham
+# all kinds of mayhem
 if ! command -v flock > /dev/null ; then
 	echo "flock is not available, skipping"
 elif ! flock -n 200 ; then

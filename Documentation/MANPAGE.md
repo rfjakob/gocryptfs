@@ -368,7 +368,7 @@ Mount the filesystem read-write (`-rw`, default) or read-only (`-ro`).
 If both are specified, `-ro` takes precedence.
 
 #### -reverse
-See the `-reverse` section in INIT FLAGS. You need to specifiy the
+See the `-reverse` section in INIT FLAGS. You need to specify the
 `-reverse` option both at `-init` and at mount.
 
 #### -serialize_reads
