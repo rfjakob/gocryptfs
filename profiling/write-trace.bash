@@ -20,4 +20,3 @@ dd if=/dev/zero of="$T/b/zero" bs=1M count=100
 
 echo
 echo "Hint: go tool trace $T/trace"
-

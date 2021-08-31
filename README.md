@@ -169,9 +169,9 @@ Example for a CPU with AES-NI:
 ```
 $ ./gocryptfs -speed
 gocryptfs v2.0; go-fuse v2.1.1-0.20210508151621-62c5aa1919a7; 2021-06-06 go1.16.5 linux/amd64
-AES-GCM-256-OpenSSL    536.63 MB/s  
+AES-GCM-256-OpenSSL    536.63 MB/s
 AES-GCM-256-Go         831.84 MB/s  (selected in auto mode)
-AES-SIV-512-Go         155.85 MB/s  
+AES-SIV-512-Go         155.85 MB/s
 XChaCha20-Poly1305-Go  700.02 MB/s  (benchmark only, not selectable yet)
 ```
 
@@ -181,7 +181,7 @@ tarball, recursively listing and finally deleting it. The output will
 look like this:
 
 ```
-$ ./benchmark.bash 
+$ ./benchmark.bash
 Testing gocryptfs at /tmp/benchmark.bash.xFD: gocryptfs v2.0; go-fuse v2.1.1-0.20210508151621-62c5aa1919a7; 2021-06-06 go1.16.5 linux/amd64
 WRITE: 262144000 bytes (262 MB, 250 MiB) copied, 0,698174 s, 375 MB/s
 READ:  262144000 bytes (262 MB, 250 MiB) copied, 0,268916 s, 975 MB/s
@@ -314,7 +314,7 @@ v1.7.1, 2019-10-06
 * Create `gocryptfs.diriv` files with 0440 permissions to make it easier to
   share an encrypted folder via a network drive
   ([#387](https://github.com/rfjakob/gocryptfs/issues/387)).
-  Note: as a security precaution, the owner must still manually 
+  Note: as a security precaution, the owner must still manually
   `chmod gocryptfs.conf 0440` to allow mounting.
 * Allow the `nofail` option in `/etc/fstab`
 * `-passwd` can now change the `-scryptn` parameter for existing filesystems

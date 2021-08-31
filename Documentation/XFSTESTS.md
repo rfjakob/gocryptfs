@@ -61,7 +61,7 @@ Needs further analysis: `Too many open files`
 ## Full Test Output
 
 ```
-0 jakob@brikett:~/code/fuse-xfstests$ sudo ./check-gocryptfs 
+0 jakob@brikett:~/code/fuse-xfstests$ sudo ./check-gocryptfs
 gocryptfs v1.7.1; go-fuse v2.0.2-4-g8458b8a; 2019-10-10 go1.12.9 linux/amd64
 fuse-xfstests nlink0/dff383ab
 Thu 10 Oct 2019 08:31:43 PM UTC
@@ -146,12 +146,12 @@ generic/062 - output mismatch (see /home/jakob.donotbackup/code/fuse-xfstests/re
     --- tests/generic/062.out   2018-01-20 14:29:39.067451950 +0100
     +++ /home/jakob.donotbackup/code/fuse-xfstests/results//generic/062.out.bad 2019-10-10 22:34:34.290196880 +0200
     @@ -13,7 +13,7 @@
-     
+
      *** set/get one initially empty attribute
      # file: SCRATCH_MNT/reg
     -user.name
     +user.name=""
-     
+
      *** overwrite empty, set several new attributes
     ...
     (Run 'diff -u tests/generic/062.out /home/jakob.donotbackup/code/fuse-xfstests/results//generic/062.out.bad'  to see the entire diff)
@@ -190,7 +190,7 @@ generic/093 - output mismatch (see /home/jakob.donotbackup/code/fuse-xfstests/re
     +++ /home/jakob.donotbackup/code/fuse-xfstests/results//generic/093.out.bad 2019-10-10 22:45:22.194059446 +0200
     @@ -1,15 +1,22 @@
      QA output created by 093
-     
+
      **** Verifying that appending to file clears capabilities ****
     -file = cap_chown+ep
     +Failed to set capabilities on file '/var/tmp/check-gocryptfs/testdir/093.file' (Operation not supported)
@@ -206,12 +206,12 @@ generic/097 - output mismatch (see /home/jakob.donotbackup/code/fuse-xfstests/re
     +++ /home/jakob.donotbackup/code/fuse-xfstests/results//generic/097.out.bad 2019-10-10 22:45:23.382064979 +0200
     @@ -110,18 +110,16 @@
      *** Test out the trusted namespace ***
-     
+
      set EA <trusted:colour,marone>:
     +setfattr: TEST_DIR/foo: Operation not supported
-     
+
      set EA <user:colour,beige>:
-     
+
     ...
     (Run 'diff -u tests/generic/097.out /home/jakob.donotbackup/code/fuse-xfstests/results//generic/097.out.bad'  to see the entire diff)
 generic/098 1s ...  0s

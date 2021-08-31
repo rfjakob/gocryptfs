@@ -191,7 +191,7 @@ Show all invalid filenames:
 Create a control socket at the specified location. The socket can be
 used to decrypt and encrypt paths inside the filesystem. When using
 this option, make sure that the directory you place the socket in is
-not world-accessible. For example, `/run/user/UID/my.socket` would 
+not world-accessible. For example, `/run/user/UID/my.socket` would
 be suitable.
 
 #### -dev, -nodev
@@ -257,7 +257,7 @@ filesystem that doesn't properly support UNIX ownership and permissions.
 
 #### -forcedecode
 Force decode of encrypted files even if the integrity check fails, instead of
-failing with an IO error. Warning messages are still printed to syslog if corrupted 
+failing with an IO error. Warning messages are still printed to syslog if corrupted
 files are encountered.
 It can be useful to recover files from disks with bad sectors or other corrupted
 media. It shall not be used if the origin of corruption is unknown, specially
