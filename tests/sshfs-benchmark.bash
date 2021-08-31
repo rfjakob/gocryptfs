@@ -2,7 +2,7 @@
 
 set -eu
 
-function cleanup {
+cleanup() {
 	cd "$LOCAL_TMP"
 	fusermount -u gocryptfs.mnt
 	rm -Rf "$SSHFS_TMP"
@@ -11,22 +11,22 @@ function cleanup {
 	rm -Rf "$LOCAL_TMP"
 }
 
-function prepare_mounts {
+prepare_mounts() {
 	LOCAL_TMP=$(mktemp -d -t "$MYNAME.XXX")
-	cd $LOCAL_TMP
+	cd "$LOCAL_TMP"
 	echo "working directory: $PWD"
 	mkdir sshfs.mnt gocryptfs.mnt
-	sshfs $HOST:/tmp sshfs.mnt
+	sshfs "$HOST:/tmp" sshfs.mnt
 	echo "sshfs mounted: $HOST:/tmp -> sshfs.mnt"
 	trap cleanup EXIT
 	SSHFS_TMP=$(mktemp -d "sshfs.mnt/$MYNAME.XXX")
-	mkdir $SSHFS_TMP/gocryptfs.crypt
-	gocryptfs -q -init -extpass "echo test" -scryptn=10 $SSHFS_TMP/gocryptfs.crypt
-	gocryptfs -q -extpass "echo test" $SSHFS_TMP/gocryptfs.crypt gocryptfs.mnt
+	mkdir "$SSHFS_TMP/gocryptfs.crypt"
+	gocryptfs -q -init -extpass "echo test" -scryptn=10 "$SSHFS_TMP/gocryptfs.crypt"
+	gocryptfs -q -extpass "echo test" "$SSHFS_TMP/gocryptfs.crypt" gocryptfs.mnt
 	echo "gocryptfs mounted: $SSHFS_TMP/gocryptfs.crypt -> gocryptfs.mnt"
 }
 
-function etime {
+etime() {
 	T=$(/usr/bin/time -f %e -o /dev/stdout "$@")
 	LC_ALL=C printf %20.2f "$T"
 }

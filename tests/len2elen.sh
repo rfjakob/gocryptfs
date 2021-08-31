@@ -20,10 +20,10 @@ fi
 rm -f b/*
 
 while [[ $LEN -le 255 ]]; do
-	touch b/$NAME || break
+	touch "b/$NAME" || break
 	ELEN=$(ls a | wc -L)
-	echo $LEN $ELEN
-	rm b/$NAME
+	echo "$LEN $ELEN"
+	rm "b/$NAME"
 	NAME="${NAME}x"
 	LEN=${#NAME}
 done

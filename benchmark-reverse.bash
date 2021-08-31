@@ -14,18 +14,18 @@ PLAIN=linux-3.0
 
 SIZE=0
 if [[ -d $PLAIN ]]; then
-	SIZE=$(du -s --apparent-size $PLAIN | cut -f1)
+	SIZE=$(du -s --apparent-size "$PLAIN" | cut -f1)
 fi
 
 
 if [[ $SIZE -ne 412334 ]] ; then
 	echo "Extracting linux-3.0.tar.gz"
-	rm -Rf $PLAIN
+	rm -Rf "$PLAIN"
 	tar xf linux-3.0.tar.gz
 fi
 
-rm -f $PLAIN/.gocryptfs.reverse.conf
-gocryptfs -q -init -reverse -extpass="echo test" -scryptn=10 $PLAIN
+rm -f "$PLAIN/.gocryptfs.reverse.conf"
+gocryptfs -q -init -reverse -extpass="echo test" -scryptn=10 "$PLAIN"
 
 MNT=$(mktemp -d /tmp/linux-3.0.reverse.mnt.XXX)
 
@@ -37,7 +37,7 @@ gocryptfs -q -reverse -extpass="echo test" "$PLAIN" "$MNT"
 
 # Execute command, discard all stdout output, print elapsed time
 # (to stderr, unfortunately).
-function etime {
+etime() {
 	# Make the bash builtin "time" print out only the elapse wall clock
 	# seconds
 	TIMEFORMAT=%R

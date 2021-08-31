@@ -16,7 +16,7 @@ TESTDIR=$TMPDIR/gocryptfs-test-parent-$UID
 mkdir -p "$TESTDIR"
 LOCKFILE=$TESTDIR/$MYNAME.lock
 
-function unmount_leftovers {
+unmount_leftovers() {
 	RET=0
 	for i in $(mount | grep "$TESTDIR" | cut -f3 -d" "); do
 		echo "Warning: unmounting leftover filesystem: $i"

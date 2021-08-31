@@ -7,7 +7,7 @@ cd "$(dirname "$0")"
 MYNAME=$(basename "$0")
 source tests/fuse-unmount.bash
 
-function usage {
+usage() {
 	echo "Usage: $MYNAME [-encfs] [-openssl=true] [-openssl=false] [-dd] [DIR]"
 }
 
