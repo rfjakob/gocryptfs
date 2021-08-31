@@ -45,7 +45,7 @@ echo -n "UNTAR: "
 etime tar xzf /tmp/linux-3.0.tar.gz
 sleep 0.1
 echo -n "MD5:   "
-etime md5sum --quiet -c $MD5
+etime md5sum --quiet -c "$MD5"
 sleep 0.1
 echo -n "LS:    "
 etime ls -lR linux-3.0

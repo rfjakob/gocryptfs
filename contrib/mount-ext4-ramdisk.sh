@@ -2,7 +2,7 @@
 
 MNT=/mnt/ext4-ramdisk
 
-if mountpoint $MNT ; then
+if mountpoint "$MNT" ; then
 	exit 1
 fi
 

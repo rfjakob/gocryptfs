@@ -19,7 +19,7 @@ export TMPDIR=${TMPDIR:-/var/tmp}
 DEBUG=${DEBUG:-0}
 
 cd "$(dirname "$0")"
-MYNAME=$(basename $0)
+MYNAME=$(basename "$0")
 source ../fuse-unmount.bash
 
 # fsstress binary
@@ -32,23 +32,23 @@ then
 fi
 
 # Backing directory
-DIR=$(mktemp -d $TMPDIR/$MYNAME.XXX)
+DIR=$(mktemp -d "$TMPDIR/$MYNAME.XXX")
 # Mountpoint
 MNT="$DIR.mnt"
-mkdir $MNT
+mkdir "$MNT"
 
 # Set the GOPATH variable to the default if it is empty
 GOPATH=$(go env GOPATH)
 
 # Clean up old mounts
-for i in $(mount | cut -d" " -f3 | grep $TMPDIR/$MYNAME) ; do
-	fusermount -u $i
+for i in $(mount | cut -d" " -f3 | grep "$TMPDIR/$MYNAME") ; do
+	fusermount -u "$i"
 done
 
 # FS-specific compile and mount
 if [[ $MYNAME = fsstress-loopback.bash ]]; then
 	echo -n "Recompile go-fuse loopback: "
-	cd $GOPATH/src/github.com/hanwen/go-fuse/example/loopback
+	cd "$GOPATH/src/github.com/hanwen/go-fuse/example/loopback"
 	git describe
 	go build && go install
 	OPTS="-q"
@@ -59,20 +59,20 @@ if [[ $MYNAME = fsstress-loopback.bash ]]; then
 	disown
 elif [[ $MYNAME = fsstress-gocryptfs.bash ]]; then
 	echo "Recompile gocryptfs"
-	cd $GOPATH/src/github.com/rfjakob/gocryptfs
+	cd "$GOPATH/src/github.com/rfjakob/gocryptfs"
 	./build.bash # also prints the version
-	$GOPATH/bin/gocryptfs -q -init -extpass "echo test" -scryptn=10 $DIR
-	$GOPATH/bin/gocryptfs -q -extpass "echo test" -nosyslog -fusedebug=$DEBUG $DIR $MNT
+	$GOPATH/bin/gocryptfs -q -init -extpass "echo test" -scryptn=10 "$DIR"
+	$GOPATH/bin/gocryptfs -q -extpass "echo test" -nosyslog -fusedebug="$DEBUG" "$DIR" "$MNT"
 elif [[ $MYNAME = fsstress-encfs.bash ]]; then
-	encfs --extpass "echo test" --standard $DIR $MNT
+	encfs --extpass "echo test" --standard "$DIR" "$MNT"
 else
-	echo Unknown mode: $MYNAME
+	echo "Unknown mode: $MYNAME"
 	exit 1
 fi
 
 sleep 0.5
 echo -n "Waiting for mount: "
-while ! grep "$(basename $MNT) fuse" /proc/self/mounts > /dev/null
+while ! grep "$(basename "$MNT") fuse" /proc/self/mounts > /dev/null
 do
 	sleep 1
 	echo -n x
@@ -87,26 +87,26 @@ N=1
 while true
 do
 	echo "$N ................................. $(date)"
-	mkdir $MNT/fsstress.1
+	mkdir "$MNT/fsstress.1"
 	echo -n "    fsstress.1 "
-	$FSSTRESS -r -m 8 -n 1000 -d $MNT/fsstress.1 &
+	$FSSTRESS -r -m 8 -n 1000 -d "$MNT/fsstress.1" &
 	wait
 
-	mkdir $MNT/fsstress.2
+	mkdir "$MNT/fsstress.2"
 	echo -n "    fsstress.2 "
-	$FSSTRESS -p 20 -r -m 8 -n 1000 -d $MNT/fsstress.2 &
+	$FSSTRESS -p 20 -r -m 8 -n 1000 -d "$MNT/fsstress.2" &
 	wait
 
-	mkdir $MNT/fsstress.3
+	mkdir "$MNT/fsstress.3"
 	echo -n "    fsstress.3 "
 	$FSSTRESS -p 4 -z -f rmdir=10 -f link=10 -f creat=10 -f mkdir=10 \
 		-f rename=30 -f stat=30 -f unlink=30 -f truncate=20 -m 8 \
-		-n 1000 -d $MNT/fsstress.3 &
+		-n 1000 -d "$MNT/fsstress.3" &
 	wait
 
 	echo "    rm"
-	rm -Rf $MNT/*
+	rm -Rf "$MNT"/*
 
-	let N=$N+1
+	N=$((N+1))
 done
 

@@ -10,12 +10,12 @@ source ../fuse-unmount.bash
 # Setup dirs
 ../dl-linux-tarball.bash
 cd /tmp
-WD=$(mktemp -d /tmp/$MYNAME.XXX)
+WD=$(mktemp -d "/tmp/$MYNAME.XXX")
 
 # Cleanup trap
 trap "set +u; cd /; fuse-unmount -z $WD/c; fuse-unmount -z $WD/b; rm -rf $WD" EXIT
 
-cd $WD
+cd "$WD"
 mkdir a b c
 echo "Extracting tarball"
 tar -x -f /tmp/linux-3.0.tar.gz -C a
@@ -30,4 +30,4 @@ gocryptfs -q -extpass="echo test" b c
 cd c
 echo "Checking md5 sums"
 set -o pipefail
-md5sum -c $MD5 | pv -l -s 36782 -N "files checked" | (grep -v ": OK" || true)
+md5sum -c "$MD5" | pv -l -s 36782 -N "files checked" | (grep -v ": OK" || true)

@@ -12,7 +12,7 @@
 # Note that pam_mount ignores messages on stdout which is why printing
 # to stdout is ok.
 set -eu
-MYNAME=$(basename $0)
+MYNAME=$(basename "$0")
 if [[ $# -lt 2 || $1 == -* ]]; then
 	echo "Usage: $MYNAME CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]" >&2
 	exit 1

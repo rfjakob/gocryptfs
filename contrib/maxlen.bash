@@ -32,8 +32,8 @@ while true ; do
 		echo "error: file $PWD/$NEXT already exists"
 		exit 1
 	fi
-	echo -n 2> /dev/null > $NEXT || break
-	rm $NEXT
+	echo -n 2> /dev/null > "$NEXT" || break
+	rm "$NEXT"
 	NAME="$NEXT"
 done
 echo "${#NAME}"
@@ -47,8 +47,8 @@ if [[ $QUICK -ne 1 ]]; then
 	NAME=""
 	while true ; do
 		NEXT="${NAME}x"
-		mkdir $NEXT 2> /dev/null || break
-		rmdir $NEXT
+		mkdir "$NEXT" 2> /dev/null || break
+		rmdir "$NEXT"
 		NAME="$NEXT"
 	done
 	MAX_DIRNAME=${#NAME}

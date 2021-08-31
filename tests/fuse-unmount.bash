@@ -5,7 +5,7 @@
 #
 # This script can be sourced or executed directly.
 #
-function fuse-unmount {
+fuse-unmount() {
 	local MYNAME=$(basename "$BASH_SOURCE")
 	if [[ $# -eq 0 ]] ; then
 		echo "$MYNAME: missing argument"
