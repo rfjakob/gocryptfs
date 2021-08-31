@@ -69,7 +69,7 @@ package_static_binary() {
 	local TARGZ
 	TARGZ=$TARBALL.gz
 
-	tar --owner=root --group=root --create -vf "$TARBALL" gocryptfs 
+	tar --owner=root --group=root --create -vf "$TARBALL" gocryptfs
 	tar --owner=root --group=root --append -vf "$TARBALL" -C gocryptfs-xray gocryptfs-xray
 	tar --owner=root --group=root --append -vf "$TARBALL" -C Documentation gocryptfs.1 gocryptfs-xray.1
 

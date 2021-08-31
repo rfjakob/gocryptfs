@@ -104,4 +104,3 @@ if [[ $DD_ONLY -eq 1 ]]; then
 else
 	./tests/canonical-benchmarks.bash "$MNT"
 fi
-
