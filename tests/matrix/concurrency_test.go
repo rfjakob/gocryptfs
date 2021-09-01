@@ -110,6 +110,7 @@ func TestConcurrentReadCreate(t *testing.T) {
 				continue
 			}
 			n, err := f.Read(buf0)
+			f.Close()
 			if err == io.EOF {
 				i++
 				continue
@@ -122,7 +123,6 @@ func TestConcurrentReadCreate(t *testing.T) {
 				// Calling t.Fatal() from a goroutine hangs the test so we use log.Fatal
 				log.Fatalf("%s: content mismatch: have=%q want=%q", t.Name(), string(buf), string(content))
 			}
-			f.Close()
 		}
 		wg.Done()
 	}()
