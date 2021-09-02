@@ -1,8 +1,5 @@
 // +build !without_openssl
 
-// We compare against Go's built-in GCM implementation. Since stupidgcm only
-// supports 128-bit IVs and Go only supports that from 1.5 onward, we cannot
-// run these tests on older Go versions.
 package stupidgcm
 
 import (
