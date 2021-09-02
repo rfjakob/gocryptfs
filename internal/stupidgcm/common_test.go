@@ -3,9 +3,19 @@ package stupidgcm
 import (
 	"bytes"
 	"crypto/cipher"
+	"crypto/rand"
 	"encoding/hex"
+	"log"
 	"testing"
 )
+
+func testCiphers(t *testing.T, c1 cipher.AEAD, c2 cipher.AEAD) {
+	t.Run("testEncryptDecrypt", func(t *testing.T) { testEncryptDecrypt(t, c1, c2) })
+	t.Run("testInplaceSeal", func(t *testing.T) { testInplaceSeal(t, c1, c2) })
+	t.Run("testInplaceOpen", func(t *testing.T) { testInplaceOpen(t, c1, c2) })
+	t.Run("testCorruption_c1", func(t *testing.T) { testCorruption(t, c1) })
+	t.Run("testCorruption_c2", func(t *testing.T) { testCorruption(t, c2) })
+}
 
 // testEncryptDecrypt encrypts and decrypts using both stupidgcm and Go's built-in
 // GCM implementation and verifies that the results are identical.
@@ -149,4 +159,14 @@ func testCorruption(t *testing.T, c cipher.AEAD) {
 	if sErr == nil || out2 != nil {
 		t.Fatalf("Should have gotten error")
 	}
+}
+
+// Get "n" random bytes from /dev/urandom or panic
+func randBytes(n int) []byte {
+	b := make([]byte, n)
+	_, err := rand.Read(b)
+	if err != nil {
+		log.Panic("Failed to read random bytes: " + err.Error())
+	}
+	return b
 }
