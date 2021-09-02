@@ -6,11 +6,9 @@
 package stupidgcm
 
 import (
-	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"encoding/hex"
 	"log"
 	"testing"
 )
@@ -30,9 +28,6 @@ func randBytes(n int) []byte {
 func TestEncryptDecrypt(t *testing.T) {
 	key := randBytes(32)
 	sGCM := New(key, false)
-	authData := randBytes(24)
-	iv := randBytes(16)
-	dst := make([]byte, 71) // 71 = random length
 
 	gAES, err := aes.NewCipher(key)
 	if err != nil {
@@ -43,36 +38,7 @@ func TestEncryptDecrypt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Check all block sizes from 1 to 5000
-	for i := 1; i < 5000; i++ {
-		in := make([]byte, i)
-
-		sOut := sGCM.Seal(dst, iv, in, authData)
-		gOut := gGCM.Seal(dst, iv, in, authData)
-
-		// Ciphertext must be identical to Go GCM
-		if !bytes.Equal(sOut, gOut) {
-			t.Fatalf("Compare failed for encryption, size %d", i)
-			t.Log("sOut:")
-			t.Log("\n" + hex.Dump(sOut))
-			t.Log("gOut:")
-			t.Log("\n" + hex.Dump(gOut))
-		}
-
-		sOut2, sErr := sGCM.Open(dst, iv, sOut[len(dst):], authData)
-		if sErr != nil {
-			t.Fatal(sErr)
-		}
-		gOut2, gErr := gGCM.Open(dst, iv, gOut[len(dst):], authData)
-		if gErr != nil {
-			t.Fatal(gErr)
-		}
-
-		// Plaintext must be identical to Go GCM
-		if !bytes.Equal(sOut2, gOut2) {
-			t.Fatalf("Compare failed for decryption, size %d", i)
-		}
-	}
+	testEncryptDecrypt(t, sGCM, gGCM)
 }
 
 // Seal re-uses the "dst" buffer it is large enough.
@@ -81,8 +47,6 @@ func TestEncryptDecrypt(t *testing.T) {
 func TestInplaceSeal(t *testing.T) {
 	key := randBytes(32)
 	sGCM := New(key, false)
-	authData := randBytes(24)
-	iv := randBytes(16)
 
 	gAES, err := aes.NewCipher(key)
 	if err != nil {
@@ -92,26 +56,8 @@ func TestInplaceSeal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	max := 5016
-	// Check all block sizes from 1 to 5000
-	for i := 1; i < max-16; i++ {
-		in := make([]byte, i)
-		dst := make([]byte, max-i)
-		dst = dst[:16]
 
-		sOut := sGCM.Seal(dst, iv, in, authData)
-		dst2 := make([]byte, 16)
-		gOut := gGCM.Seal(dst2, iv, in, authData)
-
-		// Ciphertext must be identical to Go GCM
-		if !bytes.Equal(sOut, gOut) {
-			t.Fatalf("Compare failed for encryption, size %d", i)
-			t.Log("sOut:")
-			t.Log("\n" + hex.Dump(sOut))
-			t.Log("gOut:")
-			t.Log("\n" + hex.Dump(gOut))
-		}
-	}
+	testInplaceSeal(t, sGCM, gGCM)
 }
 
 // Open re-uses the "dst" buffer it is large enough.
@@ -120,8 +66,6 @@ func TestInplaceSeal(t *testing.T) {
 func TestInplaceOpen(t *testing.T) {
 	key := randBytes(32)
 	sGCM := New(key, false)
-	authData := randBytes(24)
-	iv := randBytes(16)
 
 	gAES, err := aes.NewCipher(key)
 	if err != nil {
@@ -131,25 +75,8 @@ func TestInplaceOpen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	max := 5016
-	// Check all block sizes from 1 to 5000
-	for i := 1; i < max-16; i++ {
-		in := make([]byte, i)
 
-		gCiphertext := gGCM.Seal(iv, iv, in, authData)
-
-		dst := make([]byte, max-i)
-		// sPlaintext ... stupidgcm plaintext
-		sPlaintext, err := sGCM.Open(dst[:0], iv, gCiphertext[16:], authData)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		// Plaintext must be identical to Go GCM
-		if !bytes.Equal(in, sPlaintext) {
-			t.Fatalf("Compare failed, i=%d", i)
-		}
-	}
+	testInplaceOpen(t, sGCM, gGCM)
 }
 
 // TestCorruption verifies that changes in the ciphertext result in a decryption
@@ -157,39 +84,6 @@ func TestInplaceOpen(t *testing.T) {
 func TestCorruption(t *testing.T) {
 	key := randBytes(32)
 	sGCM := New(key, false)
-	authData := randBytes(24)
-	iv := randBytes(16)
 
-	in := make([]byte, 354)
-	sOut := sGCM.Seal(nil, iv, in, authData)
-	sOut2, sErr := sGCM.Open(nil, iv, sOut, authData)
-	if sErr != nil {
-		t.Fatal(sErr)
-	}
-	if !bytes.Equal(in, sOut2) {
-		t.Fatalf("Compare failed")
-	}
-
-	// Corrupt first byte
-	sOut[0]++
-	sOut2, sErr = sGCM.Open(nil, iv, sOut, authData)
-	if sErr == nil || sOut2 != nil {
-		t.Fatalf("Should have gotten error")
-	}
-	sOut[0]--
-
-	// Corrupt last byte
-	sOut[len(sOut)-1]++
-	sOut2, sErr = sGCM.Open(nil, iv, sOut, authData)
-	if sErr == nil || sOut2 != nil {
-		t.Fatalf("Should have gotten error")
-	}
-	sOut[len(sOut)-1]--
-
-	// Append one byte
-	sOut = append(sOut, 0)
-	sOut2, sErr = sGCM.Open(nil, iv, sOut, authData)
-	if sErr == nil || sOut2 != nil {
-		t.Fatalf("Should have gotten error")
-	}
+	testCorruption(t, sGCM)
 }
