@@ -35,10 +35,11 @@ func Run() {
 		{name: cryptocore.BackendOpenSSL.Name, f: bStupidGCM, preferred: stupidgcm.PreferOpenSSL()},
 		{name: cryptocore.BackendGoGCM.Name, f: bGoGCM, preferred: !stupidgcm.PreferOpenSSL()},
 		{name: cryptocore.BackendAESSIV.Name, f: bAESSIV, preferred: false},
-		{name: cryptocore.BackendXChaCha20Poly1305.Name, f: bChacha20poly1305, preferred: false},
+		{name: cryptocore.BackendXChaCha20Poly1305.Name, f: bXchacha20poly1305, preferred: false},
+		{name: cryptocore.BackendXChaCha20Poly1305OpenSSL.Name, f: bStupidXchacha, preferred: false},
 	}
 	for _, b := range bTable {
-		fmt.Printf("%-20s\t", b.name)
+		fmt.Printf("%-26s\t", b.name)
 		mbs := mbPerSec(testing.Benchmark(b.f))
 		if mbs > 0 {
 			fmt.Printf("%7.2f MB/s", mbs)
@@ -132,14 +133,33 @@ func bAESSIV(b *testing.B) {
 	}
 }
 
-// bChacha20poly1305 benchmarks XChaCha20 from golang.org/x/crypto/chacha20poly1305
-func bChacha20poly1305(b *testing.B) {
+// bXchacha20poly1305 benchmarks XChaCha20 from golang.org/x/crypto/chacha20poly1305
+func bXchacha20poly1305(b *testing.B) {
 	key := randBytes(32)
 	authData := randBytes(adLen)
 	iv := randBytes(chacha20poly1305.NonceSizeX)
 	in := make([]byte, blockSize)
 	b.SetBytes(int64(len(in)))
 	c, _ := chacha20poly1305.NewX(key)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		// Encrypt and append to nonce
+		c.Seal(iv, iv, in, authData)
+	}
+}
+
+// bStupidXchacha benchmarks OpenSSL XChaCha20
+func bStupidXchacha(b *testing.B) {
+	if stupidgcm.BuiltWithoutOpenssl {
+		b.Skip("openssl has been disabled at compile-time")
+	}
+	key := randBytes(32)
+	authData := randBytes(adLen)
+	iv := randBytes(chacha20poly1305.NonceSizeX)
+	in := make([]byte, blockSize)
+	b.SetBytes(int64(len(in)))
+	c := stupidgcm.NewXchacha20poly1305(key)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

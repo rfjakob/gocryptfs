@@ -48,6 +48,9 @@ var BackendAESSIV AEADTypeEnum = AEADTypeEnum{"AES-SIV-512-Go", siv_aead.NonceSi
 // "XChaCha20-Poly1305-Go" in gocryptfs -speed.
 var BackendXChaCha20Poly1305 AEADTypeEnum = AEADTypeEnum{"XChaCha20-Poly1305-Go", chacha20poly1305.NonceSizeX}
 
+// BackendXChaCha20Poly1305OpenSSL specifies XChaCha20-Poly1305-OpenSSL.
+var BackendXChaCha20Poly1305OpenSSL AEADTypeEnum = AEADTypeEnum{"XChaCha20-Poly1305-OpenSSL", chacha20poly1305.NonceSizeX}
+
 // CryptoCore is the low level crypto implementation.
 type CryptoCore struct {
 	// EME is used for filename encryption.

@@ -27,3 +27,11 @@ func BenchmarkGoGCM(b *testing.B) {
 func BenchmarkAESSIV(b *testing.B) {
 	bAESSIV(b)
 }
+
+func BenchmarkXchacha(b *testing.B) {
+	bXchacha20poly1305(b)
+}
+
+func BenchmarkStupidXchacha(b *testing.B) {
+	bStupidXchacha(b)
+}
