@@ -183,8 +183,18 @@ func testWipe(t *testing.T, c cipher.AEAD) {
 				t.Fatal("c2.key is not zeroed")
 			}
 		}
+	case *stupidXchacha20poly1305:
+		c2.Wipe()
+		if !c2.wiped {
+			t.Error("c2.wiped is not set")
+		}
+		for _, v := range c2.key {
+			if v != 0 {
+				t.Fatal("c2.key is not zeroed")
+			}
+		}
 	default:
-		t.Fatalf("BUG: unhandled type %t", c2)
+		t.Fatalf("BUG: unhandled type %T", c2)
 	}
 }
 
