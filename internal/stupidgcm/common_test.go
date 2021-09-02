@@ -9,12 +9,13 @@ import (
 	"testing"
 )
 
-func testCiphers(t *testing.T, c1 cipher.AEAD, c2 cipher.AEAD) {
-	t.Run("testEncryptDecrypt", func(t *testing.T) { testEncryptDecrypt(t, c1, c2) })
-	t.Run("testInplaceSeal", func(t *testing.T) { testInplaceSeal(t, c1, c2) })
-	t.Run("testInplaceOpen", func(t *testing.T) { testInplaceOpen(t, c1, c2) })
-	t.Run("testCorruption_c1", func(t *testing.T) { testCorruption(t, c1) })
-	t.Run("testCorruption_c2", func(t *testing.T) { testCorruption(t, c2) })
+func testCiphers(t *testing.T, our cipher.AEAD, ref cipher.AEAD) {
+	t.Run("testEncryptDecrypt", func(t *testing.T) { testEncryptDecrypt(t, our, ref) })
+	t.Run("testInplaceSeal", func(t *testing.T) { testInplaceSeal(t, our, ref) })
+	t.Run("testInplaceOpen", func(t *testing.T) { testInplaceOpen(t, our, ref) })
+	t.Run("testCorruption_c1", func(t *testing.T) { testCorruption(t, our) })
+	t.Run("testCorruption_c2", func(t *testing.T) { testCorruption(t, ref) })
+	t.Run("testWipe", func(t *testing.T) { testWipe(t, our) })
 }
 
 // testEncryptDecrypt encrypts and decrypts using both stupidgcm and Go's built-in
@@ -158,6 +159,27 @@ func testCorruption(t *testing.T, c cipher.AEAD) {
 	out2, sErr = c.Open(nil, iv, out, authData)
 	if sErr == nil || out2 != nil {
 		t.Fatalf("Should have gotten error")
+	}
+}
+
+type Wiper interface {
+	Wipe()
+}
+
+func testWipe(t *testing.T, c cipher.AEAD) {
+	var key []byte
+	switch c2 := c.(type) {
+	case *StupidGCM:
+		c2.Wipe()
+		key = c2.key
+	case *stupidChacha20poly1305:
+		c2.Wipe()
+		key = c2.key
+	default:
+		t.Fatalf("BUG: unhandled type %t", c2)
+	}
+	if key != nil {
+		t.Fatal("key is not nil")
 	}
 }
 

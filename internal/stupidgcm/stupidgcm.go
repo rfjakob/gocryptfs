@@ -240,7 +240,7 @@ func (g *StupidGCM) Open(dst, iv, in, authData []byte) ([]byte, error) {
 // and setting the reference to nil.
 //
 // This is not bulletproof due to possible GC copies, but
-// still raises to bar for extracting the key.
+// still raises the bar for extracting the key.
 func (g *StupidGCM) Wipe() {
 	for i := range g.key {
 		g.key[i] = 0
