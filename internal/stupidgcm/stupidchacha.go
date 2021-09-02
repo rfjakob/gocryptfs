@@ -16,19 +16,20 @@ import (
 )
 
 type stupidChacha20poly1305 struct {
-	key []byte
+	key   [chacha20poly1305.KeySize]byte
+	wiped bool
 }
 
 // Verify that we satisfy the cipher.AEAD interface
 var _ cipher.AEAD = &stupidChacha20poly1305{}
 
-func newChacha20poly1305(keyIn []byte) cipher.AEAD {
-	if len(keyIn) != chacha20poly1305.KeySize {
-		log.Panicf("Only %d-byte keys are supported, you passed %d bytes", chacha20poly1305.KeySize, len(keyIn))
+func newChacha20poly1305(key []byte) cipher.AEAD {
+	if len(key) != chacha20poly1305.KeySize {
+		log.Panicf("Only %d-byte keys are supported, you passed %d bytes", chacha20poly1305.KeySize, len(key))
 	}
-	// Create a private copy of the key
-	key := append([]byte{}, keyIn...)
-	return &stupidChacha20poly1305{key: key}
+	ret := new(stupidChacha20poly1305)
+	copy(ret.key[:], key)
+	return ret
 }
 
 // NonceSize returns the required size of the nonce / IV.
@@ -43,6 +44,9 @@ func (g *stupidChacha20poly1305) Overhead() int {
 
 // Seal encrypts "in" using "iv" and "authData" and append the result to "dst"
 func (g *stupidChacha20poly1305) Seal(dst, iv, in, authData []byte) []byte {
+	if g.wiped {
+		panic("BUG: tried to use wiped stupidChacha20poly1305")
+	}
 	if len(iv) != g.NonceSize() {
 		log.Panicf("Only %d-byte IVs are supported, you passed %d bytes", g.NonceSize(), len(iv))
 	}
@@ -125,6 +129,9 @@ func (g *stupidChacha20poly1305) Seal(dst, iv, in, authData []byte) []byte {
 
 // Open decrypts "in" using "iv" and "authData" and append the result to "dst"
 func (g *stupidChacha20poly1305) Open(dst, iv, in, authData []byte) ([]byte, error) {
+	if g.wiped {
+		panic("BUG: tried to use wiped stupidChacha20poly1305")
+	}
 	if len(iv) != g.NonceSize() {
 		log.Panicf("Only %d-byte IVs are supported", g.NonceSize())
 	}
@@ -215,8 +222,8 @@ func (g *stupidChacha20poly1305) Open(dst, iv, in, authData []byte) ([]byte, err
 // This is not bulletproof due to possible GC copies, but
 // still raises the bar for extracting the key.
 func (g *stupidChacha20poly1305) Wipe() {
+	g.wiped = true
 	for i := range g.key {
 		g.key[i] = 0
 	}
-	g.key = nil
 }
