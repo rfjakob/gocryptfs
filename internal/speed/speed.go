@@ -73,35 +73,36 @@ func randBytes(n int) []byte {
 	return b
 }
 
+// bEncrypt benchmarks the encryption speed of cipher "c"
+func bEncrypt(b *testing.B, c cipher.AEAD) {
+	authData := randBytes(adLen)
+	iv := randBytes(c.NonceSize())
+	in := make([]byte, blockSize)
+	dst := make([]byte, len(in)+len(iv)+c.Overhead())
+	copy(dst, iv)
+
+	b.SetBytes(int64(len(in)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		// Reset dst buffer
+		dst = dst[:len(iv)]
+		// Encrypt and append to nonce
+		c.Seal(dst, iv, in, authData)
+	}
+
+}
+
 // bStupidGCM benchmarks stupidgcm's openssl GCM
 func bStupidGCM(b *testing.B) {
 	if stupidgcm.BuiltWithoutOpenssl {
 		b.Skip("openssl has been disabled at compile-time")
 	}
-	key := randBytes(32)
-	authData := randBytes(adLen)
-	iv := randBytes(16)
-	in := make([]byte, blockSize)
-	b.SetBytes(int64(len(in)))
-
-	sGCM := stupidgcm.New(key, false)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		// Encrypt and append to nonce
-		sGCM.Seal(iv, iv, in, authData)
-	}
+	bEncrypt(b, stupidgcm.New(randBytes(32), false))
 }
 
 // bGoGCM benchmarks Go stdlib GCM
 func bGoGCM(b *testing.B) {
-	key := randBytes(32)
-	authData := randBytes(adLen)
-	iv := randBytes(16)
-	in := make([]byte, blockSize)
-	b.SetBytes(int64(len(in)))
-
-	gAES, err := aes.NewCipher(key)
+	gAES, err := aes.NewCipher(randBytes(32))
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -109,44 +110,19 @@ func bGoGCM(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		// Encrypt and append to nonce
-		gGCM.Seal(iv, iv, in, authData)
-	}
+	bEncrypt(b, gGCM)
 }
 
 // bAESSIV benchmarks AES-SIV from github.com/jacobsa/crypto/siv
 func bAESSIV(b *testing.B) {
-	key := randBytes(64)
-	authData := randBytes(adLen)
-	iv := randBytes(16)
-	in := make([]byte, blockSize)
-	b.SetBytes(int64(len(in)))
-	gGCM := siv_aead.New(key)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		// Encrypt and append to nonce
-		gGCM.Seal(iv, iv, in, authData)
-	}
+	c := siv_aead.New(randBytes(64))
+	bEncrypt(b, c)
 }
 
 // bXchacha20poly1305 benchmarks XChaCha20 from golang.org/x/crypto/chacha20poly1305
 func bXchacha20poly1305(b *testing.B) {
-	key := randBytes(32)
-	authData := randBytes(adLen)
-	iv := randBytes(chacha20poly1305.NonceSizeX)
-	in := make([]byte, blockSize)
-	b.SetBytes(int64(len(in)))
-	c, _ := chacha20poly1305.NewX(key)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		// Encrypt and append to nonce
-		c.Seal(iv, iv, in, authData)
-	}
+	c, _ := chacha20poly1305.NewX(randBytes(32))
+	bEncrypt(b, c)
 }
 
 // bStupidXchacha benchmarks OpenSSL XChaCha20
@@ -154,16 +130,5 @@ func bStupidXchacha(b *testing.B) {
 	if stupidgcm.BuiltWithoutOpenssl {
 		b.Skip("openssl has been disabled at compile-time")
 	}
-	key := randBytes(32)
-	authData := randBytes(adLen)
-	iv := randBytes(chacha20poly1305.NonceSizeX)
-	in := make([]byte, blockSize)
-	b.SetBytes(int64(len(in)))
-	c := stupidgcm.NewXchacha20poly1305(key)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		// Encrypt and append to nonce
-		c.Seal(iv, iv, in, authData)
-	}
+	bEncrypt(b, stupidgcm.NewXchacha20poly1305(randBytes(32)))
 }
