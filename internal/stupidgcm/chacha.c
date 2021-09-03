@@ -1,8 +1,7 @@
+#include "chacha.h"
 #include <openssl/evp.h>
 #include <stdio.h>
 //#cgo pkg-config: libcrypto
-
-extern void panic1(void);
 
 static void panic(const char* const msg)
 {
@@ -11,7 +10,8 @@ static void panic(const char* const msg)
 }
 
 // https://wiki.openssl.org/index.php/EVP_Authenticated_Encryption_and_Decryption#Authenticated_Encryption_using_GCM_mode
-int chacha20poly1305_seal(
+int aead_seal(
+    const enum aeadType cipherId,
     const unsigned char* const plaintext,
     const int plaintextLen,
     const unsigned char* const authData,
@@ -23,6 +23,18 @@ int chacha20poly1305_seal(
     unsigned char* const ciphertext,
     const int ciphertextBufLen)
 {
+    const EVP_CIPHER* evpCipher = NULL;
+    switch (cipherId) {
+    case aeadTypeChacha:
+        evpCipher = EVP_chacha20_poly1305();
+        break;
+    case aeadTypeGcm:
+        evpCipher = EVP_aes_256_gcm();
+        break;
+    default:
+        panic("unknown cipherId");
+    }
+
     // Create scratch space "context"
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
     if (!ctx) {
@@ -30,7 +42,7 @@ int chacha20poly1305_seal(
     }
 
     // Set cipher
-    if (EVP_EncryptInit_ex(ctx, EVP_chacha20_poly1305(), NULL, NULL, NULL) != 1) {
+    if (EVP_EncryptInit_ex(ctx, evpCipher, NULL, NULL, NULL) != 1) {
         panic("EVP_EncryptInit_ex set cipher failed");
     }
 

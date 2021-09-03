@@ -13,12 +13,8 @@ import (
 
 /*
 #include <openssl/evp.h>
+#include "chacha.h"
 #cgo pkg-config: libcrypto
-int chacha20poly1305_seal(const unsigned char * const plaintext, const int plaintextLen,
-                const unsigned char * const authData, const int authDataLen,
-                const unsigned char * const key, const int keyLen,
-                const unsigned char * const iv, const int ivLen,
-                unsigned char * const ciphertext, const int ciphertextBufLen);
 */
 import "C"
 
@@ -75,7 +71,8 @@ func (g *stupidChacha20poly1305) Seal(dst, iv, in, authData []byte) []byte {
 		buf = make([]byte, outLen)
 	}
 
-	C.chacha20poly1305_seal((*C.uchar)(&in[0]),
+	C.aead_seal(C.aeadTypeChacha,
+		(*C.uchar)(&in[0]),
 		C.int(len(in)),
 		(*C.uchar)(&authData[0]),
 		C.int(len(authData)),

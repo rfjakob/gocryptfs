@@ -4,4 +4,4 @@ gcc:
 
 .PHONY: format
 format:
-	clang-format --style=WebKit -i *.c
+	clang-format --style=WebKit -i *.c *.h
