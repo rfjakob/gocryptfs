@@ -92,6 +92,25 @@ func bEncrypt(b *testing.B, c cipher.AEAD) {
 
 }
 
+func bDecrypt(b *testing.B, c cipher.AEAD) {
+	authData := randBytes(adLen)
+	iv := randBytes(c.NonceSize())
+	plain := randBytes(blockSize)
+	ciphertext := c.Seal(iv, iv, plain, authData)
+
+	b.SetBytes(int64(len(plain)))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		// Reset plain buffer
+		plain = plain[:0]
+		// Decrypt
+		_, err := c.Open(plain, iv, ciphertext[c.NonceSize():], authData)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 // bStupidGCM benchmarks stupidgcm's openssl GCM
 func bStupidGCM(b *testing.B) {
 	if stupidgcm.BuiltWithoutOpenssl {
