@@ -9,6 +9,21 @@ static void panic(const char* const msg)
     __builtin_trap();
 }
 
+static const EVP_CIPHER* getEvpCipher(enum aeadType cipherId)
+{
+    switch (cipherId) {
+    case aeadTypeChacha:
+        return EVP_chacha20_poly1305();
+    case aeadTypeGcm:
+        return EVP_aes_256_gcm();
+    }
+    panic("unknown cipherId");
+    return NULL;
+}
+
+// We only support 16-byte tags
+static const int supportedTagLen = 16;
+
 // https://wiki.openssl.org/index.php/EVP_Authenticated_Encryption_and_Decryption#Authenticated_Encryption_using_GCM_mode
 int aead_seal(
     const enum aeadType cipherId,
@@ -23,19 +38,9 @@ int aead_seal(
     unsigned char* const ciphertext,
     const int ciphertextBufLen)
 {
-    const EVP_CIPHER* evpCipher = NULL;
-    switch (cipherId) {
-    case aeadTypeChacha:
-        evpCipher = EVP_chacha20_poly1305();
-        break;
-    case aeadTypeGcm:
-        evpCipher = EVP_aes_256_gcm();
-        break;
-    default:
-        panic("unknown cipherId");
-    }
+    const EVP_CIPHER* evpCipher = getEvpCipher(cipherId);
 
-    // Create scratch space "context"
+    // Create scratch space "ctx"
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
     if (!ctx) {
         panic("EVP_CIPHER_CTX_new failed");
@@ -91,20 +96,99 @@ int aead_seal(
         panic("EVP_EncryptFinal_ex: unexpected length");
     }
 
-    // We only support 16-byte tags
-    const int tagLen = 16;
-
     // Get MAC tag and append it to the ciphertext
-    if (ciphertextLen + tagLen > ciphertextBufLen) {
+    if (ciphertextLen + supportedTagLen > ciphertextBufLen) {
         panic("tag overflows output buffer");
     }
-    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, tagLen, ciphertext + plaintextLen) != 1) {
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, supportedTagLen, ciphertext + plaintextLen) != 1) {
         panic("EVP_CTRL_AEAD_GET_TAG failed");
     }
-    ciphertextLen += tagLen;
+    ciphertextLen += supportedTagLen;
 
     // Free scratch space
     EVP_CIPHER_CTX_free(ctx);
 
     return ciphertextLen;
+}
+
+int aead_open(
+    const enum aeadType cipherId,
+    const unsigned char* const ciphertext,
+    const int ciphertextLen,
+    const unsigned char* const authData,
+    const int authDataLen,
+    unsigned char* const tag,
+    const int tagLen,
+    const unsigned char* const key,
+    const int keyLen,
+    const unsigned char* const iv,
+    const int ivLen,
+    unsigned char* const plaintext,
+    const int plaintextBufLen)
+{
+    const EVP_CIPHER* evpCipher = getEvpCipher(cipherId);
+
+    // Create scratch space "ctx"
+    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) {
+        panic("EVP_CIPHER_CTX_new failed");
+    }
+
+    // Set cipher
+    if (EVP_DecryptInit_ex(ctx, evpCipher, NULL, NULL, NULL) != 1) {
+        panic("EVP_DecryptInit_ex set cipher failed");
+    }
+
+    // Check keyLen by trying to set it (fails if keyLen != 32)
+    if (EVP_CIPHER_CTX_set_key_length(ctx, keyLen) != 1) {
+        panic("keyLen mismatch");
+    }
+
+    // Set IV length so we do not depend on the default
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_IVLEN, ivLen, NULL) != 1) {
+        panic("EVP_CTRL_AEAD_SET_IVLEN failed");
+    }
+
+    // Set key and IV
+    if (EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv) != 1) {
+        panic("EVP_DecryptInit_ex set key & iv failed");
+    }
+
+    // Provide authentication data
+    int outLen = 0;
+    if (EVP_DecryptUpdate(ctx, NULL, &outLen, authData, authDataLen) != 1) {
+        panic("EVP_DecryptUpdate authData failed");
+    }
+    if (outLen != authDataLen) {
+        panic("EVP_DecryptUpdate authData: unexpected length");
+    }
+
+    // Decrypt "ciphertext" into "plaintext"
+    if (ciphertextLen > plaintextBufLen) {
+        panic("ciphertextLen overflows output buffer");
+    }
+    if (EVP_DecryptUpdate(ctx, plaintext, &outLen, ciphertext, ciphertextLen) != 1) {
+        panic("EVP_DecryptUpdate failed");
+    }
+    int plaintextLen = outLen;
+
+    // Check tag
+    if (tagLen != supportedTagLen) {
+        panic("unsupported tag length");
+    }
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, tagLen, tag) != 1) {
+        panic("EVP_CTRL_AEAD_SET_TAG failed");
+    }
+    if (EVP_DecryptFinal_ex(ctx, plaintext + plaintextLen, &outLen) != 1) {
+        // authentication failed
+        return -1;
+    }
+    if (outLen != 0) {
+        panic("EVP_EncryptFinal_ex: unexpected length");
+    }
+
+    /* Clean up */
+    EVP_CIPHER_CTX_free(ctx);
+
+    return plaintextLen;
 }
