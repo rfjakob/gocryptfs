@@ -74,3 +74,11 @@ func BenchmarkStupidXchacha(b *testing.B) {
 func BenchmarkStupidXchachaDecrypt(b *testing.B) {
 	bDecrypt(b, stupidgcm.NewXchacha20poly1305(randBytes(32)))
 }
+
+func BenchmarkStupidChacha(b *testing.B) {
+	bEncrypt(b, stupidgcm.NewChacha20poly1305(randBytes(32)))
+}
+
+func BenchmarkStupidChachaDecrypt(b *testing.B) {
+	bDecrypt(b, stupidgcm.NewChacha20poly1305(randBytes(32)))
+}

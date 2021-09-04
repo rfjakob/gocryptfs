@@ -21,7 +21,7 @@ type stupidChacha20poly1305 struct {
 // Verify that we satisfy the cipher.AEAD interface
 var _ cipher.AEAD = &stupidChacha20poly1305{}
 
-func newChacha20poly1305(key []byte) *stupidChacha20poly1305 {
+func NewChacha20poly1305(key []byte) *stupidChacha20poly1305 {
 	if len(key) != chacha20poly1305.KeySize {
 		log.Panicf("Only %d-byte keys are supported, you passed %d bytes", chacha20poly1305.KeySize, len(key))
 	}

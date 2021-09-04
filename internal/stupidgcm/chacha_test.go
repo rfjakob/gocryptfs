@@ -10,7 +10,7 @@ import (
 
 func TestStupidChacha20poly1305(t *testing.T) {
 	key := randBytes(32)
-	c := newChacha20poly1305(key)
+	c := NewChacha20poly1305(key)
 	ref, err := chacha20poly1305.New(key)
 	if err != nil {
 		t.Fatal(err)
