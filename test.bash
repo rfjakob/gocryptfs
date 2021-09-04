@@ -79,7 +79,7 @@ else
 	rm -Rf "$TESTDIR"
 fi
 
-if grep -R "panic(" ./*.go internal ; then
+if find internal -type f -name \*.go -print0 | xargs -0 grep "panic("; then
 	echo "$MYNAME: Please use log.Panic instead of naked panic!"
 	exit 1
 fi
