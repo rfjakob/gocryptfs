@@ -15,7 +15,7 @@ import "C"
 
 func openSSLSeal(a *stupidAEADCommon, dst, iv, in, authData []byte) []byte {
 	if a.Wiped() {
-		panic("BUG: tried to use wiped key")
+		log.Panic("BUG: tried to use wiped key")
 	}
 	if len(iv) != a.NonceSize() {
 		log.Panicf("Only %d-byte IVs are supported, you passed %d bytes", a.NonceSize(), len(iv))
@@ -59,7 +59,7 @@ func openSSLSeal(a *stupidAEADCommon, dst, iv, in, authData []byte) []byte {
 
 func openSSLOpen(a *stupidAEADCommon, dst, iv, in, authData []byte) ([]byte, error) {
 	if a.Wiped() {
-		panic("BUG: tried to use wiped key")
+		log.Panic("BUG: tried to use wiped key")
 	}
 	if len(iv) != a.NonceSize() {
 		log.Panicf("Only %d-byte IVs are supported, you passed %d bytes", a.NonceSize(), len(iv))

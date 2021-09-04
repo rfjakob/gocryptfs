@@ -13,6 +13,7 @@ package stupidgcm
 import (
 	"crypto/cipher"
 	"errors"
+	"log"
 
 	"golang.org/x/crypto/chacha20"
 	"golang.org/x/crypto/chacha20poly1305"
@@ -33,7 +34,7 @@ type stupidXchacha20poly1305 struct {
 // nonces are randomly generated.
 func NewXchacha20poly1305(key []byte) cipher.AEAD {
 	if len(key) != chacha20poly1305.KeySize {
-		panic("bad key length")
+		log.Panic("bad key length")
 	}
 	ret := new(stupidXchacha20poly1305)
 	copy(ret.key[:], key)
@@ -50,10 +51,10 @@ func (*stupidXchacha20poly1305) Overhead() int {
 
 func (x *stupidXchacha20poly1305) Seal(dst, nonce, plaintext, additionalData []byte) []byte {
 	if x.wiped {
-		panic("BUG: tried to use wiped key")
+		log.Panic("BUG: tried to use wiped key")
 	}
 	if len(nonce) != chacha20poly1305.NonceSizeX {
-		panic("bad nonce length passed to Seal")
+		log.Panic("bad nonce length passed to Seal")
 	}
 
 	// XChaCha20-Poly1305 technically supports a 64-bit counter, so there is no
@@ -62,7 +63,7 @@ func (x *stupidXchacha20poly1305) Seal(dst, nonce, plaintext, additionalData []b
 	// an issue because the cipher.AEAD API requires the entire message to be in
 	// memory, and the counter overflows at 256 GB.
 	if uint64(len(plaintext)) > (1<<38)-64 {
-		panic("plaintext too large")
+		log.Panic("plaintext too large")
 	}
 
 	hKey, _ := chacha20.HChaCha20(x.key[:], nonce[0:16])
@@ -78,16 +79,16 @@ func (x *stupidXchacha20poly1305) Seal(dst, nonce, plaintext, additionalData []b
 
 func (x *stupidXchacha20poly1305) Open(dst, nonce, ciphertext, additionalData []byte) ([]byte, error) {
 	if x.wiped {
-		panic("BUG: tried to use wiped key")
+		log.Panic("BUG: tried to use wiped key")
 	}
 	if len(nonce) != chacha20poly1305.NonceSizeX {
-		panic("bad nonce length passed to Open")
+		log.Panic("bad nonce length passed to Open")
 	}
 	if len(ciphertext) < 16 {
 		return nil, errors.New("message too short")
 	}
 	if uint64(len(ciphertext)) > (1<<38)-48 {
-		panic("ciphertext too large")
+		log.Panic("ciphertext too large")
 	}
 
 	hKey, _ := chacha20.HChaCha20(x.key[:], nonce[0:16])
