@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 
+	"crypto/cipher"
+
 	"github.com/rfjakob/gocryptfs/v2/internal/exitcodes"
 )
 
@@ -21,32 +23,12 @@ func errExit() {
 	os.Exit(exitcodes.OpenSSL)
 }
 
-func New(_ []byte, _ bool) *StupidGCM {
-	errExit()
-	// Never reached
-	return &StupidGCM{}
-}
-
-func (g *StupidGCM) NonceSize() int {
-	errExit()
-	return -1
-}
-
-func (g *StupidGCM) Overhead() int {
-	errExit()
-	return -1
-}
-
-func (g *StupidGCM) Seal(_, _, _, _ []byte) []byte {
+func New(_ []byte, _ bool) cipher.AEAD {
 	errExit()
 	return nil
 }
 
-func (g *StupidGCM) Open(_, _, _, _ []byte) ([]byte, error) {
+func NewXchacha20poly1305(_ []byte) cipher.AEAD {
 	errExit()
-	return nil, nil
-}
-
-func (g *StupidGCM) Wipe() {
-	errExit()
+	return nil
 }
