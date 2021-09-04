@@ -162,25 +162,26 @@ func testCorruption(t *testing.T, c cipher.AEAD) {
 	}
 }
 
-type Wiper interface {
-	Wipe()
-}
-
 func testWipe(t *testing.T, c cipher.AEAD) {
 	switch c2 := c.(type) {
 	case *StupidGCM:
 		c2.Wipe()
-		if c2.key != nil {
-			t.Fatal("key is not nil")
-		}
-	case *stupidChacha20poly1305:
-		c2.Wipe()
-		if !c2.wiped {
+		if !c2.Wiped() {
 			t.Error("c2.wiped is not set")
 		}
 		for _, v := range c2.key {
 			if v != 0 {
-				t.Fatal("c2.key is not zeroed")
+				t.Fatal("c2._key is not zeroed")
+			}
+		}
+	case *stupidChacha20poly1305:
+		c2.Wipe()
+		if !c2.Wiped() {
+			t.Error("c2.wiped is not set")
+		}
+		for _, v := range c2.key {
+			if v != 0 {
+				t.Fatal("c2._key is not zeroed")
 			}
 		}
 	case *stupidXchacha20poly1305:

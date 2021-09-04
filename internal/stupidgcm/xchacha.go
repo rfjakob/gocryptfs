@@ -17,6 +17,8 @@ import (
 )
 
 type stupidXchacha20poly1305 struct {
+	// array instead of byte slice like
+	// `struct xchacha20poly1305` in x/crypto/chacha20poly1305
 	key   [chacha20poly1305.KeySize]byte
 	wiped bool
 }
@@ -41,7 +43,7 @@ func (*stupidXchacha20poly1305) NonceSize() int {
 }
 
 func (*stupidXchacha20poly1305) Overhead() int {
-	return 16
+	return tagLen
 }
 
 func (x *stupidXchacha20poly1305) Seal(dst, nonce, plaintext, additionalData []byte) []byte {
@@ -61,9 +63,8 @@ func (x *stupidXchacha20poly1305) Seal(dst, nonce, plaintext, additionalData []b
 		panic("plaintext too large")
 	}
 
-	c := new(stupidChacha20poly1305)
 	hKey, _ := chacha20.HChaCha20(x.key[:], nonce[0:16])
-	copy(c.key[:], hKey)
+	c := newChacha20poly1305(hKey)
 	defer c.Wipe()
 
 	// The first 4 bytes of the final nonce are unused counter space.
@@ -87,9 +88,8 @@ func (x *stupidXchacha20poly1305) Open(dst, nonce, ciphertext, additionalData []
 		panic("ciphertext too large")
 	}
 
-	c := new(stupidChacha20poly1305)
 	hKey, _ := chacha20.HChaCha20(x.key[:], nonce[0:16])
-	copy(c.key[:], hKey)
+	c := newChacha20poly1305(hKey)
 	defer c.Wipe()
 
 	// The first 4 bytes of the final nonce are unused counter space.

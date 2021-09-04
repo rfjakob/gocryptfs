@@ -1,10 +1,7 @@
-enum aeadType {
-    aeadTypeChacha = 1,
-    aeadTypeGcm = 2,
-};
+#include <openssl/evp.h>
 
-int aead_seal(
-    const enum aeadType cipherId,
+int openssl_aead_seal(
+    const EVP_CIPHER* evpCipher,
     const unsigned char* const plaintext,
     const int plaintextLen,
     const unsigned char* const authData,
@@ -16,8 +13,8 @@ int aead_seal(
     unsigned char* const ciphertext,
     const int ciphertextBufLen);
 
-int aead_open(
-    const enum aeadType cipherId,
+int openssl_aead_open(
+    const EVP_CIPHER* evpCipher,
     const unsigned char* const ciphertext,
     const int ciphertextLen,
     const unsigned char* const authData,

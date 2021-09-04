@@ -1,4 +1,4 @@
-#include "chacha.h"
+#include "openssl_aead.h"
 #include <openssl/evp.h>
 #include <stdio.h>
 //#cgo pkg-config: libcrypto
@@ -9,24 +9,12 @@ static void panic(const char* const msg)
     __builtin_trap();
 }
 
-static const EVP_CIPHER* getEvpCipher(enum aeadType cipherId)
-{
-    switch (cipherId) {
-    case aeadTypeChacha:
-        return EVP_chacha20_poly1305();
-    case aeadTypeGcm:
-        return EVP_aes_256_gcm();
-    }
-    panic("unknown cipherId");
-    return NULL;
-}
-
 // We only support 16-byte tags
 static const int supportedTagLen = 16;
 
 // https://wiki.openssl.org/index.php/EVP_Authenticated_Encryption_and_Decryption#Authenticated_Encryption_using_GCM_mode
-int aead_seal(
-    const enum aeadType cipherId,
+int openssl_aead_seal(
+    const EVP_CIPHER* evpCipher,
     const unsigned char* const plaintext,
     const int plaintextLen,
     const unsigned char* const authData,
@@ -38,8 +26,6 @@ int aead_seal(
     unsigned char* const ciphertext,
     const int ciphertextBufLen)
 {
-    const EVP_CIPHER* evpCipher = getEvpCipher(cipherId);
-
     // Create scratch space "ctx"
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
     if (!ctx) {
@@ -111,8 +97,8 @@ int aead_seal(
     return ciphertextLen;
 }
 
-int aead_open(
-    const enum aeadType cipherId,
+int openssl_aead_open(
+    const EVP_CIPHER* evpCipher,
     const unsigned char* const ciphertext,
     const int ciphertextLen,
     const unsigned char* const authData,
@@ -126,8 +112,6 @@ int aead_open(
     unsigned char* const plaintext,
     const int plaintextBufLen)
 {
-    const EVP_CIPHER* evpCipher = getEvpCipher(cipherId);
-
     // Create scratch space "ctx"
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
     if (!ctx) {
