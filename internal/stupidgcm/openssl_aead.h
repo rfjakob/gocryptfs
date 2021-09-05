@@ -27,3 +27,5 @@ int openssl_aead_open(
     const int ivLen,
     unsigned char* const plaintext,
     const int plaintextBufLen);
+
+void noop_c_function(void);

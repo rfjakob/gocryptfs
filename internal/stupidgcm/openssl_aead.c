@@ -176,3 +176,8 @@ int openssl_aead_open(
 
     return plaintextLen;
 }
+
+// This functions exists to benchmark the C call overhead from Go.
+void noop_c_function(void) {
+    return;
+}

@@ -108,3 +108,9 @@ func openSSLOpen(a *stupidAEADCommon, dst, iv, in, authData []byte) ([]byte, err
 	}
 	return append(dst, buf...), nil
 }
+
+// This functions exists to benchmark the C call overhead from Go.
+// See BenchmarkCCall for resuts.
+func noopCFunction() {
+	C.noop_c_function()
+}

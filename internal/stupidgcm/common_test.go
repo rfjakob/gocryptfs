@@ -208,3 +208,24 @@ func randBytes(n int) []byte {
 	}
 	return b
 }
+
+/*
+BenchmarkCCall benchmarks the overhead of calling from Go into C.
+Looks like things improved a bit compared to
+https://www.cockroachlabs.com/blog/the-cost-and-complexity-of-cgo/
+where they measured 171ns/op:
+
+$ go test -bench .
+goos: linux
+goarch: amd64
+pkg: github.com/rfjakob/gocryptfs/v2/internal/stupidgcm
+cpu: Intel(R) Core(TM) i5-3470 CPU @ 3.20GHz
+BenchmarkCCall-4   	13989364	        76.72 ns/op
+PASS
+ok  	github.com/rfjakob/gocryptfs/v2/internal/stupidgcm	1.735s
+*/
+func BenchmarkCCall(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		noopCFunction()
+	}
+}
