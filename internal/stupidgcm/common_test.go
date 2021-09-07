@@ -1,3 +1,5 @@
+// +build cgo,!without_openssl
+
 package stupidgcm
 
 import (
@@ -6,6 +8,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"log"
+	"sync"
 	"testing"
 )
 
@@ -15,6 +18,7 @@ func testCiphers(t *testing.T, our cipher.AEAD, ref cipher.AEAD) {
 	t.Run("testInplaceOpen", func(t *testing.T) { testInplaceOpen(t, our, ref) })
 	t.Run("testCorruption_c1", func(t *testing.T) { testCorruption(t, our) })
 	t.Run("testCorruption_c2", func(t *testing.T) { testCorruption(t, ref) })
+	t.Run("testConcurrency", func(t *testing.T) { testConcurrency(t, our, ref) })
 	t.Run("testWipe", func(t *testing.T) { testWipe(t, our) })
 }
 
@@ -65,6 +69,25 @@ func testEncryptDecrypt(t *testing.T, c1 cipher.AEAD, c2 cipher.AEAD) {
 	}
 }
 
+// testConcurrency verifies that we don't corrupt data when called concurrently
+func testConcurrency(t *testing.T, c1 cipher.AEAD, c2 cipher.AEAD) {
+	const loopCount = 2
+	const goroutineCount = 4
+
+	for h := 0; h < loopCount; h++ {
+		var wg sync.WaitGroup
+		for i := 0; i < goroutineCount; i++ {
+			wg.Add(1)
+			go func() {
+				testEncryptDecrypt(t, c1, c2)
+				wg.Done()
+			}()
+			wg.Wait()
+		}
+	}
+}
+
+// testInplaceSeal:
 // Seal re-uses the "dst" buffer it is large enough.
 // Check that this works correctly by testing different "dst" capacities from
 // 5000 to 16 and "in" lengths from 1 to 5000.
