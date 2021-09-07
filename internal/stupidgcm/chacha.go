@@ -39,9 +39,12 @@ func NewChacha20poly1305(key []byte) *stupidChacha20poly1305 {
 	if len(key) != chacha20poly1305.KeySize {
 		log.Panicf("Only %d-byte keys are supported, you passed %d bytes", chacha20poly1305.KeySize, len(key))
 	}
+	// private copy
+	key2 := make([]byte, chacha20poly1305.KeySize)
+	copy(key2, key)
 	return &stupidChacha20poly1305{
 		stupidAEADCommon{
-			key:              append([]byte{}, key...), // private copy
+			key:              key2,
 			openSSLEVPCipher: _EVP_chacha20_poly1305,
 			nonceSize:        chacha20poly1305.NonceSize,
 		},
