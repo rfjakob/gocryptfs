@@ -19,6 +19,8 @@ func testCiphers(t *testing.T, our cipher.AEAD, ref cipher.AEAD) {
 	t.Run("testCorruption_c1", func(t *testing.T) { testCorruption(t, our) })
 	t.Run("testCorruption_c2", func(t *testing.T) { testCorruption(t, ref) })
 	t.Run("testConcurrency", func(t *testing.T) { testConcurrency(t, our, ref) })
+	t.Run("testOpenAllZero_our", func(t *testing.T) { testOpenAllZero(t, our) })
+	t.Run("testOpenAllZero_ref", func(t *testing.T) { testOpenAllZero(t, ref) })
 	t.Run("testWipe", func(t *testing.T) { testWipe(t, our) })
 }
 
@@ -37,9 +39,13 @@ func testEncryptDecrypt(t *testing.T, c1 cipher.AEAD, c2 cipher.AEAD) {
 
 	dst := make([]byte, 71) // 71 = arbitrary length
 
-	// Check all block sizes from 1 to 5000
-	for i := 1; i < 5000; i++ {
-		in := make([]byte, i)
+	// Check all block sizes from nil to 0 to 5000
+	for i := -1; i < 5000; i++ {
+		// stays nil at i == -1
+		var in []byte
+		if i >= 0 {
+			in = make([]byte, i)
+		}
 
 		c1out := c1.Seal(dst, iv, in, authData)
 		c2out := c2.Seal(dst, iv, in, authData)
@@ -79,8 +85,8 @@ func testConcurrency(t *testing.T, c1 cipher.AEAD, c2 cipher.AEAD) {
 		for i := 0; i < goroutineCount; i++ {
 			wg.Add(1)
 			go func() {
+				defer wg.Done()
 				testEncryptDecrypt(t, c1, c2)
-				wg.Done()
 			}()
 			wg.Wait()
 		}
@@ -96,8 +102,9 @@ func testInplaceSeal(t *testing.T, c1 cipher.AEAD, c2 cipher.AEAD) {
 	iv := randBytes(c1.NonceSize())
 
 	max := 5016
-	// Check all block sizes from 1 to 5000
-	for i := 1; i < max-16; i++ {
+
+	// Check all block sizes from 0 to 5000
+	for i := 0; i < max-16; i++ {
 		in := make([]byte, i)
 		dst := make([]byte, max-i)
 		dst = dst[:16]
@@ -182,6 +189,27 @@ func testCorruption(t *testing.T, c cipher.AEAD) {
 	out2, sErr = c.Open(nil, iv, out, authData)
 	if sErr == nil || out2 != nil {
 		t.Fatalf("Should have gotten error")
+	}
+}
+
+// testOpenAllZero tests that we do not crash for nil or any block size of zeros
+func testOpenAllZero(t *testing.T, c cipher.AEAD) {
+	authData := make([]byte, 24)
+	iv := make([]byte, c.NonceSize())
+
+	for i := -1; i < 5000; i++ {
+		// stays nil at i == -1
+		var cipher []byte
+		if i >= 0 {
+			cipher = make([]byte, i)
+		}
+		plain, err := c.Open(nil, iv, cipher, authData)
+		if err == nil {
+			t.Error("should have gotten error, but did not")
+		}
+		if len(plain) > 0 {
+			t.Errorf("should not have received data, but got %d bytes", len(plain))
+		}
 	}
 }
 

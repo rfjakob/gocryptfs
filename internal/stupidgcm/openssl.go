@@ -20,9 +20,6 @@ func openSSLSeal(a *stupidAEADCommon, dst, iv, in, authData []byte) []byte {
 	if len(iv) != a.NonceSize() {
 		log.Panicf("Only %d-byte IVs are supported, you passed %d bytes", a.NonceSize(), len(iv))
 	}
-	if len(in) == 0 {
-		log.Panic("Zero-length input data is not supported")
-	}
 
 	// If the "dst" slice is large enough we can use it as our output buffer
 	outLen := len(in) + tagLen
@@ -36,7 +33,7 @@ func openSSLSeal(a *stupidAEADCommon, dst, iv, in, authData []byte) []byte {
 	}
 
 	res := int(C.openssl_aead_seal(a.openSSLEVPCipher,
-		(*C.uchar)(&in[0]),
+		slicePointerOrNull(in),
 		C.int(len(in)),
 		(*C.uchar)(&authData[0]),
 		C.int(len(authData)),
@@ -64,7 +61,7 @@ func openSSLOpen(a *stupidAEADCommon, dst, iv, in, authData []byte) ([]byte, err
 	if len(iv) != a.NonceSize() {
 		log.Panicf("Only %d-byte IVs are supported, you passed %d bytes", a.NonceSize(), len(iv))
 	}
-	if len(in) <= tagLen {
+	if len(in) < tagLen {
 		return nil, fmt.Errorf("stupidChacha20poly1305: input data too short (%d bytes)", len(in))
 	}
 
@@ -83,7 +80,7 @@ func openSSLOpen(a *stupidAEADCommon, dst, iv, in, authData []byte) ([]byte, err
 	tag := in[len(in)-tagLen:]
 
 	res := int(C.openssl_aead_open(a.openSSLEVPCipher,
-		(*C.uchar)(&ciphertext[0]),
+		slicePointerOrNull(ciphertext),
 		C.int(len(ciphertext)),
 		(*C.uchar)(&authData[0]),
 		C.int(len(authData)),
@@ -93,7 +90,7 @@ func openSSLOpen(a *stupidAEADCommon, dst, iv, in, authData []byte) ([]byte, err
 		C.int(len(a.key)),
 		(*C.uchar)(&iv[0]),
 		C.int(len(iv)),
-		(*C.uchar)(&buf[0]),
+		slicePointerOrNull(buf),
 		C.int(len(buf))))
 
 	if res < 0 {
@@ -107,6 +104,16 @@ func openSSLOpen(a *stupidAEADCommon, dst, iv, in, authData []byte) ([]byte, err
 		return dst[:len(dst)+outLen], nil
 	}
 	return append(dst, buf...), nil
+}
+
+// slicePointerOrNull returns a C pointer to the beginning of the byte slice,
+// or NULL if the byte slice is empty. This is useful for slices that can be
+// empty, otherwise you can directly use "(*C.uchar)(&s[0])".
+func slicePointerOrNull(s []byte) (ptr *C.uchar) {
+	if len(s) == 0 {
+		return
+	}
+	return (*C.uchar)(&s[0])
 }
 
 // This functions exists to benchmark the C call overhead from Go.
