@@ -26,12 +26,15 @@ type stupidXchacha20poly1305 struct {
 	wiped bool
 }
 
-// NewXchacha20poly1305 returns a XChaCha20-Poly1305 AEAD that uses the given 256-bit key.
+// NewXchacha20poly1305 returns a XChaCha20-Poly1305 cipher that satisfied the
+// cipher.AEAD interface.
 //
 // XChaCha20-Poly1305 is a ChaCha20-Poly1305 variant that takes a longer nonce,
 // suitable to be generated randomly without risk of collisions. It should be
 // preferred when nonce uniqueness cannot be trivially ensured, or whenever
 // nonces are randomly generated.
+//
+// Only 32-bytes keys and 24-byte IVs are supported.
 func NewXchacha20poly1305(key []byte) cipher.AEAD {
 	if len(key) != chacha20poly1305.KeySize {
 		log.Panic("bad key length")

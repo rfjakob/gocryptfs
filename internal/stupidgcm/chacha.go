@@ -35,6 +35,8 @@ func init() {
 // gocryptfs only uses ChaCha20-Poly1305 as a building block for OpenSSL
 // XChaCha20-Poly1305. This function is hot because it gets called once for each
 // block by XChaCha20-Poly1305.
+//
+// Only 32-bytes keys and 12-byte IVs are supported.
 func NewChacha20poly1305(key []byte) *stupidChacha20poly1305 {
 	if len(key) != chacha20poly1305.KeySize {
 		log.Panicf("Only %d-byte keys are supported, you passed %d bytes", chacha20poly1305.KeySize, len(key))

@@ -1,7 +1,5 @@
 // +build !without_openssl
 
-// Package stupidgcm is a thin wrapper for OpenSSL's GCM encryption and
-// decryption functions. It only support 32-byte keys and 16-bit IVs.
 package stupidgcm
 
 // #include <openssl/evp.h>
@@ -25,10 +23,9 @@ type stupidGCM struct {
 	stupidAEADCommon
 }
 
-// Verify that we satisfy the interface
-var _ cipher.AEAD = &stupidGCM{}
-
-// New returns a new cipher.AEAD implementation..
+// New returns a new AES-GCM-256 cipher that satisfies the cipher.AEAD interface.
+//
+// Only 32-bytes keys and 16-byte IVs are supported.
 func New(keyIn []byte, forceDecode bool) cipher.AEAD {
 	if len(keyIn) != keyLen {
 		log.Panicf("Only %d-byte keys are supported", keyLen)
