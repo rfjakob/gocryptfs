@@ -215,7 +215,7 @@ func testOpenAllZero(t *testing.T, c cipher.AEAD) {
 
 func testWipe(t *testing.T, c cipher.AEAD) {
 	switch c2 := c.(type) {
-	case *StupidGCM:
+	case *stupidGCM:
 		c2.Wipe()
 		if !c2.Wiped() {
 			t.Error("c2.wiped is not set")

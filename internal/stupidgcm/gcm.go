@@ -21,20 +21,19 @@ const (
 	tagLen = 16
 )
 
-// StupidGCM implements the cipher.AEAD interface
-type StupidGCM struct {
+type stupidGCM struct {
 	stupidAEADCommon
 }
 
 // Verify that we satisfy the interface
-var _ cipher.AEAD = &StupidGCM{}
+var _ cipher.AEAD = &stupidGCM{}
 
 // New returns a new cipher.AEAD implementation..
 func New(keyIn []byte, forceDecode bool) cipher.AEAD {
 	if len(keyIn) != keyLen {
 		log.Panicf("Only %d-byte keys are supported", keyLen)
 	}
-	return &StupidGCM{
+	return &stupidGCM{
 		stupidAEADCommon{
 			// Create a private copy of the key
 			key:              append([]byte{}, keyIn...),
