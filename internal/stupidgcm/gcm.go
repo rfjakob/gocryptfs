@@ -23,10 +23,10 @@ type stupidGCM struct {
 	stupidAEADCommon
 }
 
-// New returns a new AES-GCM-256 cipher that satisfies the cipher.AEAD interface.
+// NewAES256GCM returns a new AES-256-GCM cipher that satisfies the cipher.AEAD interface.
 //
 // Only 32-bytes keys and 16-byte IVs are supported.
-func New(keyIn []byte, forceDecode bool) cipher.AEAD {
+func NewAES256GCM(keyIn []byte, forceDecode bool) cipher.AEAD {
 	if len(keyIn) != keyLen {
 		log.Panicf("Only %d-byte keys are supported", keyLen)
 	}

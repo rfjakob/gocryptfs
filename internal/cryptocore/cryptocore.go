@@ -120,7 +120,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 			if IVBitLen != 128 {
 				log.Panicf("stupidgcm only supports 128-bit IVs, you wanted %d", IVBitLen)
 			}
-			aeadCipher = stupidgcm.New(gcmKey, forceDecode)
+			aeadCipher = stupidgcm.NewAES256GCM(gcmKey, forceDecode)
 		case BackendGoGCM:
 			goGcmBlockCipher, err := aes.NewCipher(gcmKey)
 			if err != nil {

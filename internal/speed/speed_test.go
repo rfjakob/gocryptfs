@@ -31,7 +31,7 @@ func BenchmarkStupidGCMDecrypt(b *testing.B) {
 	if stupidgcm.BuiltWithoutOpenssl {
 		b.Skip("openssl has been disabled at compile-time")
 	}
-	bDecrypt(b, stupidgcm.New(randBytes(32), false))
+	bDecrypt(b, stupidgcm.NewAES256GCM(randBytes(32), false))
 }
 
 func BenchmarkGoGCM(b *testing.B) {

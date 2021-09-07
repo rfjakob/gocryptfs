@@ -116,7 +116,7 @@ func bStupidGCM(b *testing.B) {
 	if stupidgcm.BuiltWithoutOpenssl {
 		b.Skip("openssl has been disabled at compile-time")
 	}
-	bEncrypt(b, stupidgcm.New(randBytes(32), false))
+	bEncrypt(b, stupidgcm.NewAES256GCM(randBytes(32), false))
 }
 
 // bGoGCM benchmarks Go stdlib GCM

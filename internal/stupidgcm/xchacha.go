@@ -70,7 +70,7 @@ func (x *stupidXchacha20poly1305) Seal(dst, nonce, plaintext, additionalData []b
 	}
 
 	hKey, _ := chacha20.HChaCha20(x.key[:], nonce[0:16])
-	c := NewChacha20poly1305(hKey)
+	c := NewChacha20poly1305(hKey).(*stupidChacha20poly1305)
 	defer c.Wipe()
 
 	// The first 4 bytes of the final nonce are unused counter space.
@@ -95,7 +95,7 @@ func (x *stupidXchacha20poly1305) Open(dst, nonce, ciphertext, additionalData []
 	}
 
 	hKey, _ := chacha20.HChaCha20(x.key[:], nonce[0:16])
-	c := NewChacha20poly1305(hKey)
+	c := NewChacha20poly1305(hKey).(*stupidChacha20poly1305)
 	defer c.Wipe()
 
 	// The first 4 bytes of the final nonce are unused counter space.

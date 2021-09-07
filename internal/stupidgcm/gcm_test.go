@@ -13,7 +13,7 @@ import (
 
 func TestStupidGCM(t *testing.T) {
 	key := randBytes(32)
-	sGCM := New(key, false)
+	sGCM := NewAES256GCM(key, false)
 
 	gAES, err := aes.NewCipher(key)
 	if err != nil {
