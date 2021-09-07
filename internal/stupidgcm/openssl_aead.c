@@ -1,3 +1,5 @@
+// +build !without_openssl
+
 #include "openssl_aead.h"
 #include <openssl/evp.h>
 #include <stdio.h>

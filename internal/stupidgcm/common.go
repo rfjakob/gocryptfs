@@ -1,3 +1,5 @@
+// +build !without_openssl
+
 package stupidgcm
 
 import (
