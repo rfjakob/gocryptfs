@@ -35,8 +35,8 @@ func Run() {
 		{name: cryptocore.BackendOpenSSL.Name, f: bStupidGCM, preferred: stupidgcm.PreferOpenSSLAES256GCM()},
 		{name: cryptocore.BackendGoGCM.Name, f: bGoGCM, preferred: !stupidgcm.PreferOpenSSLAES256GCM()},
 		{name: cryptocore.BackendAESSIV.Name, f: bAESSIV, preferred: false},
-		{name: cryptocore.BackendXChaCha20Poly1305.Name, f: bXchacha20poly1305, preferred: false},
-		{name: cryptocore.BackendXChaCha20Poly1305OpenSSL.Name, f: bStupidXchacha, preferred: false},
+		{name: cryptocore.BackendXChaCha20Poly1305OpenSSL.Name, f: bStupidXchacha, preferred: stupidgcm.PreferOpenSSLXchacha20poly1305()},
+		{name: cryptocore.BackendXChaCha20Poly1305.Name, f: bXchacha20poly1305, preferred: !stupidgcm.PreferOpenSSLXchacha20poly1305()},
 	}
 	for _, b := range bTable {
 		fmt.Printf("%-26s\t", b.name)
@@ -48,8 +48,6 @@ func Run() {
 		}
 		if b.preferred {
 			fmt.Printf("\t(selected in auto mode)\n")
-		} else if b.name == cryptocore.BackendXChaCha20Poly1305.Name {
-			fmt.Printf("\t(use via -xchacha flag)\n")
 		} else {
 			fmt.Printf("\t\n")
 		}
