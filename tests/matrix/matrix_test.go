@@ -20,6 +20,7 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+	"time"
 
 	"golang.org/x/sys/unix"
 
@@ -66,7 +67,9 @@ var matrix = []testcaseMatrix{
 	{false, "auto", false, false, []string{"-serialize_reads"}},
 	{false, "auto", false, false, []string{"-sharedstorage"}},
 	{false, "auto", false, false, []string{"-deterministic-names"}},
-	{false, "auto", false, true, []string{"-xchacha"}},
+	// Test xchacha with and without openssl
+	{false, "true", false, true, []string{"-xchacha"}},
+	{false, "false", false, true, []string{"-xchacha"}},
 }
 
 // This is the entry point for the tests
@@ -97,7 +100,11 @@ func TestMain(m *testing.M) {
 		opts = append(opts, testcase.extraArgs...)
 		test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, opts...)
 		before := test_helpers.ListFds(0, test_helpers.TmpDir)
+		t0 := time.Now()
 		r := m.Run()
+		if testing.Verbose() {
+			fmt.Printf("matrix: run took %v\n", time.Since(t0))
+		}
 		// Catch fd leaks in the tests. NOTE: this does NOT catch leaks in
 		// the gocryptfs FUSE process, but only in the tests that access it!
 		// All fds that point outside TmpDir are not interesting (the Go test
