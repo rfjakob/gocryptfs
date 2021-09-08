@@ -6,7 +6,8 @@ import (
 	"golang.org/x/sys/cpu"
 )
 
-// PreferOpenSSL tells us if OpenSSL is faster than Go GCM on this machine.
+// PreferOpenSSLAES256GCM tells us if OpenSSL AES-256-GCM is faster than Go stdlib
+// on this machine.
 //
 // Go GCM is only faster if the CPU either:
 //
@@ -16,7 +17,7 @@ import (
 //
 // See https://github.com/rfjakob/gocryptfs/wiki/CPU-Benchmarks
 // for benchmarks.
-func PreferOpenSSL() bool {
+func PreferOpenSSLAES256GCM() bool {
 	if BuiltWithoutOpenssl {
 		return false
 	}
@@ -31,5 +32,20 @@ func PreferOpenSSL() bool {
 		return false
 	}
 	// OpenSSL is probably faster
+	return true
+}
+
+// PreferOpenSSLXchacha20poly1305 returns true if OpenSSL Xchacha20poly1305 is
+// faster than Go stdlib on this machine.
+func PreferOpenSSLXchacha20poly1305() bool {
+	if BuiltWithoutOpenssl {
+		return false
+	}
+	// Go x/crypto has optimized assembly for amd64:
+	// https://github.com/golang/crypto/blob/master/chacha20poly1305/chacha20poly1305_amd64.s
+	if runtime.GOARCH == "amd64" {
+		return false
+	}
+	// On arm64 and arm, OpenSSL is faster. Probably everwhere else too.
 	return true
 }

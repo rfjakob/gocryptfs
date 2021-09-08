@@ -119,7 +119,7 @@ func TestParseCliOpts(t *testing.T) {
 		longnames: true,
 		raw64:     true,
 		hkdf:      true,
-		openssl:   stupidgcm.PreferOpenSSL(), // depends on CPU and build flags
+		openssl:   stupidgcm.PreferOpenSSLAES256GCM(), // depends on CPU and build flags
 		scryptn:   16,
 	}
 

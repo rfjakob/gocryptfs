@@ -253,7 +253,7 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	}
 	// "-openssl" needs some post-processing
 	if opensslAuto == "auto" {
-		args.openssl = stupidgcm.PreferOpenSSL()
+		args.openssl = stupidgcm.PreferOpenSSLAES256GCM()
 	} else {
 		args.openssl, err = strconv.ParseBool(opensslAuto)
 		if err != nil {

@@ -32,8 +32,8 @@ func Run() {
 		f         func(*testing.B)
 		preferred bool
 	}{
-		{name: cryptocore.BackendOpenSSL.Name, f: bStupidGCM, preferred: stupidgcm.PreferOpenSSL()},
-		{name: cryptocore.BackendGoGCM.Name, f: bGoGCM, preferred: !stupidgcm.PreferOpenSSL()},
+		{name: cryptocore.BackendOpenSSL.Name, f: bStupidGCM, preferred: stupidgcm.PreferOpenSSLAES256GCM()},
+		{name: cryptocore.BackendGoGCM.Name, f: bGoGCM, preferred: !stupidgcm.PreferOpenSSLAES256GCM()},
 		{name: cryptocore.BackendAESSIV.Name, f: bAESSIV, preferred: false},
 		{name: cryptocore.BackendXChaCha20Poly1305.Name, f: bXchacha20poly1305, preferred: false},
 		{name: cryptocore.BackendXChaCha20Poly1305OpenSSL.Name, f: bStupidXchacha, preferred: false},
