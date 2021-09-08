@@ -259,7 +259,11 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 		cryptoBackend = cryptocore.BackendAESSIV
 	}
 	if args.xchacha {
-		cryptoBackend = cryptocore.BackendXChaCha20Poly1305
+		if args.openssl {
+			cryptoBackend = cryptocore.BackendXChaCha20Poly1305OpenSSL
+		} else {
+			cryptoBackend = cryptocore.BackendXChaCha20Poly1305
+		}
 		IVBits = chacha20poly1305.NonceSizeX * 8
 	}
 	// forceOwner implies allow_other, as documented.
@@ -291,6 +295,7 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 		frontendArgs.DeterministicNames = !confFile.IsFeatureFlagSet(configfile.FlagDirIV)
 		args.raw64 = confFile.IsFeatureFlagSet(configfile.FlagRaw64)
 		args.hkdf = confFile.IsFeatureFlagSet(configfile.FlagHKDF)
+		// Note: this will always return the non-openssl variant
 		cryptoBackend, err = confFile.ContentEncryption()
 		if err != nil {
 			tlog.Fatal.Printf("%v", err)
@@ -301,8 +306,14 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 			tlog.Fatal.Printf("AES-SIV is required by reverse mode, but not enabled in the config file")
 			os.Exit(exitcodes.Usage)
 		}
-		if cryptoBackend == cryptocore.BackendGoGCM && args.openssl {
-			cryptoBackend = cryptocore.BackendOpenSSL
+		// Upgrade to OpenSSL variant if requested
+		if args.openssl {
+			switch cryptoBackend {
+			case cryptocore.BackendGoGCM:
+				cryptoBackend = cryptocore.BackendOpenSSL
+			case cryptocore.BackendXChaCha20Poly1305:
+				cryptoBackend = cryptocore.BackendXChaCha20Poly1305OpenSSL
+			}
 		}
 	}
 	// If allow_other is set and we run as root, try to give newly created files to

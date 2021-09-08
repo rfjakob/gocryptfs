@@ -32,11 +32,11 @@ type AEADTypeEnum struct {
 	NonceSize int
 }
 
-// BackendOpenSSL specifies the OpenSSL backend.
+// BackendOpenSSL specifies the OpenSSL AES-256-GCM backend.
 // "AES-GCM-256-OpenSSL" in gocryptfs -speed.
 var BackendOpenSSL AEADTypeEnum = AEADTypeEnum{"AES-GCM-256-OpenSSL", 16}
 
-// BackendGoGCM specifies the Go based GCM backend.
+// BackendGoGCM specifies the Go based AES-256-GCM backend.
 // "AES-GCM-256-Go" in gocryptfs -speed.
 var BackendGoGCM AEADTypeEnum = AEADTypeEnum{"AES-GCM-256-Go", 16}
 
@@ -130,6 +130,8 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 			if err != nil {
 				log.Panic(err)
 			}
+		default:
+			log.Panicf("BUG: unhandled case: %v", aeadType)
 		}
 		for i := range gcmKey {
 			gcmKey[i] = 0
@@ -154,7 +156,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 		for i := range key64 {
 			key64[i] = 0
 		}
-	} else if aeadType == BackendXChaCha20Poly1305 {
+	} else if aeadType == BackendXChaCha20Poly1305 || aeadType == BackendXChaCha20Poly1305OpenSSL {
 		// We don't support legacy modes with XChaCha20-Poly1305
 		if IVBitLen != chacha20poly1305.NonceSizeX*8 {
 			log.Panicf("XChaCha20-Poly1305 must use 192-bit IVs, you wanted %d", IVBitLen)
@@ -163,7 +165,13 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 			log.Panic("XChaCha20-Poly1305 must use HKDF, but it is disabled")
 		}
 		derivedKey := hkdfDerive(key, hkdfInfoXChaChaPoly1305Content, chacha20poly1305.KeySize)
-		aeadCipher, err = chacha20poly1305.NewX(derivedKey)
+		if aeadType == BackendXChaCha20Poly1305 {
+			aeadCipher, err = chacha20poly1305.NewX(derivedKey)
+		} else if aeadType == BackendXChaCha20Poly1305OpenSSL {
+			aeadCipher = stupidgcm.NewXchacha20poly1305(derivedKey)
+		} else {
+			log.Panicf("BUG: unhandled case: %v", aeadType)
+		}
 		if err != nil {
 			log.Panic(err)
 		}
