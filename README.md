@@ -212,6 +212,7 @@ v2.2, IN PROGRESS
   [gocryptfs commit](https://github.com/rfjakob/gocryptfs/commit/a99051b32452c9a781efe248c0014b65d4abddf7))
 * Make obsolete `-devrandom` flag a no-op ([commit](https://github.com/rfjakob/gocryptfs/commit/61ef6b00a675456ee05d40f1ce44d693bc4be350))
 * Make `-forcedecode` flag a no-op ([commit](https://github.com/rfjakob/gocryptfs/commit/d023cd6c95fcbc6b5056ba1f425d2ac3df4abc5a))
+* Fix reverse mode sometimes remapping most inode numbers to >281474976710656 ([commit](https://github.com/rfjakob/gocryptfs/commit/c9b825c58a9f996379108926754513bca03bb306))
 
 v2.1, 2021-08-18
 * `-fido2`: do not request PIN on `gocryptfs -init` fixing `FIDO_ERR_UNSUPPORTED_OPTION` with YubiKey
