@@ -2,9 +2,12 @@ package fusefrontend_reverse
 
 import (
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
+
+	"github.com/rfjakob/gocryptfs/v2/internal/exitcodes"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 
@@ -46,12 +49,14 @@ type RootNode struct {
 // ReverseFS provides an encrypted view.
 func NewRootNode(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) *RootNode {
 	var rootDev uint64
-	if args.OneFileSystem {
-		var st syscall.Stat_t
-		err := syscall.Stat(args.Cipherdir, &st)
-		if err != nil {
-			log.Panicf("Could not stat backing directory %q: %v", args.Cipherdir, err)
+	var st syscall.Stat_t
+	if err := syscall.Stat(args.Cipherdir, &st); err != nil {
+		tlog.Warn.Printf("Could not stat backing directory %q: %v", args.Cipherdir, err)
+		if args.OneFileSystem {
+			tlog.Fatal.Printf("This is a fatal error in combination with -one-file-system")
+			os.Exit(exitcodes.CipherDir)
 		}
+	} else {
 		rootDev = uint64(st.Dev)
 	}
 
@@ -59,7 +64,7 @@ func NewRootNode(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransf
 		args:          args,
 		nameTransform: n,
 		contentEnc:    c,
-		inoMap:        inomap.New(),
+		inoMap:        inomap.New(rootDev),
 		rootDev:       rootDev,
 	}
 	if len(args.Exclude) > 0 || len(args.ExcludeWildcard) > 0 || len(args.ExcludeFrom) > 0 {

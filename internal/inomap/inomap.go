@@ -49,13 +49,22 @@ type InoMap struct {
 }
 
 // New returns a new InoMap.
-func New() *InoMap {
-	return &InoMap{
+// Inode numbers on device `rootDev` will be passed through as-is.
+// If `rootDev` is zero, the first Translate() call decides the effective
+// rootDev.
+func New(rootDev uint64) *InoMap {
+	m := &InoMap{
 		namespaceMap:  make(map[namespaceData]uint16),
 		namespaceNext: 0,
 		spillMap:      make(map[QIno]uint64),
 		spillNext:     0,
 	}
+	if rootDev > 0 {
+		// Reserve namespace 0 for rootDev
+		m.namespaceMap[namespaceData{rootDev, 0}] = 0
+		m.namespaceNext = 1
+	}
+	return m
 }
 
 var spillWarn sync.Once

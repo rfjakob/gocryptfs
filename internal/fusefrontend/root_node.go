@@ -62,18 +62,28 @@ type RootNode struct {
 }
 
 func NewRootNode(args Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) *RootNode {
+	var rootDev uint64
+	var st syscall.Stat_t
+	if err := syscall.Stat(args.Cipherdir, &st); err != nil {
+		tlog.Warn.Printf("Could not stat backing directory %q: %v", args.Cipherdir, err)
+	} else {
+		rootDev = uint64(st.Dev)
+	}
+
 	if len(args.Exclude) > 0 {
 		tlog.Warn.Printf("Forward mode does not support -exclude")
 	}
+
 	ivLen := nametransform.DirIVLen
 	if args.PlaintextNames {
 		ivLen = 0
 	}
+
 	rn := &RootNode{
 		args:          args,
 		nameTransform: n,
 		contentEnc:    c,
-		inoMap:        inomap.New(),
+		inoMap:        inomap.New(rootDev),
 		dirCache:      dirCache{ivLen: ivLen},
 		quirks:        syscallcompat.DetectQuirks(args.Cipherdir),
 	}

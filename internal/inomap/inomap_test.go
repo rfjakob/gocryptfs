@@ -6,7 +6,7 @@ import (
 )
 
 func TestTranslate(t *testing.T) {
-	m := New()
+	m := New(0)
 	q := QIno{Ino: 1}
 	out := m.Translate(q)
 	if out != 1 {
@@ -25,12 +25,7 @@ func TestTranslate(t *testing.T) {
 
 func TestTranslateStress(t *testing.T) {
 	const baseDev = 12345
-	m := New()
-
-	// Make sure baseDev gets namespace id zero
-	var q QIno
-	q.Dev = baseDev
-	m.Translate(q)
+	m := New(baseDev)
 
 	var wg sync.WaitGroup
 	wg.Add(4)
@@ -100,7 +95,7 @@ func TestTranslateStress(t *testing.T) {
 }
 
 func TestSpill(t *testing.T) {
-	m := New()
+	m := New(0)
 	var q QIno
 	q.Ino = maxPassthruIno + 1
 	out1 := m.Translate(q)
@@ -119,7 +114,7 @@ func TestSpill(t *testing.T) {
 // TestUniqueness checks that unique (Dev, Flags, Ino) tuples get unique inode
 // numbers
 func TestUniqueness(t *testing.T) {
-	m := New()
+	m := New(0)
 	var q QIno
 	outMap := make(map[uint64]struct{})
 	for q.Dev = 0; q.Dev < 10; q.Dev++ {
@@ -141,7 +136,7 @@ func TestUniqueness(t *testing.T) {
 }
 
 func BenchmarkTranslateSingleDev(b *testing.B) {
-	m := New()
+	m := New(0)
 	var q QIno
 	for n := 0; n < b.N; n++ {
 		q.Ino = uint64(n % 1000)
@@ -150,7 +145,7 @@ func BenchmarkTranslateSingleDev(b *testing.B) {
 }
 
 func BenchmarkTranslateManyDevs(b *testing.B) {
-	m := New()
+	m := New(0)
 	var q QIno
 	for n := 0; n < b.N; n++ {
 		q.Dev = uint64(n % 10)
