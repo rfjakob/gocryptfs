@@ -26,8 +26,6 @@ type Args struct {
 	ConfigCustom bool
 	// NoPrealloc disables automatic preallocation before writing
 	NoPrealloc bool
-	// Force decode even if integrity check fails (openSSL only)
-	ForceDecode bool
 	// Exclude is a list of paths to make inaccessible, starting match at
 	// the filesystem root
 	Exclude []string

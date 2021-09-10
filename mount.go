@@ -277,7 +277,6 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 		LongNames:          args.longnames,
 		ConfigCustom:       args._configCustom,
 		NoPrealloc:         args.noprealloc,
-		ForceDecode:        args.forcedecode,
 		ForceOwner:         args._forceOwner,
 		Exclude:            args.exclude,
 		ExcludeWildcard:    args.excludeWildcard,
@@ -323,8 +322,8 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 	}
 
 	// Init crypto backend
-	cCore := cryptocore.New(masterkey, cryptoBackend, IVBits, args.hkdf, args.forcedecode)
-	cEnc := contentenc.New(cCore, contentenc.DefaultBS, args.forcedecode)
+	cCore := cryptocore.New(masterkey, cryptoBackend, IVBits, args.hkdf)
+	cEnc := contentenc.New(cCore, contentenc.DefaultBS)
 	nameTransform := nametransform.New(cCore.EMECipher, frontendArgs.LongNames,
 		args.raw64, []string(args.badname), frontendArgs.DeterministicNames)
 	// After the crypto backend is initialized,
@@ -407,10 +406,6 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 	}
 	if args.acl {
 		mOpts.EnableAcl = true
-	}
-	if args.forcedecode {
-		tlog.Info.Printf(tlog.ColorYellow + "THE OPTION \"-forcedecode\" IS ACTIVE. GOCRYPTFS WILL RETURN CORRUPT DATA!" +
-			tlog.ColorReset)
 	}
 	// fusermount from libfuse 3.x removed the "nonempty" option and exits
 	// with an error if it sees it. Only add it to the options on libfuse 2.x.

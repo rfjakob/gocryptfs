@@ -29,7 +29,7 @@ type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, fg, version,
 	plaintextnames, quiet, nosyslog, wpanic,
 	longnames, allow_other, reverse, aessiv, nonempty, raw64,
-	noprealloc, speed, hkdf, serialize_reads, forcedecode, hh, info,
+	noprealloc, speed, hkdf, serialize_reads, hh, info,
 	sharedstorage, fsck, one_file_system, deterministic_names,
 	xchacha bool
 	// Mount options with opposites
@@ -172,8 +172,6 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.BoolVar(&args.speed, "speed", false, "Run crypto speed test")
 	flagSet.BoolVar(&args.hkdf, "hkdf", true, "Use HKDF as an additional key derivation step")
 	flagSet.BoolVar(&args.serialize_reads, "serialize_reads", false, "Try to serialize read operations")
-	flagSet.BoolVar(&args.forcedecode, "forcedecode", false, "Force decode of files even if integrity check fails."+
-		" Requires gocryptfs to be compiled with openssl support and implies -openssl true")
 	flagSet.BoolVar(&args.hh, "hh", false, "Show this long help text")
 	flagSet.BoolVar(&args.info, "info", false, "Display information about CIPHERDIR")
 	flagSet.BoolVar(&args.sharedstorage, "sharedstorage", false, "Make concurrent access to a shared CIPHERDIR safer")
@@ -234,7 +232,8 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	{
 		var tmp bool
 		flagSet.BoolVar(&tmp, "nofail", false, "Ignored for /etc/fstab compatibility")
-		flagSet.BoolVar(&tmp, "devrandom", false, "Deprecated (ignored for compatibility)")
+		flagSet.BoolVar(&tmp, "devrandom", false, "Obsolete, ignored for compatibility")
+		flagSet.BoolVar(&tmp, "forcedecode", false, "Obsolete, ignored for compatibility")
 	}
 
 	// Actual parsing
@@ -264,32 +263,6 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 			tlog.Fatal.Printf("Invalid \"-openssl\" setting: %v", err)
 			os.Exit(exitcodes.Usage)
 		}
-	}
-	// "-forcedecode" only works with openssl. Check compilation and command line parameters
-	if args.forcedecode {
-		if stupidgcm.BuiltWithoutOpenssl {
-			tlog.Fatal.Printf("The -forcedecode flag requires openssl support, but gocryptfs was compiled without it!")
-			os.Exit(exitcodes.Usage)
-		}
-		if args.aessiv {
-			tlog.Fatal.Printf("The -forcedecode and -aessiv flags are incompatible because they use different crypto libs (openssl vs native Go)")
-			os.Exit(exitcodes.Usage)
-		}
-		if args.reverse {
-			tlog.Fatal.Printf("The reverse mode and the -forcedecode option are not compatible")
-			os.Exit(exitcodes.Usage)
-		}
-		// Has the user explicitly disabled openssl using "-openssl=false/0"?
-		if !args.openssl && opensslAuto != "auto" {
-			tlog.Fatal.Printf("-forcedecode requires openssl, but is disabled via command-line option")
-			os.Exit(exitcodes.Usage)
-		}
-		args.openssl = true
-
-		// Try to make it harder for the user to shoot himself in the foot.
-		args.ro = true
-		args.allow_other = false
-		args.ko = "noexec"
 	}
 	if len(args.extpass) > 0 && len(args.passfile) != 0 {
 		tlog.Fatal.Printf("The options -extpass and -passfile cannot be used at the same time")

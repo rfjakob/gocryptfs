@@ -20,7 +20,6 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/v2/internal/inomap"
 	"github.com/rfjakob/gocryptfs/v2/internal/openfiletable"
-	"github.com/rfjakob/gocryptfs/v2/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
@@ -208,16 +207,9 @@ func (f *File) doRead(dst []byte, off uint64, length uint64) ([]byte, syscall.Er
 	plaintext, err := f.contentEnc.DecryptBlocks(ciphertext, firstBlockNo, fileID)
 	f.rootNode.contentEnc.CReqPool.Put(ciphertext)
 	if err != nil {
-		if f.rootNode.args.ForceDecode && err == stupidgcm.ErrAuth {
-			// We do not have the information which block was corrupt here anymore,
-			// but DecryptBlocks() has already logged it anyway.
-			tlog.Warn.Printf("doRead %d: off=%d len=%d: returning corrupt data due to forcedecode",
-				f.qIno.Ino, off, length)
-		} else {
-			curruptBlockNo := firstBlockNo + f.contentEnc.PlainOffToBlockNo(uint64(len(plaintext)))
-			tlog.Warn.Printf("doRead %d: corrupt block #%d: %v", f.qIno.Ino, curruptBlockNo, err)
-			return nil, syscall.EIO
-		}
+		curruptBlockNo := firstBlockNo + f.contentEnc.PlainOffToBlockNo(uint64(len(plaintext)))
+		tlog.Warn.Printf("doRead %d: corrupt block #%d: %v", f.qIno.Ino, curruptBlockNo, err)
+		return nil, syscall.EIO
 	}
 
 	// Crop down to the relevant part

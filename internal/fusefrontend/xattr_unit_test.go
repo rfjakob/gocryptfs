@@ -17,8 +17,8 @@ import (
 func newTestFS(args Args) *RootNode {
 	// Init crypto backend
 	key := make([]byte, cryptocore.KeyLen)
-	cCore := cryptocore.New(key, cryptocore.BackendGoGCM, contentenc.DefaultIVBits, true, false)
-	cEnc := contentenc.New(cCore, contentenc.DefaultBS, false)
+	cCore := cryptocore.New(key, cryptocore.BackendGoGCM, contentenc.DefaultIVBits, true)
+	cEnc := contentenc.New(cCore, contentenc.DefaultBS)
 	n := nametransform.New(cCore.EMECipher, true, true, nil, false)
 	rn := NewRootNode(args, cEnc, n)
 	oneSec := time.Second

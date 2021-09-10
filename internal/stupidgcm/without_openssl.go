@@ -21,7 +21,7 @@ func errExit() {
 	os.Exit(exitcodes.OpenSSL)
 }
 
-func NewAES256GCM(_ []byte, _ bool) cipher.AEAD {
+func NewAES256GCM(_ []byte) cipher.AEAD {
 	errExit()
 	return nil
 }

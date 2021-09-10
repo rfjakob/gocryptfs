@@ -13,7 +13,6 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/cryptocore"
-	"github.com/rfjakob/gocryptfs/v2/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
@@ -41,8 +40,6 @@ type ContentEnc struct {
 	allZeroBlock []byte
 	// All-zero block of size IVBitLen/8, for fast compares
 	allZeroNonce []byte
-	// Force decode even if integrity check fails (openSSL only)
-	forceDecode bool
 
 	// Ciphertext block "sync.Pool" pool. Always returns cipherBS-sized byte
 	// slices (usually 4128 bytes).
@@ -60,9 +57,8 @@ type ContentEnc struct {
 }
 
 // New returns an initialized ContentEnc instance.
-func New(cc *cryptocore.CryptoCore, plainBS uint64, forceDecode bool) *ContentEnc {
-	tlog.Debug.Printf("contentenc.New: plainBS=%d, forceDecode=%v",
-		plainBS, forceDecode)
+func New(cc *cryptocore.CryptoCore, plainBS uint64) *ContentEnc {
+	tlog.Debug.Printf("contentenc.New: plainBS=%d", plainBS)
 
 	if fuse.MAX_KERNEL_WRITE%plainBS != 0 {
 		log.Panicf("unaligned MAX_KERNEL_WRITE=%d", fuse.MAX_KERNEL_WRITE)
@@ -81,7 +77,6 @@ func New(cc *cryptocore.CryptoCore, plainBS uint64, forceDecode bool) *ContentEn
 		cipherBS:     cipherBS,
 		allZeroBlock: make([]byte, cipherBS),
 		allZeroNonce: make([]byte, cc.IVLen),
-		forceDecode:  forceDecode,
 		cBlockPool:   newBPool(int(cipherBS)),
 		CReqPool:     newBPool(cReqSize),
 		pBlockPool:   newBPool(int(plainBS)),
@@ -111,11 +106,7 @@ func (be *ContentEnc) DecryptBlocks(ciphertext []byte, firstBlockNo uint64, file
 		var pBlock []byte
 		pBlock, err = be.DecryptBlock(cBlock, blockNo, fileID)
 		if err != nil {
-			if be.forceDecode && err == stupidgcm.ErrAuth {
-				tlog.Warn.Printf("DecryptBlocks: authentication failure in block #%d, overridden by forcedecode", firstBlockNo)
-			} else {
-				break
-			}
+			break
 		}
 		pBuf.Write(pBlock)
 		be.pBlockPool.Put(pBlock)
@@ -183,9 +174,6 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileID []b
 	if err != nil {
 		tlog.Debug.Printf("DecryptBlock: %s, len=%d", err.Error(), len(ciphertextOrig))
 		tlog.Debug.Println(hex.Dump(ciphertextOrig))
-		if be.forceDecode && err == stupidgcm.ErrAuth {
-			return plaintext, err
-		}
 		return nil, err
 	}
 

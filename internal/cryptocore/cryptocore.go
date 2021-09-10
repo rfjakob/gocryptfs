@@ -73,9 +73,9 @@ type CryptoCore struct {
 //
 // Note: "key" is either the scrypt hash of the password (when decrypting
 // a config file) or the masterkey (when finally mounting the filesystem).
-func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDecode bool) *CryptoCore {
-	tlog.Debug.Printf("cryptocore.New: key=%d bytes, aeadType=%v, IVBitLen=%d, useHKDF=%v, forceDecode=%v",
-		len(key), aeadType, IVBitLen, useHKDF, forceDecode)
+func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool) *CryptoCore {
+	tlog.Debug.Printf("cryptocore.New: key=%d bytes, aeadType=%v, IVBitLen=%d, useHKDF=%v",
+		len(key), aeadType, IVBitLen, useHKDF)
 
 	if len(key) != KeyLen {
 		log.Panicf("Unsupported key length of %d bytes", len(key))
@@ -120,7 +120,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool, forceDec
 			if IVBitLen != 128 {
 				log.Panicf("stupidgcm only supports 128-bit IVs, you wanted %d", IVBitLen)
 			}
-			aeadCipher = stupidgcm.NewAES256GCM(gcmKey, forceDecode)
+			aeadCipher = stupidgcm.NewAES256GCM(gcmKey)
 		case BackendGoGCM:
 			goGcmBlockCipher, err := aes.NewCipher(gcmKey)
 			if err != nil {

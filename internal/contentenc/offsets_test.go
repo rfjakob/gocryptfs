@@ -10,8 +10,8 @@ import (
 // TestSizeToSize tests CipherSizeToPlainSize and PlainSizeToCipherSize
 func TestSizeToSize(t *testing.T) {
 	key := make([]byte, cryptocore.KeyLen)
-	cc := cryptocore.New(key, cryptocore.BackendGoGCM, DefaultIVBits, true, false)
-	ce := New(cc, DefaultBS, false)
+	cc := cryptocore.New(key, cryptocore.BackendGoGCM, DefaultIVBits, true)
+	ce := New(cc, DefaultBS)
 
 	const rangeMax = 10000
 

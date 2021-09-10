@@ -256,21 +256,8 @@ of a case where this may be useful is a situation where content is stored on a
 filesystem that doesn't properly support UNIX ownership and permissions.
 
 #### -forcedecode
-Force decode of encrypted files even if the integrity check fails, instead of
-failing with an IO error. Warning messages are still printed to syslog if corrupted
-files are encountered.
-It can be useful to recover files from disks with bad sectors or other corrupted
-media. It shall not be used if the origin of corruption is unknown, specially
-if you want to run executable files.
 
-For corrupted media, note that you probably want to use dd_rescue(1)
-instead, which will recover all but the corrupted 4kB block.
-
-This option makes no sense in reverse mode. It requires gocryptfs to be compiled with openssl
-support and implies -openssl true. Because of this, it is not compatible with -aessiv,
-that uses built-in Go crypto.
-
-Setting this option forces the filesystem to read-only and noexec.
+Obsolete and ignored on gocryptfs v2.2 and later.
 
 #### -fsname string
 Override the filesystem name (first column in df -T). Can also be
