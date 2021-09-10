@@ -39,7 +39,10 @@ fi
 # Clean up dangling filesystems and don't exit if we found some
 unmount_leftovers || true
 
-./build-without-openssl.bash
+./build-without-openssl.bash || {
+	echo "$MYNAME: build-without-openssl.bash failed"
+	exit 1
+}
 # Don't build with openssl if we were passed "-tags without_openssl"
 if [[ "$*" != *without_openssl* ]] ; then
 	./build.bash
