@@ -200,8 +200,8 @@ v2.2, IN PROGRESS
    ([#151](https://github.com/rfjakob/gocryptfs/issues/151), [#402](https://github.com/rfjakob/gocryptfs/issues/402), [#592](https://github.com/rfjakob/gocryptfs/pull/592))
    * New feature flag! You need gocryptfs v2.2 or higher to mount a filesystem that uses this flag.
 * `-xchacha`: new option for `-init` (forward mode only). Selects XChaCha20-Poly1305 for content encryption.
-  Gives [better performance on embedded CPUs](https://gist.github.com/rfjakob/b28383f4c84263ac7c5388ccc262e38b)
-  ([#452](https://github.com/rfjakob/gocryptfs/issues/452))
+  Gives *much* better performance on CPUs without AES acceleration
+  ([#452](https://github.com/rfjakob/gocryptfs/issues/452)).
    * New feature flag! You need gocryptfs v2.2 or higher to mount a filesystem that uses this flag.
    * Test with `gocryptfs -speed` what is fastest for your CPU, or read [here](https://github.com/rfjakob/gocryptfs/issues/452#issuecomment-908559414)
 * `-serialize_reads`: get rid of delay logic by taking advantage of the kernel flag
@@ -209,6 +209,7 @@ v2.2, IN PROGRESS
   ([go-fuse commit](https://github.com/hanwen/go-fuse/commit/15a8bb029a4e1a51e10043c370970596b1fbb737),
   [gocryptfs commit](https://github.com/rfjakob/gocryptfs/commit/a99051b32452c9a781efe248c0014b65d4abddf7))
 * Make obsolete `-devrandom` flag a no-op ([commit](https://github.com/rfjakob/gocryptfs/commit/61ef6b00a675456ee05d40f1ce44d693bc4be350))
+* Make `-forcedecode` flag a no-op ([commit](https://github.com/rfjakob/gocryptfs/commit/d023cd6c95fcbc6b5056ba1f425d2ac3df4abc5a))
 
 v2.1, 2021-08-18
 * `-fido2`: do not request PIN on `gocryptfs -init` fixing `FIDO_ERR_UNSUPPORTED_OPTION` with YubiKey

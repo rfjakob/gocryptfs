@@ -256,8 +256,10 @@ of a case where this may be useful is a situation where content is stored on a
 filesystem that doesn't properly support UNIX ownership and permissions.
 
 #### -forcedecode
-
 Obsolete and ignored on gocryptfs v2.2 and later.
+
+See https://github.com/rfjakob/gocryptfs/commit/d023cd6c95fcbc6b5056ba1f425d2ac3df4abc5a
+for what it was and why it was dropped.
 
 #### -fsname string
 Override the filesystem name (first column in df -T). Can also be
