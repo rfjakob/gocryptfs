@@ -195,16 +195,16 @@ Changelog
 ---------
 
 v2.2, IN PROGRESS
-* `-deterministic-names`: new option for `-init`, both for reverse and forward mode.
+* **`-deterministic-names`: new option for `-init`**, both for reverse and forward mode.
    Disables file name randomisation & `gocryptfs.diriv` files
    ([#151](https://github.com/rfjakob/gocryptfs/issues/151), [#402](https://github.com/rfjakob/gocryptfs/issues/402), [#592](https://github.com/rfjakob/gocryptfs/pull/592))
    * New feature flag! You need gocryptfs v2.2 or higher to mount a filesystem that uses this flag.
-* `-xchacha`: new option for `-init` (forward mode only). Selects XChaCha20-Poly1305 for content encryption.
+* **`-xchacha`: new option for `-init`** (forward mode only). Selects XChaCha20-Poly1305 for content encryption.
   Gives *much* better performance on CPUs without AES acceleration
   ([#452](https://github.com/rfjakob/gocryptfs/issues/452)).
    * New feature flag! You need gocryptfs v2.2 or higher to mount a filesystem that uses this flag.
    * Test with `gocryptfs -speed` what is fastest for your CPU, or read [here](https://github.com/rfjakob/gocryptfs/issues/452#issuecomment-908559414)
-* Rewrite [OpenSSL backend](https://pkg.go.dev/github.com/rfjakob/gocryptfs/v2@master/internal/stupidgcm)
+* Rewrite [OpenSSL backend](https://pkg.go.dev/github.com/rfjakob/gocryptfs/v2/internal/stupidgcm)
   for better performance on AES-GCM-256-OpenSSL and XChaCha20-Poly1305-OpenSSL
 * `-serialize_reads`: get rid of delay logic by taking advantage of the kernel flag
   `FUSE_CAP_ASYNC_READ`
