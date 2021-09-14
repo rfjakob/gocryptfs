@@ -168,11 +168,12 @@ Example for a CPU with AES-NI:
 
 ```
 $ ./gocryptfs -speed
-gocryptfs v2.0; go-fuse v2.1.1-0.20210508151621-62c5aa1919a7; 2021-06-06 go1.16.5 linux/amd64
-AES-GCM-256-OpenSSL    536.63 MB/s
-AES-GCM-256-Go         831.84 MB/s  (selected in auto mode)
-AES-SIV-512-Go         155.85 MB/s
-XChaCha20-Poly1305-Go  700.02 MB/s  (benchmark only, not selectable yet)
+gocryptfs v2.2.0-beta1-4-gcdbc48f; go-fuse v2.1.1-0.20210825171523-3ab5d95a30ae; 2021-09-14 go1.17.1 linux/amd64
+AES-GCM-256-OpenSSL          868.09 MB/s
+AES-GCM-256-Go               997.97 MB/s  (selected in auto mode)
+AES-SIV-512-Go               160.72 MB/s
+XChaCha20-Poly1305-OpenSSL   722.14 MB/s
+XChaCha20-Poly1305-Go        841.89 MB/s  (selected in auto mode)
 ```
 
 You can run `./benchmark.bash` to run gocryptfs' canonical set of
