@@ -27,6 +27,16 @@ const blockSize = 4096
 
 // Run - run the speed the test and print the results.
 func Run() {
+	cpu := cpuModelName()
+	if cpu == "" {
+		cpu = "unknown"
+	}
+	aes := "; no AES acceleration"
+	if stupidgcm.CpuHasAES() {
+		aes = "; with AES acceleration"
+	}
+	fmt.Printf("cpu: %s%s\n", cpu, aes)
+
 	bTable := []struct {
 		name      string
 		f         func(*testing.B)
