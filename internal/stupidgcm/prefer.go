@@ -21,17 +21,11 @@ func PreferOpenSSLAES256GCM() bool {
 	if BuiltWithoutOpenssl {
 		return false
 	}
-	// Safe to call on other architectures - will just read false.
-	if cpu.X86.HasAES || cpu.ARM64.HasAES {
-		// Go stdlib is probably faster
+	// If the CPU has AES acceleration, Go stdlib is faster
+	if CpuHasAES() {
 		return false
 	}
-	// On the Apple M1, Go stdlib is faster than OpenSSL, despite cpu.ARM64.HasAES
-	// reading false: https://github.com/rfjakob/gocryptfs/issues/556#issuecomment-848079309
-	if runtime.GOOS == "darwin" && runtime.GOARCH == "arm64" {
-		return false
-	}
-	// OpenSSL is probably faster
+	// Otherwise OpenSSL is probably faster
 	return true
 }
 
@@ -48,4 +42,19 @@ func PreferOpenSSLXchacha20poly1305() bool {
 	}
 	// On arm64 and arm, OpenSSL is faster. Probably everwhere else too.
 	return true
+}
+
+// CpuHasAES tells you if the CPU we are running has AES acceleration that is
+// usable by the Go crypto library.
+func CpuHasAES() bool {
+	// Safe to call on other architectures - will just read false.
+	if cpu.X86.HasAES || cpu.ARM64.HasAES {
+		return true
+	}
+	// On the Apple M1, the CPU has AES acceleration, despite cpu.ARM64.HasAES
+	// reading false: https://github.com/rfjakob/gocryptfs/issues/556#issuecomment-848079309
+	if runtime.GOOS == "darwin" && runtime.GOARCH == "arm64" {
+		return true
+	}
+	return false
 }
