@@ -49,7 +49,7 @@ func Run() {
 		if b.preferred {
 			fmt.Printf("\t(selected in auto mode)\n")
 		} else {
-			fmt.Printf("\t\n")
+			fmt.Printf("\n")
 		}
 	}
 }
