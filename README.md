@@ -196,7 +196,7 @@ RM:    2,367
 Changelog
 ---------
 
-v2.2, IN PROGRESS
+v2.2.0, IN PROGRESS
 * **`-deterministic-names`: new option for `-init`**, both for reverse and forward mode.
    Disables file name randomisation & `gocryptfs.diriv` files
    ([#151](https://github.com/rfjakob/gocryptfs/issues/151), [#402](https://github.com/rfjakob/gocryptfs/issues/402), [#592](https://github.com/rfjakob/gocryptfs/pull/592))
@@ -215,6 +215,9 @@ v2.2, IN PROGRESS
 * Make obsolete `-devrandom` flag a no-op ([commit](https://github.com/rfjakob/gocryptfs/commit/61ef6b00a675456ee05d40f1ce44d693bc4be350))
 * Make `-forcedecode` flag a no-op ([commit](https://github.com/rfjakob/gocryptfs/commit/d023cd6c95fcbc6b5056ba1f425d2ac3df4abc5a))
 * Fix reverse mode sometimes remapping most inode numbers to >281474976710656 ([commit](https://github.com/rfjakob/gocryptfs/commit/c9b825c58a9f996379108926754513bca03bb306))
+* This version will be called v2.2.0 (instead of v2.2) to comply with
+  the [Go module versioning](https://golang.org/doc/modules/version-numbers) convention.
+  Later releases will also follow the convention.
 
 v2.1, 2021-08-18
 * `-fido2`: do not request PIN on `gocryptfs -init` fixing `FIDO_ERR_UNSUPPORTED_OPTION` with YubiKey
