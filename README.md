@@ -196,7 +196,7 @@ RM:    2,367
 Changelog
 ---------
 
-#### v2.2.0, IN PROGRESS
+#### v2.2.0, 2021-09-25
 * **`-deterministic-names`: new option for `-init`**, both for reverse and forward mode.
    Disables file name randomisation & `gocryptfs.diriv` files
    ([#151](https://github.com/rfjakob/gocryptfs/issues/151), [#402](https://github.com/rfjakob/gocryptfs/issues/402), [#592](https://github.com/rfjakob/gocryptfs/pull/592))
