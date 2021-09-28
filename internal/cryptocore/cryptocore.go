@@ -42,22 +42,22 @@ func (a AEADTypeEnum) String() string {
 
 // BackendOpenSSL specifies the OpenSSL AES-256-GCM backend.
 // "AES-GCM-256-OpenSSL" in gocryptfs -speed.
-var BackendOpenSSL AEADTypeEnum = AEADTypeEnum{"AES-GCM-256", "OpenSSL", 16}
+var BackendOpenSSL = AEADTypeEnum{"AES-GCM-256", "OpenSSL", 16}
 
 // BackendGoGCM specifies the Go based AES-256-GCM backend.
 // "AES-GCM-256-Go" in gocryptfs -speed.
-var BackendGoGCM AEADTypeEnum = AEADTypeEnum{"AES-GCM-256", "Go", 16}
+var BackendGoGCM = AEADTypeEnum{"AES-GCM-256", "Go", 16}
 
 // BackendAESSIV specifies an AESSIV backend.
 // "AES-SIV-512-Go" in gocryptfs -speed.
-var BackendAESSIV AEADTypeEnum = AEADTypeEnum{"AES-SIV-512", "Go", siv_aead.NonceSize}
+var BackendAESSIV = AEADTypeEnum{"AES-SIV-512", "Go", siv_aead.NonceSize}
 
 // BackendXChaCha20Poly1305 specifies XChaCha20-Poly1305-Go.
 // "XChaCha20-Poly1305-Go" in gocryptfs -speed.
-var BackendXChaCha20Poly1305 AEADTypeEnum = AEADTypeEnum{"XChaCha20-Poly1305", "Go", chacha20poly1305.NonceSizeX}
+var BackendXChaCha20Poly1305 = AEADTypeEnum{"XChaCha20-Poly1305", "Go", chacha20poly1305.NonceSizeX}
 
 // BackendXChaCha20Poly1305OpenSSL specifies XChaCha20-Poly1305-OpenSSL.
-var BackendXChaCha20Poly1305OpenSSL AEADTypeEnum = AEADTypeEnum{"XChaCha20-Poly1305", "OpenSSL", chacha20poly1305.NonceSizeX}
+var BackendXChaCha20Poly1305OpenSSL = AEADTypeEnum{"XChaCha20-Poly1305", "OpenSSL", chacha20poly1305.NonceSizeX}
 
 // CryptoCore is the low level crypto implementation.
 type CryptoCore struct {
