@@ -14,6 +14,7 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/fido2"
 	"github.com/rfjakob/gocryptfs/v2/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/v2/internal/readpassword"
+	"github.com/rfjakob/gocryptfs/v2/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
@@ -66,6 +67,11 @@ func initDir(args *argContainer) {
 		if err != nil {
 			tlog.Fatal.Printf("Invalid cipherdir: %v", err)
 			os.Exit(exitcodes.CipherDir)
+		}
+		if !args.xchacha && !stupidgcm.CpuHasAES() {
+			tlog.Info.Printf(tlog.ColorYellow +
+				"Notice: Your CPU does not have AES acceleration. Consider using -xchacha for better performance." +
+				tlog.ColorReset)
 		}
 	}
 	// Choose password for config file
