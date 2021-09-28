@@ -1,3 +1,3 @@
-Header: Version: 2, Id: 8932adf303fe0289679d47fa84d2b241, assuming AES-GCM-256-Go mode
+Header: Version: 2, Id: 8932adf303fe0289679d47fa84d2b241, assuming AES-GCM-256 mode
 Block  0: IV: c8536b4bfd92f5dc3c1e2ac29f116d4a, Tag: 22b20422749b2f4bba67ec7d3bb1ac34, Offset:    18 Len: 4128
 Block  1: IV: 2de68f4965779bb137ef2b3c20453556, Tag: 3e8758d6872234b1fffab2504e623467, Offset:  4146 Len: 936

@@ -39,7 +39,7 @@ func errExit(err error) {
 
 func prettyPrintHeader(h *contentenc.FileHeader, algo cryptocore.AEADTypeEnum) {
 	id := hex.EncodeToString(h.ID)
-	fmt.Printf("Header: Version: %d, Id: %s, assuming %s mode\n", h.Version, id, algo.Name)
+	fmt.Printf("Header: Version: %d, Id: %s, assuming %s mode\n", h.Version, id, algo.Algo)
 }
 
 // printVersion prints a version string like this:

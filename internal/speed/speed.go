@@ -42,11 +42,11 @@ func Run() {
 		f         func(*testing.B)
 		preferred bool
 	}{
-		{name: cryptocore.BackendOpenSSL.Name, f: bStupidGCM, preferred: stupidgcm.PreferOpenSSLAES256GCM()},
-		{name: cryptocore.BackendGoGCM.Name, f: bGoGCM, preferred: !stupidgcm.PreferOpenSSLAES256GCM()},
-		{name: cryptocore.BackendAESSIV.Name, f: bAESSIV, preferred: false},
-		{name: cryptocore.BackendXChaCha20Poly1305OpenSSL.Name, f: bStupidXchacha, preferred: stupidgcm.PreferOpenSSLXchacha20poly1305()},
-		{name: cryptocore.BackendXChaCha20Poly1305.Name, f: bXchacha20poly1305, preferred: !stupidgcm.PreferOpenSSLXchacha20poly1305()},
+		{name: cryptocore.BackendOpenSSL.String(), f: bStupidGCM, preferred: stupidgcm.PreferOpenSSLAES256GCM()},
+		{name: cryptocore.BackendGoGCM.String(), f: bGoGCM, preferred: !stupidgcm.PreferOpenSSLAES256GCM()},
+		{name: cryptocore.BackendAESSIV.String(), f: bAESSIV, preferred: false},
+		{name: cryptocore.BackendXChaCha20Poly1305OpenSSL.String(), f: bStupidXchacha, preferred: stupidgcm.PreferOpenSSLXchacha20poly1305()},
+		{name: cryptocore.BackendXChaCha20Poly1305.String(), f: bXchacha20poly1305, preferred: !stupidgcm.PreferOpenSSLXchacha20poly1305()},
 	}
 	for _, b := range bTable {
 		fmt.Printf("%-26s\t", b.name)
