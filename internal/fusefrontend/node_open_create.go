@@ -103,6 +103,12 @@ func (n *Node) Create(ctx context.Context, name string, flags uint32, mode uint3
 	if errno != 0 {
 		return
 	}
+
 	inode = n.newChild(ctx, st, out)
+
+	if rn.args.ForceOwner != nil {
+		out.Owner = *rn.args.ForceOwner
+	}
+
 	return inode, fh, fuseFlags, errno
 }
