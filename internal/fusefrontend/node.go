@@ -41,6 +41,10 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (ch 
 	n.translateSize(dirfd, cName, &out.Attr)
 
 	rn := n.rootNode()
+	if rn.args.ForceOwner != nil {
+		out.Owner = *rn.args.ForceOwner
+	}
+
 	if rn.args.SharedStorage {
 		// If we already have a child node that matches what we found on disk*
 		// (as reflected in `ch`), return it here.
