@@ -36,6 +36,9 @@ jobs:
     # CI platform specific setup steps happen here
     - run: sudo apt-get install -qq fuse3 libssl-dev
 
+    # Fix "/usr/bin/fusermount: option allow_other only allowed if 'user_allow_other' is set in /etc/fuse.conf"
+    - run: echo user_allow_other | sudo tee -a /etc/fuse.conf
+
     # Build & upload static binary
     - run: ./build-without-openssl.bash
     - uses: actions/upload-artifact@v2
