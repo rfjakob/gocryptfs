@@ -425,3 +425,69 @@ func TestFsync(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// force_owner was broken by the v2.0 rewrite:
+// The owner was only forced for GETATTR, but not for CREATE or LOOKUP.
+//
+// https://github.com/rfjakob/gocryptfs/issues/609
+// https://github.com/rfjakob/gocryptfs/pull/610
+func TestForceOwner(t *testing.T) {
+	cDir := test_helpers.InitFS(t)
+	os.Chmod(cDir, 0777) // Mount needs to be accessible for us
+	pDir := cDir + ".mnt"
+	test_helpers.MountOrFatal(t, cDir, pDir, "-force_owner=1234:1234", "-extpass=echo test")
+	defer test_helpers.UnmountPanic(pDir)
+
+	// We need an unrestricted umask
+	oldmask := syscall.Umask(0)
+	defer syscall.Umask(oldmask)
+
+	foo := pDir + "/foo"
+
+	// In the answer to a FUSE CREATE, gocryptfs sends file information including
+	// the owner. This is cached by the kernel and will be used for the next
+	// stat() call.
+	fd, err := syscall.Creat(foo, 0666)
+	if err != nil {
+		t.Fatal(err)
+	}
+	syscall.Close(fd)
+
+	var st syscall.Stat_t
+	if err := syscall.Stat(foo, &st); err != nil {
+		t.Fatal(err)
+	}
+	if st.Uid != 1234 || st.Gid != 1234 {
+		t.Errorf("CREATE returned uid or gid != 1234: %#v", st)
+	}
+
+	// We can clear the kernel stat() cache by writing to the file
+	fd, err = syscall.Open(foo, syscall.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := syscall.Write(fd, []byte("hello world")); err != nil {
+		t.Fatal(err)
+	}
+	syscall.Close(fd)
+
+	// This stat() triggers a new GETATTR
+	if err := syscall.Stat(foo, &st); err != nil {
+		t.Fatal(err)
+	}
+	if st.Uid != 1234 || st.Gid != 1234 {
+		t.Errorf("GETATTR returned uid or gid != 1234: %#v", st)
+	}
+
+	// Remount to clear cache
+	test_helpers.UnmountPanic(pDir)
+	test_helpers.MountOrFatal(t, cDir, pDir, "-force_owner=1234:1234", "-extpass=echo test")
+
+	// This stat() triggers a new LOOKUP
+	if err := syscall.Stat(foo, &st); err != nil {
+		t.Fatal(err)
+	}
+	if st.Uid != 1234 || st.Gid != 1234 {
+		t.Errorf("LOOKUP returned uid or gid != 1234: %#v", st)
+	}
+}
