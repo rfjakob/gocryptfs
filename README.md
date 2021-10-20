@@ -196,6 +196,14 @@ RM:    2,367
 Changelog
 ---------
 
+#### v2.2.1, 2021-10-20
+* Fix `-force_owner` only taking effect after 2 seconds ([#609](https://github.com/rfjakob/gocryptfs/issues/609)).
+  This was a regression introduced in v2.0.
+* MacOS: Fix build.bash failure with error `date: illegal option -- -` when `SOURCE_DATE_EPOCH` is set
+  ([#570](https://github.com/rfjakob/gocryptfs/issues/570))
+* `-init`: suggest xchacha on CPUs without AES acceleration ([commit](https://github.com/rfjakob/gocryptfs/commit/e8e35982845f36e714b915350eaf6855487aa0e8))
+* `-info`: add contentEncryption to output
+
 #### v2.2.0, 2021-09-25
 * **`-deterministic-names`: new option for `-init`**, both for reverse and forward mode.
    Disables file name randomisation & `gocryptfs.diriv` files
