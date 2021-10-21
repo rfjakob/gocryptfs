@@ -47,10 +47,10 @@ func (cf *ConfFile) Validate() error {
 	}
 	// Filename encryption
 	{
-		if cf.IsFeatureFlagSet(FlagPlaintextNames) && cf.IsFeatureFlagSet(FlagEMENames) {
-			return fmt.Errorf("Can't have both PlaintextNames and EMENames feature flags")
-		}
 		if cf.IsFeatureFlagSet(FlagPlaintextNames) {
+			if cf.IsFeatureFlagSet(FlagEMENames) {
+				return fmt.Errorf("PlaintextNames conflicts with EMENames feature flag")
+			}
 			if cf.IsFeatureFlagSet(FlagDirIV) {
 				return fmt.Errorf("PlaintextNames conflicts with DirIV feature flag")
 			}
@@ -60,9 +60,18 @@ func (cf *ConfFile) Validate() error {
 			if cf.IsFeatureFlagSet(FlagRaw64) {
 				return fmt.Errorf("PlaintextNames conflicts with Raw64 feature flag")
 			}
+			if cf.IsFeatureFlagSet(FlagLongNameMax) {
+				return fmt.Errorf("PlaintextNames conflicts with LongNameMax feature flag")
+			}
 		}
 		if cf.IsFeatureFlagSet(FlagEMENames) {
 			// All combinations of DirIV, LongNames, Raw64 allowed
+		}
+		if cf.LongNameMax != 0 && !cf.IsFeatureFlagSet(FlagLongNameMax) {
+			return fmt.Errorf("LongNameMax=%d but the LongNameMax feature flag is NOT set", cf.LongNameMax)
+		}
+		if cf.LongNameMax == 0 && cf.IsFeatureFlagSet(FlagLongNameMax) {
+			return fmt.Errorf("LongNameMax=0 but the LongNameMax feature flag IS set")
 		}
 	}
 	return nil

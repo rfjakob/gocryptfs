@@ -116,11 +116,12 @@ func TestConvertToDoubleDash(t *testing.T) {
 
 func TestParseCliOpts(t *testing.T) {
 	defaultArgs := argContainer{
-		longnames: true,
-		raw64:     true,
-		hkdf:      true,
-		openssl:   stupidgcm.PreferOpenSSLAES256GCM(), // depends on CPU and build flags
-		scryptn:   16,
+		longnames:   true,
+		longnamemax: 255,
+		raw64:       true,
+		hkdf:        true,
+		openssl:     stupidgcm.PreferOpenSSLAES256GCM(), // depends on CPU and build flags
+		scryptn:     16,
 	}
 
 	type testcaseContainer struct {

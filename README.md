@@ -196,6 +196,12 @@ RM:    2,367
 Changelog
 ---------
 
+#### vNEXT
+* Add **`-longnamemax`** flag to `-init` ([#499](https://github.com/rfjakob/gocryptfs/issues/499)).
+  Can be used to work around file or path length restrictions on online storage.
+  See the [man page](https://github.com/rfjakob/gocryptfs/blob/master/Documentation/MANPAGE.md#-longnamemax)
+  for details.
+
 #### v2.2.1, 2021-10-20
 * Fix `-force_owner` only taking effect after 2 seconds ([#609](https://github.com/rfjakob/gocryptfs/issues/609)).
   This was a regression introduced in v2.0.

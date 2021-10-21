@@ -102,7 +102,9 @@ func initDir(args *argContainer) {
 			Fido2CredentialID:  fido2CredentialID,
 			Fido2HmacSalt:      fido2HmacSalt,
 			DeterministicNames: args.deterministic_names,
-			XChaCha20Poly1305:  args.xchacha})
+			XChaCha20Poly1305:  args.xchacha,
+			LongNameMax:        args.longnamemax,
+		})
 		if err != nil {
 			tlog.Fatal.Println(err)
 			os.Exit(exitcodes.WriteConf)

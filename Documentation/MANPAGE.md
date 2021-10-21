@@ -123,6 +123,28 @@ and https://github.com/rfjakob/gocryptfs/issues/596 for background info.
 Use HKDF to derive separate keys for content and name encryption from
 the master key. Default true.
 
+#### -longnamemax
+
+    integer value, allowed range 62...255
+
+Hash file names that (in encrypted form) exceed this length. The default
+is 255, which aligns with the usual name length limit on Linux and
+provides best performance.
+
+However, online storage may impose lower limits on file name and/or
+path length. In this case, setting -longnamemax to a lower value
+can be helpful.
+
+The lower the value, the more extra `.name` files
+must be created, which slows down directory listings.
+
+Values below 62 are not allowed as then the hashed name
+would be longer than the original name.
+
+Example:
+
+    -longnamemax 100
+
 #### -plaintextnames
 Do not encrypt file names and symlink targets.
 

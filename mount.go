@@ -292,6 +292,8 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 		// Settings from the config file override command line args
 		frontendArgs.PlaintextNames = confFile.IsFeatureFlagSet(configfile.FlagPlaintextNames)
 		frontendArgs.DeterministicNames = !confFile.IsFeatureFlagSet(configfile.FlagDirIV)
+		// Things that don't have to be in frontendArgs are only in args
+		args.longnamemax = confFile.LongNameMax
 		args.raw64 = confFile.IsFeatureFlagSet(configfile.FlagRaw64)
 		args.hkdf = confFile.IsFeatureFlagSet(configfile.FlagHKDF)
 		// Note: this will always return the non-openssl variant
@@ -324,7 +326,7 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 	// Init crypto backend
 	cCore := cryptocore.New(masterkey, cryptoBackend, IVBits, args.hkdf)
 	cEnc := contentenc.New(cCore, contentenc.DefaultBS)
-	nameTransform := nametransform.New(cCore.EMECipher, frontendArgs.LongNames, 0,
+	nameTransform := nametransform.New(cCore.EMECipher, frontendArgs.LongNames, args.longnamemax,
 		args.raw64, []string(args.badname), frontendArgs.DeterministicNames)
 	// After the crypto backend is initialized,
 	// we can purge the master key from memory.

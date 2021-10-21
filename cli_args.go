@@ -45,6 +45,8 @@ type argContainer struct {
 	notifypid, scryptn int
 	// Idle time before autounmount
 	idle time.Duration
+	// -longnamemax (hash encrypted names that are longer than this)
+	longnamemax uint8
 	// Helper variables that are NOT cli options all start with an underscore
 	// _configCustom is true when the user sets a custom config file name.
 	_configCustom bool
@@ -215,6 +217,8 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.StringSliceVar(&args.badname, "badname", nil, "Glob pattern invalid file names that should be shown")
 	flagSet.StringSliceVar(&args.passfile, "passfile", nil, "Read password from file")
 
+	flagSet.Uint8Var(&args.longnamemax, "longnamemax", 255, "Hash encrypted names that are longer than this")
+
 	flagSet.IntVar(&args.notifypid, "notifypid", 0, "Send USR1 to the specified process after "+
 		"successful mount - used internally for daemonization")
 	const scryptn = "scryptn"
@@ -291,6 +295,10 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 			tlog.Fatal.Printf("-badname: invalid pattern %q supplied", pattern)
 			os.Exit(exitcodes.Usage)
 		}
+	}
+	if args.longnamemax > 0 && args.longnamemax < 62 {
+		tlog.Fatal.Printf("-longnamemax: value %d is outside allowed range 62 ... 255", args.longnamemax)
+		os.Exit(exitcodes.Usage)
 	}
 
 	return args
