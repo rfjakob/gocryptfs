@@ -44,7 +44,7 @@ func New(e *eme.EMECipher, longNames bool, longNameMax uint8, raw64 bool, badnam
 	if raw64 {
 		b64 = base64.RawURLEncoding
 	}
-	var effectiveLongNameMax int = math.MaxInt
+	var effectiveLongNameMax int = math.MaxInt32
 	if longNames {
 		if longNameMax == 0 {
 			effectiveLongNameMax = NameMax
