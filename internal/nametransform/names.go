@@ -4,6 +4,7 @@ package nametransform
 import (
 	"crypto/aes"
 	"encoding/base64"
+	"math"
 	"path/filepath"
 	"syscall"
 
@@ -20,7 +21,9 @@ const (
 // NameTransform is used to transform filenames.
 type NameTransform struct {
 	emeCipher *eme.EMECipher
-	longNames bool
+	// Names longer than `longNameMax` are hashed. Set to MaxInt when
+	// longnames are disabled.
+	longNameMax int
 	// B64 = either base64.URLEncoding or base64.RawURLEncoding, depending
 	// on the Raw64 feature flag
 	B64 *base64.Encoding
@@ -30,17 +33,28 @@ type NameTransform struct {
 }
 
 // New returns a new NameTransform instance.
-func New(e *eme.EMECipher, longNames bool, raw64 bool, badname []string, deterministicNames bool) *NameTransform {
-	tlog.Debug.Printf("nametransform.New: longNames=%v, raw64=%v, badname=%q",
-		longNames, raw64, badname)
-
+//
+// If `longNames` is set, names longer than `longNameMax` are hashed to
+// `gocryptfs.longname.[sha256]`.
+// Pass `longNameMax = 0` to use the default value (255).
+func New(e *eme.EMECipher, longNames bool, longNameMax uint8, raw64 bool, badname []string, deterministicNames bool) *NameTransform {
+	tlog.Debug.Printf("nametransform.New: longNameMax=%v, raw64=%v, badname=%q",
+		longNameMax, raw64, badname)
 	b64 := base64.URLEncoding
 	if raw64 {
 		b64 = base64.RawURLEncoding
 	}
+	var effectiveLongNameMax int = math.MaxInt
+	if longNames {
+		if longNameMax == 0 {
+			effectiveLongNameMax = NameMax
+		} else {
+			effectiveLongNameMax = int(longNameMax)
+		}
+	}
 	return &NameTransform{
 		emeCipher:          e,
-		longNames:          longNames,
+		longNameMax:        effectiveLongNameMax,
 		B64:                b64,
 		badnamePatterns:    badname,
 		deterministicNames: deterministicNames,
@@ -115,7 +129,7 @@ func (be *NameTransform) EncryptAndHashName(name string, iv []byte) (string, err
 	if err != nil {
 		return "", err
 	}
-	if be.longNames && len(cName) > NameMax {
+	if len(cName) > be.longNameMax {
 		return be.HashLongName(cName), nil
 	}
 	return cName, nil

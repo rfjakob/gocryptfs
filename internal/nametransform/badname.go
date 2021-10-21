@@ -48,7 +48,7 @@ func (be *NameTransform) EncryptAndHashBadName(name string, iv []byte, dirfd int
 			//expand suffix on error
 			continue
 		}
-		if be.longNames && len(cName) > NameMax {
+		if len(cName) > be.longNameMax {
 			cNamePart = be.HashLongName(cName)
 		}
 		cNameBadReverse := cNamePart + name[charpos:len(name)-len(BadnameSuffix)]
