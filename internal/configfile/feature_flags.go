@@ -16,6 +16,9 @@ const (
 	FlagGCMIV128
 	// FlagLongNames allows file names longer than 176 bytes.
 	FlagLongNames
+	// FlagLongNameMax sets a custom name length limit, names longer than that
+	// will be hashed.
+	FlagLongNameMax
 	// FlagAESSIV selects an AES-SIV based crypto backend.
 	FlagAESSIV
 	// FlagRaw64 enables raw (unpadded) base64 encoding for file names
@@ -40,6 +43,7 @@ var knownFlags = map[flagIota]string{
 	FlagEMENames:          "EMENames",
 	FlagGCMIV128:          "GCMIV128",
 	FlagLongNames:         "LongNames",
+	FlagLongNameMax:       "LongNameMax",
 	FlagAESSIV:            "AESSIV",
 	FlagRaw64:             "Raw64",
 	FlagHKDF:              "HKDF",

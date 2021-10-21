@@ -131,6 +131,30 @@ func TestCreateConfFileAESSIV(t *testing.T) {
 	}
 }
 
+func TestCreateConfLongNameMax(t *testing.T) {
+	args := &CreateArgs{
+		Filename:    "config_test/tmp.conf",
+		Password:    testPw,
+		LogN:        10,
+		Creator:     "test",
+		LongNameMax: 100,
+	}
+	err := Create(args)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, c, err := LoadAndDecrypt("config_test/tmp.conf", testPw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.IsFeatureFlagSet(FlagLongNameMax) {
+		t.Error("FlagLongNameMax should be set but is not")
+	}
+	if c.LongNameMax != args.LongNameMax {
+		t.Errorf("wrong LongNameMax value: want=%d have=%d", args.LongNameMax, c.LongNameMax)
+	}
+}
+
 func TestIsFeatureFlagKnown(t *testing.T) {
 	// Test a few hardcoded values
 	testKnownFlags := []string{"DirIV", "PlaintextNames", "EMENames", "GCMIV128", "LongNames", "AESSIV"}
