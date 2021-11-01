@@ -14,7 +14,7 @@ const (
 	// This flag is mandatory since gocryptfs v1.0,
 	// except when XChaCha20Poly1305 is used.
 	FlagGCMIV128
-	// FlagLongNames allows file names longer than 176 bytes.
+	// FlagLongNames allows file names longer than 175 bytes.
 	FlagLongNames
 	// FlagLongNameMax sets a custom name length limit, names longer than that
 	// will be hashed.

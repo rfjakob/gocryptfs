@@ -318,9 +318,10 @@ the directories. Example:
     gocryptfs -ko noexec /tmp/foo /tmp/bar
 
 #### -longnames
-Store names longer than 176 bytes in extra files (default true)
-This flag is useful when recovering old gocryptfs filesystems using
-"-masterkey". It is ignored (stays at the default) otherwise.
+Store names that are longer than 175 bytes in extra files (default true).
+
+This flag is only useful when recovering very old gocryptfs filesystems (gocryptfs v0.8 and earlier)
+using "-masterkey". It is ignored (stays at the default) otherwise.
 
 #### -nodev
 See `-dev, -nodev`.
