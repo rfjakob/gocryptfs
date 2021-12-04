@@ -114,6 +114,10 @@ func prefixOArgs(osArgs []string) ([]string, error) {
 // into "--debug" (spf13/pflag style).
 // gocryptfs v2.1 switched from `flag` to `pflag`, but we obviously want to stay
 // cli-compatible, and this is the hack to do it.
+//
+// BUG: In `-extpass -X`, the `-X` gets transformed `--X`.
+// See "Dash duplication" in the man page and
+// https://github.com/rfjakob/gocryptfs/issues/621 .
 func convertToDoubleDash(osArgs []string) (out []string) {
 	out = append(out, osArgs...)
 	for i, v := range out {

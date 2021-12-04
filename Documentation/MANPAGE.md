@@ -475,6 +475,10 @@ to your program, use `"--"`, which is accepted by most programs:
 
 Applies to: all actions that ask for a password.
 
+BUG: In `-extpass -X`, the `-X` will be interpreted as `--X`. Please use
+`-extpass=-X` to prevent that. See **Dash duplication** in the **BUGS** section
+for details.
+
 #### -fido2 DEVICE_PATH
 Use a FIDO2 token to initialize and unlock the filesystem.
 Use "fido2-token -L" to obtain the FIDO2 token device path.
@@ -683,6 +687,29 @@ EXIT CODES
 other: please check the error message
 
 See also: https://github.com/rfjakob/gocryptfs/blob/master/internal/exitcodes/exitcodes.go
+
+BUGS
+====
+
+### Dash duplication
+
+gocryptfs v2.1 switched to the `pflag` library for command-line parsing
+to support flags and positional arguments in any order. To stay compatible
+with single-dash long options like `-extpass`, an ugly hack was added:
+The command line is preprocessed, and all single-dash options are converted to
+double-dash.
+
+Unfortunately, this means that in
+
+    gocryptfs -extpass myapp -extpass -X
+
+gocryptfs transforms the `-X` to `--X`, and it will call `myapp --n` as the extpass program.
+
+Please use
+
+    gocryptfs -extpass myapp -extpass=-X
+
+to work around this bug.
 
 SEE ALSO
 ========
