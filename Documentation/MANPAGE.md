@@ -703,7 +703,7 @@ Unfortunately, this means that in
 
     gocryptfs -extpass myapp -extpass -X
 
-gocryptfs transforms the `-X` to `--X`, and it will call `myapp --n` as the extpass program.
+gocryptfs transforms the `-X` to `--X`, and it will call `myapp --X` as the extpass program.
 
 Please use
 
