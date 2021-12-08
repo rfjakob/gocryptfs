@@ -120,7 +120,7 @@ func writeTillFull(t *testing.T, path string) (int, syscall.Errno) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	fd, err := syscall.Creat(path, 0600)
+	fd, err := syscall.Open(path, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_TRUNC, 0600)
 	if err != nil {
 		return 0, err.(syscall.Errno)
 	}

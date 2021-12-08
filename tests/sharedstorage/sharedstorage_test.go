@@ -77,7 +77,7 @@ func TestDirUnlink(t *testing.T) {
 	if err := unix.Rmdir(tc.mnt2 + "/foo"); err != nil {
 		t.Fatal(err)
 	}
-	if fd, err := unix.Creat(tc.mnt2+"/foo", 0600); err != nil {
+	if fd, err := unix.Open(tc.mnt2+"/foo", unix.O_CREAT|unix.O_WRONLY|unix.O_TRUNC, 0600); err != nil {
 		t.Fatal(err)
 	} else {
 		unix.Close(fd)
@@ -104,7 +104,7 @@ func TestStaleHardlinks(t *testing.T) {
 	defer tc.cleanup()
 
 	link0 := tc.mnt1 + "/link0"
-	if fd, err := unix.Creat(link0, 0600); err != nil {
+	if fd, err := unix.Open(link0, unix.O_CREAT|unix.O_WRONLY|unix.O_TRUNC, 0600); err != nil {
 		t.Fatal(err)
 	} else {
 		unix.Close(fd)

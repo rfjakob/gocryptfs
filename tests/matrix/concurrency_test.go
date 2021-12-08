@@ -144,7 +144,7 @@ func TestInoReuse(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		for i := 0; i < 1000; i++ {
-			fd, err := syscall.Creat(fn, 0600)
+			fd, err := syscall.Open(fn, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_TRUNC, 0600)
 			if err == syscall.EISDIR {
 				continue
 			}

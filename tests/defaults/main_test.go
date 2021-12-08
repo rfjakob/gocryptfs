@@ -401,7 +401,7 @@ func TestMaxlen(t *testing.T) {
 
 func TestFsync(t *testing.T) {
 	fileName := test_helpers.DefaultPlainDir + "/" + t.Name() + ".file"
-	fileFD, err := syscall.Creat(fileName, 0600)
+	fileFD, err := syscall.Open(fileName, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_TRUNC, 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -447,7 +447,7 @@ func TestForceOwner(t *testing.T) {
 	// In the answer to a FUSE CREATE, gocryptfs sends file information including
 	// the owner. This is cached by the kernel and will be used for the next
 	// stat() call.
-	fd, err := syscall.Creat(foo, 0666)
+	fd, err := syscall.Open(foo, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_EXCL, 0666)
 	if err != nil {
 		t.Fatal(err)
 	}

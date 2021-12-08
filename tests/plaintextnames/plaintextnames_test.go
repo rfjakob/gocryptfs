@@ -116,7 +116,7 @@ func TestInoReuseEvil(t *testing.T) {
 		}
 		// create a new file that will likely get the same inode number
 		pPath2 := pPath + "2"
-		fd, err := syscall.Creat(pPath2, 0600)
+		fd, err := syscall.Open(pPath2, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_TRUNC, 0600)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -982,7 +982,7 @@ func TestMountCreat(t *testing.T) {
 		for i := 0; i < concurrency; i++ {
 			go func(i int) {
 				path := fmt.Sprintf("%s/%d", mnt, i)
-				fd, err := syscall.Creat(path, 0600)
+				fd, err := syscall.Open(path, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_TRUNC, 0600)
 				syscall.Close(fd)
 				if err != nil {
 					t.Errorf("Creat %q: %v", path, err)
