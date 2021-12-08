@@ -7,9 +7,13 @@ function build {
 	go build -tags without_openssl -o /dev/null
 }
 
-set -eux
+function compile_tests {
+	for i in $(go list ./...) ; do
+		go test -c -tags without_openssl -o /dev/null "$i" > /dev/null
+	done
+}
 
-cd "$(dirname "$0")"
+set -eux
 
 export GO111MODULE=on
 export CGO_ENABLED=0
@@ -22,6 +26,8 @@ GOOS=linux  GOARCH=arm64         build
 
 # MacOS on Intel
 GOOS=darwin GOARCH=amd64 build
+# Catch tests that don't work on MacOS (takes a long time so we only run it once)
+time GOOS=darwin GOARCH=amd64 compile_tests
 
 # MacOS on Apple Silicon M1.
 # Go 1.16 added support for the M1 and added ios/arm64,

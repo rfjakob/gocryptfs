@@ -93,4 +93,12 @@ if find . -type f -name \*.go -print0 | xargs -0 grep -E 'syscall.(Setegid|Seteu
 	exit 1
 fi
 
+if find . -type f -name \*.go -print0 | xargs -0 grep '\.Creat('; then
+	# MacOS does not have syscall.Creat(). Creat() is equivalent to Open(..., O_CREAT|O_WRONLY|O_TRUNC, ...),
+	# but usually you want O_EXCL instead of O_TRUNC because it is safer, so that's what we suggest
+	# instead.
+	echo "$MYNAME: Please use Open(..., O_CREAT|O_WRONLY|O_EXCL, ...) instead of Creat()! https://github.com/rfjakob/gocryptfs/issues/623"
+	exit 1
+fi
+
 ) 200> "$LOCKFILE"
