@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	// O_DIRECT means oncached I/O on Linux. No direct equivalent on MacOS and defined
+	// O_DIRECT means uncached I/O on Linux. No direct equivalent on MacOS and defined
 	// to zero there.
 	O_DIRECT = 0
 
