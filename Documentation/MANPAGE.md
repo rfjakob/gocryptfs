@@ -673,6 +673,13 @@ the `-nofail` option for details).
 
     /tmp/cipher /tmp/plain fuse./usr/local/bin/gocryptfs nofail,allow_other,passfile=/tmp/password 0 0
 
+ENVIRONMENT VARIABLES
+=====================
+
+### NO_COLOR
+
+If `NO_COLOR` is set (regardless of value), colored output is disabled (see https://no-color.org/).
+
 EXIT CODES
 ==========
 

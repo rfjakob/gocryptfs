@@ -106,7 +106,9 @@ var Warn *toggledLogger
 var Fatal *toggledLogger
 
 func init() {
-	if term.IsTerminal(int(os.Stdout.Fd())) {
+	// Enable color output if we are connected to a terminal and NO_COLOR is
+	// unset ( https://no-color.org/ ).
+	if _, nocolor := os.LookupEnv("NO_COLOR"); !nocolor && term.IsTerminal(int(os.Stdout.Fd())) {
 		ColorReset = "\033[0m"
 		ColorGrey = "\033[2m"
 		ColorRed = "\033[31m"
