@@ -33,7 +33,7 @@ func (n *NameTransform) EncryptXattrName(plainName string) (cipherName64 string,
 	return n.encryptName(plainName, xattrNameIV), nil
 }
 
-// DecryptName calls decryptName to try and decrypt a base64-encoded encrypted
+// DecryptXattrName calls decryptName to try and decrypt a base64-encoded encrypted
 // filename "cipherName", and failing that checks if it can be bypassed
 func (n *NameTransform) DecryptXattrName(cipherName string) (plainName string, err error) {
 	if plainName, err = n.decryptName(cipherName, xattrNameIV); err != nil {
