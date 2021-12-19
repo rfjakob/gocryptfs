@@ -369,3 +369,17 @@ func TestAcl(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+// TestSlashInName checks that slashes in xattr names are allowed
+// https://github.com/rfjakob/gocryptfs/issues/627
+func TestSlashInName(t *testing.T) {
+	fn := test_helpers.DefaultPlainDir + "/" + t.Name()
+	err := ioutil.WriteFile(fn, []byte("12345"), 0700)
+	if err != nil {
+		t.Fatalf("creating empty file failed: %v", err)
+	}
+	err = setGetRmList3(fn, "user.foo@https://bar", []byte("val"))
+	if err != nil {
+		t.Error(err)
+	}
+}

@@ -66,7 +66,14 @@ func New(e *eme.EMECipher, longNames bool, longNameMax uint8, raw64 bool, badnam
 func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error) {
 	res, err := n.decryptName(cipherName, iv)
 	if err != nil && n.HaveBadnamePatterns() {
-		return n.decryptBadname(cipherName, iv)
+		res, err = n.decryptBadname(cipherName, iv)
+	}
+	if err != nil {
+		return "", err
+	}
+	if err := IsValidName(res); err != nil {
+		tlog.Warn.Printf("DecryptName %q: invalid name after decryption: %v", cipherName, err)
+		return "", syscall.EBADMSG
 	}
 	return res, err
 }
@@ -79,29 +86,28 @@ func (n *NameTransform) decryptName(cipherName string, iv []byte) (string, error
 		return "", err
 	}
 	if len(bin) == 0 {
-		tlog.Warn.Printf("DecryptName: empty input")
+		tlog.Warn.Printf("decryptName: empty input")
 		return "", syscall.EBADMSG
 	}
 	if len(bin)%aes.BlockSize != 0 {
-		tlog.Debug.Printf("DecryptName %q: decoded length %d is not a multiple of 16", cipherName, len(bin))
+		tlog.Debug.Printf("decryptName %q: decoded length %d is not a multiple of 16", cipherName, len(bin))
 		return "", syscall.EBADMSG
 	}
 	bin = n.emeCipher.Decrypt(iv, bin)
 	bin, err = unPad16(bin)
 	if err != nil {
-		tlog.Warn.Printf("DecryptName %q: unPad16 error: %v", cipherName, err)
+		tlog.Warn.Printf("decryptName %q: unPad16 error: %v", cipherName, err)
 		return "", syscall.EBADMSG
 	}
 	plain := string(bin)
-	if err := IsValidName(plain); err != nil {
-		tlog.Warn.Printf("DecryptName %q: invalid name after decryption: %v", cipherName, err)
-		return "", syscall.EBADMSG
-	}
 	return plain, err
 }
 
-// EncryptName encrypts "plainName", returns a base64-encoded "cipherName64",
+// EncryptName encrypts a file name "plainName" and returns a base64-encoded "cipherName64",
 // encrypted using EME (https://github.com/rfjakob/eme).
+//
+// plainName is checked for null bytes, slashes etc. and such names are rejected
+// with an error.
 //
 // This function is exported because in some cases, fusefrontend needs access
 // to the full (not hashed) name if longname is used.
@@ -110,11 +116,19 @@ func (n *NameTransform) EncryptName(plainName string, iv []byte) (cipherName64 s
 		tlog.Warn.Printf("EncryptName %q: invalid plainName: %v", plainName, err)
 		return "", syscall.EBADMSG
 	}
+	return n.encryptName(plainName, iv), nil
+}
+
+// encryptName encrypts "plainName" and returns a base64-encoded "cipherName64",
+// encrypted using EME (https://github.com/rfjakob/eme).
+//
+// No checks for null bytes etc are performed against plainName.
+func (n *NameTransform) encryptName(plainName string, iv []byte) (cipherName64 string) {
 	bin := []byte(plainName)
 	bin = pad16(bin)
 	bin = n.emeCipher.Encrypt(iv, bin)
 	cipherName64 = n.B64.EncodeToString(bin)
-	return cipherName64, nil
+	return cipherName64
 }
 
 // EncryptAndHashName encrypts "name" and hashes it to a longname if it is

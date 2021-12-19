@@ -268,7 +268,7 @@ func (rn *RootNode) decryptXattrValue(cData []byte) (data []byte, err error) {
 // encryptXattrName transforms "user.foo" to "user.gocryptfs.a5sAd4XAa47f5as6dAf"
 func (rn *RootNode) encryptXattrName(attr string) (string, error) {
 	// xattr names are encrypted like file names, but with a fixed IV.
-	cAttr, err := rn.nameTransform.EncryptName(attr, xattrNameIV)
+	cAttr, err := rn.nameTransform.EncryptXattrName(attr)
 	if err != nil {
 		return "", err
 	}
@@ -282,7 +282,7 @@ func (rn *RootNode) decryptXattrName(cAttr string) (attr string, err error) {
 	}
 	// Strip "user.gocryptfs." prefix
 	cAttr = cAttr[len(xattrStorePrefix):]
-	attr, err = rn.nameTransform.DecryptName(cAttr, xattrNameIV)
+	attr, err = rn.nameTransform.DecryptXattrName(cAttr)
 	if err != nil {
 		return "", err
 	}

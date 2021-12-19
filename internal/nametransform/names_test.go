@@ -75,3 +75,26 @@ func TestIsValidName(t *testing.T) {
 		}
 	}
 }
+
+func TestIsValidXattrName(t *testing.T) {
+	cases := []struct {
+		in   string
+		want bool
+	}{
+		{"", false},
+		{".", true},
+		{"..", true},
+		{"...", true},
+		{"asdasd/asdasd", true},
+		{"asdasd\000asdasd", false},
+		{"hello", true},
+		{strings.Repeat("x", 255), true},
+		{strings.Repeat("x", 256), true},
+	}
+	for _, c := range cases {
+		have := isValidXattrName(c.in)
+		if (have == nil) != c.want {
+			t.Errorf("isValidXattrName(%q): want %v have %v", c.in, c.want, have)
+		}
+	}
+}
