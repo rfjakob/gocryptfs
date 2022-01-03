@@ -398,14 +398,36 @@ func TestShadows(t *testing.T) {
 }
 
 // TestMountPasswordIncorrect makes sure the correct exit code is used when the password
-// was incorrect while mounting
+// was incorrect while mounting.
+// Also checks that we don't leave a socket file behind.
 func TestMountPasswordIncorrect(t *testing.T) {
 	cDir := test_helpers.InitFS(t) // Create filesystem with password "test"
+	ctlSock := cDir + ".sock"
 	pDir := cDir + ".mnt"
-	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "echo WRONG", "-wpanic=false")
+	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "echo WRONG", "-wpanic=false", "-ctlsock", ctlSock)
 	exitCode := test_helpers.ExtractCmdExitCode(err)
 	if exitCode != exitcodes.PasswordIncorrect {
 		t.Errorf("want=%d, got=%d", exitcodes.PasswordIncorrect, exitCode)
+	}
+	if _, err := os.Stat(ctlSock); err == nil {
+		t.Errorf("socket file %q left behind", ctlSock)
+	}
+}
+
+// TestMountPasswordEmpty makes sure the correct exit code is used when the password
+// was empty while mounting.
+// Also checks that we don't leave a socket file behind (https://github.com/rfjakob/gocryptfs/issues/634).
+func TestMountPasswordEmpty(t *testing.T) {
+	cDir := test_helpers.InitFS(t) // Create filesystem with password "test"
+	ctlSock := cDir + ".sock"
+	pDir := cDir + ".mnt"
+	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "true", "-wpanic=false", "-ctlsock", ctlSock)
+	exitCode := test_helpers.ExtractCmdExitCode(err)
+	if exitCode != exitcodes.ReadPassword {
+		t.Errorf("want=%d, got=%d", exitcodes.ReadPassword, exitCode)
+	}
+	if _, err := os.Stat(ctlSock); err == nil {
+		t.Errorf("socket file %q left behind", ctlSock)
 	}
 }
 
