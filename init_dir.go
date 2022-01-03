@@ -87,7 +87,11 @@ func initDir(args *argContainer) {
 			password = fido2.Secret(args.fido2, fido2CredentialID, fido2HmacSalt)
 		} else {
 			// normal password entry
-			password = readpassword.Twice([]string(args.extpass), []string(args.passfile))
+			password, err = readpassword.Twice([]string(args.extpass), []string(args.passfile))
+			if err != nil {
+				tlog.Fatal.Println(err)
+				os.Exit(exitcodes.ReadPassword)
+			}
 			fido2CredentialID = nil
 			fido2HmacSalt = nil
 		}

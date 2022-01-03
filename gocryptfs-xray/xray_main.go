@@ -148,7 +148,11 @@ func dumpMasterKey(fn string, fido2Path string) {
 		}
 		pw = fido2.Secret(fido2Path, cf.FIDO2.CredentialID, cf.FIDO2.HMACSalt)
 	} else {
-		pw = readpassword.Once(nil, nil, "")
+		pw, err = readpassword.Once(nil, nil, "")
+		if err != nil {
+			tlog.Fatal.Println(err)
+			os.Exit(exitcodes.ReadPassword)
+		}
 	}
 	masterkey, err := cf.DecryptMasterKey(pw)
 	// Purge password from memory

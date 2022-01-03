@@ -8,12 +8,20 @@ import (
 )
 
 // Provide password via stdin, terminated by "\n".
+//
+// The TEST_SLAVE magic is explained at
+// https://talks.golang.org/2014/testing.slide#23 , mirror:
+// http://web.archive.org/web/20200426174352/https://talks.golang.org/2014/testing.slide#23
 func TestStdin(t *testing.T) {
 	p1 := "g55434t55wef"
 	if os.Getenv("TEST_SLAVE") == "1" {
-		p2 := string(readPasswordStdin("foo"))
-		if p1 != p2 {
-			fmt.Fprintf(os.Stderr, "%q != %q", p1, p2)
+		p2, err := readPasswordStdin("foo")
+		if err != nil {
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
+		}
+		if p1 != string(p2) {
+			fmt.Fprintf(os.Stderr, "%q != %q", p1, string(p2))
 			os.Exit(1)
 		}
 		return
@@ -41,12 +49,20 @@ func TestStdin(t *testing.T) {
 
 // Provide password via stdin, terminated by EOF (pipe close). This should not
 // hang.
+//
+// The TEST_SLAVE magic is explained at
+// https://talks.golang.org/2014/testing.slide#23 , mirror:
+// http://web.archive.org/web/20200426174352/https://talks.golang.org/2014/testing.slide#23
 func TestStdinEof(t *testing.T) {
 	p1 := "asd45as5f4a36"
 	if os.Getenv("TEST_SLAVE") == "1" {
-		p2 := string(readPasswordStdin("foo"))
-		if p1 != p2 {
-			fmt.Fprintf(os.Stderr, "%q != %q", p1, p2)
+		p2, err := readPasswordStdin("foo")
+		if err != nil {
+			fmt.Fprint(os.Stderr, err)
+			os.Exit(1)
+		}
+		if p1 != string(p2) {
+			fmt.Fprintf(os.Stderr, "%q != %q", p1, string(p2))
 			os.Exit(1)
 		}
 		return
@@ -76,7 +92,10 @@ func TestStdinEof(t *testing.T) {
 // Provide empty password via stdin
 func TestStdinEmpty(t *testing.T) {
 	if os.Getenv("TEST_SLAVE") == "1" {
-		readPasswordStdin("foo")
+		_, err := readPasswordStdin("foo")
+		if err != nil {
+			os.Exit(1)
+		}
 	}
 	cmd := exec.Command(os.Args[0], "-test.run=TestStdinEmpty$")
 	cmd.Env = append(os.Environ(), "TEST_SLAVE=1")

@@ -55,11 +55,15 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 	if cf.IsFeatureFlagSet(configfile.FlagFIDO2) {
 		if args.fido2 == "" {
 			tlog.Fatal.Printf("Masterkey encrypted using FIDO2 token; need to use the --fido2 option.")
-			os.Exit(exitcodes.Usage)
+			return nil, nil, exitcodes.NewErr("", exitcodes.Usage)
 		}
 		pw = fido2.Secret(args.fido2, cf.FIDO2.CredentialID, cf.FIDO2.HMACSalt)
 	} else {
-		pw = readpassword.Once([]string(args.extpass), []string(args.passfile), "")
+		pw, err = readpassword.Once([]string(args.extpass), []string(args.passfile), "")
+		if err != nil {
+			tlog.Fatal.Println(err)
+			return nil, nil, exitcodes.NewErr("", exitcodes.ReadPassword)
+		}
 	}
 	tlog.Info.Println("Decrypting master key")
 	masterkey, err = cf.DecryptMasterKey(pw)
@@ -93,7 +97,11 @@ func changePassword(args *argContainer) {
 			os.Exit(exitcodes.Usage)
 		}
 		tlog.Info.Println("Please enter your new password.")
-		newPw := readpassword.Twice([]string(args.extpass), []string(args.passfile))
+		newPw, err := readpassword.Twice([]string(args.extpass), []string(args.passfile))
+		if err != nil {
+			tlog.Fatal.Println(err)
+			os.Exit(exitcodes.ReadPassword)
+		}
 		logN := confFile.ScryptObject.LogN()
 		if args._explicitScryptn {
 			logN = args.scryptn
