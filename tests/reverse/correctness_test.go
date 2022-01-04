@@ -259,7 +259,7 @@ func TestStatfs(t *testing.T) {
 	}
 }
 
-// TestSeekData tests that fs.FileLseeker is implemented
+// TestSeekData tests that SEEK_DATA works
 func TestSeekData(t *testing.T) {
 	if !plaintextnames {
 		t.Skip()
@@ -270,8 +270,8 @@ func TestSeekData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var oneTiB int64 = 1024 * 1024 * 1024 * 1024
-	if _, err = f.Seek(oneTiB, 0); err != nil {
+	var dataOffset int64 = 1 * 1024 * 1024 * 1024 // 1 GiB
+	if _, err = f.Seek(dataOffset, 0); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = f.Write([]byte("foo")); err != nil {
@@ -279,19 +279,17 @@ func TestSeekData(t *testing.T) {
 	}
 	f.Close()
 
-	const SEEK_DATA = 3
-
 	fn2 := filepath.Join(dirB, t.Name())
 	f, err = os.Open(fn2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	off, err := f.Seek(1024*1024, SEEK_DATA)
+	off, err := f.Seek(1024*1024, unix.SEEK_DATA)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if off < oneTiB-1024*1024 {
-		t.Errorf("off=%d, expected=%d\n", off, oneTiB)
+	if off < dataOffset-1024*1024 {
+		t.Errorf("off=%d, expected=%d\n", off, dataOffset)
 	}
 	f.Close()
 }
