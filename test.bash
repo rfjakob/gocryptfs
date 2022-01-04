@@ -1,13 +1,22 @@
 #!/bin/bash
 
-if [[ -z $TMPDIR ]]; then
+set -eu
+
+VERBOSE=0
+for i in "$@" ; do
+	if [[ $i == "-v" ]] ; then
+		VERBOSE=1
+		set -x
+		break
+	fi
+done
+
+if [[ -z ${TMPDIR:-} ]]; then
 	TMPDIR=/var/tmp
 	export TMPDIR
 else
 	echo "Using TMPDIR=$TMPDIR"
 fi
-
-set -eu
 
 cd "$(dirname "$0")"
 export GO111MODULE=on
@@ -53,7 +62,7 @@ if ! go tool | grep vet > /dev/null ; then
 elif [[ -d vendor ]] ; then
 	echo "vendor directory exists, skipping 'go tool vet'"
 else
-	go vet "$@" ./...
+	go vet ./...
 fi
 
 if command -v shellcheck > /dev/null ; then
@@ -63,10 +72,18 @@ else
 	echo "shellcheck not installed - skipping"
 fi
 
-#            We don't want all the subprocesses
-#               holding the lock file open
-#                           vvvvv
-go test -count 1 ./... "$@" 200>&-
+EXTRA_ARGS=""
+if [[ $VERBOSE -eq 1 ]]; then
+	# Disabling parallelism disables per-package output buffering, hence enabling
+	# live streaming of result output. And seeing where things hang.
+	EXTRA_ARGS="-p 1"
+fi
+
+#                         We don't want all the subprocesses
+#                              holding the lock file open
+#                                       vvvvv
+# shellcheck disable=SC2086
+go test -count 1 $EXTRA_ARGS ./... "$@" 200>&-
 #       ^^^^^^^^
 #   Disable result caching
 
