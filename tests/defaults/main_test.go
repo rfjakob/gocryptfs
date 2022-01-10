@@ -427,10 +427,11 @@ func TestFsync(t *testing.T) {
 }
 
 // force_owner was broken by the v2.0 rewrite:
-// The owner was only forced for GETATTR, but not for CREATE or LOOKUP.
+// The owner was only forced for GETATTR, but not for CREATE, LOOKUP, MKNOD.
 //
 // https://github.com/rfjakob/gocryptfs/issues/609
 // https://github.com/rfjakob/gocryptfs/pull/610
+// https://github.com/rfjakob/gocryptfs/issues/629
 func TestForceOwner(t *testing.T) {
 	cDir := test_helpers.InitFS(t)
 	os.Chmod(cDir, 0777) // Mount needs to be accessible for us
@@ -477,6 +478,18 @@ func TestForceOwner(t *testing.T) {
 	}
 	if st.Uid != 1234 || st.Gid != 1234 {
 		t.Errorf("GETATTR returned uid or gid != 1234: %#v", st)
+	}
+
+	// Test MKNOD
+	sock := pDir + "/sock"
+	if err := syscall.Mknod(sock, syscall.S_IFSOCK|0600, 0); err != nil {
+		t.Fatal(err)
+	}
+	if err := syscall.Stat(sock, &st); err != nil {
+		t.Fatal(err)
+	}
+	if st.Uid != 1234 || st.Gid != 1234 {
+		t.Errorf("MKNOD returned uid or gid != 1234: %#v", st)
 	}
 
 	// Remount to clear cache

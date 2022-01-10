@@ -277,7 +277,13 @@ func (n *Node) Mknod(ctx context.Context, name string, mode, rdev uint32, out *f
 		errno = fs.ToErrno(err)
 		return
 	}
+
 	inode = n.newChild(ctx, st, out)
+
+	if rn.args.ForceOwner != nil {
+		out.Owner = *rn.args.ForceOwner
+	}
+
 	return inode, 0
 }
 
