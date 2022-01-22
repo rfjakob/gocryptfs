@@ -37,7 +37,10 @@ type mountInfo struct {
 func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 	args := []string{"-q", "-wpanic", "-nosyslog", "-fg", fmt.Sprintf("-notifypid=%d", os.Getpid())}
 	args = append(args, extraArgs...)
-	//args = append(args, "-fusedebug")
+	if _, isset := os.LookupEnv("FUSEDEBUG"); isset {
+		fmt.Println("FUSEDEBUG is set, enabling -fusedebug")
+		args = append(args, "-fusedebug")
+	}
 	//args = append(args, "-d")
 	args = append(args, c, p)
 
