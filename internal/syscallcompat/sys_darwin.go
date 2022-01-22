@@ -21,10 +21,11 @@ const (
 	// O_PATH is only defined on Linux
 	O_PATH = 0
 
-	// Only defined on Linux
-	RENAME_NOREPLACE = 0
-	RENAME_WHITEOUT  = 0
-	RENAME_EXCHANGE  = 0
+	// Only exists on Linux. Define here to fix build failure, even though
+	// we will never see the flags.
+	RENAME_NOREPLACE = 1
+	RENAME_EXCHANGE  = 2
+	RENAME_WHITEOUT  = 4
 
 	// KAUTH_UID_NONE and KAUTH_GID_NONE are special values to
 	// revert permissions to the process credentials.
