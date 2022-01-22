@@ -177,6 +177,10 @@ MOUNT OPTIONS
 Available options for mounting are listed below. Usually, you don't need any.
 Defaults are fine.
 
+#### -acl
+Enable ACL enforcement. When you want to use ACLs, you must enable this
+option.
+
 #### -allow_other
 By default, the Linux kernel prevents any other user (even root) to
 access a mounted FUSE filesystem. Settings this option allows access for
