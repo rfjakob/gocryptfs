@@ -28,8 +28,10 @@ const (
 	// O_PATH is only defined on Linux
 	O_PATH = unix.O_PATH
 
-	// RENAME_NOREPLACE is only defined on Linux
+	// Only defined on Linux
 	RENAME_NOREPLACE = unix.RENAME_NOREPLACE
+	RENAME_WHITEOUT  = unix.RENAME_WHITEOUT
+	RENAME_EXCHANGE  = unix.RENAME_EXCHANGE
 )
 
 var preallocWarn sync.Once

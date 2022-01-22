@@ -21,8 +21,10 @@ const (
 	// O_PATH is only defined on Linux
 	O_PATH = 0
 
-	// RENAME_NOREPLACE is only defined on Linux
+	// Only defined on Linux
 	RENAME_NOREPLACE = 0
+	RENAME_WHITEOUT  = 0
+	RENAME_EXCHANGE  = 0
 
 	// KAUTH_UID_NONE and KAUTH_GID_NONE are special values to
 	// revert permissions to the process credentials.
