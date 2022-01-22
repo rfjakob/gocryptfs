@@ -50,7 +50,12 @@ func TestRenameWhiteout(t *testing.T) {
 				t.Error(err)
 			}
 			// readdir should not choke on leftover or missing .name files
-			_, err = os.ReadDir(test_helpers.DefaultPlainDir)
+			dir, err := os.Open(test_helpers.DefaultPlainDir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer dir.Close()
+			_, err = dir.Readdir(0)
 			if err != nil {
 				t.Error(err)
 			}
@@ -101,7 +106,12 @@ func TestRenameExchange(t *testing.T) {
 			t.Error(err)
 		}
 		// readdir should not choke on leftover or missing .name files
-		_, err = os.ReadDir(test_helpers.DefaultPlainDir)
+		dir, err := os.Open(test_helpers.DefaultPlainDir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer dir.Close()
+		_, err = dir.Readdir(0)
 		if err != nil {
 			t.Error(err)
 		}
