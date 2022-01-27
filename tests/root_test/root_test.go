@@ -362,3 +362,34 @@ func TestBtrfsQuirks(t *testing.T) {
 		t.Errorf("wrong quirk: %v", quirk)
 	}
 }
+
+func TestOverlay(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skip("must run as root")
+	}
+	cDir := test_helpers.InitFS(t)
+	if syscallcompat.DetectQuirks(cDir)|syscallcompat.QuirkNoUserXattr != 0 {
+		t.Logf("No user xattrs! overlay mount will likely fail.")
+	}
+	os.Chmod(cDir, 0755)
+	pDir := cDir + ".mnt"
+	test_helpers.MountOrFatal(t, cDir, pDir, "-allow_other", "-extpass=echo test")
+	defer test_helpers.UnmountPanic(pDir)
+
+	for _, d := range []string{"lower", "upper", "work", "merged"} {
+		err := os.Mkdir(pDir+"/"+d, 0700)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	ovlMnt := pDir + "/merged"
+	cmd := exec.Command("mount", "-t", "overlay", "overlay",
+		"-o", "lowerdir="+pDir+"/lower,upperdir="+pDir+"/upper,workdir="+pDir+"/work",
+		ovlMnt)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Log(string(out))
+		t.Fatal(err)
+	}
+	defer syscall.Unmount(ovlMnt, 0)
+}
