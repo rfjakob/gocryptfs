@@ -179,7 +179,13 @@ func TestDiskFull(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer syscall.Unlink(ext4img)
-	defer syscall.Unmount(ext4mnt, 0)
+	defer func() {
+		const MNT_DETACH = 2
+		err := syscall.Unmount(ext4mnt, MNT_DETACH)
+		if err != nil {
+			t.Log(err)
+		}
+	}()
 
 	// gocryptfs -init
 	cipherdir := ext4mnt + "/a"
