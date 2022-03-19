@@ -157,14 +157,6 @@ mounted using gocryptfs v1.2 and higher. Default true.
 Reverse mode shows a read-only encrypted view of a plaintext
 directory. Implies "-aessiv".
 
-#### -scryptn int
-scrypt cost parameter expressed as scryptn=log2(N). Possible values are
-10 to 28, representing N=2^10 to N=2^28.
-
-Setting this to a lower
-value speeds up mounting and reduces its memory needs, but makes
-the password susceptible to brute-force attacks. The default is 16.
-
 #### -xchacha
 Use XChaCha20-Poly1305 file content encryption. This should be much faster
 than AES-GCM on CPUs that lack AES acceleration.
@@ -568,6 +560,16 @@ Applies to: all actions that ask for a password.
 Quiet - silence informational messages.
 
 Applies to: all actions.
+
+#### -scryptn int
+scrypt cost parameter expressed as scryptn=log2(N). Possible values are
+10 to 28, representing N=2^10 to N=2^28.
+
+Setting this to a lower
+value speeds up mounting and reduces its memory needs, but makes
+the password susceptible to brute-force attacks. The default is 16.
+
+Applies to: `-init`, `-passwd`
 
 #### -trace string
 Write execution trace to file. View the trace using "go tool trace FILE".
