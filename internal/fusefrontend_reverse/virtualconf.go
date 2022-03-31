@@ -10,6 +10,7 @@ import (
 )
 
 var _ = (fs.NodeOpener)((*VirtualConfNode)(nil))
+var _ = (fs.NodeGetattrer)((*VirtualConfNode)(nil))
 
 type VirtualConfNode struct {
 	fs.Inode
@@ -26,6 +27,17 @@ func (n *VirtualConfNode) Open(ctx context.Context, flags uint32) (fh fs.FileHan
 	fh = &VirtualConfFile{fd: fd}
 	return
 }
+
+func (n *VirtualConfNode) Getattr(ctx context.Context, fh fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
+	var st syscall.Stat_t
+	err := syscall.Stat(n.path, &st)
+	if err != nil {
+		return fs.ToErrno(err)
+	}
+	out.FromStat(&st)
+	return 0
+}
+
 
 // Check that we have implemented the fs.File* interfaces
 var _ = (fs.FileReader)((*VirtualConfFile)(nil))
