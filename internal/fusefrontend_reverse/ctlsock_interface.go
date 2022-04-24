@@ -26,7 +26,7 @@ func (rn *RootNode) EncryptPath(plainPath string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if rn.args.LongNames && len(encryptedPart) > unix.NAME_MAX {
+		if rn.args.LongNames && (len(encryptedPart) > unix.NAME_MAX || len(encryptedPart) > rn.nameTransform.GetLongNameMax()) {
 			encryptedPart = rn.nameTransform.HashLongName(encryptedPart)
 		}
 		cipherPath = filepath.Join(cipherPath, encryptedPart)
