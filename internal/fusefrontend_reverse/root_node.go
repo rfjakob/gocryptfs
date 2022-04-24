@@ -1,7 +1,6 @@
 package fusefrontend_reverse
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -100,7 +99,8 @@ func (rn *RootNode) findLongnameParent(fd int, diriv []byte, longname string) (p
 		}
 		if len(cFullName) <= unix.NAME_MAX && len(cFullName) <= rn.nameTransform.GetLongNameMax() {
 			// Entry should have been skipped by the shortNameMax check above
-			log.Panic("logic error or wrong shortNameMax constant?")
+			// log.Panic("logic error or wrong shortNameMax constant?")
+            continue
 		}
 		hName := rn.nameTransform.HashLongName(cFullName)
 		if longname == hName {
