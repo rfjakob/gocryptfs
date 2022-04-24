@@ -42,6 +42,9 @@ type RootNode struct {
 	// rootDev stores the device number of the backing directory. Used for
 	// --one-file-system.
 	rootDev uint64
+	// If a file name length is shorter than shortNameMax, there is no need to
+	// hash it.
+	shortNameMax int
 }
 
 // NewRootNode returns an encrypted FUSE overlay filesystem.
@@ -50,6 +53,7 @@ type RootNode struct {
 func NewRootNode(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) *RootNode {
 	var rootDev uint64
 	var st syscall.Stat_t
+	var shortNameMax int
 	if err := syscall.Stat(args.Cipherdir, &st); err != nil {
 		tlog.Warn.Printf("Could not stat backing directory %q: %v", args.Cipherdir, err)
 		if args.OneFileSystem {
@@ -60,12 +64,16 @@ func NewRootNode(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransf
 		rootDev = uint64(st.Dev)
 	}
 
+	shortNameMax = n.GetLongNameMax() * 3 / 4
+	shortNameMax = shortNameMax - shortNameMax % 16 - 1
+
 	rn := &RootNode{
 		args:          args,
 		nameTransform: n,
 		contentEnc:    c,
 		inoMap:        inomap.New(rootDev),
 		rootDev:       rootDev,
+		shortNameMax:  shortNameMax,
 	}
 	if len(args.Exclude) > 0 || len(args.ExcludeWildcard) > 0 || len(args.ExcludeFrom) > 0 {
 		rn.excluder = prepareExcluder(args)
@@ -87,16 +95,16 @@ func (rn *RootNode) findLongnameParent(fd int, diriv []byte, longname string) (p
 		return
 	}
 	for _, entry := range entries {
-		if len(entry.Name) <= shortNameMax {
+		if len(entry.Name) <= rn.shortNameMax {
 			continue
 		}
 		cFullName, err = rn.nameTransform.EncryptName(entry.Name, diriv)
 		if err != nil {
 			continue
 		}
-		if len(cFullName) <= unix.NAME_MAX {
+		if len(cFullName) <= unix.NAME_MAX && len(cFullName) <= rn.nameTransform.GetLongNameMax() {
 			// Entry should have been skipped by the shortNameMax check above
-			log.Panic("logic error or wrong shortNameMax constant?")
+			log.Panic("logic error or wrong shortNameMax?")
 		}
 		hName := rn.nameTransform.HashLongName(cFullName)
 		if longname == hName {

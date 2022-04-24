@@ -73,7 +73,7 @@ func (n *Node) Readdir(ctx context.Context) (stream fs.DirStream, errno syscall.
 				entries[i].Name = "___GOCRYPTFS_INVALID_NAME___"
 				continue
 			}
-			if len(cName) > unix.NAME_MAX {
+			if len(cName) > unix.NAME_MAX || len(cName) > rn.nameTransform.GetLongNameMax() {
 				cName = rn.nameTransform.HashLongName(cName)
 				dotNameFile := fuse.DirEntry{
 					Mode: virtualFileMode,
