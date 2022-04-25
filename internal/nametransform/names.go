@@ -168,6 +168,8 @@ func Dir(path string) string {
 	return d
 }
 
+// GetLongNameMax will return curent `longNameMax`. File name longer than
+// this should be hashed.
 func (n *NameTransform) GetLongNameMax() int {
 	return n.longNameMax
 }
