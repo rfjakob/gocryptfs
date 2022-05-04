@@ -333,7 +333,7 @@ func TestExampleFSv13reverse(t *testing.T) {
 	}
 	dirA = tmpFsPath + dirA
 	// Mount using password
-	// We pass "-wpanic=false" because the '..' and '.' tests deliverately trigger warnings
+	// We pass "-wpanic=false" because the '..' and '.' tests deliberately trigger warnings
 	test_helpers.MountOrFatal(t, dirA, dirB, "-reverse", "-extpass", "echo test", "-wpanic=false", opensslOpt)
 	c := dirB + "/gocryptfs.conf"
 	if !test_helpers.VerifyExistence(t, c) {

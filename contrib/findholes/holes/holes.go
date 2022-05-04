@@ -153,7 +153,7 @@ func Verify(fd int, segments []Segment) (err error) {
 		case SegmentEOF:
 			continue
 		default:
-			log.Panicf("BUG: unkown segment type %d", s.Type)
+			log.Panicf("BUG: unknown segment type %d", s.Type)
 		}
 		for off := s.Offset; off < segments[i+1].Offset; off++ {
 			res, err := syscall.Seek(fd, off, whence)

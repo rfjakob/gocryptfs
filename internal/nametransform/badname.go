@@ -34,7 +34,7 @@ func (be *NameTransform) EncryptAndHashBadName(name string, iv []byte, dirfd int
 		//file found, return result
 		return lastFoundName, nil
 	}
-	//BadName Mode: check if the name was tranformed without change (badname suffix and undecryptable cipher name)
+	//BadName Mode: check if the name was transformed without change (badname suffix and undecryptable cipher name)
 	err = syscallcompat.Fstatat(dirfd, name[:len(name)-len(BadnameSuffix)], &st, unix.AT_SYMLINK_NOFOLLOW)
 	if err == nil {
 		filesFound++

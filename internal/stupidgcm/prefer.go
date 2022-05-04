@@ -40,7 +40,7 @@ func PreferOpenSSLXchacha20poly1305() bool {
 	if runtime.GOARCH == "amd64" {
 		return false
 	}
-	// On arm64 and arm, OpenSSL is faster. Probably everwhere else too.
+	// On arm64 and arm, OpenSSL is faster. Probably everywhere else too.
 	return true
 }
 

@@ -26,7 +26,7 @@ func usage() {
 them in random order over a single "dst" file while reading the "dst"
 file concurrently in a loop.
 
-Progress and errors are reported as they occour in addition to a summary
+Progress and errors are reported as they occur in addition to a summary
 printed at the end. cifs and fuse filesystems are known to fail, local
 filesystems and nfs seem ok.
 

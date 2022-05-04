@@ -9,7 +9,7 @@
 // Each (Dev, Tag) tuple gets a namespace id assigned. The original inode
 // number is then passed through in the lower 48 bits.
 //
-// If namespace ids are exhaused, or the original id is larger than 48 bits,
+// If namespace ids are exhausted, or the original id is larger than 48 bits,
 // the whole (Dev, Tag, Ino) tuple gets mapped in the spill map, and the
 // spill bit is set to 1.
 package inomap
@@ -114,7 +114,7 @@ func (m *InoMap) Translate(in QIno) (out uint64) {
 
 // TranslateStat translates (device, ino) pair contained in "st" into a unique
 // inode number and overwrites the ino in "st" with it.
-// Convience wrapper around Translate().
+// Convenience wrapper around Translate().
 func (m *InoMap) TranslateStat(st *syscall.Stat_t) {
 	in := QInoFromStat(st)
 	st.Ino = m.Translate(in)

@@ -207,8 +207,8 @@ func (f *File) doRead(dst []byte, off uint64, length uint64) ([]byte, syscall.Er
 	plaintext, err := f.contentEnc.DecryptBlocks(ciphertext, firstBlockNo, fileID)
 	f.rootNode.contentEnc.CReqPool.Put(ciphertext)
 	if err != nil {
-		curruptBlockNo := firstBlockNo + f.contentEnc.PlainOffToBlockNo(uint64(len(plaintext)))
-		tlog.Warn.Printf("doRead %d: corrupt block #%d: %v", f.qIno.Ino, curruptBlockNo, err)
+		corruptBlockNo := firstBlockNo + f.contentEnc.PlainOffToBlockNo(uint64(len(plaintext)))
+		tlog.Warn.Printf("doRead %d: corrupt block #%d: %v", f.qIno.Ino, corruptBlockNo, err)
 		return nil, syscall.EIO
 	}
 
