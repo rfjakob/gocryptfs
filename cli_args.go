@@ -334,7 +334,7 @@ func countOpFlags(args *argContainer) int {
 	return count
 }
 
-// isFlagPassed finds out if the flag was explictely passed on the command line.
+// isFlagPassed finds out if the flag was explicitly passed on the command line.
 // https://stackoverflow.com/a/54747682/1380267
 func isFlagPassed(flagSet *flag.FlagSet, name string) bool {
 	found := false

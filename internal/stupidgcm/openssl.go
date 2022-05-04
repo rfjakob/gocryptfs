@@ -117,7 +117,7 @@ func slicePointerOrNull(s []byte) (ptr *C.uchar) {
 }
 
 // This functions exists to benchmark the C call overhead from Go.
-// See BenchmarkCCall for resuts.
+// See BenchmarkCCall for results.
 func noopCFunction() {
 	C.noop_c_function()
 }

@@ -951,7 +951,7 @@ func TestInitNotEmpty(t *testing.T) {
 }
 
 // TestSharedstorage checks that `-sharedstorage` shows stable inode numbers to
-// userpsace despite having hard link tracking disabled
+// userspace despite having hard link tracking disabled
 func TestSharedstorage(t *testing.T) {
 	dir := test_helpers.InitFS(t)
 	mnt := dir + ".mnt"
