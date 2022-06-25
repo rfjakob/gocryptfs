@@ -3,18 +3,13 @@ module github.com/rfjakob/gocryptfs/v2
 go 1.16
 
 require (
+	github.com/aperturerobotics/jacobsa-crypto v1.0.0
 	github.com/hanwen/go-fuse/v2 v2.1.1-0.20221117175120-915cf5413cde
-	github.com/jacobsa/crypto v0.0.0-20190317225127-9f44e2d11115
-	github.com/jacobsa/oglematchers v0.0.0-20150720000706-141901ea67cd // indirect
-	github.com/jacobsa/oglemock v0.0.0-20150831005832-e94d794d06ff // indirect
-	github.com/jacobsa/ogletest v0.0.0-20170503003838-80d50a735a11 // indirect
-	github.com/jacobsa/reqtrace v0.0.0-20150505043853-245c9e0234cb // indirect
 	github.com/pkg/xattr v0.4.3
 	github.com/rfjakob/eme v1.1.2
 	github.com/sabhiram/go-gitignore v0.0.0-20201211210132-54b8a0bf510f
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
-	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d // indirect
-	golang.org/x/sys v0.0.0-20210817190340-bfb29a6856f2
+	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
 	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035
 )

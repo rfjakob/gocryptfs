@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/jacobsa/crypto/siv"
+	"github.com/aperturerobotics/jacobsa-crypto/siv"
 )
 
 // Test all supported key lengths

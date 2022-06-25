@@ -6,7 +6,7 @@ import (
 	"crypto/cipher"
 	"log"
 
-	"github.com/jacobsa/crypto/siv"
+	"github.com/aperturerobotics/jacobsa-crypto/siv"
 )
 
 type sivAead struct {
@@ -63,7 +63,7 @@ func (s *sivAead) Seal(dst, nonce, plaintext, authData []byte) []byte {
 	if len(s.key) == 0 {
 		log.Panic("Key has been wiped?")
 	}
-	// https://github.com/jacobsa/crypto/blob/master/siv/encrypt.go#L48:
+	// https://github.com/aperturerobotics/jacobsa-crypto/blob/master/siv/encrypt.go#L48:
 	// As per RFC 5297 section 3, you may use this function for nonce-based
 	// authenticated encryption by passing a nonce as the last associated
 	// data element.
