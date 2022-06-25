@@ -140,7 +140,7 @@ func bGoGCM(b *testing.B) {
 	bEncrypt(b, gGCM)
 }
 
-// bAESSIV benchmarks AES-SIV from github.com/jacobsa/crypto/siv
+// bAESSIV benchmarks AES-SIV from github.com/aperturerobotics/jacobsa-crypto/siv
 func bAESSIV(b *testing.B) {
 	c := siv_aead.New(randBytes(64))
 	bEncrypt(b, c)

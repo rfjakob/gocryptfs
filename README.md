@@ -585,7 +585,7 @@ Changelog
 * **Add reverse mode ([#19](https://github.com/rfjakob/gocryptfs/issues/19))**
   * AES-SIV (RFC5297) encryption to implement deterministic encryption
     securely. Uses the excellent
-    [jacobsa/crypto](https://github.com/jacobsa/crypto) library.
+    [jacobsa/crypto](https://github.com/aperturerobotics/jacobsa-crypto) library.
     The corresponding feature flag is called `AESSIV`.
   * New command-line options: `-reverse`, `-aessiv`
   * Filesystems using reverse mode can only be mounted with gocryptfs v1.1
