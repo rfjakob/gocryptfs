@@ -52,11 +52,11 @@ func testEncryptDecrypt(t *testing.T, c1 cipher.AEAD, c2 cipher.AEAD) {
 
 		// Ciphertext must be identical to Go GCM
 		if !bytes.Equal(c1out, c2out) {
-			t.Fatalf("Compare failed for encryption, size %d", i)
 			t.Log("c1out:")
 			t.Log("\n" + hex.Dump(c1out))
 			t.Log("c2out:")
 			t.Log("\n" + hex.Dump(c2out))
+			t.Fatalf("Compare failed for encryption, size %d", i)
 		}
 
 		c1out2, sErr := c1.Open(dst, iv, c1out[len(dst):], authData)
@@ -115,11 +115,11 @@ func testInplaceSeal(t *testing.T, c1 cipher.AEAD, c2 cipher.AEAD) {
 
 		// Ciphertext must be identical to Go GCM
 		if !bytes.Equal(c1out, c2out) {
-			t.Fatalf("Compare failed for encryption, size %d", i)
 			t.Log("sOut:")
 			t.Log("\n" + hex.Dump(c1out))
 			t.Log("gOut:")
 			t.Log("\n" + hex.Dump(c2out))
+			t.Fatalf("Compare failed for encryption, size %d", i)
 		}
 	}
 }
