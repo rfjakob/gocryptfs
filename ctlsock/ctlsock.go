@@ -21,9 +21,13 @@ type CtlSock struct {
 	Conn net.Conn
 }
 
+// There was at least one user who hit the earlier 1 second timeout. Raise to 10
+// seconds which ought to be enough for anyone.
+const ctlsockTimeout = 10 * time.Second
+
 // New opens the socket at `socketPath` and stores it in a `CtlSock` object.
 func New(socketPath string) (*CtlSock, error) {
-	conn, err := net.DialTimeout("unix", socketPath, 1*time.Second)
+	conn, err := net.DialTimeout("unix", socketPath, ctlsockTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +36,7 @@ func New(socketPath string) (*CtlSock, error) {
 
 // Query sends a request to the control socket returns the response.
 func (c *CtlSock) Query(req *RequestStruct) (*ResponseStruct, error) {
-	c.Conn.SetDeadline(time.Now().Add(time.Second))
+	c.Conn.SetDeadline(time.Now().Add(ctlsockTimeout))
 	msg, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
