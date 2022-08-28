@@ -196,11 +196,15 @@ RM:    2,367
 Changelog
 ---------
 
-#### vNEXT
+#### v2.3, 2022-08-28
 * Add **`-longnamemax`** flag to `-init` ([#499](https://github.com/rfjakob/gocryptfs/issues/499)).
   Can be used to work around file or path length restrictions on online storage.
   See the [man page](https://github.com/rfjakob/gocryptfs/blob/master/Documentation/MANPAGE.md#-longnamemax)
   for details.
+* Support for [`NO_COLOR`](https://no-color.org/) env variable ([#617](https://github.com/rfjakob/gocryptfs/issues/617))
+* Fix `-force_owner` not not affecting socket files ([#629](https://github.com/rfjakob/gocryptfs/issues/629)
+* MacOS: fix inaccessible `gocryptfs.conf` in reverse mode ([commit](https://github.com/rfjakob/gocryptfs/commit/c9e4e4f74150d2734496e90a4c442a17b79f52c1))
+* Raise ctlsock operation timeout from 1 to 10 seconds ([#683](https://github.com/rfjakob/gocryptfs/issues/683))
 
 #### v2.2.1, 2021-10-20
 * Fix `-force_owner` only taking effect after 2 seconds ([#609](https://github.com/rfjakob/gocryptfs/issues/609)).
