@@ -24,7 +24,6 @@ func TestConcurrentReadWrite(t *testing.T) {
 	} else {
 		f.Close()
 	}
-	buf := make([]byte, 100)
 	content := []byte("1234567890")
 	threads := 10
 	loops := 30
@@ -32,6 +31,7 @@ func TestConcurrentReadWrite(t *testing.T) {
 		// Reader thread
 		wg.Add(1)
 		go func() {
+			buf := make([]byte, 100)
 			fRd, err := os.Open(fn)
 			if err != nil {
 				log.Fatal(err)
