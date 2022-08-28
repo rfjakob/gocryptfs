@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
@@ -31,7 +31,7 @@ func Once(extpass []string, passfile []string, prompt string) ([]byte, error) {
 	if prompt == "" {
 		prompt = "Password"
 	}
-	if !terminal.IsTerminal(int(os.Stdin.Fd())) {
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
 		return readPasswordStdin(prompt)
 	}
 	return readPasswordTerminal(prompt + ": ")
@@ -46,7 +46,7 @@ func Twice(extpass []string, passfile []string) ([]byte, error) {
 	if len(extpass) != 0 {
 		return readPasswordExtpass(extpass)
 	}
-	if !terminal.IsTerminal(int(os.Stdin.Fd())) {
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
 		return readPasswordStdin("Password")
 	}
 	p1, err := readPasswordTerminal("Password: ")
@@ -72,8 +72,8 @@ func Twice(extpass []string, passfile []string) ([]byte, error) {
 func readPasswordTerminal(prompt string) ([]byte, error) {
 	fd := int(os.Stdin.Fd())
 	fmt.Fprintf(os.Stderr, prompt)
-	// terminal.ReadPassword removes the trailing newline
-	p, err := terminal.ReadPassword(fd)
+	// term.ReadPassword removes the trailing newline
+	p, err := term.ReadPassword(fd)
 	if err != nil {
 		return nil, fmt.Errorf("Could not read password from terminal: %v\n", err)
 	}
