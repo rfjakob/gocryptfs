@@ -13,8 +13,9 @@ jobs:
         go:
           - "1.13.x" # Ubuntu 20.04 LTS "focal"
           - "1.15.x" # Debian 11 "Bullseye"
-          - "1.16.x" # Golang upstream stable
           - "1.17.x" # Golang upstream stable
+          - "1.18.x" # Golang upstream stable
+          - "1.19.x" # Golang upstream stable
       # Don't cancel everything when one Go version fails
       fail-fast: false
     runs-on: ubuntu-latest
