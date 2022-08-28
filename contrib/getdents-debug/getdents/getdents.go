@@ -1,4 +1,5 @@
-//+build linux
+//go:build linux
+// +build linux
 
 /*
 Small tool to try to debug unix.Getdents problems on CIFS mounts

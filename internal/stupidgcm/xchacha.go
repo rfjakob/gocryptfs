@@ -1,3 +1,4 @@
+//go:build !without_openssl
 // +build !without_openssl
 
 // Copyright 2018 The Go Authors. All rights reserved.

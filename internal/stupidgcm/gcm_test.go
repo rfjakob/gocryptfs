@@ -1,3 +1,4 @@
+//go:build !without_openssl
 // +build !without_openssl
 
 // We compare against Go's built-in GCM implementation. Since stupidgcm only

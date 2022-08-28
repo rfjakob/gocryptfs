@@ -38,7 +38,6 @@ func (n *VirtualConfNode) Getattr(ctx context.Context, fh fs.FileHandle, out *fu
 	return 0
 }
 
-
 // Check that we have implemented the fs.File* interfaces
 var _ = (fs.FileReader)((*VirtualConfFile)(nil))
 var _ = (fs.FileReleaser)((*VirtualConfFile)(nil))

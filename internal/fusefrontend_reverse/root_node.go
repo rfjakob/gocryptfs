@@ -65,7 +65,7 @@ func NewRootNode(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransf
 	}
 
 	shortNameMax = n.GetLongNameMax() * 3 / 4
-	shortNameMax = shortNameMax - shortNameMax % 16 - 1
+	shortNameMax = shortNameMax - shortNameMax%16 - 1
 
 	rn := &RootNode{
 		args:          args,

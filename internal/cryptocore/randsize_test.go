@@ -1,3 +1,4 @@
+//go:build go1.7
 // +build go1.7
 
 // ^^^^^^^^^^^^ we use the "sub-benchmark" feature that was added in Go 1.7

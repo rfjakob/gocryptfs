@@ -1,3 +1,4 @@
+//go:build !without_openssl
 // +build !without_openssl
 
 package stupidgcm

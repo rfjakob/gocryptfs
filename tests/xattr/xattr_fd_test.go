@@ -1,4 +1,5 @@
-//+build linux
+//go:build linux
+// +build linux
 
 // Darwin does not support Fgetxattr and friends!
 
