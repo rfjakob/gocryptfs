@@ -196,6 +196,11 @@ RM:    2,367
 Changelog
 ---------
 
+#### v2.3.0, 2022-10-21
+* Identical to v2.3, just tagged once more in full semver x.y.z format. This make Go's fetching logic happy,
+  which ignores v2.3 (without the third digit) completely.
+  Fixes [#694](https://github.com/rfjakob/gocryptfs/issues/694), [#688](https://github.com/rfjakob/gocryptfs/issues/688).
+
 #### v2.3, 2022-08-28
 * Add **`-longnamemax`** flag to `-init` ([#499](https://github.com/rfjakob/gocryptfs/issues/499)).
   Can be used to work around file or path length restrictions on online storage.
