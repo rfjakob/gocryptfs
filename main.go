@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 
@@ -35,6 +36,51 @@ var BuildDate = "0000-00-00"
 
 // raceDetector is set to true by race.go if we are compiled with "go build -race"
 var raceDetector bool
+
+func initGIT() {
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		return
+	}
+	if strings.HasPrefix(GitVersion, `[`) {
+		GitVersion = bi.Main.Version
+		var gitDate string
+		var gitDirty bool
+		for _, item := range bi.Settings {
+			switch item.Key {
+			case "vcs.revision":
+				GitVersion = item.Value
+			case "vcs.time":
+				gitDate = item.Value
+				gitDate = strings.Map(func(r rune) rune {
+					switch {
+					case r >= '0' && r <= '9':
+						return r
+					default:
+						return -1
+					}
+				}, gitDate)
+			case "vcs.modified":
+				gitDirty, _ = strconv.ParseBool(item.Value)
+			}
+		}
+		if len(gitDate) > 0 {
+			GitVersion = gitDate + "-" + GitVersion
+		}
+		if gitDirty {
+			GitVersion = GitVersion + " (dirty)"
+		}
+	}
+	const fuseModule = `github.com/hanwen/go-fuse/v2`
+
+	if strings.HasPrefix(GitVersionFuse, `[`) {
+		for _, item := range bi.Deps {
+			if item.Path == fuseModule {
+				GitVersionFuse = item.Version
+			}
+		}
+	}
+}
 
 // loadConfig loads the config file `args.config` and decrypts the masterkey,
 // or gets via the `-masterkey` or `-zerokey` command line options, if specified.
@@ -140,6 +186,8 @@ func changePassword(args *argContainer) {
 // printVersion prints a version string like this:
 // gocryptfs v1.7-32-gcf99cfd; go-fuse v1.0.0-174-g22a9cb9; 2019-05-12 go1.12 linux/amd64
 func printVersion() {
+	initGIT()
+
 	var tagsSlice []string
 	if stupidgcm.BuiltWithoutOpenssl {
 		tagsSlice = append(tagsSlice, "without_openssl")

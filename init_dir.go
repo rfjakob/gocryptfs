@@ -55,6 +55,8 @@ func isDir(dir string) error {
 // In reverse mode, we create .gocryptfs.reverse.conf and the directory does
 // not need to be empty.
 func initDir(args *argContainer) {
+	initGIT()
+
 	var err error
 	if args.reverse {
 		_, err = os.Stat(args.config)
