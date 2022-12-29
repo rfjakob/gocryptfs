@@ -120,9 +120,18 @@ func doMount(args *argContainer) {
 	tlog.Info.Println(tlog.ColorGreen + "Filesystem mounted and ready." + tlog.ColorReset)
 	// We have been forked into the background, as evidenced by the set
 	// "notifypid".
+	// Do what daemons should do: https://man7.org/linux/man-pages/man7/daemon.7.html
 	if args.notifypid > 0 {
 		// Chdir to the root directory so we don't block unmounting the CWD
 		os.Chdir("/")
+		// Disconnect from the controlling terminal by creating a new session.
+		// This prevents us from getting SIGINT when the user presses Ctrl-C
+		// to exit a running script that has called gocryptfs, or SIGHUP when
+		// xfce4-terminal closes itself ( https://github.com/rfjakob/gocryptfs/issues/660 ).
+		_, err = syscall.Setsid()
+		if err != nil {
+			tlog.Warn.Printf("Setsid: %v", err)
+		}
 		// Switch to syslog
 		if !args.nosyslog {
 			// Switch all of our logs and the generic logger to syslog
@@ -133,13 +142,6 @@ func doMount(args *argContainer) {
 			tlog.SwitchLoggerToSyslog()
 			// Daemons should redirect stdin, stdout and stderr
 			redirectStdFds()
-		}
-		// Disconnect from the controlling terminal by creating a new session.
-		// This prevents us from getting SIGINT when the user presses Ctrl-C
-		// to exit a running script that has called gocryptfs.
-		_, err = syscall.Setsid()
-		if err != nil {
-			tlog.Warn.Printf("Setsid: %v", err)
 		}
 		// Send SIGUSR1 to our parent
 		sendUsr1(args.notifypid)
