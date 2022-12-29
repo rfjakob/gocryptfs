@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"runtime"
 	"runtime/debug"
-	"strconv"
 	"strings"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/stupidgcm"
@@ -61,28 +60,9 @@ func versionFromBuildInfo() {
 		tlog.Debug.Println("versionFromBuildInfo: ReadBuildInfo() failed")
 		return
 	}
-	// Parse BuildSettings
-	var vcsRevision, vcsTime string
-	var vcsModified bool
-	for _, s := range info.Settings {
-		switch s.Key {
-		case "vcs.revision":
-			vcsRevision = s.Value
-		case "vcs.time":
-			vcsTime = s.Value
-		case "vcs.modified":
-			vcsModified, _ = strconv.ParseBool(s.Value)
-		}
-	}
 	// Fill our version strings
-	if GitVersion == gitVersionNotSet {
+	if GitVersion == gitVersionNotSet && info.Main.Version != "(devel)" {
 		GitVersion = info.Main.Version
-		if GitVersion == "(devel)" && vcsRevision != "" {
-			GitVersion = fmt.Sprintf("vcs.revision=%s", vcsRevision)
-		}
-		if vcsModified {
-			GitVersion += "-dirty"
-		}
 	}
 	if GitVersionFuse == gitVersionFuseNotSet {
 		for _, m := range info.Deps {
@@ -93,11 +73,6 @@ func versionFromBuildInfo() {
 				}
 				break
 			}
-		}
-	}
-	if BuildDate == buildDateNotSet {
-		if vcsTime != "" {
-			BuildDate = fmt.Sprintf("vcs.time=%s", vcsTime)
 		}
 	}
 }
