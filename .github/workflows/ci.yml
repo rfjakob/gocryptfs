@@ -13,16 +13,16 @@ jobs:
         go:
           - "1.13.x" # Ubuntu 20.04 LTS "focal"
           - "1.15.x" # Debian 11 "Bullseye"
-          - "1.17.x" # Golang upstream stable
-          - "1.18.x" # Golang upstream stable
-          - "1.19.x" # Golang upstream stable
+          - "1.18.x" # Ubuntu 22.04 LTS "jammy"
+          - "oldstable" # 2nd-latest Golang upstream stable
+          - "stable" # Latest Go upstream stable
       # Don't cancel everything when one Go version fails
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
 
     - name: Install Go ${{ matrix.go }}
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
         go-version: ${{ matrix.go }}
 
@@ -30,7 +30,7 @@ jobs:
     # https://github.com/actions/runner/issues/1188
     - run: ls -l /proc/self/fd
 
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 0 # Make "git describe" work
 
@@ -42,7 +42,7 @@ jobs:
 
     # Build & upload static binary
     - run: ./build-without-openssl.bash
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: gocryptfs static binary (Go ${{ matrix.go }})
         path: gocryptfs
