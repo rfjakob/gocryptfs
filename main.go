@@ -4,12 +4,10 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime"
-	"runtime/debug"
 	"strconv"
 	"strings"
 
@@ -21,66 +19,8 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/fido2"
 	"github.com/rfjakob/gocryptfs/v2/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/v2/internal/speed"
-	"github.com/rfjakob/gocryptfs/v2/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
-
-// GitVersion is the gocryptfs version according to git, set by build.bash
-var GitVersion = "[GitVersion not set - please compile using ./build.bash]"
-
-// GitVersionFuse is the go-fuse library version, set by build.bash
-var GitVersionFuse = "[GitVersionFuse not set - please compile using ./build.bash]"
-
-// BuildDate is a date string like "2017-09-06", set by build.bash
-var BuildDate = "0000-00-00"
-
-// raceDetector is set to true by race.go if we are compiled with "go build -race"
-var raceDetector bool
-
-func initGIT() {
-	bi, ok := debug.ReadBuildInfo()
-	if !ok {
-		return
-	}
-	if strings.HasPrefix(GitVersion, `[`) {
-		GitVersion = bi.Main.Version
-		var gitDate string
-		var gitDirty bool
-		for _, item := range bi.Settings {
-			switch item.Key {
-			case "vcs.revision":
-				GitVersion = item.Value
-			case "vcs.time":
-				gitDate = item.Value
-				gitDate = strings.Map(func(r rune) rune {
-					switch {
-					case r >= '0' && r <= '9':
-						return r
-					default:
-						return -1
-					}
-				}, gitDate)
-			case "vcs.modified":
-				gitDirty, _ = strconv.ParseBool(item.Value)
-			}
-		}
-		if len(gitDate) > 0 {
-			GitVersion = gitDate + "-" + GitVersion
-		}
-		if gitDirty {
-			GitVersion = GitVersion + " (dirty)"
-		}
-	}
-	const fuseModule = `github.com/hanwen/go-fuse/v2`
-
-	if strings.HasPrefix(GitVersionFuse, `[`) {
-		for _, item := range bi.Deps {
-			if item.Path == fuseModule {
-				GitVersionFuse = item.Version
-			}
-		}
-	}
-}
 
 // loadConfig loads the config file `args.config` and decrypts the masterkey,
 // or gets via the `-masterkey` or `-zerokey` command line options, if specified.
@@ -181,28 +121,6 @@ func changePassword(args *argContainer) {
 		os.Exit(exitcodes.WriteConf)
 	}
 	tlog.Info.Printf(tlog.ColorGreen + "Password changed." + tlog.ColorReset)
-}
-
-// printVersion prints a version string like this:
-// gocryptfs v1.7-32-gcf99cfd; go-fuse v1.0.0-174-g22a9cb9; 2019-05-12 go1.12 linux/amd64
-func printVersion() {
-	initGIT()
-
-	var tagsSlice []string
-	if stupidgcm.BuiltWithoutOpenssl {
-		tagsSlice = append(tagsSlice, "without_openssl")
-	}
-	tags := ""
-	if tagsSlice != nil {
-		tags = " " + strings.Join(tagsSlice, " ")
-	}
-	built := fmt.Sprintf("%s %s", BuildDate, runtime.Version())
-	if raceDetector {
-		built += " -race"
-	}
-	fmt.Printf("%s %s%s; go-fuse %s; %s %s/%s\n",
-		tlog.ProgramName, GitVersion, tags, GitVersionFuse, built,
-		runtime.GOOS, runtime.GOARCH)
 }
 
 func main() {
