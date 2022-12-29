@@ -12,17 +12,17 @@ import (
 //
 // Examples: On my desktop PC:
 //
-//   $ grep "model name" /proc/cpuinfo
-//   model name	: Intel(R) Core(TM) i5-3470 CPU @ 3.20GHz
+//	$ grep "model name" /proc/cpuinfo
+//	model name	: Intel(R) Core(TM) i5-3470 CPU @ 3.20GHz
 //
 // --> Returns "Intel(R) Core(TM) i5-3470 CPU @ 3.20GHz".
 //
 // On a Raspberry Pi 4:
 //
-//   $ grep "model name" /proc/cpuinfo
-//   (empty)
-//   $ grep Hardware /proc/cpuinfo
-//   Hardware	: BCM2835
+//	$ grep "model name" /proc/cpuinfo
+//	(empty)
+//	$ grep Hardware /proc/cpuinfo
+//	Hardware	: BCM2835
 //
 // --> Returns "BCM2835"
 func cpuModelName() string {

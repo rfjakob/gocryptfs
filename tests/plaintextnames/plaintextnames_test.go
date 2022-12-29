@@ -92,10 +92,10 @@ func TestFiltered(t *testing.T) {
 // Only works on filesystems that recycle inode numbers (ext4 does),
 // and then the test causes a hang with these messages:
 //
-//		go-fuse: blocked for 5 seconds waiting for FORGET on i4329366
-//		go-fuse: blocked for 11 seconds waiting for FORGET on i4329366
-//		go-fuse: blocked for 17 seconds waiting for FORGET on i4329366
-//		[...]
+//	go-fuse: blocked for 5 seconds waiting for FORGET on i4329366
+//	go-fuse: blocked for 11 seconds waiting for FORGET on i4329366
+//	go-fuse: blocked for 17 seconds waiting for FORGET on i4329366
+//	[...]
 //
 // The test runs with -plaintextnames because that makes it easier to manipulate
 // cipherdir directly.

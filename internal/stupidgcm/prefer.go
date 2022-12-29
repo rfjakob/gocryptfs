@@ -11,9 +11,9 @@ import (
 //
 // Go GCM is only faster if the CPU either:
 //
-// 1) Is X86_64 && has AES instructions && Go is v1.6  or higher
-// 2) Is ARM64  && has AES instructions && Go is v1.11 or higher
-//    (commit https://github.com/golang/go/commit/4f1f503373cda7160392be94e3849b0c9b9ebbda)
+//  1. Is X86_64 && has AES instructions && Go is v1.6  or higher
+//  2. Is ARM64  && has AES instructions && Go is v1.11 or higher
+//     (commit https://github.com/golang/go/commit/4f1f503373cda7160392be94e3849b0c9b9ebbda)
 //
 // See https://github.com/rfjakob/gocryptfs/wiki/CPU-Benchmarks
 // for benchmarks.

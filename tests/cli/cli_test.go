@@ -462,7 +462,9 @@ func TestPasswdPasswordIncorrect(t *testing.T) {
 
 // Check that we correctly background on mount and close stderr and stdout.
 // Something like
-//   gocryptfs a b | cat
+//
+//	gocryptfs a b | cat
+//
 // must not hang ( https://github.com/rfjakob/gocryptfs/issues/130 ).
 func TestMountBackground(t *testing.T) {
 	dir := test_helpers.InitFS(t)

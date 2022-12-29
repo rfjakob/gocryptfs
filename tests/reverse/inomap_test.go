@@ -35,15 +35,15 @@ func findIno(dir string, ino uint64) string {
 
 // TestVirtualFileIno creates a directory tree like this:
 //
-//    TestVirtualFileIno  <---- parent
-//    └── xxxxxxx[...]    <---- child
+//	TestVirtualFileIno  <---- parent
+//	└── xxxxxxx[...]    <---- child
 //
 // Which looks like this encrypted:
 //
-//    OLUKdPMg6l87EiKVlufgwIkQL8MD6JdUgOR3a8nEZ-w                                <---- parent
-//    ├── gocryptfs.diriv                                                        <---- diriv
-//    ├── gocryptfs.longname.e31v1ax4h_F0l4jhlN8kCjaWWMq8rO9VVBZ15IYsV50         <---- child
-//    └── gocryptfs.longname.e31v1ax4h_F0l4jhlN8kCjaWWMq8rO9VVBZ15IYsV50.name    <---- name
+//	OLUKdPMg6l87EiKVlufgwIkQL8MD6JdUgOR3a8nEZ-w                                <---- parent
+//	├── gocryptfs.diriv                                                        <---- diriv
+//	├── gocryptfs.longname.e31v1ax4h_F0l4jhlN8kCjaWWMq8rO9VVBZ15IYsV50         <---- child
+//	└── gocryptfs.longname.e31v1ax4h_F0l4jhlN8kCjaWWMq8rO9VVBZ15IYsV50.name    <---- name
 //
 // It verifies that the inode numbers match what we expect.
 func TestVirtualFileIno(t *testing.T) {

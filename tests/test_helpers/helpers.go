@@ -67,10 +67,10 @@ func doInit() {
 
 // ResetTmpDir deletes TmpDir, create new dir tree:
 //
-// TmpDir
-// |-- DefaultPlainDir
-// *-- DefaultCipherDir
-//     *-- gocryptfs.diriv
+//	TmpDir
+//	|-- DefaultPlainDir
+//	*-- DefaultCipherDir
+//	    *-- gocryptfs.diriv
 func ResetTmpDir(createDirIV bool) {
 	// Try to unmount and delete everything
 	entries, err := ioutil.ReadDir(TmpDir)
@@ -138,7 +138,7 @@ func isExt4(path string) bool {
 
 // InitFS creates a new empty cipherdir and calls
 //
-//     gocryptfs -q -init -extpass "echo test" -scryptn=10 $extraArgs $cipherdir
+//	gocryptfs -q -init -extpass "echo test" -scryptn=10 $extraArgs $cipherdir
 //
 // It returns cipherdir without a trailing slash.
 //

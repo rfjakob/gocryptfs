@@ -204,7 +204,9 @@ func TestWrite0200File(t *testing.T) {
 
 // TestMvWarnings:
 // When xattr support was introduced, mv threw warnings like these:
-//   mv: preserving permissions for ‘b/x’: Operation not permitted
+//
+//	mv: preserving permissions for ‘b/x’: Operation not permitted
+//
 // because we returned EPERM when it tried to set system.posix_acl_access.
 // Now we return EOPNOTSUPP and mv is happy.
 func TestMvWarnings(t *testing.T) {

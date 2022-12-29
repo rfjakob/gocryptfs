@@ -30,8 +30,8 @@ var allocateWarnOnce sync.Once
 //
 // mode=FALLOC_DEFAULT is implemented as a two-step process:
 //
-//   (1) Allocate the space using FALLOC_FL_KEEP_SIZE
-//   (2) Set the file size using ftruncate (via truncateGrowFile)
+//	(1) Allocate the space using FALLOC_FL_KEEP_SIZE
+//	(2) Set the file size using ftruncate (via truncateGrowFile)
 //
 // This allows us to reuse the file grow mechanics from Truncate as they are
 // complicated and hard to get right.

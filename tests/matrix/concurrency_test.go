@@ -134,7 +134,7 @@ func TestConcurrentReadCreate(t *testing.T) {
 //
 // So far, it only has triggered warnings like this
 //
-//     go-fuse: warning: Inode.Path: inode i4201033 is orphaned, replacing segment with ".go-fuse.5577006791947779410/deleted"
+//	go-fuse: warning: Inode.Path: inode i4201033 is orphaned, replacing segment with ".go-fuse.5577006791947779410/deleted"
 //
 // but none of the "blocked waiting for FORGET".
 func TestInoReuse(t *testing.T) {

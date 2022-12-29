@@ -6,10 +6,11 @@ import (
 )
 
 // SanitizePath adapts filepath.Clean for FUSE paths.
-// 1) Leading slash(es) are dropped
-// 2) It returns "" instead of "."
-// 3) If the cleaned path points above CWD (start with ".."), an empty string
-//    is returned
+//  1. Leading slash(es) are dropped
+//  2. It returns "" instead of "."
+//  3. If the cleaned path points above CWD (start with ".."), an empty string
+//     is returned
+//
 // See the TestSanitizePath testcases for examples.
 func SanitizePath(path string) string {
 	// (1)

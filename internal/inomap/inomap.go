@@ -3,8 +3,8 @@
 //
 // Format of the returned inode numbers:
 //
-//   [spill bit = 0][15 bit namespace id][48 bit passthru inode number]
-//   [spill bit = 1][63 bit spill inode number                        ]
+//	[spill bit = 0][15 bit namespace id][48 bit passthru inode number]
+//	[spill bit = 1][63 bit spill inode number                        ]
 //
 // Each (Dev, Tag) tuple gets a namespace id assigned. The original inode
 // number is then passed through in the lower 48 bits.
