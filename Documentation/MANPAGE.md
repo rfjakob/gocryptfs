@@ -482,7 +482,7 @@ Use "fido2-token -L" to obtain the FIDO2 token device path.
 Applies to: all actions that ask for a password.
 
 #### -masterkey string
-Use a explicit master key specified on the command line or, if the special
+Use an explicit master key specified on the command line or, if the special
 value "stdin" is used, read the masterkey from stdin, instead of reading
 the config file and asking for the decryption password.
 
