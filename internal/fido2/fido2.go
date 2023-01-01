@@ -35,13 +35,20 @@ func (fc fidoCommand) String() string {
 
 const relyingPartyID = "gocryptfs"
 
-func callFidoCommand(command fidoCommand, device string, stdin []string) ([]string, error) {
+func callFidoCommand(command fidoCommand, useFlags bool, userPresence bool, userVerification bool, clientPin bool, device string, stdin []string) ([]string, error) {
 	var cmd *exec.Cmd
 	switch command {
 	case cred:
 		cmd = exec.Command("fido2-cred", "-M", "-h", device)
 	case assert:
-		cmd = exec.Command("fido2-assert", "-G", "-h", device)
+		if useFlags {
+			up := fmt.Sprintf("up=%v", userPresence)
+			uv :=  fmt.Sprintf("uv=%v", userVerification)
+			pin :=  fmt.Sprintf("pin=%v", clientPin);
+			cmd = exec.Command("fido2-assert", "-G", "-h", "-t", up, "-t", uv, "-t", pin, device)
+		} else {
+			cmd = exec.Command("fido2-assert", "-G", "-h", device)
+		}
 	}
 	tlog.Debug.Printf("callFidoCommand %s: executing %q with args %q", command, cmd.Path, cmd.Args)
 	cmd.Stderr = os.Stderr
@@ -67,7 +74,7 @@ func Register(device string, userName string) (credentialID []byte) {
 	cdh := base64.StdEncoding.EncodeToString(cryptocore.RandBytes(32))
 	userID := base64.StdEncoding.EncodeToString(cryptocore.RandBytes(32))
 	stdin := []string{cdh, relyingPartyID, userName, userID}
-	out, err := callFidoCommand(cred, device, stdin)
+	out, err := callFidoCommand(cred, false, false, false, false, device, stdin)
 	if err != nil {
 		tlog.Fatal.Println(err)
 		os.Exit(exitcodes.FIDO2Error)
@@ -81,14 +88,14 @@ func Register(device string, userName string) (credentialID []byte) {
 }
 
 // Secret generates a HMAC secret using a FIDO2 token
-func Secret(device string, credentialID []byte, salt []byte) (secret []byte) {
+func Secret(device string, useFlags bool, userPresence bool, userVerification bool, clientPin bool, credentialID []byte, salt []byte) (secret []byte) {
 	tlog.Info.Printf("FIDO2 Secret: interact with your device ...")
 	cdh := base64.StdEncoding.EncodeToString(cryptocore.RandBytes(32))
 	crid := base64.StdEncoding.EncodeToString(credentialID)
 	hmacsalt := base64.StdEncoding.EncodeToString(salt)
 	stdin := []string{cdh, relyingPartyID, crid, hmacsalt}
 	// call fido2-assert
-	out, err := callFidoCommand(assert, device, stdin)
+	out, err := callFidoCommand(assert, useFlags, userPresence, userVerification, clientPin, device, stdin)
 	if err != nil {
 		tlog.Fatal.Println(err)
 		os.Exit(exitcodes.FIDO2Error)

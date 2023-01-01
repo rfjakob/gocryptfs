@@ -475,11 +475,22 @@ BUG: In `-extpass -X`, the `-X` will be interpreted as `--X`. Please use
 `-extpass=-X` to prevent that. See **Dash duplication** in the **BUGS** section
 for details.
 
-#### -fido2 DEVICE_PATH
+#### -fido2-device DEVICE_PATH
 Use a FIDO2 token to initialize and unlock the filesystem.
 Use "fido2-token -L" to obtain the FIDO2 token device path.
 
 Applies to: all actions that ask for a password.
+
+### -fido2-with-user-presence bool
+Request user presence, e.g. a press of a button.
+
+### -fido2-with-user-presence bool
+Request user verification, e.g. fingerprint.
+Not supported by all tokens.
+Use "fido2-token -I" to check supported options.
+
+### -fido2-with-client-pin bool
+Request token pin to be entered.
 
 #### -masterkey string
 Use a explicit master key specified on the command line or, if the special

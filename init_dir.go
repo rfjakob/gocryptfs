@@ -75,16 +75,16 @@ func initDir(args *argContainer) {
 		}
 	}
 	// Choose password for config file
-	if len(args.extpass) == 0 && args.fido2 == "" {
+	if len(args.extpass) == 0 && args.fido2_device == "" {
 		tlog.Info.Printf("Choose a password for protecting your files.")
 	}
 	{
 		var password []byte
 		var fido2CredentialID, fido2HmacSalt []byte
-		if args.fido2 != "" {
-			fido2CredentialID = fido2.Register(args.fido2, filepath.Base(args.cipherdir))
+		if args.fido2_device != "" {
+			fido2CredentialID = fido2.Register(args.fido2_device, filepath.Base(args.cipherdir))
 			fido2HmacSalt = cryptocore.RandBytes(32)
-			password = fido2.Secret(args.fido2, fido2CredentialID, fido2HmacSalt)
+			password = fido2.Secret(args.fido2_device, true, args.fido2_with_up, args.fido2_with_uv, args.fido2_with_pin, fido2CredentialID, fido2HmacSalt)
 		} else {
 			// normal password entry
 			password, err = readpassword.Twice([]string(args.extpass), []string(args.passfile))
@@ -105,6 +105,9 @@ func initDir(args *argContainer) {
 			AESSIV:             args.aessiv,
 			Fido2CredentialID:  fido2CredentialID,
 			Fido2HmacSalt:      fido2HmacSalt,
+			Fido2Up:            args.fido2_with_up,
+			Fido2Uv:            args.fido2_with_uv,
+			Fido2Pin:           args.fido2_with_pin,
 			DeterministicNames: args.deterministic_names,
 			XChaCha20Poly1305:  args.xchacha,
 			LongNameMax:        args.longnamemax,

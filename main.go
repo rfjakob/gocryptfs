@@ -39,11 +39,11 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 	}
 	var pw []byte
 	if cf.IsFeatureFlagSet(configfile.FlagFIDO2) {
-		if args.fido2 == "" {
+		if args.fido2_device == "" {
 			tlog.Fatal.Printf("Masterkey encrypted using FIDO2 token; need to use the --fido2 option.")
 			return nil, nil, exitcodes.NewErr("", exitcodes.Usage)
 		}
-		pw = fido2.Secret(args.fido2, cf.FIDO2.CredentialID, cf.FIDO2.HMACSalt)
+		pw = fido2.Secret(args.fido2_device, cf.FIDO2.UseFlags, cf.FIDO2.UpRequired, cf.FIDO2.UvRequired, cf.FIDO2.PinRequired, cf.FIDO2.CredentialID, cf.FIDO2.HMACSalt)
 	} else {
 		pw, err = readpassword.Once([]string(args.extpass), []string(args.passfile), "")
 		if err != nil {

@@ -82,7 +82,7 @@ type argContainer struct {
 	aessiv        *bool
 	xchacha       *bool
 	sep0          *bool
-	fido2         *string
+	fido2Device   *string
 	version       *bool
 }
 
@@ -94,7 +94,7 @@ func main() {
 	args.sep0 = flag.Bool("0", false, "Use \\0 instead of \\n as separator")
 	args.aessiv = flag.Bool("aessiv", false, "Assume AES-SIV mode instead of AES-GCM")
 	args.xchacha = flag.Bool("xchacha", false, "Assume XChaCha20-Poly1305 mode instead of AES-GCM")
-	args.fido2 = flag.String("fido2", "", "Protect the masterkey using a FIDO2 token instead of a password")
+	args.fido2Device = flag.String("fido2-device", "", "Protect the masterkey using a FIDO2 token instead of a password")
 	args.version = flag.Bool("version", false, "Print version information")
 
 	flag.Usage = usage
@@ -127,7 +127,7 @@ func main() {
 	}
 	defer f.Close()
 	if *args.dumpmasterkey {
-		dumpMasterKey(fn, *args.fido2)
+		dumpMasterKey(fn, *args.fido2Device)
 	} else {
 		inspectCiphertext(&args, f)
 	}
@@ -143,10 +143,10 @@ func dumpMasterKey(fn string, fido2Path string) {
 	var pw []byte
 	if cf.IsFeatureFlagSet(configfile.FlagFIDO2) {
 		if fido2Path == "" {
-			tlog.Fatal.Printf("Masterkey encrypted using FIDO2 token; need to use the --fido2 option.")
+			tlog.Fatal.Printf("Masterkey encrypted using FIDO2 token; need to use the --fido2-device option.")
 			os.Exit(exitcodes.Usage)
 		}
-		pw = fido2.Secret(fido2Path, cf.FIDO2.CredentialID, cf.FIDO2.HMACSalt)
+		pw = fido2.Secret(fido2Path, cf.FIDO2.UseFlags, cf.FIDO2.UpRequired, cf.FIDO2.UvRequired, cf.FIDO2.PinRequired, cf.FIDO2.CredentialID, cf.FIDO2.HMACSalt)
 	} else {
 		pw, err = readpassword.Once(nil, nil, "")
 		if err != nil {

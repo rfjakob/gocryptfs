@@ -33,9 +33,9 @@ type argContainer struct {
 	sharedstorage, fsck, one_file_system, deterministic_names,
 	xchacha bool
 	// Mount options with opposites
-	dev, nodev, suid, nosuid, exec, noexec, rw, ro, kernel_cache, acl bool
+	dev, nodev, suid, nosuid, exec, noexec, rw, ro, kernel_cache, acl, fido2_with_pin, fido2_with_uv, fido2_with_up bool
 	masterkey, mountpoint, cipherdir, cpuprofile,
-	memprofile, ko, ctlsock, fsname, force_owner, trace, fido2 string
+	memprofile, ko, ctlsock, fsname, force_owner, trace, fido2_device string
 	// -extpass, -badname, -passfile can be passed multiple times
 	extpass, badname, passfile []string
 	// For reverse mode, several ways to specify exclusions. All can be specified multiple times.
@@ -207,7 +207,13 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.StringVar(&args.fsname, "fsname", "", "Override the filesystem name")
 	flagSet.StringVar(&args.force_owner, "force_owner", "", "uid:gid pair to coerce ownership")
 	flagSet.StringVar(&args.trace, "trace", "", "Write execution trace to file")
-	flagSet.StringVar(&args.fido2, "fido2", "", "Protect the masterkey using a FIDO2 token instead of a password")
+	flagSet.StringVar(&args.fido2_device, "fido2-device", "", "Protect the masterkey using a FIDO2 token instead of a password")
+	flagSet.BoolVar(&args.fido2_with_up, "fido2-with-user-presence", true, "Request user presence before using the FIDO2 token")
+	flagSet.Lookup("fido2-with-user-presence").NoOptDefVal = "true"
+	flagSet.BoolVar(&args.fido2_with_uv, "fido2-with-user-verification", false, "Request user verification before using the FIDO2 token")
+	flagSet.Lookup("fido2-with-user-verification").NoOptDefVal = "true"
+	flagSet.BoolVar(&args.fido2_with_pin, "fido2-with-client-pin", true, "Request token PIN before using the FIDO2 token")
+	flagSet.Lookup("fido2-with-client-pin").NoOptDefVal = "true"
 
 	// Exclusion options
 	flagSet.StringSliceVar(&args.exclude, "e", nil, "Alias for -exclude")
@@ -284,8 +290,8 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 		tlog.Fatal.Printf("The options -extpass and -masterkey cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
-	if len(args.extpass) > 0 && args.fido2 != "" {
-		tlog.Fatal.Printf("The options -extpass and -fido2 cannot be used at the same time")
+	if len(args.extpass) > 0 && args.fido2_device != "" {
+		tlog.Fatal.Printf("The options -extpass and -fido2-device cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
 	if args.idle < 0 {
