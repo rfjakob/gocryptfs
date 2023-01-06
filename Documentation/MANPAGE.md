@@ -478,6 +478,7 @@ for details.
 #### -fido2 DEVICE_PATH
 Use a FIDO2 token to initialize and unlock the filesystem.
 Use "fido2-token -L" to obtain the FIDO2 token device path.
+For linux, "fido2-tools" package is needed.
 
 Applies to: all actions that ask for a password.
 
