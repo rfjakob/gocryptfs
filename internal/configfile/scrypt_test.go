@@ -1,60 +1,45 @@
 package configfile
 
 import (
+	"fmt"
 	"testing"
 )
 
 /*
-Results on a 2.7GHz Pentium G630:
-
-gocryptfs/cryptfs$ go test -bench=.
+$ time go test -bench . -run none
+goos: linux
+goarch: amd64
+pkg: github.com/rfjakob/gocryptfs/v2/internal/configfile
+cpu: Intel(R) Core(TM) i5-3470 CPU @ 3.20GHz
+BenchmarkScryptN/10-4         	     339	   3488649 ns/op	 1053167 B/op	      22 allocs/op ... 3ms+1MiB
+BenchmarkScryptN/11-4         	     175	   6816072 ns/op	 2101742 B/op	      22 allocs/op
+BenchmarkScryptN/12-4         	      87	  13659346 ns/op	 4198898 B/op	      22 allocs/op
+BenchmarkScryptN/13-4         	      43	  27443071 ns/op	 8393209 B/op	      22 allocs/op
+BenchmarkScryptN/14-4         	      21	  56931664 ns/op	16781820 B/op	      22 allocs/op
+BenchmarkScryptN/15-4         	      10	 108494502 ns/op	33559027 B/op	      22 allocs/op
+BenchmarkScryptN/16-4         	       5	 217347137 ns/op	67113465 B/op	      22 allocs/op  ... 217ms+67MiB
+BenchmarkScryptN/17-4         	       3	 449680138 ns/op	134222362 B/op	      22 allocs/op
+BenchmarkScryptN/18-4         	       2	 867481653 ns/op	268440064 B/op	      22 allocs/op
+BenchmarkScryptN/19-4         	       1	1738085333 ns/op	536875536 B/op	      23 allocs/op
+BenchmarkScryptN/20-4         	       1	3508224867 ns/op	1073746448 B/op	      23 allocs/op
+BenchmarkScryptN/21-4         	       1	9536561994 ns/op	2147488272 B/op	      23 allocs/op
+BenchmarkScryptN/22-4         	       1	16937072495 ns/op	4294971920 B/op	      23 allocs/op
 PASS
-BenchmarkScrypt10-2	     300	   6021435 ns/op ... 6ms
-BenchmarkScrypt11-2	     100	  11861460 ns/op
-BenchmarkScrypt12-2	     100	  23420822 ns/op
-BenchmarkScrypt13-2	      30	  47666518 ns/op
-BenchmarkScrypt14-2	      20	  92561590 ns/op ... 92ms
-BenchmarkScrypt15-2	      10	 183971593 ns/op
-BenchmarkScrypt16-2	       3	 368506365 ns/op
-BenchmarkScrypt17-2	       2	 755502608 ns/op ... 755ms
-ok  	github.com/rfjakob/gocryptfs/v2/cryptfs	18.772s
+ok  	github.com/rfjakob/gocryptfs/v2/internal/configfile	47.545s
 */
 
-func benchmarkScryptN(n int, b *testing.B) {
+func BenchmarkScryptN(b *testing.B) {
+	for n := 10; n <= 20; n++ {
+		b.Run(fmt.Sprintf("%d", n), func(b *testing.B) {
+			benchmarkScryptN(b, n)
+		})
+	}
+}
+
+func benchmarkScryptN(b *testing.B, n int) {
 	kdf := NewScryptKDF(n)
 	for i := 0; i < b.N; i++ {
 		kdf.DeriveKey(testPw)
 	}
-}
-
-func BenchmarkScrypt10(b *testing.B) {
-	benchmarkScryptN(10, b)
-}
-
-func BenchmarkScrypt11(b *testing.B) {
-	benchmarkScryptN(11, b)
-}
-
-func BenchmarkScrypt12(b *testing.B) {
-	benchmarkScryptN(12, b)
-}
-
-func BenchmarkScrypt13(b *testing.B) {
-	benchmarkScryptN(13, b)
-}
-
-func BenchmarkScrypt14(b *testing.B) {
-	benchmarkScryptN(14, b)
-}
-
-func BenchmarkScrypt15(b *testing.B) {
-	benchmarkScryptN(15, b)
-}
-
-func BenchmarkScrypt16(b *testing.B) {
-	benchmarkScryptN(16, b)
-}
-
-func BenchmarkScrypt17(b *testing.B) {
-	benchmarkScryptN(17, b)
+	b.ReportAllocs()
 }

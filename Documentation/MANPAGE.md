@@ -563,14 +563,43 @@ Quiet - silence informational messages.
 Applies to: all actions.
 
 #### -scryptn int
-scrypt cost parameter expressed as scryptn=log2(N). Possible values are
-10 to 28, representing N=2^10 to N=2^28.
+gocryptfs uses *scrypt* for hashing the password when mounting,
+which protects from brute-force attacks.
+
+`-scryptn` controls the *scrypt* cost parameter "N" expressed as scryptn=log2(N).
+Possible values are `-scryptn=10` to `-scryptn=28`, representing N=2^10 to N=2^28.
 
 Setting this to a lower
 value speeds up mounting and reduces its memory needs, but makes
 the password susceptible to brute-force attacks. The default is 16.
 
+The memory usage for *scrypt* during mounting is as follows:
+
+    scryptn     Memory Usage  
+    =======     ============
+    10          1   MiB
+    11          2 
+    12          4 
+    13          8 
+    14          16  
+    15          32  
+    16          64  
+    17          128 
+    18          256 
+    19          512 
+    20          1   GiB
+    21          2 
+    22          4 
+    23          8 
+    24          16  
+    25          32  
+    26          64  
+    27          128 
+    28          256 
+
 Applies to: `-init`, `-passwd`
+
+See also: the benchmarks in the gocryptfs source code in internal/configfile.
 
 #### -trace string
 Write execution trace to file. View the trace using "go tool trace FILE".
