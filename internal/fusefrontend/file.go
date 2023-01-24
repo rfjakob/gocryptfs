@@ -273,6 +273,10 @@ func (f *File) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
 		if err == io.EOF {
 			fileID, err = f.createHeader()
 			fileWasEmpty = true
+		} else if err != nil {
+			// Other errors mean readFileID() found a corrupt header
+			tlog.Warn.Printf("doWrite %d: corrupt header: %v", f.qIno.Ino, err)
+			return 0, syscall.EIO
 		}
 		if err != nil {
 			return 0, fs.ToErrno(err)
