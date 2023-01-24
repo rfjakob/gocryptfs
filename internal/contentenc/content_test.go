@@ -12,15 +12,15 @@ type testRange struct {
 }
 
 func TestSplitRange(t *testing.T) {
-	var ranges []testRange
-
-	ranges = append(ranges, testRange{0, 70000},
-		testRange{0, 10},
-		testRange{234, 6511},
-		testRange{65444, 54},
-		testRange{0, 1024 * 1024},
-		testRange{0, 65536},
-		testRange{6654, 8945})
+	ranges := []testRange{
+		{0, 70000},
+		{0, 10},
+		{234, 6511},
+		{65444, 54},
+		{0, 1024 * 1024},
+		{0, 65536},
+		{6654, 8945},
+	}
 
 	key := make([]byte, cryptocore.KeyLen)
 	cc := cryptocore.New(key, cryptocore.BackendGoGCM, DefaultIVBits, true)
@@ -42,13 +42,13 @@ func TestSplitRange(t *testing.T) {
 }
 
 func TestCiphertextRange(t *testing.T) {
-	var ranges []testRange
-
-	ranges = append(ranges, testRange{0, 70000},
-		testRange{0, 10},
-		testRange{234, 6511},
-		testRange{65444, 54},
-		testRange{6654, 8945})
+	ranges := []testRange{
+		{0, 70000},
+		{0, 10},
+		{234, 6511},
+		{65444, 54},
+		{6654, 8945},
+	}
 
 	key := make([]byte, cryptocore.KeyLen)
 	cc := cryptocore.New(key, cryptocore.BackendGoGCM, DefaultIVBits, true)
