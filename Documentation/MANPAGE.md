@@ -305,8 +305,10 @@ runs as root, you can enable device files by passing the opposite mount option,
 "dev", and if you want to enable suid-binaries, pass "suid".
 "ro" (equivalent to passing the "-ro" option) and "noexec" may also be
 interesting. For a complete list see the section
-`FILESYSTEM-INDEPENDENT MOUNT OPTIONS` in mount(8). On MacOS, "local",
-"noapplexattr", "noappledouble" may be interesting.
+`FILESYSTEM-INDEPENDENT MOUNT OPTIONS` in mount(8). On MacOS, "local" enables volume-based trash
+if you have `.Trashes` folder in the root of your volume (might need to be manually created)
+note, though, that "local" is marked as "experimental" in [osxfuse](https://github.com/osxfuse/osxfuse/wiki/Mount-options#local);
+"noapplexattr", "noappledouble" may also be interesting.
 
 Note that unlike "-o", "-ko" is a regular option and must be passed BEFORE
 the directories. Example:
