@@ -384,7 +384,7 @@ func (f *File) Write(ctx context.Context, data []byte, off int64) (uint32, sysca
 		}
 	}
 	n, errno := f.doWrite(data, off)
-	if errno != 0 {
+	if errno == 0 {
 		f.lastOpCount = openfiletable.WriteOpCount()
 		f.lastWrittenOffset = off + int64(len(data)) - 1
 	}
