@@ -62,7 +62,6 @@ distribution must be installed for mounting to work.
 gocryptfs is also available as a package in most distributions. Examples:
 
 * Debian, Ubuntu: `apt install gocryptfs`
-* Fedora: `dnf install gocryptfs`
 * Arch: `pacman -S gocryptfs`
 * MacPorts: `port install gocryptfs`
 
