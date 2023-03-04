@@ -195,6 +195,20 @@ RM:    2,367
 Changelog
 ---------
 
+#### v2.3.1, 2023-03-04
+* Optimize NFS streaming write performance ([#712](https://github.com/rfjakob/gocryptfs/issues/712),
+  [commit](https://github.com/rfjakob/gocryptfs/commit/8f3ec5dcaa6eb18d11746675190a7aaceb422764)).
+  You should see about a 4x performance increase.
+* Use `debug.ReadBuildInfo()` to provide some
+  version information even when not built with `build.bash` ([#701](https://github.com/rfjakob/gocryptfs/pull/701)) .
+* Fix bug that caused the `logger` process to be killed when started from `xfce4-terminal`,
+  and that terminal window was closed ([#660](https://github.com/rfjakob/gocryptfs/issues/660),
+  [commit](https://github.com/rfjakob/gocryptfs/commit/ff32e9979130e6237b0d97ef88304fa79ce61b06)).
+* MacOS: Fix reverse mount failing with `read-only file system` ([#690](https://github.com/rfjakob/gocryptfs/pull/690))
+* Make gocryptfs compile on riscv64 by switching from [jacobsa/crypto](https://github.com/jacobsa/crypto)
+  to maintained fork [aperturerobotics/jacobsa-crypto](https://github.com/aperturerobotics/jacobsa-crypto)
+  ([#674](https://github.com/rfjakob/gocryptfs/pull/674))
+
 #### v2.3.0, 2022-10-21
 * Identical to v2.3, just tagged once more in full semver x.y.z format. This make Go's fetching logic happy,
   which ignores v2.3 (without the third digit) completely.
