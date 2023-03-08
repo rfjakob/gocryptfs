@@ -23,7 +23,7 @@ import (
 const adLen = 24
 
 // gocryptfs uses fixed-size 4 kiB blocks
-const blockSize = 4096
+const gocryptfsBlockSize = 4096
 
 // Run - run the speed the test and print the results.
 func Run() {
@@ -83,6 +83,11 @@ func randBytes(n int) []byte {
 
 // bEncrypt benchmarks the encryption speed of cipher "c"
 func bEncrypt(b *testing.B, c cipher.AEAD) {
+	bEncryptBlockSize(b, c, gocryptfsBlockSize)
+}
+
+// bEncryptBlockSize benchmarks the encryption speed of cipher "c" at block size "blockSize"
+func bEncryptBlockSize(b *testing.B, c cipher.AEAD, blockSize int) {
 	authData := randBytes(adLen)
 	iv := randBytes(c.NonceSize())
 	in := make([]byte, blockSize)
@@ -97,13 +102,12 @@ func bEncrypt(b *testing.B, c cipher.AEAD) {
 		// Encrypt and append to nonce
 		c.Seal(dst, iv, in, authData)
 	}
-
 }
 
 func bDecrypt(b *testing.B, c cipher.AEAD) {
 	authData := randBytes(adLen)
 	iv := randBytes(c.NonceSize())
-	plain := randBytes(blockSize)
+	plain := randBytes(gocryptfsBlockSize)
 	ciphertext := c.Seal(iv, iv, plain, authData)
 
 	b.SetBytes(int64(len(plain)))
@@ -129,6 +133,10 @@ func bStupidGCM(b *testing.B) {
 
 // bGoGCM benchmarks Go stdlib GCM
 func bGoGCM(b *testing.B) {
+	bGoGCMBlockSize(b, gocryptfsBlockSize)
+}
+
+func bGoGCMBlockSize(b *testing.B, blockSize int) {
 	gAES, err := aes.NewCipher(randBytes(32))
 	if err != nil {
 		b.Fatal(err)
@@ -137,7 +145,7 @@ func bGoGCM(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	bEncrypt(b, gGCM)
+	bEncryptBlockSize(b, gGCM, blockSize)
 }
 
 // bAESSIV benchmarks AES-SIV from github.com/aperturerobotics/jacobsa-crypto/siv

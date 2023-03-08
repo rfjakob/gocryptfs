@@ -3,6 +3,7 @@ package speed
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"fmt"
 	"testing"
 
 	"golang.org/x/crypto/chacha20poly1305"
@@ -36,6 +37,13 @@ func BenchmarkStupidGCMDecrypt(b *testing.B) {
 
 func BenchmarkGoGCM(b *testing.B) {
 	bGoGCM(b)
+}
+
+func BenchmarkGoGCMBlockSize(b *testing.B) {
+	for blockSize := 1024; blockSize <= 1024*1024; blockSize *= 2 {
+		name := fmt.Sprintf("%d", blockSize)
+		b.Run(name, func(b *testing.B) { bGoGCMBlockSize(b, blockSize) })
+	}
 }
 
 func BenchmarkGoGCMDecrypt(b *testing.B) {
