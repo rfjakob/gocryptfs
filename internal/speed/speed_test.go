@@ -40,7 +40,7 @@ func BenchmarkGoGCM(b *testing.B) {
 }
 
 func BenchmarkGoGCMBlockSize(b *testing.B) {
-	for blockSize := 1024; blockSize <= 1024*1024; blockSize *= 2 {
+	for blockSize := 16; blockSize <= 1024*1024; blockSize *= 2 {
 		name := fmt.Sprintf("%d", blockSize)
 		b.Run(name, func(b *testing.B) { bGoGCMBlockSize(b, blockSize) })
 	}
