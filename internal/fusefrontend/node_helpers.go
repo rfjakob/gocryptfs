@@ -62,6 +62,7 @@ func (n *Node) translateSize(dirfd int, cName string, out *fuse.Attr) {
 		rn := n.rootNode()
 		out.Size = rn.contentEnc.CipherSizeToPlainSize(out.Size)
 	} else if out.IsSymlink() {
+		// read and decrypt target
 		target, _ := n.readlink(dirfd, cName)
 		out.Size = uint64(len(target))
 	}

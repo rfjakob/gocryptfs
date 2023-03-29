@@ -915,6 +915,45 @@ func TestSymlinkSize(t *testing.T) {
 	}
 }
 
+// gocryptfs 2.0+ reported the ciphertext size on hard link creation
+// https://github.com/rfjakob/gocryptfs/issues/724
+func TestLinkSize(t *testing.T) {
+	p := filepath.Join(test_helpers.DefaultPlainDir, t.Name()) + ".regular"
+	f, err := os.Create(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = f.WriteString("x")
+	f.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	doTestLinkSize(t, p)
+
+	p = filepath.Join(test_helpers.DefaultPlainDir, t.Name()) + ".symlink"
+	err = syscall.Symlink("x", p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	doTestLinkSize(t, p)
+}
+
+func doTestLinkSize(t *testing.T, p string) {
+	p2 := p + ".link"
+	err := syscall.Link(p, p2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var st syscall.Stat_t
+	err = syscall.Lstat(p2, &st)
+	if err != nil {
+		t.Fatal(filepath.Base(p2), err)
+	}
+	if st.Size != 1 {
+		t.Errorf("wrong %s size: want=1 have=%d", filepath.Base(p), st.Size)
+	}
+}
+
 // TestPwd check that /usr/bin/pwd works inside gocryptfs.
 //
 // This was broken in gocryptfs v2.0 with -sharedstorage:

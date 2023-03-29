@@ -334,6 +334,7 @@ func (n *Node) Link(ctx context.Context, target fs.InodeEmbedder, name string, o
 		return
 	}
 	inode = n.newChild(ctx, st, out)
+	n.translateSize(dirfd, cName, &out.Attr)
 	return inode, 0
 }
 
