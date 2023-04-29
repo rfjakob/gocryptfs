@@ -195,6 +195,10 @@ RM:    2,367
 Changelog
 ---------
 
+#### v2.3.2, 2023-04-29
+* Fix incorrect file size reported after hard link creation
+  ([#724](https://github.com/rfjakob/gocryptfs/issues/724))
+
 #### v2.3.1, 2023-03-04
 * Optimize NFS streaming write performance ([#712](https://github.com/rfjakob/gocryptfs/issues/712),
   [commit](https://github.com/rfjakob/gocryptfs/commit/8f3ec5dcaa6eb18d11746675190a7aaceb422764)).
