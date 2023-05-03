@@ -210,16 +210,16 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.StringVar(&args.fido2, "fido2", "", "Protect the masterkey using a FIDO2 token instead of a password")
 
 	// Exclusion options
-	flagSet.StringSliceVar(&args.exclude, "e", nil, "Alias for -exclude")
-	flagSet.StringSliceVar(&args.exclude, "exclude", nil, "Exclude relative path from reverse view")
-	flagSet.StringSliceVar(&args.excludeWildcard, "ew", nil, "Alias for -exclude-wildcard")
-	flagSet.StringSliceVar(&args.excludeWildcard, "exclude-wildcard", nil, "Exclude path from reverse view, supporting wildcards")
-	flagSet.StringSliceVar(&args.excludeFrom, "exclude-from", nil, "File from which to read exclusion patterns (with -exclude-wildcard syntax)")
+	flagSet.StringArrayVar(&args.exclude, "e", nil, "Alias for -exclude")
+	flagSet.StringArrayVar(&args.exclude, "exclude", nil, "Exclude relative path from reverse view")
+	flagSet.StringArrayVar(&args.excludeWildcard, "ew", nil, "Alias for -exclude-wildcard")
+	flagSet.StringArrayVar(&args.excludeWildcard, "exclude-wildcard", nil, "Exclude path from reverse view, supporting wildcards")
+	flagSet.StringArrayVar(&args.excludeFrom, "exclude-from", nil, "File from which to read exclusion patterns (with -exclude-wildcard syntax)")
 
 	// multipleStrings options ([]string)
-	flagSet.StringSliceVar(&args.extpass, "extpass", nil, "Use external program for the password prompt")
-	flagSet.StringSliceVar(&args.badname, "badname", nil, "Glob pattern invalid file names that should be shown")
-	flagSet.StringSliceVar(&args.passfile, "passfile", nil, "Read password from file")
+	flagSet.StringArrayVar(&args.extpass, "extpass", nil, "Use external program for the password prompt")
+	flagSet.StringArrayVar(&args.badname, "badname", nil, "Glob pattern invalid file names that should be shown")
+	flagSet.StringArrayVar(&args.passfile, "passfile", nil, "Read password from file")
 
 	flagSet.Uint8Var(&args.longnamemax, "longnamemax", 255, "Hash encrypted names that are longer than this")
 
