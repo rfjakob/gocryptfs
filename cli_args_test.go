@@ -131,48 +131,46 @@ func TestParseCliOpts(t *testing.T) {
 		o argContainer
 	}
 
-	var testcases []testcaseContainer
-
-	testcases = append(testcases, testcaseContainer{
-		i: []string{"gocryptfs"},
-		o: defaultArgs,
-	})
+	testcases := []testcaseContainer{
+		{
+			i: []string{"gocryptfs"},
+			o: defaultArgs,
+		},
+	}
 
 	o := defaultArgs
 	o.quiet = true
-	testcases = append(testcases, testcaseContainer{
-		i: []string{"gocryptfs", "-q"},
-		o: o,
-	})
-	testcases = append(testcases, testcaseContainer{
-		i: []string{"gocryptfs", "--q"},
-		o: o,
-	})
-	testcases = append(testcases, testcaseContainer{
-		i: []string{"gocryptfs", "-quiet"},
-		o: o,
-	})
-	testcases = append(testcases, testcaseContainer{
-		i: []string{"gocryptfs", "--quiet"},
-		o: o,
-	})
+	testcases = append(testcases, []testcaseContainer{
+		{
+			i: []string{"gocryptfs", "-q"},
+			o: o,
+		}, {
+			i: []string{"gocryptfs", "--q"},
+			o: o,
+		}, {
+			i: []string{"gocryptfs", "-quiet"},
+			o: o,
+		}, {
+			i: []string{"gocryptfs", "--quiet"},
+			o: o,
+		},
+	}...)
 
 	o = defaultArgs
 	o.exclude = []string{"foo", "bar"}
-	testcases = append(testcases, testcaseContainer{
-		i: []string{"gocryptfs", "-e", "foo", "-e", "bar"},
-		o: o,
-	})
-	testcases = append(testcases, testcaseContainer{
-		i: []string{"gocryptfs", "--exclude", "foo", "--exclude", "bar"},
-		o: o,
-	})
-	/* TODO BROKEN
-	testcases = append(testcases, testcaseContainer{
-		i: []string{"gocryptfs", "--exclude", "foo", "-e", "bar"},
-		o: o,
-	})
-	*/
+	testcases = append(testcases, []testcaseContainer{
+		{
+			i: []string{"gocryptfs", "-e", "foo", "-e", "bar"},
+			o: o,
+		}, {
+			i: []string{"gocryptfs", "--exclude", "foo", "--exclude", "bar"},
+			o: o,
+		}, /* TODO BROKEN {
+			i: []string{"gocryptfs", "--exclude", "foo", "-e", "bar"},
+			o: o,
+		},*/
+	}...)
+
 	for _, tc := range testcases {
 		o := parseCliOpts(tc.i)
 		if !reflect.DeepEqual(o, tc.o) {
