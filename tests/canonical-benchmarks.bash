@@ -35,7 +35,13 @@ function etime {
 }
 
 echo -n "WRITE: "
-dd if=/dev/zero of=zero bs=131072 count=2000 2>&1 | tail -n 1
+dd if=/dev/zero of=zero bs=131072 count=2000 conv=fsync 2>&1 | tail -n 1
+
+# Drop cache of file "zero", otherwise we are benchmarking the
+# page cache. Borrowed from
+# https://www.gnu.org/software/coreutils/manual/html_node/dd-invocation.html#index-nocache
+dd if=zero iflag=nocache count=0 status=none
+
 sleep 0.1
 echo -n "READ:  "
 dd if=zero of=/dev/null bs=131072 count=2000 2>&1 | tail -n 1
