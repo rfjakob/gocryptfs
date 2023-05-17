@@ -396,6 +396,9 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 		// Setting SyncRead disables FUSE_CAP_ASYNC_READ. This makes the kernel
 		// do everything in-order without parallelism.
 		SyncRead: args.serialize_reads,
+		// Attempt to directly call mount(2) before trying fusermount. This means we
+		// can do without fusermount if running as root.
+		DirectMount: true,
 	}
 
 	mOpts := &fuseOpts.MountOptions

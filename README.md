@@ -195,6 +195,11 @@ RM:    2,367
 Changelog
 ---------
 
+#### vNEXT, in progress
+* Attempt to directly call mount(2) before trying fusermount. This means we
+  can do without fusermount if running as root or in a root-like namespace
+  ([#697](https://github.com/rfjakob/gocryptfs/issues/697)).
+
 #### v2.3.2, 2023-04-29
 * Fix incorrect file size reported after hard link creation
   ([#724](https://github.com/rfjakob/gocryptfs/issues/724))
