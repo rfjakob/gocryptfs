@@ -10,8 +10,11 @@ test:
 .phony: root_test
 root_test:
 	./build.bash
-	# Need to use TMPDIR=/var/tmp as TestOverlay fails on tmpfs.
+
+# Need to use TMPDIR=/var/tmp as TestOverlay fails on tmpfs.
 	cd tests/root_test && go test -c && sudo TMPDIR=/var/tmp ./root_test.test -test.v
+
+	cd tests/cli && go test -c && sudo ./cli.test -test.v -test.run=TestDirectMount
 
 .phony: format
 format:
