@@ -99,6 +99,17 @@ func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) 
 	return 0
 }
 
+func (n *Node) Access(ctx context.Context, mode uint32) syscall.Errno {
+	dirfd, cName, errno := n.prepareAtSyscallMyself()
+	if errno != 0 {
+		return errno
+	}
+	defer syscall.Close(dirfd)
+
+	err := syscallcompat.Faccessat(dirfd, cName, mode)
+	return fs.ToErrno(err)
+}
+
 // Unlink - FUSE call. Delete a file.
 //
 // Symlink-safe through use of Unlinkat().
