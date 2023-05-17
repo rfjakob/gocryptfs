@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"log/syslog"
 	"math"
@@ -388,7 +387,6 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 		// have it >128kiB. We cannot handle more than 128kiB, so we tell
 		// the kernel to limit the size explicitly.
 		MaxWrite: fuse.MAX_KERNEL_WRITE,
-		Options:  []string{fmt.Sprintf("max_read=%d", fuse.MAX_KERNEL_WRITE)},
 		Debug:    args.fusedebug,
 		// The kernel usually submits multiple read requests in parallel,
 		// which means we serve them in any order. Out-of-order reads are
