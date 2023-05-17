@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -18,17 +19,42 @@ import (
 func TestDirectMount(t *testing.T) {
 	type testCase struct {
 		allow_other bool
+		noexec      bool
+		suid        bool
+		dev         bool
 	}
 	table := []testCase{
-		{allow_other: false},
+		{ /* all false */ },
 		{allow_other: true},
+		{noexec: true},
+		{suid: true},
+		{dev: true},
 	}
 
 	dir := test_helpers.InitFS(t)
 	mnt := dir + ".mnt"
 
+	checkOptionPresent := func(t *testing.T, opts string, option string, want bool) {
+		split := strings.Split(opts, ",")
+		have := false
+		for _, v := range split {
+			if strings.HasPrefix(v, option) {
+				have = true
+				break
+			}
+		}
+		if want != have {
+			t.Errorf("checkOptionPresent: %s: want=%v have=%v. Full string: %s", option, want, have, opts)
+		}
+	}
+
 	doTestMountInfo := func(t *testing.T, row testCase) {
-		test_helpers.MountOrFatal(t, dir, mnt, "-extpass=echo test", fmt.Sprintf("-allow_other=%v", row.allow_other))
+		test_helpers.MountOrFatal(t, dir, mnt,
+			"-extpass=echo test",
+			fmt.Sprintf("-allow_other=%v", row.allow_other),
+			fmt.Sprintf("-noexec=%v", row.noexec),
+			fmt.Sprintf("-dev=%v", row.dev),
+			fmt.Sprintf("-suid=%v", row.suid))
 		defer test_helpers.UnmountErr(mnt)
 
 		mounts, err := mountinfo.GetMounts(mountinfo.SingleEntryFilter(mnt))
@@ -46,11 +72,13 @@ func TestDirectMount(t *testing.T) {
 		if info.Source != dir {
 			t.Errorf("wrong Source: have %q, want %q", info.Source, dir)
 		}
-		if !strings.Contains(info.VFSOptions, "max_read=") {
-			t.Errorf("VFSOptions is missing max_read")
-		}
-		if row.allow_other && !strings.Contains(info.VFSOptions, "allow_other") {
-			t.Errorf("VFSOptions is missing allow_other")
+		checkOptionPresent(t, info.VFSOptions, "max_read=", true)
+		checkOptionPresent(t, info.VFSOptions, "allow_other", row.allow_other)
+		checkOptionPresent(t, info.Options, "noexec", row.noexec)
+		// Enabling suid and dev only works as root
+		if os.Getuid() == 0 {
+			checkOptionPresent(t, info.Options, "nosuid", !row.suid)
+			checkOptionPresent(t, info.Options, "nodev", !row.dev)
 		}
 	}
 
