@@ -427,7 +427,7 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 		tlog.Warn.Printf("Warning: %q will be displayed as %q in \"df -T\"", fsname, fsname2)
 		fsname = fsname2
 	}
-	mOpts.Options = append(mOpts.Options, "fsname="+fsname)
+	mOpts.FsName = fsname
 	// Second column, "Type", will be shown as "fuse." + Name
 	mOpts.Name = "gocryptfs"
 	if args.reverse {
