@@ -74,6 +74,8 @@ func TestDirectMount(t *testing.T) {
 		}
 		checkOptionPresent(t, info.VFSOptions, "max_read=", true)
 		checkOptionPresent(t, info.VFSOptions, "allow_other", row.allow_other)
+		// gocryptfs enables default_permissions when allow_other is enabled
+		checkOptionPresent(t, info.VFSOptions, "default_permissions", row.allow_other)
 		checkOptionPresent(t, info.Options, "noexec", row.noexec)
 		// Enabling suid and dev only works as root
 		if os.Getuid() == 0 {
