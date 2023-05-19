@@ -1,9 +1,13 @@
 #!/bin/bash
 #
-# Mount a go-fuse loopback filesystem in /tmp and run fsstress against it
+# Mount a gocryptfs filesystem in /var/tmp and run fsstress against it
 # in an infinite loop, only exiting on errors.
 #
-# When called as "fsstress-gocryptfs.bash", a gocryptfs filesystem is tested
+# Replicates what xfstests generic/013 does
+# ( https://git.kernel.org/pub/scm/fs/xfs/xfstests-dev.git/tree/tests/generic/013 ),
+# but in an infinite loop.
+#
+# When called as "fsstress-loopback.bash", a go-fuse loopback filesystem is tested
 # instead.
 #
 # This test used to fail on older go-fuse versions after a few iterations with
