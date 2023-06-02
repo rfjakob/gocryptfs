@@ -27,6 +27,10 @@ const (
 	RENAME_EXCHANGE  = 2
 	RENAME_WHITEOUT  = 4
 
+	// F_OFD_SETLKW only exists on Linux. On Darwin, fall back to F_SETLKW as a
+	// flawed replacement.
+	F_OFD_SETLKW = unix.F_SETLKW
+
 	// KAUTH_UID_NONE and KAUTH_GID_NONE are special values to
 	// revert permissions to the process credentials.
 	KAUTH_UID_NONE = ^uint32(0) - 100
