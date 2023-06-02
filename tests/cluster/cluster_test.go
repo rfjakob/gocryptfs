@@ -7,9 +7,12 @@ package cluster_test
 
 import (
 	"bytes"
+	"errors"
+	"io"
 	"math/rand"
 	"os"
 	"sync"
+	"syscall"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
@@ -27,8 +30,8 @@ import (
 // > buffered read/write.
 //
 // See also:
-// * https://lore.kernel.org/linux-xfs/20190325001044.GA23020@dastard/
-//   Dave Chinner: XFS is the only linux filesystem that provides this behaviour.
+//   - https://lore.kernel.org/linux-xfs/20190325001044.GA23020@dastard/
+//     Dave Chinner: XFS is the only linux filesystem that provides this behaviour.
 func TestClusterConcurrentRW(t *testing.T) {
 	if os.Getenv("ENABLE_CLUSTER_TEST") != "1" {
 		t.Skipf("This test is disabled by default because it fails unless on XFS.\n" +
@@ -107,5 +110,77 @@ func TestClusterConcurrentRW(t *testing.T) {
 	go writeThread(f2)
 	go readThread(f1)
 	go readThread(f2)
+	wg.Wait()
+}
+
+// Multiple hosts creating the same file at the same time could
+// overwrite each other's file header, leading to data
+// corruption. Passing "-sharedstorage" should prevent this.
+func TestConcurrentCreate(t *testing.T) {
+	cDir := test_helpers.InitFS(t)
+	mnt1 := cDir + ".mnt1"
+	mnt2 := cDir + ".mnt2"
+	test_helpers.MountOrFatal(t, cDir, mnt1, "-extpass=echo test", "-wpanic=0", "-sharedstorage")
+	defer test_helpers.UnmountPanic(mnt1)
+	test_helpers.MountOrFatal(t, cDir, mnt2, "-extpass=echo test", "-wpanic=0", "-sharedstorage")
+	defer test_helpers.UnmountPanic(mnt2)
+
+	var wg sync.WaitGroup
+	const loops = 10000
+
+	createOrOpen := func(path string) (f *os.File, err error) {
+		// Use the high-level os.Create/OpenFile instead of syscall.Open because we
+		// *want* Go's EINTR retry logic. glibc open(2) has similar logic.
+		f, err = os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_EXCL, 0600)
+		if err == nil {
+			return
+		}
+		if !errors.Is(err, os.ErrExist) {
+			t.Logf("POSIX compliance issue: exclusive create failed with unexpected error: err=%v", errors.Unwrap(err))
+		}
+		f, err = os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0600)
+		if err == nil {
+			return
+		}
+		t.Logf("POSIX compliance issue: non-exlusive create failed with err=%v", errors.Unwrap(err))
+		return
+	}
+
+	workerThread := func(path string) {
+		defer wg.Done()
+		buf := make([]byte, 10)
+		for i := 0; i < loops; i++ {
+			if t.Failed() {
+				return
+			}
+			f, err := createOrOpen(path)
+			if err != nil {
+				// retry
+				continue
+			}
+			defer f.Close()
+			_, err = f.WriteAt(buf, 0)
+			if err != nil {
+				t.Errorf("iteration %d: Pwrite: %v", i, err)
+				return
+			}
+			buf2 := make([]byte, len(buf)+1)
+			n, err := f.ReadAt(buf2, 0)
+			if err != nil && err != io.EOF {
+				t.Errorf("iteration %d: ReadAt: %v", i, err)
+				return
+			}
+			buf2 = buf2[:n]
+			if !bytes.Equal(buf, buf2) {
+				t.Errorf("iteration %d: corrupt data received: %x", i, buf2)
+				return
+			}
+			syscall.Unlink(path)
+		}
+	}
+
+	wg.Add(2)
+	go workerThread(mnt1 + "/foo")
+	go workerThread(mnt2 + "/foo")
 	wg.Wait()
 }

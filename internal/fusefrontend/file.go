@@ -14,6 +14,8 @@ import (
 	"sync"
 	"syscall"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 
@@ -91,6 +93,13 @@ func (f *File) readFileID() ([]byte, error) {
 	// and not only the header. A header-only file will be considered empty.
 	// This makes File ID poisoning more difficult.
 	readLen := contentenc.HeaderLen + 1
+	if f.rootNode.args.SharedStorage {
+		// With -sharedstorage, we consider a header-only file as valid, because
+		// another gocryptfs process may have either:
+		// 1) just created the header, and not written further data yet.
+		// 2) truncated the file down to just the header.
+		readLen = contentenc.HeaderLen
+	}
 	buf := make([]byte, readLen)
 	n, err := f.fd.ReadAt(buf, 0)
 	if err != nil {
@@ -267,18 +276,25 @@ func (f *File) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
 	//
 	// If the file ID is not cached, read it from disk
 	if f.fileTableEntry.ID == nil {
+		if err := f.LockSharedStorage(unix.F_WRLCK, 0, contentenc.HeaderLen); err != nil {
+			return 0, fs.ToErrno(err)
+		}
 		var err error
 		fileID, err := f.readFileID()
 		// Write a new file header if the file is empty
 		if err == io.EOF {
 			fileID, err = f.createHeader()
 			fileWasEmpty = true
+			// Having the unlock three times is ugly. But every other way I tried is even uglier.
+			f.LockSharedStorage(unix.F_UNLCK, 0, contentenc.HeaderLen)
 		} else if err != nil {
 			// Other errors mean readFileID() found a corrupt header
 			tlog.Warn.Printf("doWrite %d: corrupt header: %v", f.qIno.Ino, err)
+			f.LockSharedStorage(unix.F_UNLCK, 0, contentenc.HeaderLen)
 			return 0, syscall.EIO
 		}
 		if err != nil {
+			f.LockSharedStorage(unix.F_UNLCK, 0, contentenc.HeaderLen)
 			return 0, fs.ToErrno(err)
 		}
 		f.fileTableEntry.ID = fileID
