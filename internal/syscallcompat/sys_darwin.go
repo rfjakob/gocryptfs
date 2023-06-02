@@ -33,6 +33,10 @@ const (
 	// On Darwin we use O_SYMLINK which allows opening a symlink itself.
 	// On Linux, we only have O_NOFOLLOW.
 	OpenatFlagNofollowSymlink = unix.O_SYMLINK
+
+	// F_OFD_SETLKW only exists on Linux. On Darwin, fall back to F_SETLKW as a
+	// flawed replacement.
+	F_OFD_SETLKW = unix.F_SETLKW
 )
 
 // Unfortunately fsetattrlist does not have a syscall wrapper yet.

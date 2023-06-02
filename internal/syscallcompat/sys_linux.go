@@ -35,6 +35,10 @@ const (
 
 	// Only defined on Linux
 	ENODATA = unix.ENODATA
+
+	// F_OFD_SETLKW only exists on Linux. On Darwin, fall back to F_SETLKW as a
+	// flawed replacement.
+	F_OFD_SETLKW = unix.F_OFD_SETLKW
 )
 
 var preallocWarn sync.Once
