@@ -183,3 +183,40 @@ func TestConcurrentCreate(t *testing.T) {
 	go workerThread(mnt2 + "/foo")
 	wg.Wait()
 }
+
+func TestOpenTruncate(t *testing.T) {
+	cDir := test_helpers.InitFS(t)
+	mnt1 := cDir + ".mnt1"
+	mnt2 := cDir + ".mnt2"
+	test_helpers.MountOrFatal(t, cDir, mnt1, "-extpass=echo test", "-wpanic=0", "-sharedstorage")
+	defer test_helpers.UnmountPanic(mnt1)
+	test_helpers.MountOrFatal(t, cDir, mnt2, "-extpass=echo test", "-wpanic=0", "-sharedstorage")
+	defer test_helpers.UnmountPanic(mnt2)
+
+	var wg sync.WaitGroup
+	const loops = 100
+
+	writerThread := func(path string) {
+		defer wg.Done()
+		for i := 0; i < loops; i++ {
+			if t.Failed() {
+				return
+			}
+			f, err := os.Create(path)
+			if err != nil {
+				t.Logf("POSIX compliance issue: non-exlusive create failed with err=%v", errors.Unwrap(err))
+				continue
+			}
+			_, err = f.WriteAt([]byte("foo"), 0)
+			if err != nil {
+				t.Errorf("iteration %d: WriteAt: %v", i, err)
+			}
+			f.Close()
+		}
+	}
+
+	wg.Add(2)
+	go writerThread(mnt1 + "/foo")
+	go writerThread(mnt2 + "/foo")
+	wg.Wait()
+}
