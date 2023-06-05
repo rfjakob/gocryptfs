@@ -4,11 +4,19 @@ package cluster
 // This goes directly to an underlying filesystem without going through gocryptfs.
 
 import (
+	"bytes"
+	"errors"
+	"io"
+	"os"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"testing"
 
 	"golang.org/x/sys/unix"
 
+	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
 )
 
@@ -44,4 +52,90 @@ func TestPoCFcntlFlock(t *testing.T) {
 	if err == nil {
 		t.Fatal("double-lock succeeded but should have failed")
 	}
+}
+
+// See if we can get garbage data when the file header is read and written concurrently.
+// We should get either 0 bytes or 18 correct bytes.
+func TestPoCHeaderCreation(t *testing.T) {
+	path := test_helpers.TmpDir + "/" + t.Name()
+	var wg sync.WaitGroup
+	// I ran this with 10000 iteration and no problems to be seen. Let's not waste too
+	// much testing time.
+	const loops = 100
+
+	var stats struct {
+		readOk    int64
+		readEmpty int64
+		writes    int64
+	}
+
+	writeBuf := []byte("123456789012345678")
+	if len(writeBuf) != contentenc.HeaderLen {
+		t.Fatal("BUG wrong header length")
+	}
+
+	writerThread := func() {
+		defer wg.Done()
+		for i := 0; i < loops; i++ {
+			if t.Failed() {
+				return
+			}
+			f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_EXCL, 0600)
+			if err != nil {
+				t.Errorf("BUG: this should not happen: open err=%v", err)
+				return
+			}
+			// Do like gocryptfs does and prealloc the 18 bytes
+			err = syscallcompat.EnospcPrealloc(int(f.Fd()), 0, contentenc.HeaderLen)
+
+			_, err = f.WriteAt(writeBuf, 0)
+			if err != nil {
+				t.Errorf("iteration %d: Pwrite: %v", i, err)
+			}
+			atomic.AddInt64(&stats.writes, 1)
+			f.Close()
+			syscall.Unlink(path)
+		}
+	}
+
+	readerThread := func() {
+		defer wg.Done()
+		for i := 0; i < loops; i++ {
+			if t.Failed() {
+				return
+			}
+			f, err := os.OpenFile(path, os.O_RDONLY, 0600)
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			readBuf := make([]byte, contentenc.HeaderLen)
+			_, err = f.ReadAt(readBuf, 0)
+			if errors.Is(err, io.EOF) {
+				atomic.AddInt64(&stats.readEmpty, 1)
+				goto close
+			}
+			if err != nil {
+				t.Errorf("iteration %d: ReadAt: %v", i, err)
+				goto close
+			}
+			if !bytes.Equal(writeBuf, readBuf) {
+				t.Errorf("iteration %d: corrupt data received: %x", i, readBuf)
+				goto close
+			}
+			atomic.AddInt64(&stats.readOk, 1)
+		close:
+			f.Close()
+		}
+	}
+
+	wg.Add(2)
+	go writerThread()
+	go readerThread()
+	wg.Wait()
+
+	t.Logf("readEmpty=%d readOk=%d writes=%d", stats.readEmpty, stats.readOk, stats.writes)
 }
