@@ -9,6 +9,8 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
+
 	"github.com/hanwen/go-fuse/v2/fs"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
@@ -92,20 +94,51 @@ func (f *File) Allocate(ctx context.Context, off uint64, sz uint64, mode uint32)
 	return f.truncateGrowFile(oldPlainSz, newPlainSz)
 }
 
-// truncate - called from Setattr.
+// truncate - called from node.Setattr and file.Setattr.
 func (f *File) truncate(newSize uint64) (errno syscall.Errno) {
 	var err error
 	// Common case first: Truncate to zero
 	if newSize == 0 {
-		err = syscall.Ftruncate(int(f.fd.Fd()), 0)
-		if err != nil {
-			tlog.Warn.Printf("ino%d fh%d: Ftruncate(fd, 0) returned error: %v", f.qIno.Ino, f.intFd(), err)
-			return fs.ToErrno(err)
+		if !f.rootNode.args.SharedStorage {
+			err = syscall.Ftruncate(int(f.fd.Fd()), 0)
+			if err != nil {
+				tlog.Warn.Printf("ino%d fh%d: Ftruncate(fd, 0) returned error: %v", f.qIno.Ino, f.intFd(), err)
+				return fs.ToErrno(err)
+			}
+			// Truncate to zero kills the file header
+			f.fileTableEntry.ID = nil
+			return 0
+		} else {
+			// With -sharedstorage, we keep the on-disk file header.
+			// Other mounts may have the file ID cached so we cannot mess with it.
+
+			// The file must have a header if we have the file ID cached,
+			// so we can blindly truncate.
+			if f.fileTableEntry.ID != nil {
+				return fs.ToErrno(syscall.Ftruncate(int(f.fd.Fd()), contentenc.HeaderLen))
+			}
+			// We don't have the file ID cached, so the file may be empty on disk.
+			// We dont't want to grow it, as this will create an all-zero header.
+			fi, err := f.fd.Stat()
+			if err != nil {
+				return fs.ToErrno(err)
+			}
+			if fi.Size() == 0 {
+				// nothing to do
+				return 0
+			}
+			if fi.Size() == contentenc.HeaderLen {
+				// nothing to do
+				return 0
+			} else if fi.Size() > contentenc.HeaderLen {
+				return fs.ToErrno(syscall.Ftruncate(int(f.fd.Fd()), contentenc.HeaderLen))
+			} else {
+				tlog.Warn.Printf("truncate i%d: partial header, size=%d", f.qIno.Ino, fi.Size())
+				return syscall.EIO
+			}
 		}
-		// Truncate to zero kills the file header
-		f.fileTableEntry.ID = nil
-		return 0
 	}
+
 	// We need the old file size to determine if we are growing or shrinking
 	// the file
 	oldSize, err := f.statPlainSize()
