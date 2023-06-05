@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 
@@ -147,6 +148,7 @@ func InitFS(t *testing.T, extraArgs ...string) string {
 	prefix := "x."
 	if t != nil {
 		prefix = t.Name() + "."
+		prefix = strings.ReplaceAll(prefix, "/", "_")
 	}
 	dir, err := ioutil.TempDir(TmpDir, prefix)
 	if err != nil {

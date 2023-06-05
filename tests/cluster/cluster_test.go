@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
 )
 
@@ -39,7 +40,7 @@ func TestClusterConcurrentRW(t *testing.T) {
 			"Choose a backing directory by setting TMPDIR.")
 	}
 
-	const blocksize = 4096
+	const blocksize = contentenc.DefaultBS
 	const fileSize = 25 * blocksize // 100 kiB
 
 	cDir := test_helpers.InitFS(t)
