@@ -141,7 +141,18 @@ func TestPoCHeaderCreation(t *testing.T) {
 }
 
 // TestPoCTornWrite simulates what TestConcurrentCreate does.
+//
+// Fails on ext4, quoting https://stackoverflow.com/a/35256626 :
+// > Linux 4.2.6 with ext4: update atomicity = 1 byte
+//
+// Passes on XFS.
 func TestPoCTornWrite(t *testing.T) {
+	if os.Getenv("ENABLE_CLUSTER_TEST") != "1" {
+		t.Skipf("This test is disabled by default because it fails unless on XFS.\n" +
+			"Run it like this: ENABLE_CLUSTER_TEST=1 go test\n" +
+			"Choose a backing directory by setting TMPDIR.")
+	}
+
 	path := test_helpers.TmpDir + "/" + t.Name()
 	var wg sync.WaitGroup
 	const loops = 10000
@@ -152,50 +163,23 @@ func TestPoCTornWrite(t *testing.T) {
 			if t.Failed() {
 				return
 			}
+
 			f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0600)
 			if err != nil {
 				t.Errorf("BUG: this should not happen: open err=%v", err)
 				return
 			}
 
-			// Write dummy header unless it is already there
-			lk := unix.Flock_t{
-				Type:   unix.F_WRLCK,
-				Whence: unix.SEEK_SET,
-				Start:  0,
-				Len:    0,
-			}
-			if err := unix.FcntlFlock(uintptr(f.Fd()), syscallcompat.F_OFD_SETLKW, &lk); err != nil {
-				t.Error(err)
-				return
-			}
-
-			hdr := make([]byte, contentenc.HeaderLen)
-			if _, err := f.ReadAt(hdr, 0); err == io.EOF {
-				hdr = bytes.Repeat([]byte{byte(i)}, contentenc.HeaderLen)
-				if _, err := f.WriteAt(hdr, 0); err != nil {
-					t.Errorf("header write failed: %v", err)
-					return
-				}
-			} else if err != nil {
-				t.Error(err)
-				return
-			}
-			lk.Type = unix.F_UNLCK
-			if err := unix.FcntlFlock(uintptr(f.Fd()), syscallcompat.F_OFD_SETLKW, &lk); err != nil {
-				t.Error(err)
-				return
-			}
-
-			// Write dummy data
+			// Write
 			blockData := bytes.Repeat([]byte{byte(i)}, 42)
-			if _, err = f.WriteAt(blockData, contentenc.HeaderLen); err != nil {
+			if _, err = f.WriteAt(blockData, 0); err != nil {
 				t.Errorf("iteration %d: WriteAt: %v", i, err)
 				return
 			}
 
+			// Readback and verify
 			readBuf := make([]byte, 100)
-			if n, err := f.ReadAt(readBuf, contentenc.HeaderLen); err == io.EOF {
+			if n, err := f.ReadAt(readBuf, 0); err == io.EOF {
 				readBuf = readBuf[:n]
 			} else if err != nil {
 				t.Error(err)
