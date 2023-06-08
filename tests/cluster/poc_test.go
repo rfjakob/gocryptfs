@@ -139,3 +139,68 @@ func TestPoCHeaderCreation(t *testing.T) {
 
 	t.Logf("readEmpty=%d readOk=%d writes=%d", stats.readEmpty, stats.readOk, stats.writes)
 }
+
+// TestPoCTornWrite simulates what TestConcurrentCreate does.
+//
+// Fails on ext4, quoting https://stackoverflow.com/a/35256626 :
+// > Linux 4.2.6 with ext4: update atomicity = 1 byte
+//
+// Passes on XFS.
+func TestPoCTornWrite(t *testing.T) {
+	if os.Getenv("ENABLE_CLUSTER_TEST") != "1" {
+		t.Skipf("This test is disabled by default because it fails unless on XFS.\n" +
+			"Run it like this: ENABLE_CLUSTER_TEST=1 go test\n" +
+			"Choose a backing directory by setting TMPDIR.")
+	}
+
+	path := test_helpers.TmpDir + "/" + t.Name()
+	var wg sync.WaitGroup
+	const loops = 10000
+
+	writerThread := func() {
+		defer wg.Done()
+		for i := 0; i < loops; i++ {
+			if t.Failed() {
+				return
+			}
+
+			f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0600)
+			if err != nil {
+				t.Errorf("BUG: this should not happen: open err=%v", err)
+				return
+			}
+
+			// Write
+			blockData := bytes.Repeat([]byte{byte(i)}, 42)
+			if _, err = f.WriteAt(blockData, 0); err != nil {
+				t.Errorf("iteration %d: WriteAt: %v", i, err)
+				return
+			}
+
+			// Readback and verify
+			readBuf := make([]byte, 100)
+			if n, err := f.ReadAt(readBuf, 0); err == io.EOF {
+				readBuf = readBuf[:n]
+			} else if err != nil {
+				t.Error(err)
+				return
+			}
+			if len(readBuf) != len(blockData) {
+				t.Error("wrong length")
+				return
+			}
+			for _, v := range readBuf {
+				if v != readBuf[0] {
+					t.Errorf("iteration %d: inconsistent block: %x", i, readBuf)
+					return
+				}
+			}
+			f.Close()
+		}
+	}
+
+	wg.Add(2)
+	go writerThread()
+	go writerThread()
+	wg.Wait()
+}
