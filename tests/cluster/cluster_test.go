@@ -8,6 +8,7 @@ package cluster_test
 import (
 	"bytes"
 	"errors"
+	"io"
 	"math/rand"
 	"os"
 	"sync"
@@ -149,7 +150,6 @@ func TestConcurrentCreate(t *testing.T) {
 	workerThread := func(path string) {
 		defer wg.Done()
 		buf := make([]byte, 10)
-		buf2 := make([]byte, 10)
 		for i := 0; i < loops; i++ {
 			if t.Failed() {
 				return
@@ -165,11 +165,13 @@ func TestConcurrentCreate(t *testing.T) {
 				t.Errorf("iteration %d: Pwrite: %v", i, err)
 				return
 			}
-			_, err = f.ReadAt(buf2, 0)
-			if err != nil {
+			buf2 := make([]byte, len(buf)+1)
+			n, err := f.ReadAt(buf2, 0)
+			if err != nil && err != io.EOF {
 				t.Errorf("iteration %d: ReadAt: %v", i, err)
 				return
 			}
+			buf2 = buf2[:n]
 			if !bytes.Equal(buf, buf2) {
 				t.Errorf("iteration %d: corrupt data received: %x", i, buf2)
 				return
