@@ -147,12 +147,20 @@ func TestPoCHeaderCreation(t *testing.T) {
 //
 // Passes on XFS.
 func TestPoCTornWrite(t *testing.T) {
-	if os.Getenv("ENABLE_CLUSTER_TEST") != "1" {
+	if os.Getenv("ASSUME_XFS") != "1" {
 		t.Skipf("This test is disabled by default because it fails unless on XFS.\n" +
-			"Run it like this: ENABLE_CLUSTER_TEST=1 go test\n" +
+			"Run it like this: ASSUME_XFS=1 go test -run TestPoCTornWrite\n" +
 			"Choose a backing directory by setting TMPDIR.")
 	}
+	doTestPoCTornWrite(t, false)
+}
 
+// Same as TestPoCTornWrite but uses fcntl byte range locks
+func TestPoCTornWriteLocked(t *testing.T) {
+	doTestPoCTornWrite(t, true)
+}
+
+func doTestPoCTornWrite(t *testing.T, locking bool) {
 	path := test_helpers.TmpDir + "/" + t.Name()
 	var wg sync.WaitGroup
 	const loops = 10000
@@ -172,6 +180,19 @@ func TestPoCTornWrite(t *testing.T) {
 
 			// Write
 			blockData := bytes.Repeat([]byte{byte(i)}, 42)
+			if locking {
+				lk := unix.Flock_t{
+					Type:   unix.F_WRLCK,
+					Whence: unix.SEEK_SET,
+					Start:  0,
+					Len:    int64(len(blockData)),
+				}
+				if err := unix.FcntlFlock(uintptr(f.Fd()), unix.F_OFD_SETLKW, &lk); err != nil {
+					t.Error(err)
+					return
+				}
+				// No need to unlock, lock is implicitely dropped on fd close
+			}
 			if _, err = f.WriteAt(blockData, 0); err != nil {
 				t.Errorf("iteration %d: WriteAt: %v", i, err)
 				return
