@@ -30,6 +30,13 @@ import (
 // > Other Linux filesystems only guaranty page level atomicity for
 // > buffered read/write.
 //
+// Note that ext4 actually provides NO ATOMICITY AT ALL.
+// Quoting https://stackoverflow.com/a/35256626 :
+//
+// > Linux 4.2.6 with ext4: update atomicity = 1 byte
+//
+// TestPoCTornWrite in this package confirms this.
+//
 // See also:
 // * https://lore.kernel.org/linux-xfs/20190325001044.GA23020@dastard/
 //   Dave Chinner: XFS is the only linux filesystem that provides this behaviour.
