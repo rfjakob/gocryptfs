@@ -277,6 +277,7 @@ func (f *File) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
 	// If the file ID is not cached, read it from disk
 	if f.fileTableEntry.ID == nil {
 		if err := f.LockSharedStorage(unix.F_WRLCK, 0, contentenc.HeaderLen); err != nil {
+			tlog.Warn.Printf("ino%d: LockSharedStorage(F_WRLCK, %d, %d)failed: %v", 0, f.qIno.Ino, contentenc.HeaderLen, err)
 			return 0, fs.ToErrno(err)
 		}
 		var err error
@@ -302,7 +303,19 @@ func (f *File) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
 	// Handle payload data
 	dataBuf := bytes.NewBuffer(data)
 	blocks := f.contentEnc.ExplodePlainRange(uint64(off), uint64(len(data)))
+	cOff, lkLen := blocks[0].JointCiphertextRange(blocks)
 	toEncrypt := make([][]byte, len(blocks))
+
+	// As we must write complete ciphertext blocks (except at EOF), non-overlapping
+	// plaintext writes can overlap in the ciphertext.
+	// And because overlapping writes can turn the data into data soup (see
+	// TestPoCTornWrite) we serialize them using fcntl locking.
+	if err := f.LockSharedStorage(unix.F_WRLCK, int64(cOff), int64(lkLen)); err != nil {
+		tlog.Warn.Printf("ino%d: LockSharedStorage(F_WRLCK, %d, %d) failed: %v", f.qIno.Ino, cOff, int64(lkLen), err)
+		return 0, fs.ToErrno(err)
+	}
+	defer f.LockSharedStorage(unix.F_UNLCK, int64(cOff), int64(lkLen))
+
 	for i, b := range blocks {
 		blockData := dataBuf.Next(int(b.Length))
 		// Incomplete block -> Read-Modify-Write
@@ -327,7 +340,6 @@ func (f *File) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
 	// Preallocate so we cannot run out of space in the middle of the write.
 	// This prevents partially written (=corrupt) blocks.
 	var err error
-	cOff := blocks[0].BlockCipherOff()
 	// f.fd.WriteAt & syscallcompat.EnospcPrealloc take int64 offsets!
 	if cOff > math.MaxInt64 {
 		return 0, syscall.EFBIG
