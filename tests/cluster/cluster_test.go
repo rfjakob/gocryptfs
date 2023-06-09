@@ -15,20 +15,17 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
 )
 
-// This test passes on XFS but fails on ext4 and tmpfs!!!
+// With -sharedstorage (i.e. with fcntl byte-range locks) this test passes on all
+// filesystems. Without, it passes on XFS but fails on ext4 and tmpfs.
 //
 // Quoting https://lists.samba.org/archive/samba-technical/2019-March/133050.html
 //
 // > It turns out that xfs respects POSIX w.r.t "atomic read/write" and
 // > this is implemented by taking a file-wide shared lock on every
 // > buffered read.
-// > This behavior is unique to XFS on Linux and is not optional.
-// > Other Linux filesystems only guaranty page level atomicity for
-// > buffered read/write.
 //
 // Note that ext4 actually provides NO ATOMICITY AT ALL.
 // Quoting https://stackoverflow.com/a/35256626 :
@@ -41,21 +38,16 @@ import (
 //   - https://lore.kernel.org/linux-xfs/20190325001044.GA23020@dastard/
 //     Dave Chinner: XFS is the only linux filesystem that provides this behaviour.
 func TestClusterConcurrentRW(t *testing.T) {
-	if os.Getenv("ENABLE_CLUSTER_TEST") != "1" {
-		t.Skipf("This test is disabled by default because it fails unless on XFS.\n" +
-			"Run it like this: ENABLE_CLUSTER_TEST=1 go test\n" +
-			"Choose a backing directory by setting TMPDIR.")
-	}
-
-	const blocksize = contentenc.DefaultBS
-	const fileSize = 25 * blocksize // 100 kiB
+	const fileSize = 100000 // arbitrary unaligned size with a partial block at the end
+	const writeSize = 5000  // arbitrary unaligned size that touches two ciphertext blocks
+	const readSize = 5000
 
 	cDir := test_helpers.InitFS(t)
 	mnt1 := cDir + ".mnt1"
 	mnt2 := cDir + ".mnt2"
-	test_helpers.MountOrFatal(t, cDir, mnt1, "-extpass=echo test", "-wpanic=0")
+	test_helpers.MountOrFatal(t, cDir, mnt1, "-extpass=echo test", "-wpanic=0", "-sharedstorage")
 	defer test_helpers.UnmountPanic(mnt1)
-	test_helpers.MountOrFatal(t, cDir, mnt2, "-extpass=echo test", "-wpanic=0")
+	test_helpers.MountOrFatal(t, cDir, mnt2, "-extpass=echo test", "-wpanic=0", "-sharedstorage")
 	defer test_helpers.UnmountPanic(mnt2)
 
 	f1, err := os.Create(mnt1 + "/foo")
@@ -79,12 +71,12 @@ func TestClusterConcurrentRW(t *testing.T) {
 	const loops = 10000
 	writeThread := func(f *os.File) {
 		defer wg.Done()
-		buf := make([]byte, blocksize)
+		buf := make([]byte, writeSize)
 		for i := 0; i < loops; i++ {
 			if t.Failed() {
 				return
 			}
-			off := rand.Int63n(fileSize / blocksize)
+			off := rand.Int63n(int64(fileSize - len(buf) - 1))
 			_, err := f.WriteAt(buf, off)
 			if err != nil {
 				t.Errorf("writeThread iteration %d: WriteAt failed: %v", i, err)
@@ -94,13 +86,13 @@ func TestClusterConcurrentRW(t *testing.T) {
 	}
 	readThread := func(f *os.File) {
 		defer wg.Done()
-		zeroBlock := make([]byte, blocksize)
-		buf := make([]byte, blocksize)
+		zeroBlock := make([]byte, readSize)
+		buf := make([]byte, len(zeroBlock))
 		for i := 0; i < loops; i++ {
 			if t.Failed() {
 				return
 			}
-			off := rand.Int63n(fileSize / blocksize)
+			off := rand.Int63n(int64(fileSize - len(zeroBlock) - 1))
 			_, err := f.ReadAt(buf, off)
 			if err != nil {
 				t.Errorf("readThread iteration %d: ReadAt failed: %v", i, err)
