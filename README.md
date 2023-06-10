@@ -195,10 +195,13 @@ RM:    2,367
 Changelog
 ---------
 
-#### vNEXT, in progress
-* Attempt to directly call mount(2) before trying fusermount. This means we
-  can do without fusermount if running as root or in a root-like namespace
-  ([#697](https://github.com/rfjakob/gocryptfs/issues/697)).
+#### v2.4.0, 2023-06-10
+* Try the `mount(2)` syscall before falling back to `fusermount(1)`. This means we
+  don't need `fusermount(1)` at all if running as root or in a root-like namespace
+  ([#697](https://github.com/rfjakob/gocryptfs/issues/697))
+* Fix `-extpass` mis-parsing commas ([#730](https://github.com/rfjakob/gocryptfs/issues/730))
+* Fix `rm -R` mis-reporting `write-protected directory` on gocryptfs on sshfs
+  ([commit](https://github.com/rfjakob/gocryptfs/commit/09954c4bdecf0ca6da65776f176dc934ffced2b0))
 
 #### v2.3.2, 2023-04-29
 * Fix incorrect file size reported after hard link creation
