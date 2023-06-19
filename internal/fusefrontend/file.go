@@ -262,6 +262,7 @@ func (f *File) Read(ctx context.Context, buf []byte, off int64) (resultData fuse
 		blocks := f.contentEnc.ExplodePlainRange(uint64(off), uint64(len(buf)))
 		alignedOffset, alignedLength := blocks[0].JointCiphertextRange(blocks)
 		if err := f.LockSharedStorage(unix.F_RDLCK, int64(alignedOffset), int64(alignedLength)); err != nil {
+			tlog.Warn.Printf("ino%d: FUSE Read: LockSharedStorage(F_RDLCK, %d, %d) failed: %v", f.qIno.Ino, alignedOffset, alignedLength, err)
 			return nil, fs.ToErrno(err)
 		}
 		out, errno = f.doRead(buf[:0], uint64(off), uint64(len(buf)))
@@ -290,7 +291,7 @@ func (f *File) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
 	// If the file ID is not cached, read it from disk
 	if f.fileTableEntry.ID == nil {
 		if err := f.LockSharedStorage(unix.F_WRLCK, 0, contentenc.HeaderLen); err != nil {
-			tlog.Warn.Printf("ino%d: LockSharedStorage(F_WRLCK, %d, %d)failed: %v", 0, f.qIno.Ino, contentenc.HeaderLen, err)
+			tlog.Warn.Printf("ino%d: doWrite: LockSharedStorage(F_WRLCK, %d, %d) failed: %v", f.qIno.Ino, 0, contentenc.HeaderLen, err)
 			return 0, fs.ToErrno(err)
 		}
 		var err error
