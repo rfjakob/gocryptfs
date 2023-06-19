@@ -254,7 +254,20 @@ func (f *File) Read(ctx context.Context, buf []byte, off int64) (resultData fuse
 	tlog.Debug.Printf("ino%d: FUSE Read: offset=%d length=%d", f.qIno.Ino, off, len(buf))
 	out, errno := f.doRead(buf[:0], uint64(off), uint64(len(buf)))
 	if errno != 0 {
-		return nil, errno
+		// With -sharedstorage, when we get a decryption error, we lock the
+		// byte range and try again.
+		if !(f.rootNode.args.SharedStorage && errno == syscall.EIO) {
+			return nil, errno
+		}
+		blocks := f.contentEnc.ExplodePlainRange(uint64(off), uint64(len(buf)))
+		alignedOffset, alignedLength := blocks[0].JointCiphertextRange(blocks)
+		if err := f.LockSharedStorage(unix.F_RDLCK, int64(alignedOffset), int64(alignedLength)); err != nil {
+			return nil, fs.ToErrno(err)
+		}
+		out, errno = f.doRead(buf[:0], uint64(off), uint64(len(buf)))
+		if errno != 0 {
+			return nil, errno
+		}
 	}
 	tlog.Debug.Printf("ino%d: Read: errno=%d, returning %d bytes", f.qIno.Ino, errno, len(out))
 	return fuse.ReadResultData(out), errno
