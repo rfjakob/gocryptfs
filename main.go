@@ -53,7 +53,7 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 		}
 	}
 	tlog.Info.Println("Decrypting master key")
-	masterkey, err = cf.DecryptMasterKey(pw)
+	masterkey, err = cf.DecryptMasterKey(args.user, pw)
 	for i := range pw {
 		pw[i] = 0
 	}
@@ -93,7 +93,7 @@ func changePassword(args *argContainer) {
 		if args._explicitScryptn {
 			logN = args.scryptn
 		}
-		confFile.EncryptKey(masterkey, newPw, logN)
+		confFile.EncryptKey(masterkey, args.user, newPw, logN)
 		for i := range newPw {
 			newPw[i] = 0
 		}

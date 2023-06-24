@@ -76,7 +76,7 @@ func initDir(args *argContainer) {
 	}
 	// Choose password for config file
 	if len(args.extpass) == 0 && args.fido2 == "" {
-		tlog.Info.Printf("Choose a password for protecting your files.")
+		tlog.Info.Printf("As user %v, choose a password for protecting your files.", args.user)
 	}
 	{
 		var password []byte
@@ -98,6 +98,7 @@ func initDir(args *argContainer) {
 		creator := tlog.ProgramName + " " + GitVersion
 		err = configfile.Create(&configfile.CreateArgs{
 			Filename:           args.config,
+			User:               args.user,
 			Password:           password,
 			PlaintextNames:     args.plaintextnames,
 			LogN:               args.scryptn,

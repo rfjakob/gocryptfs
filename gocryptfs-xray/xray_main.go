@@ -84,6 +84,7 @@ type argContainer struct {
 	sep0          *bool
 	fido2         *string
 	version       *bool
+	user          *string
 }
 
 func main() {
@@ -96,6 +97,7 @@ func main() {
 	args.xchacha = flag.Bool("xchacha", false, "Assume XChaCha20-Poly1305 mode instead of AES-GCM")
 	args.fido2 = flag.String("fido2", "", "Protect the masterkey using a FIDO2 token instead of a password")
 	args.version = flag.Bool("version", false, "Print version information")
+	args.user = flag.String("user", configfile.DefaultKey, "Use <user> instead of "+configfile.DefaultKey+" for decryption of masterkey")
 
 	flag.Usage = usage
 	flag.Parse()
@@ -127,13 +129,13 @@ func main() {
 	}
 	defer f.Close()
 	if *args.dumpmasterkey {
-		dumpMasterKey(fn, *args.fido2)
+		dumpMasterKey(fn, *args.user, *args.fido2)
 	} else {
 		inspectCiphertext(&args, f)
 	}
 }
 
-func dumpMasterKey(fn string, fido2Path string) {
+func dumpMasterKey(fn string, user string, fido2Path string) {
 	tlog.Info.Enabled = false
 	cf, err := configfile.Load(fn)
 	if err != nil {
@@ -155,7 +157,7 @@ func dumpMasterKey(fn string, fido2Path string) {
 			os.Exit(exitcodes.ReadPassword)
 		}
 	}
-	masterkey, err := cf.DecryptMasterKey(pw)
+	masterkey, err := cf.DecryptMasterKey(user, pw)
 	// Purge password from memory
 	for i := range pw {
 		pw[i] = 0

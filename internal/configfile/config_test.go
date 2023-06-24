@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rfjakob/gocryptfs/v2/internal/configfile"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
@@ -64,6 +65,7 @@ func TestLoadV2StrangeFeature(t *testing.T) {
 func TestCreateConfDefault(t *testing.T) {
 	err := Create(&CreateArgs{
 		Filename: "config_test/tmp.conf",
+		User: configfile.DefaultKey,
 		Password: testPw,
 		LogN:     10,
 		Creator:  "test"})
@@ -89,6 +91,7 @@ func TestCreateConfDefault(t *testing.T) {
 func TestCreateConfPlaintextnames(t *testing.T) {
 	err := Create(&CreateArgs{
 		Filename:       "config_test/tmp.conf",
+		User: configfile.DefaultKey,
 		Password:       testPw,
 		PlaintextNames: true,
 		LogN:           10,
@@ -115,6 +118,7 @@ func TestCreateConfPlaintextnames(t *testing.T) {
 func TestCreateConfFileAESSIV(t *testing.T) {
 	err := Create(&CreateArgs{
 		Filename: "config_test/tmp.conf",
+		User: configfile.DefaultKey,
 		Password: testPw,
 		LogN:     10,
 		Creator:  "test",
@@ -134,6 +138,7 @@ func TestCreateConfFileAESSIV(t *testing.T) {
 func TestCreateConfLongNameMax(t *testing.T) {
 	args := &CreateArgs{
 		Filename:    "config_test/tmp.conf",
+		User: configfile.DefaultKey,
 		Password:    testPw,
 		LogN:        10,
 		Creator:     "test",

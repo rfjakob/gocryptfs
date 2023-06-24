@@ -36,6 +36,8 @@ type argContainer struct {
 	dev, nodev, suid, nosuid, exec, noexec, rw, ro, kernel_cache, acl bool
 	masterkey, mountpoint, cipherdir, cpuprofile,
 	memprofile, ko, ctlsock, fsname, force_owner, trace, fido2 string
+	// more than one encryption of masterkey
+	user, addUser, deleteUser, addFido2, deleteFido2 string
 	// -extpass, -badname, -passfile can be passed multiple times
 	extpass, badname, passfile []string
 	// For reverse mode, several ways to specify exclusions. All can be specified multiple times.
@@ -208,6 +210,12 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.StringVar(&args.force_owner, "force_owner", "", "uid:gid pair to coerce ownership")
 	flagSet.StringVar(&args.trace, "trace", "", "Write execution trace to file")
 	flagSet.StringVar(&args.fido2, "fido2", "", "Protect the masterkey using a FIDO2 token instead of a password")
+	// more than one encryption of masterkey
+	flagSet.StringVar(&args.user, "user", configfile.DefaultKey, "Use <user> instead of "+configfile.DefaultKey+" for decryption of masterkey")
+	flagSet.StringVar(&args.addUser, "addUser", "", "Add encrypted masterkey for <addUser> using credentials of <user>")
+	flagSet.StringVar(&args.deleteUser, "deleteUser", "", "Delete encrypted masterkey for <deleteUser> using credentials of <user>")
+	flagSet.StringVar(&args.addFido2, "addFido2", "", "Add encrypted masterkey for FIDO2 key <addFido2>")
+	flagSet.StringVar(&args.deleteFido2, "deleteFido2", "", "Delete encrypted masterkey for FIDO <deleteUser>")
 
 	// Exclusion options
 	flagSet.StringArrayVar(&args.exclude, "e", nil, "Alias for -exclude")

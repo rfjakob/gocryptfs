@@ -70,6 +70,7 @@ type ConfFile struct {
 // CreateArgs exists because the argument list to Create became too long.
 type CreateArgs struct {
 	Filename           string
+	User               string
 	Password           []byte
 	PlaintextNames     bool
 	LogN               int
@@ -140,7 +141,7 @@ func Create(args *CreateArgs) error {
 		// Encrypt it using the password
 		// This sets ScryptObject and EncryptedKey
 		// Note: this looks at the FeatureFlags, so call it AFTER setting them.
-		cf.EncryptKey(key, args.Password, args.LogN)
+		cf.EncryptKey(key, args.User, args.Password, args.LogN)
 		for i := range key {
 			key[i] = 0
 		}
@@ -156,7 +157,7 @@ func Create(args *CreateArgs) error {
 //
 // If "password" is empty, the config file is read
 // but the key is not decrypted (returns nil in its place).
-func LoadAndDecrypt(filename string, password []byte) ([]byte, *ConfFile, error) {
+func LoadAndDecrypt(filename string, user string, password []byte) ([]byte, *ConfFile, error) {
 	cf, err := Load(filename)
 	if err != nil {
 		return nil, nil, err
@@ -170,7 +171,7 @@ func LoadAndDecrypt(filename string, password []byte) ([]byte, *ConfFile, error)
 	}
 
 	// Decrypt the masterkey using the password
-	key, err := cf.DecryptMasterKey(password)
+	key, err := cf.DecryptMasterKey(user, password)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -217,7 +218,7 @@ func (cf *ConfFile) setFeatureFlag(flag flagIota) {
 
 // DecryptMasterKey decrypts the masterkey stored in cf.EncryptedKey using
 // password.
-func (cf *ConfFile) DecryptMasterKey(password []byte) (masterkey []byte, err error) {
+func (cf *ConfFile) DecryptMasterKey(user string, password []byte) (masterkey []byte, err error) {
 	// Generate derived key from password
 	scryptHash := cf.ScryptObject.DeriveKey(password)
 
@@ -226,7 +227,7 @@ func (cf *ConfFile) DecryptMasterKey(password []byte) (masterkey []byte, err err
 	ce := getKeyEncrypter(scryptHash, useHKDF)
 
 	tlog.Warn.Enabled = false // Silence DecryptBlock() error messages on incorrect password
-	masterkey, err = ce.DecryptBlock(cf.EncryptedKeys[DefaultKey], 0, nil)
+	masterkey, err = ce.DecryptBlock(cf.EncryptedKeys[user], 0, nil)
 	tlog.Warn.Enabled = true
 
 	// Purge scrypt-derived key
@@ -245,10 +246,10 @@ func (cf *ConfFile) DecryptMasterKey(password []byte) (masterkey []byte, err err
 }
 
 // EncryptKey - encrypt "key" using an scrypt hash generated from "password"
-// and store it in cf.EncryptedKey.
+// and store it in cf.EncryptedKey[user].
 // Uses scrypt with cost parameter logN and stores the scrypt parameters in
 // cf.ScryptObject.
-func (cf *ConfFile) EncryptKey(key []byte, password []byte, logN int) {
+func (cf *ConfFile) EncryptKey(key []byte, user string, password []byte, logN int) {
 	// Generate scrypt-derived key from password
 	cf.ScryptObject = NewScryptKDF(logN)
 	scryptHash := cf.ScryptObject.DeriveKey(password)
@@ -256,7 +257,7 @@ func (cf *ConfFile) EncryptKey(key []byte, password []byte, logN int) {
 	// Lock master key using password-based key
 	useHKDF := cf.IsFeatureFlagSet(FlagHKDF)
 	ce := getKeyEncrypter(scryptHash, useHKDF)
-	cf.EncryptedKeys[DefaultKey] = ce.EncryptBlock(key, 0, nil)
+	cf.EncryptedKeys[user] = ce.EncryptBlock(key, 0, nil)
 
 	// Purge scrypt-derived key
 	for i := range scryptHash {
