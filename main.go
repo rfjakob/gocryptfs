@@ -52,7 +52,7 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 			return nil, nil, exitcodes.NewErr("", exitcodes.ReadPassword)
 		}
 	}
-	tlog.Info.Println("Decrypting master key")
+	tlog.Info.Println("Decrypting master key with user " + args.user)
 	masterkey, err = cf.DecryptMasterKey(args.user, pw)
 	for i := range pw {
 		pw[i] = 0
@@ -122,6 +122,61 @@ func changePassword(args *argContainer) {
 		os.Exit(exitcodes.WriteConf)
 	}
 	tlog.Info.Printf(tlog.ColorGreen + "Password changed." + tlog.ColorReset)
+}
+
+// add user from <addUser> flag to config file "filename"
+// Does not return (calls os.Exit both on success and on error).
+func addUser(args *argContainer) {
+	var confFile *configfile.ConfFile
+	{
+		var masterkey []byte
+		var err error
+		masterkey, confFile, err = loadConfig(args)
+		if err != nil {
+			exitcodes.Exit(err)
+		}
+		if len(masterkey) == 0 {
+			log.Panic("empty masterkey")
+		}
+		// Are we using "-masterkey"?
+		if args.masterkey != "" {
+			log.Panic("<addUser> is not allowed in conjunction with '-masterkey'")
+		}
+		if args.addUser == "" {
+			log.Panic("missing argument <addUser> in addUser")
+		}
+		if args.addUser == args.user {
+			log.Panic("<addUser> and <user> must be different")
+		}
+		if confFile.IsFeatureFlagSet(configfile.FlagFIDO2) {
+			tlog.Fatal.Printf("Password change is not supported on FIDO2-enabled filesystems.")
+			os.Exit(exitcodes.Usage)
+		}
+		tlog.Info.Println("Please enter the password for new user ", args.addUser, ".")
+		newPw, err := readpassword.Twice([]string(args.extpass), []string(args.passfile))
+		if err != nil {
+			tlog.Fatal.Println(err)
+			os.Exit(exitcodes.ReadPassword)
+		}
+		logN := confFile.ScryptObject.LogN()
+		if args._explicitScryptn {
+			logN = args.scryptn
+		}
+		confFile.EncryptKey(masterkey, args.addUser, newPw, logN)
+		for i := range newPw {
+			newPw[i] = 0
+		}
+		for i := range masterkey {
+			masterkey[i] = 0
+		}
+		// masterkey and newPw run out of scope here
+	}
+	err := confFile.WriteFile()
+	if err != nil {
+		tlog.Fatal.Println(err)
+		os.Exit(exitcodes.WriteConf)
+	}
+	tlog.Info.Printf(tlog.ColorGreen+"Password set for user %v."+tlog.ColorReset, args.addUser)
 }
 
 func main() {
@@ -274,11 +329,11 @@ func main() {
 		return
 	}
 	if nOps > 1 {
-		tlog.Fatal.Printf("At most one of -info, -init, -passwd, -fsck is allowed")
+		tlog.Fatal.Printf("At most one of -info, -init, -passwd, -fsck, --add-user, --delete-user, --add-fido2, --delete-fido2 is allowed")
 		os.Exit(exitcodes.Usage)
 	}
 	if flagSet.NArg() != 1 {
-		tlog.Fatal.Printf("The options -info, -init, -passwd, -fsck take exactly one argument, %d given",
+		tlog.Fatal.Printf("The options -info, -init, -passwd, -fsck, --add-user, --delete-user, --add-fido2, --delete-fido2 take exactly one argument, %d given",
 			flagSet.NArg())
 		os.Exit(exitcodes.Usage)
 	}
@@ -302,4 +357,23 @@ func main() {
 		code := fsck(&args)
 		os.Exit(code)
 	}
+	// TODO tp
+	if args.addUser != "" {
+		addUser(&args)
+		os.Exit(0)
+	}
+	if args.deleteUser != "" {
+		tlog.Fatal.Printf("not implemented")
+		os.Exit(0)
+	}
+	if args.addFido2 != "" {
+		tlog.Fatal.Printf("not implemented")
+		os.Exit(0)
+	}
+	if args.deleteFido2 != "" {
+		tlog.Fatal.Printf("not implemented")
+		os.Exit(0)
+	}
+	tlog.Fatal.Printf("parsing command line failed")
+	os.Exit(0)
 }
