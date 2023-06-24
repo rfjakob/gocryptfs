@@ -14,3 +14,7 @@ require (
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
 	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035
 )
+
+replace (
+	"github.com/rfjakob/gocryptfs/v2/internal/configfile" => "./internal/configfile"
+)

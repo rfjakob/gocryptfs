@@ -25,6 +25,8 @@ const (
 	// the config file gets stored next to the plain-text files. Make it hidden
 	// (start with dot) to not annoy the user.
 	ConfReverseName = ".gocryptfs.reverse.conf"
+
+	DefaultKey = "DefaultKey"
 )
 
 // FIDO2Params is a structure for storing FIDO2 parameters.
@@ -35,6 +37,10 @@ type FIDO2Params struct {
 	HMACSalt []byte
 }
 
+type FIDO2ParamsMap map[string]*FIDO2Params
+
+type EncryptedKeyMap map[string]([]byte)
+
 // ConfFile is the content of a config file.
 type ConfFile struct {
 	// Creator is the gocryptfs version string.
@@ -43,7 +49,7 @@ type ConfFile struct {
 	Creator string
 	// EncryptedKey holds an encrypted AES key, unlocked using a password
 	// hashed with scrypt
-	EncryptedKey []byte
+	EncryptedKeys EncryptedKeyMap
 	// ScryptObject stores parameters for scrypt hashing (key derivation)
 	ScryptObject ScryptKDF
 	// Version is the On-Disk-Format version this filesystem uses
@@ -54,7 +60,7 @@ type ConfFile struct {
 	// stored in the superblock.
 	FeatureFlags []string
 	// FIDO2 parameters
-	FIDO2 *FIDO2Params `json:",omitempty"`
+	FIDO2 FIDO2ParamsMap `json:",omitempty"`
 	// LongNameMax corresponds to the -longnamemax flag
 	LongNameMax uint8 `json:",omitempty"`
 	// Filename is the name of the config file. Not exported to JSON.
@@ -81,9 +87,11 @@ type CreateArgs struct {
 // Uses scrypt with cost parameter "LogN".
 func Create(args *CreateArgs) error {
 	cf := ConfFile{
-		filename: args.Filename,
-		Creator:  args.Creator,
-		Version:  contentenc.CurrentVersion,
+		filename:      args.Filename,
+		Creator:       args.Creator,
+		Version:       contentenc.CurrentVersion,
+		EncryptedKeys: make(EncryptedKeyMap),
+		FIDO2:         make(FIDO2ParamsMap),
 	}
 	// Feature flags
 	cf.setFeatureFlag(FlagHKDF)
@@ -115,7 +123,7 @@ func Create(args *CreateArgs) error {
 	}
 	if len(args.Fido2CredentialID) > 0 {
 		cf.setFeatureFlag(FlagFIDO2)
-		cf.FIDO2 = &FIDO2Params{
+		cf.FIDO2[DefaultKey] = &FIDO2Params{
 			CredentialID: args.Fido2CredentialID,
 			HMACSalt:     args.Fido2HmacSalt,
 		}
@@ -218,7 +226,7 @@ func (cf *ConfFile) DecryptMasterKey(password []byte) (masterkey []byte, err err
 	ce := getKeyEncrypter(scryptHash, useHKDF)
 
 	tlog.Warn.Enabled = false // Silence DecryptBlock() error messages on incorrect password
-	masterkey, err = ce.DecryptBlock(cf.EncryptedKey, 0, nil)
+	masterkey, err = ce.DecryptBlock(cf.EncryptedKeys[DefaultKey], 0, nil)
 	tlog.Warn.Enabled = true
 
 	// Purge scrypt-derived key
@@ -248,7 +256,7 @@ func (cf *ConfFile) EncryptKey(key []byte, password []byte, logN int) {
 	// Lock master key using password-based key
 	useHKDF := cf.IsFeatureFlagSet(FlagHKDF)
 	ce := getKeyEncrypter(scryptHash, useHKDF)
-	cf.EncryptedKey = ce.EncryptBlock(key, 0, nil)
+	cf.EncryptedKeys[DefaultKey] = ce.EncryptBlock(key, 0, nil)
 
 	// Purge scrypt-derived key
 	for i := range scryptHash {
