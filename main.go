@@ -84,8 +84,8 @@ func changePassword(args *argContainer) {
 		if len(masterkey) == 0 {
 			log.Panic("empty masterkey")
 		}
-		if confFile.IsFeatureFlagSet(configfile.FlagFIDO2) {
-			tlog.Fatal.Printf("Password change is not supported on FIDO2-enabled filesystems.")
+		if confFile.IsFeatureFlagSet(configfile.FlagFIDO2) && args.fido2 != "" {
+			tlog.Fatal.Printf("Password change is not supported in conjunction with --fido2")
 			os.Exit(exitcodes.Usage)
 		}
 		tlog.Info.Println("Please enter your new password.")

@@ -300,6 +300,26 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 		tlog.Fatal.Printf("The options -extpass and -fido2 cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
+	if args.user != "" && args.fido2 != "" {
+		tlog.Fatal.Printf("The options -user and -fido2 cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
+	}
+	if args.addUser != "" && args.addFido2 != "" {
+		tlog.Fatal.Printf("The options -add-user and -add-fido2 cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
+	}
+	if args.addUser != "" && args.addFido2Name != configfile.DefaultKey {
+		tlog.Fatal.Printf("The options -add-user and -add-fido2-name cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
+	}
+	if args.addUser != "" && args.deleteUser != "" {
+		tlog.Fatal.Printf("The options -add-user and -delete-user cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
+	}
+	if args.deleteUser != "" && args.deleteFido2 != "" {
+		tlog.Fatal.Printf("The options -delete-user and -delete-fido2 cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
+	}
 	if args.idle < 0 {
 		tlog.Fatal.Printf("Idle timeout cannot be less than 0")
 		os.Exit(exitcodes.Usage)
