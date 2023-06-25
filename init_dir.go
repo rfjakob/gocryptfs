@@ -84,7 +84,7 @@ func initDir(args *argContainer) {
 		var fido2CredentialID, fido2HmacSalt []byte
 		if args.fido2 != "" {
 			fido2Name = args.fido2Name
-			fido2CredentialID = fido2.Register(args.fido2, filepath.Base(args.cipherdir))
+			fido2CredentialID = fido2.Register(args.fido2, fido2Name /*filepath.Base(args.cipherdir)*/)
 			fido2HmacSalt = cryptocore.RandBytes(32)
 			password = fido2.Secret(args.fido2, fido2CredentialID, fido2HmacSalt)
 			// overwrite user to match fido2Name
