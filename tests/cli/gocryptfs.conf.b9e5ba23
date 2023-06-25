@@ -1,7 +1,7 @@
 {
 	"Creator": "gocryptfs v1.1-rc1-31-gc487e17-dirty",
 	"EncryptedKeys": { 
-		"DefaultKey":"vthRM/vXg3Cn16jld2JxPiRv8OSBSwTYDzOqdlrvD1agJefZhhvDQS7b5fC7B7JRL4UiVUKkNaJRVMRf",
+		"DefaultKey": "vthRM/vXg3Cn16jld2JxPiRv8OSBSwTYDzOqdlrvD1agJefZhhvDQS7b5fC7B7JRL4UiVUKkNaJRVMRf"
 	},
 	"ScryptObject": {
 		"Salt": "uVwNDUMLWktmV0WgvPHztVrmoahfYN8A/22I/uq66sU=",
@@ -10,7 +10,7 @@
 		"P": 1,
 		"KeyLen": 32
 	},
-	"Version": 2,
+	"Version": 3,
 	"FeatureFlags": [
 		"GCMIV128",
 		"DirIV",
