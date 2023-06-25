@@ -151,6 +151,9 @@ func addUser(args *argContainer) {
 		if len(confFile.EncryptedKeys) >= maxUserEntries-1 {
 			log.Panic("only ", maxUserEntries, " user/pw entries are allowed")
 		}
+		if _, ok := confFile.EncryptedKeys[args.addUser]; ok {
+			log.Panic("User ", args.addUser, " does already exist")
+		}
 		if confFile.IsFeatureFlagSet(configfile.FlagFIDO2) {
 			tlog.Fatal.Printf("Password change is not supported on FIDO2-enabled filesystems.")
 			os.Exit(exitcodes.Usage)
@@ -208,6 +211,9 @@ func deleteUser(args *argContainer) {
 		if len(confFile.EncryptedKeys) <= 1 {
 			log.Panic("tried to delete last user")
 		}
+		if _, ok := confFile.EncryptedKeys[args.deleteUser]; !ok {
+			log.Panic("User ", args.deleteUser, " does not exist")
+		}
 		if confFile.IsFeatureFlagSet(configfile.FlagFIDO2) {
 			tlog.Fatal.Printf("Password change is not supported on FIDO2-enabled filesystems.")
 			os.Exit(exitcodes.Usage)
@@ -224,8 +230,8 @@ func deleteUser(args *argContainer) {
 		os.Exit(exitcodes.WriteConf)
 	}
 	tlog.Info.Printf(tlog.ColorGreen+"User %v."+tlog.ColorReset, args.deleteUser)
-	tlog.Info.Printf(tlog.ColorRed, tlog.ColorGreen+
-		"Warning: Deleting a user is unsafe - as the deleted user could have been retrieved the masterkey or copied gocryptfs.conf already"+
+	tlog.Info.Printf(tlog.ColorYellow +
+		"Warning: Deleting a user is unsafe - as the deleted user could have retrieved the masterkey or copied gocryptfs.conf already" +
 		tlog.ColorReset)
 }
 
