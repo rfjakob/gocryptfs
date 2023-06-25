@@ -80,11 +80,15 @@ func initDir(args *argContainer) {
 	}
 	{
 		var password []byte
+		var fido2Name string
 		var fido2CredentialID, fido2HmacSalt []byte
 		if args.fido2 != "" {
+			fido2Name = args.fido2Name
 			fido2CredentialID = fido2.Register(args.fido2, filepath.Base(args.cipherdir))
 			fido2HmacSalt = cryptocore.RandBytes(32)
 			password = fido2.Secret(args.fido2, fido2CredentialID, fido2HmacSalt)
+			// overwrite user to match fido2Nam
+			args.user = fido2Name
 		} else {
 			// normal password entry
 			password, err = readpassword.Twice([]string(args.extpass), []string(args.passfile))
@@ -92,6 +96,7 @@ func initDir(args *argContainer) {
 				tlog.Fatal.Println(err)
 				os.Exit(exitcodes.ReadPassword)
 			}
+			fido2Name = ""
 			fido2CredentialID = nil
 			fido2HmacSalt = nil
 		}
@@ -104,6 +109,7 @@ func initDir(args *argContainer) {
 			LogN:               args.scryptn,
 			Creator:            creator,
 			AESSIV:             args.aessiv,
+			Fido2Name:          fido2Name,
 			Fido2CredentialID:  fido2CredentialID,
 			Fido2HmacSalt:      fido2HmacSalt,
 			DeterministicNames: args.deterministic_names,

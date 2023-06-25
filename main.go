@@ -45,8 +45,14 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 			tlog.Fatal.Printf("Masterkey encrypted using FIDO2 token; need to use the --fido2 option.")
 			return nil, nil, exitcodes.NewErr("", exitcodes.Usage)
 		}
-		var fido2Obj = cf.FIDO2[configfile.DefaultKey]
+		var fido2Obj = cf.FIDO2[args.fido2Name]
+		if fido2Obj == nil {
+			tlog.Fatal.Printf("Masterkey encrypted using FIDO2 token; password not found: check your --fido2-name option")
+			return nil, nil, exitcodes.NewErr("", exitcodes.Usage)
+		}
 		pw = fido2.Secret(args.fido2, fido2Obj.CredentialID, fido2Obj.HMACSalt)
+		// overwrite user to match fido2Name
+		args.user = args.fido2Name
 	} else {
 		pw, err = readpassword.Once([]string(args.extpass), []string(args.passfile), "")
 		if err != nil {

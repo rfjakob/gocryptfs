@@ -37,7 +37,7 @@ type argContainer struct {
 	masterkey, mountpoint, cipherdir, cpuprofile,
 	memprofile, ko, ctlsock, fsname, force_owner, trace, fido2 string
 	// more than one encryption of masterkey
-	user, addUser, deleteUser, addFido2, deleteFido2 string
+	user, fido2Name, addUser, deleteUser, addFido2, deleteFido2 string
 	// -extpass, -badname, -passfile can be passed multiple times
 	extpass, badname, passfile []string
 	// For reverse mode, several ways to specify exclusions. All can be specified multiple times.
@@ -213,6 +213,7 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 
 	// more than one encryption of masterkey
 	flagSet.StringVar(&args.user, "user", configfile.DefaultKey, "Use <user> instead of "+configfile.DefaultKey+" for decryption of masterkey")
+	flagSet.StringVar(&args.fido2Name, "fido2-name", configfile.DefaultKey, "Use <fido2Name> instead of "+configfile.DefaultKey+" for fido2 device registration or decryption")
 	flagSet.StringVar(&args.addUser, "add-user", "", "Add encrypted masterkey for <addUser> using credentials of <user>")
 	flagSet.StringVar(&args.deleteUser, "delete-user", "", "Delete encrypted masterkey for <deleteUser> using credentials of <user>")
 	flagSet.StringVar(&args.addFido2, "add-fido2", "", "Add encrypted masterkey for FIDO2 key <addFido2>")

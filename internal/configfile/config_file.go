@@ -76,6 +76,7 @@ type CreateArgs struct {
 	LogN               int
 	Creator            string
 	AESSIV             bool
+	Fido2Name          string
 	Fido2CredentialID  []byte
 	Fido2HmacSalt      []byte
 	DeterministicNames bool
@@ -124,7 +125,7 @@ func Create(args *CreateArgs) error {
 	}
 	if len(args.Fido2CredentialID) > 0 {
 		cf.setFeatureFlag(FlagFIDO2)
-		cf.FIDO2[DefaultKey] = &FIDO2Params{
+		cf.FIDO2[args.Fido2Name] = &FIDO2Params{
 			CredentialID: args.Fido2CredentialID,
 			HMACSalt:     args.Fido2HmacSalt,
 		}
