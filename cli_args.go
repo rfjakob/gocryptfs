@@ -37,7 +37,7 @@ type argContainer struct {
 	masterkey, mountpoint, cipherdir, cpuprofile,
 	memprofile, ko, ctlsock, fsname, force_owner, trace, fido2 string
 	// more than one encryption of masterkey
-	user, fido2Name, addUser, deleteUser, addFido2, addFido2Name, deleteFido2 string
+	user, fido2Name, addUser, deleteUser, addFido2, addFido2Name, deleteFido2Name string
 	// -extpass, -badname, -passfile can be passed multiple times
 	extpass, badname, passfile []string
 	// For reverse mode, several ways to specify exclusions. All can be specified multiple times.
@@ -219,7 +219,7 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.StringVar(&args.addFido2, "add-fido2", "", "Add FIDO2 device on path <addFido2> for masterkey decryption")
 	flagSet.StringVar(&args.addFido2Name, "add-fido2-name", configfile.DefaultKey,
 		"Add FIDO2 device with name <addFido2Name> instead of "+configfile.DefaultKey+" for masterkey decryption")
-	flagSet.StringVar(&args.deleteFido2, "delete-fido2", "", "Delete encrypted masterkey of FIDO2 device with name <addFido2> instead of "+configfile.DefaultKey)
+	flagSet.StringVar(&args.deleteFido2Name, "delete-fido2-name", "", "Delete encrypted masterkey of FIDO2 device with name <deleteFido2Name> instead of "+configfile.DefaultKey)
 
 	// Exclusion options
 	flagSet.StringArrayVar(&args.exclude, "e", nil, "Alias for -exclude")
@@ -300,8 +300,12 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 		tlog.Fatal.Printf("The options -extpass and -fido2 cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
-	if args.user != "" && args.fido2 != "" {
+	if args.user != configfile.DefaultKey && args.fido2 != "" {
 		tlog.Fatal.Printf("The options -user and -fido2 cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
+	}
+	if args.user != configfile.DefaultKey && args.fido2Name != configfile.DefaultKey {
+		tlog.Fatal.Printf("The options -user and -fido2-name cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
 	if args.addUser != "" && args.addFido2 != "" {
@@ -316,8 +320,8 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 		tlog.Fatal.Printf("The options -add-user and -delete-user cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
-	if args.deleteUser != "" && args.deleteFido2 != "" {
-		tlog.Fatal.Printf("The options -delete-user and -delete-fido2 cannot be used at the same time")
+	if args.deleteUser != "" && args.deleteFido2Name != "" {
+		tlog.Fatal.Printf("The options -delete-user and -delete-fido2-name cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
 	if args.idle < 0 {
@@ -372,7 +376,7 @@ func countOpFlags(args *argContainer) int {
 	if args.addFido2 != "" {
 		count++
 	}
-	if args.deleteFido2 != "" {
+	if args.deleteFido2Name != "" {
 		count++
 	}
 	return count

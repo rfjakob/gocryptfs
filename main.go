@@ -126,7 +126,7 @@ func changePassword(args *argContainer) {
 		tlog.Fatal.Println(err)
 		os.Exit(exitcodes.WriteConf)
 	}
-	tlog.Info.Printf(tlog.ColorGreen + "Password changed." + tlog.ColorReset)
+	tlog.Info.Printf(tlog.ColorGreen+"Password changed for %v."+tlog.ColorReset, args.user)
 }
 
 // add user from <addUser> flag to config file "filename"
@@ -225,7 +225,7 @@ func deleteUser(args *argContainer) {
 		tlog.Fatal.Println(err)
 		os.Exit(exitcodes.WriteConf)
 	}
-	tlog.Info.Printf(tlog.ColorGreen+"User %v."+tlog.ColorReset, args.deleteUser)
+	tlog.Info.Printf(tlog.ColorGreen+"User %v deleted."+tlog.ColorReset, args.deleteUser)
 	tlog.Info.Printf(tlog.ColorYellow +
 		"Warning: Deleting a user is unsafe - as the deleted user could have retrieved the masterkey or copied gocryptfs.conf already" +
 		tlog.ColorReset)
@@ -254,8 +254,8 @@ func addFido2(args *argContainer) {
 		if args.addFido2Name == "" {
 			log.Panic("missing argument <addFido2Name> in addFido2")
 		}
-		if args.addFido2Name == args.fido2 {
-			log.Panic("<addFido2> and <fido2> must be different")
+		if args.addFido2Name == args.fido2Name {
+			log.Panic("<addFido2> and <fido2Name> must be different")
 		}
 		if len(confFile.EncryptedKeys) >= maxUserEntries-1 {
 			log.Panic("only ", maxUserEntries, " user/pw entries are allowed (including fido2 devices)")
@@ -299,7 +299,71 @@ func addFido2(args *argContainer) {
 		tlog.Fatal.Println(err)
 		os.Exit(exitcodes.WriteConf)
 	}
-	tlog.Info.Printf(tlog.ColorGreen+"Password set for user %v."+tlog.ColorReset, args.addUser)
+	tlog.Info.Printf(tlog.ColorGreen+"FIDO2 device %v at %v registered."+tlog.ColorReset, args.addFido2Name, args.addFido2)
+}
+
+// delete fido2 device from <delete-fido2> flag to config file "filename"
+func deleteFido2Name(args *argContainer) {
+	var confFile *configfile.ConfFile
+	{
+		var masterkey []byte
+		var err error
+		masterkey, confFile, err = loadConfig(args)
+		if err != nil {
+			exitcodes.Exit(err)
+		}
+		if len(masterkey) == 0 {
+			log.Panic("empty masterkey")
+		}
+		// Are we using "-masterkey"?
+		if args.masterkey != "" {
+			log.Panic("<deleteFido2Name> is not allowed in conjunction with '-masterkey'")
+		}
+		if args.deleteFido2Name == "" {
+			log.Panic("missing argument <deleteFido2Name> in deleteFido2Name")
+		}
+		if args.deleteFido2Name == args.fido2Name {
+			log.Panic("<deleteFido2Name> and <fido2Name> must be different")
+		}
+		if len(confFile.EncryptedKeys) >= maxUserEntries-1 {
+			log.Panic("only ", maxUserEntries, " user/pw entries are allowed (including fido2 devices)")
+		}
+		if _, ok := confFile.EncryptedKeys[args.deleteFido2Name]; !ok {
+			log.Panic("User/Device ", args.deleteFido2Name, " does not exist")
+		}
+		if confFile.FIDO2 == nil {
+			confFile.FIDO2 = make(configfile.FIDO2ParamsMap)
+		}
+		if _, ok := confFile.FIDO2[args.deleteFido2Name]; !ok {
+			log.Panic("FIDO2 device ", args.deleteFido2Name, " does not exist")
+		}
+		if len(confFile.EncryptedKeys) <= 1 {
+			log.Panic("tried to delete last user/device")
+		}
+		if _, ok := confFile.EncryptedKeys[args.deleteFido2Name]; !ok {
+			log.Panic("User/device ", args.deleteFido2Name, " does not exist")
+		}
+		if _, ok := confFile.FIDO2[args.deleteFido2Name]; !ok {
+			log.Panic("FIDO2 device ", args.deleteFido2Name, " does not exist")
+		}
+		tlog.Info.Println("Deleting FIDO2 device ", args.deleteFido2Name)
+		delete(confFile.EncryptedKeys, args.deleteFido2Name)
+		delete(confFile.FIDO2, args.deleteFido2Name)
+		for i := range masterkey {
+			masterkey[i] = 0
+		}
+		// masterkey run out of scope here
+	}
+	err := confFile.WriteFile()
+	if err != nil {
+		tlog.Fatal.Println(err)
+		os.Exit(exitcodes.WriteConf)
+	}
+	tlog.Info.Printf(tlog.ColorGreen+"FIDO device %v deleted."+tlog.ColorReset, args.deleteFido2Name)
+	tlog.Info.Printf(tlog.ColorYellow +
+		"Warning: Deleting a FIDO device is unsafe - as the user using the FIDO2 device could have retrieved the masterkey or copied gocryptfs.conf already" +
+		tlog.ColorReset)
+
 }
 
 func main() {
@@ -452,11 +516,11 @@ func main() {
 		return
 	}
 	if nOps > 1 {
-		tlog.Fatal.Printf("At most one of -info, -init, -passwd, -fsck, --add-user, --delete-user, --add-fido2, --delete-fido2 is allowed")
+		tlog.Fatal.Printf("At most one of -info, -init, -passwd, -fsck, -add-user, -delete-user, -add-fido2, -delete-fido2-name is allowed")
 		os.Exit(exitcodes.Usage)
 	}
 	if flagSet.NArg() != 1 {
-		tlog.Fatal.Printf("The options -info, -init, -passwd, -fsck, --add-user, --delete-user, --add-fido2, --delete-fido2 take exactly one argument, %d given",
+		tlog.Fatal.Printf("The options -info, -init, -passwd, -fsck, -add-user, -delete-user, -add-fido2, -delete-fido2-name take exactly one argument, %d given",
 			flagSet.NArg())
 		os.Exit(exitcodes.Usage)
 	}
@@ -489,12 +553,12 @@ func main() {
 		deleteUser(&args)
 		os.Exit(0)
 	}
-	if args.addFido2Name != "" {
+	if args.addFido2 != "" {
 		addFido2(&args)
 		os.Exit(0)
 	}
-	if args.deleteFido2 != "" {
-		tlog.Fatal.Printf("not implemented")
+	if args.deleteFido2Name != "" {
+		deleteFido2Name(&args)
 		os.Exit(0)
 	}
 	tlog.Fatal.Printf("parsing command line failed")
