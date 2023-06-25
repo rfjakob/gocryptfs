@@ -214,7 +214,7 @@ func Load(filename string) (*ConfFile, error) {
 	// Unmarshal
 	err = json.Unmarshal(js, &cf)
 	if err != nil {
-		tlog.Warn.Printf("Failed to unmarshal config file")
+		tlog.Warn.Printf("Failed to unmarshal config file ", filename)
 		return nil, err
 	}
 
