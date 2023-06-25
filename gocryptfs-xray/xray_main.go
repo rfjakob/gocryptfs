@@ -83,6 +83,7 @@ type argContainer struct {
 	xchacha       *bool
 	sep0          *bool
 	fido2         *string
+	fido2Name     *string
 	version       *bool
 	user          *string
 }
@@ -96,6 +97,7 @@ func main() {
 	args.aessiv = flag.Bool("aessiv", false, "Assume AES-SIV mode instead of AES-GCM")
 	args.xchacha = flag.Bool("xchacha", false, "Assume XChaCha20-Poly1305 mode instead of AES-GCM")
 	args.fido2 = flag.String("fido2", "", "Protect the masterkey using a FIDO2 token instead of a password")
+	args.fido2Name = flag.String("fido2-name", configfile.DefaultKey, "Use <fido2Name> instead of "+configfile.DefaultKey+" for fido2 device registration or decryption")
 	args.version = flag.Bool("version", false, "Print version information")
 	args.user = flag.String("user", configfile.DefaultKey, "Use <user> instead of "+configfile.DefaultKey+" for decryption of masterkey")
 
@@ -129,13 +131,13 @@ func main() {
 	}
 	defer f.Close()
 	if *args.dumpmasterkey {
-		dumpMasterKey(fn, *args.user, *args.fido2)
+		dumpMasterKey(fn, *args.user, *args.fido2, *args.fido2Name)
 	} else {
 		inspectCiphertext(&args, f)
 	}
 }
 
-func dumpMasterKey(fn string, user string, fido2Path string) {
+func dumpMasterKey(fn string, user string, fido2Path string, fido2Name string) {
 	tlog.Info.Enabled = false
 	cf, err := configfile.Load(fn)
 	if err != nil {
@@ -143,13 +145,15 @@ func dumpMasterKey(fn string, user string, fido2Path string) {
 		exitcodes.Exit(err)
 	}
 	var pw []byte
-	if cf.IsFeatureFlagSet(configfile.FlagFIDO2) {
-		if fido2Path == "" {
-			tlog.Fatal.Printf("Masterkey encrypted using FIDO2 token; need to use the --fido2 option.")
+	if cf.IsFeatureFlagSet(configfile.FlagFIDO2) && fido2Path != "" {
+		var fido2Obj = cf.FIDO2[fido2Name]
+		if fido2Obj == nil {
+			tlog.Fatal.Printf("Masterkey encrypted using FIDO2 token; password not found: check your --fido2-name option")
 			os.Exit(exitcodes.Usage)
 		}
-		var fido2Obj = cf.FIDO2[configfile.DefaultKey]
 		pw = fido2.Secret(fido2Path, fido2Obj.CredentialID, fido2Obj.HMACSalt)
+		// overwrite user to match fido2Name
+		user = fido2Name
 	} else {
 		pw, err = readpassword.Once(nil, nil, "")
 		if err != nil {

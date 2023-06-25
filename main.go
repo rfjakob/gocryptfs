@@ -40,11 +40,7 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 		return masterkey, cf, nil
 	}
 	var pw []byte
-	if cf.IsFeatureFlagSet(configfile.FlagFIDO2) {
-		if args.fido2 == "" {
-			tlog.Fatal.Printf("Masterkey encrypted using FIDO2 token; need to use the --fido2 option.")
-			return nil, nil, exitcodes.NewErr("", exitcodes.Usage)
-		}
+	if cf.IsFeatureFlagSet(configfile.FlagFIDO2) && args.fido2 != "" {
 		var fido2Obj = cf.FIDO2[args.fido2Name]
 		if fido2Obj == nil {
 			tlog.Fatal.Printf("Masterkey encrypted using FIDO2 token; password not found: check your --fido2-name option")
@@ -160,10 +156,6 @@ func addUser(args *argContainer) {
 		if _, ok := confFile.EncryptedKeys[args.addUser]; ok {
 			log.Panic("User ", args.addUser, " does already exist")
 		}
-		if confFile.IsFeatureFlagSet(configfile.FlagFIDO2) {
-			tlog.Fatal.Printf("Password change is not supported on FIDO2-enabled filesystems.")
-			os.Exit(exitcodes.Usage)
-		}
 		tlog.Info.Println("Please enter the password for new user ", args.addUser, ".")
 		newPw, err := readpassword.Twice([]string(args.extpass), []string(args.passfile))
 		if err != nil {
@@ -219,10 +211,6 @@ func deleteUser(args *argContainer) {
 		}
 		if _, ok := confFile.EncryptedKeys[args.deleteUser]; !ok {
 			log.Panic("User ", args.deleteUser, " does not exist")
-		}
-		if confFile.IsFeatureFlagSet(configfile.FlagFIDO2) {
-			tlog.Fatal.Printf("Password change is not supported on FIDO2-enabled filesystems.")
-			os.Exit(exitcodes.Usage)
 		}
 		delete(confFile.EncryptedKeys, args.deleteUser)
 		for i := range masterkey {
