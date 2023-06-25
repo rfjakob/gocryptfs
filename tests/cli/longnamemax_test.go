@@ -20,7 +20,7 @@ func TestLongnamemax100(t *testing.T) {
 	pDir := cDir + ".mnt"
 
 	// Check config file sanity
-	_, c, err := configfile.LoadAndDecrypt(cDir+"/"+configfile.ConfDefaultName, testPw)
+	_, c, err := configfile.LoadAndDecrypt(cDir+"/"+configfile.ConfDefaultName, configfile.DefaultKey, testPw)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -66,7 +66,7 @@ func TestLongnamemax100Reverse(t *testing.T) {
 	mntDir := backingDir + ".mnt"
 
 	// Check config file sanity
-	_, c, err := configfile.LoadAndDecrypt(backingDir+"/"+configfile.ConfReverseName, testPw)
+	_, c, err := configfile.LoadAndDecrypt(backingDir+"/"+configfile.ConfReverseName, configfile.DefaultKey, testPw)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
