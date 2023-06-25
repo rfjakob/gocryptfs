@@ -248,45 +248,30 @@ func addFido2(args *argContainer) {
 		if args.masterkey != "" {
 			log.Panic("<addFido2> is not allowed in conjunction with '-masterkey'")
 		}
-		if args.addFido2Device == "" {
-			log.Panic("missing argument <addFido2Device> in addFido2")
-		}
 		if args.addFido2 == "" {
 			log.Panic("missing argument <addFido2> in addFido2")
 		}
-		if args.addFido2 == args.fido2 {
+		if args.addFido2Name == "" {
+			log.Panic("missing argument <addFido2Name> in addFido2")
+		}
+		if args.addFido2Name == args.fido2 {
 			log.Panic("<addFido2> and <fido2> must be different")
 		}
 		if len(confFile.EncryptedKeys) >= maxUserEntries-1 {
 			log.Panic("only ", maxUserEntries, " user/pw entries are allowed (including fido2 devices)")
 		}
-		if _, ok := confFile.EncryptedKeys[args.addFido2]; ok {
-			log.Panic("User/Device ", args.addFido2, " does already exist")
+		if _, ok := confFile.EncryptedKeys[args.addFido2Name]; ok {
+			log.Panic("User/Device ", args.addFido2Name, " does already exist")
 		}
-		tlog.Info.Println("Adding new FIDO2 device ", args.addFido2, " at ", args.addFido2Device)
+		tlog.Info.Println("Adding new FIDO2 device ", args.addFido2Name, " at ", args.addFido2)
 		confFile.SetFeatureFlagFIDO2()
-		/*
-			newPw, err := readpassword.Twice([]string(args.extpass), []string(args.passfile))
-			if err != nil {
-				tlog.Fatal.Println(err)
-				os.Exit(exitcodes.ReadPassword)
-			}
-			logN := confFile.ScryptObject.LogN()
-			if args._explicitScryptn {
-				logN = args.scryptn
-			}
-			confFile.EncryptKey(masterkey, args.addUser, newPw, logN)
-			for i := range newPw {
-				newPw[i] = 0
-			}
-		*/
 		params := configfile.FIDO2Params{
-			CredentialID: fido2.Register(args.addFido2Device, args.addFido2),
+			CredentialID: fido2.Register(args.addFido2, args.addFido2Name),
 			HMACSalt:     cryptocore.RandBytes(32),
 		}
-		password := fido2.Secret(args.addFido2Device, params.CredentialID, params.HMACSalt)
-		// overwrite addUser to match addFido2
-		args.addUser = args.addFido2
+		password := fido2.Secret(args.addFido2, params.CredentialID, params.HMACSalt)
+		// overwrite addUser to match addFido2Name
+		args.addUser = args.addFido2Name
 
 		logN := confFile.ScryptObject.LogN()
 		if args._explicitScryptn {
@@ -296,10 +281,10 @@ func addFido2(args *argContainer) {
 		if confFile.FIDO2 == nil {
 			confFile.FIDO2 = make(configfile.FIDO2ParamsMap)
 		}
-		if _, ok := confFile.FIDO2[args.addFido2]; ok {
-			log.Panic("FIDO2 device ", args.addFido2, " does already exist")
+		if _, ok := confFile.FIDO2[args.addFido2Name]; ok {
+			log.Panic("FIDO2 device ", args.addFido2Name, " does already exist")
 		}
-		confFile.FIDO2[args.addFido2] = &params
+		confFile.FIDO2[args.addFido2Name] = &params
 
 		for i := range masterkey {
 			masterkey[i] = 0
@@ -504,7 +489,7 @@ func main() {
 		deleteUser(&args)
 		os.Exit(0)
 	}
-	if args.addFido2 != "" {
+	if args.addFido2Name != "" {
 		addFido2(&args)
 		os.Exit(0)
 	}
