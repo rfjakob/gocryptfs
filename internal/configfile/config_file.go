@@ -131,7 +131,7 @@ func Create(args *CreateArgs) error {
 		}
 	}
 	// Catch bugs and invalid cli flag combinations early
-	initializeScryptObjectIfNeeded(args.LogN, &cf)
+	initializeScryptObjectIfNeeded(args.LogN, &cf, 0)
 	if err := cf.Validate(); err != nil {
 		return err
 	}
@@ -153,8 +153,8 @@ func Create(args *CreateArgs) error {
 }
 
 // initialize cf.ScryptObject if needed
-func initializeScryptObjectIfNeeded(logN int, cf *ConfFile) {
-	if ScryptKDFEqual(cf.ScryptObject, ScryptKDF{}) || len(cf.EncryptedKeys) < 1 {
+func initializeScryptObjectIfNeeded(logN int, cf *ConfFile, maxEncryptedKeys int) {
+	if ScryptKDFEqual(cf.ScryptObject, ScryptKDF{}) || len(cf.EncryptedKeys) <= maxEncryptedKeys {
 		cf.ScryptObject = NewScryptKDF(logN)
 	} else {
 		var n int
@@ -164,7 +164,7 @@ func initializeScryptObjectIfNeeded(logN int, cf *ConfFile) {
 			n = 1 << uint32(logN)
 		}
 		if n != cf.ScryptObject.N {
-			tlog.Warn.Println("Warnung: Change of Scrypt logN for more than one user is not supported")
+			tlog.Warn.Println("Warning: Change of Scrypt logN for more than one user is not supported")
 		}
 	}
 }
@@ -273,7 +273,7 @@ func (cf *ConfFile) DecryptMasterKey(user string, password []byte) (masterkey []
 // cf.ScryptObject.
 func (cf *ConfFile) EncryptKey(key []byte, user string, password []byte, logN int) {
 	// Generate scrypt-derived key from password
-	initializeScryptObjectIfNeeded(logN, cf)
+	initializeScryptObjectIfNeeded(logN, cf, 1)
 	scryptHash := cf.ScryptObject.DeriveKey(password)
 
 	// Lock master key using password-based key
