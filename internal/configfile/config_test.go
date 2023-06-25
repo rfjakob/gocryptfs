@@ -5,14 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rfjakob/gocryptfs/v2/internal/configfile"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
 var testPw = []byte("test")
 
 func TestLoadV1(t *testing.T) {
-	_, _, err := LoadAndDecrypt("config_test/v1.conf", testPw)
+	_, _, err := LoadAndDecrypt("config_test/v1.conf", DefaultKey, testPw)
 	if err == nil {
 		t.Errorf("Outdated v1 config file must fail to load but it didn't")
 	} else if testing.Verbose() {
@@ -25,7 +24,7 @@ func TestLoadV1(t *testing.T) {
 func TestLoadV2(t *testing.T) {
 	t1 := time.Now()
 
-	_, _, err := LoadAndDecrypt("config_test/v2.conf", testPw)
+	_, _, err := LoadAndDecrypt("config_test/v2.conf", DefaultKey, testPw)
 	if err != nil {
 		t.Errorf("Could not load v2 config file: %v", err)
 	}
@@ -40,21 +39,21 @@ func TestLoadV2PwdError(t *testing.T) {
 	if !testing.Verbose() {
 		tlog.Warn.Enabled = false
 	}
-	_, _, err := LoadAndDecrypt("config_test/v2.conf", []byte("wrongpassword"))
+	_, _, err := LoadAndDecrypt("config_test/v2.conf", DefaultKey, []byte("wrongpassword"))
 	if err == nil {
 		t.Errorf("Loading with wrong password must fail but it didn't")
 	}
 }
 
 func TestLoadV2Feature(t *testing.T) {
-	_, _, err := LoadAndDecrypt("config_test/PlaintextNames.conf", testPw)
+	_, _, err := LoadAndDecrypt("config_test/PlaintextNames.conf", DefaultKey, testPw)
 	if err != nil {
 		t.Errorf("Could not load v2 PlaintextNames config file: %v", err)
 	}
 }
 
 func TestLoadV2StrangeFeature(t *testing.T) {
-	_, _, err := LoadAndDecrypt("config_test/StrangeFeature.conf", testPw)
+	_, _, err := LoadAndDecrypt("config_test/StrangeFeature.conf", DefaultKey, testPw)
 	if err == nil {
 		t.Errorf("Loading unknown feature must fail but it didn't")
 	} else if testing.Verbose() {
@@ -65,14 +64,14 @@ func TestLoadV2StrangeFeature(t *testing.T) {
 func TestCreateConfDefault(t *testing.T) {
 	err := Create(&CreateArgs{
 		Filename: "config_test/tmp.conf",
-		User:     configfile.DefaultKey,
+		User:     DefaultKey,
 		Password: testPw,
 		LogN:     10,
 		Creator:  "test"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, c, err := LoadAndDecrypt("config_test/tmp.conf", testPw)
+	_, c, err := LoadAndDecrypt("config_test/tmp.conf", DefaultKey, testPw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +90,7 @@ func TestCreateConfDefault(t *testing.T) {
 func TestCreateConfPlaintextnames(t *testing.T) {
 	err := Create(&CreateArgs{
 		Filename:       "config_test/tmp.conf",
-		User:           configfile.DefaultKey,
+		User:           DefaultKey,
 		Password:       testPw,
 		PlaintextNames: true,
 		LogN:           10,
@@ -99,7 +98,7 @@ func TestCreateConfPlaintextnames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, c, err := LoadAndDecrypt("config_test/tmp.conf", testPw)
+	_, c, err := LoadAndDecrypt("config_test/tmp.conf", DefaultKey, testPw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +117,7 @@ func TestCreateConfPlaintextnames(t *testing.T) {
 func TestCreateConfFileAESSIV(t *testing.T) {
 	err := Create(&CreateArgs{
 		Filename: "config_test/tmp.conf",
-		User:     configfile.DefaultKey,
+		User:     DefaultKey,
 		Password: testPw,
 		LogN:     10,
 		Creator:  "test",
@@ -126,7 +125,7 @@ func TestCreateConfFileAESSIV(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, c, err := LoadAndDecrypt("config_test/tmp.conf", testPw)
+	_, c, err := LoadAndDecrypt("config_test/tmp.conf", DefaultKey, testPw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +137,7 @@ func TestCreateConfFileAESSIV(t *testing.T) {
 func TestCreateConfLongNameMax(t *testing.T) {
 	args := &CreateArgs{
 		Filename:    "config_test/tmp.conf",
-		User:        configfile.DefaultKey,
+		User:        DefaultKey,
 		Password:    testPw,
 		LogN:        10,
 		Creator:     "test",
@@ -148,7 +147,7 @@ func TestCreateConfLongNameMax(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, c, err := LoadAndDecrypt("config_test/tmp.conf", testPw)
+	_, c, err := LoadAndDecrypt("config_test/tmp.conf", DefaultKey, testPw)
 	if err != nil {
 		t.Fatal(err)
 	}
