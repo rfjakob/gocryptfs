@@ -10,8 +10,10 @@
             "request": "launch",
             "mode": "auto",
             "program": "${fileDirname}/..",
-            "args": ["-init", "-fido2", "/dev/hidraw3", "-fido2-name", "solo", "cipher2"],
-            "cwd": "/mnt/home/tpasch/tmp"
+            // "args": ["-init", "-fido2", "/dev/hidraw3", "-fido2-name", "solo", "cipher2"],
+            "args": ["-user", "testuser", "-add-fido2-device", "/dev/hidraw3", "-add-fido2", "solo", "/mnt/home/tpasch/tmp/cipher2"],
+            // "cwd": "/mnt/home/tpasch/tmp"
+            "console": "integratedTerminal"
         }
     ]
 }

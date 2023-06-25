@@ -264,6 +264,7 @@ func addFido2(args *argContainer) {
 			log.Panic("User/Device ", args.addFido2, " does already exist")
 		}
 		tlog.Info.Println("Adding new FIDO2 device ", args.addFido2, " at ", args.addFido2Device)
+		confFile.SetFeatureFlagFIDO2()
 		/*
 			newPw, err := readpassword.Twice([]string(args.extpass), []string(args.passfile))
 			if err != nil {
@@ -283,15 +284,21 @@ func addFido2(args *argContainer) {
 			CredentialID: fido2.Register(args.addFido2Device, args.addFido2),
 			HMACSalt:     cryptocore.RandBytes(32),
 		}
-		password := fido2.Secret(args.addFido2, params.CredentialID, params.HMACSalt)
-		// overwrite user to match fido2Name
-		args.user = args.addFido2
+		password := fido2.Secret(args.addFido2Device, params.CredentialID, params.HMACSalt)
+		// overwrite addUser to match addFido2
+		args.addUser = args.addFido2
 
 		logN := confFile.ScryptObject.LogN()
 		if args._explicitScryptn {
 			logN = args.scryptn
 		}
 		confFile.EncryptKey(masterkey, args.addUser, password, logN)
+		if confFile.FIDO2 == nil {
+			confFile.FIDO2 = make(configfile.FIDO2ParamsMap)
+		}
+		if _, ok := confFile.FIDO2[args.addFido2]; ok {
+			log.Panic("FIDO2 device ", args.addFido2, " does already exist")
+		}
 		confFile.FIDO2[args.addFido2] = &params
 
 		for i := range masterkey {

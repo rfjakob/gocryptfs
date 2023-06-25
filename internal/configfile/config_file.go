@@ -124,7 +124,7 @@ func Create(args *CreateArgs) error {
 		cf.setFeatureFlag(FlagAESSIV)
 	}
 	if len(args.Fido2CredentialID) > 0 {
-		cf.setFeatureFlag(FlagFIDO2)
+		cf.SetFeatureFlagFIDO2()
 		cf.FIDO2[args.Fido2Name] = &FIDO2Params{
 			CredentialID: args.Fido2CredentialID,
 			HMACSalt:     args.Fido2HmacSalt,
@@ -232,6 +232,10 @@ func (cf *ConfFile) setFeatureFlag(flag flagIota) {
 		return
 	}
 	cf.FeatureFlags = append(cf.FeatureFlags, knownFlags[flag])
+}
+
+func (cf *ConfFile) SetFeatureFlagFIDO2() {
+	cf.setFeatureFlag(FlagFIDO2)
 }
 
 // DecryptMasterKey decrypts the masterkey stored in cf.EncryptedKey using
