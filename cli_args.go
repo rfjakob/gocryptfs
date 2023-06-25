@@ -37,7 +37,7 @@ type argContainer struct {
 	masterkey, mountpoint, cipherdir, cpuprofile,
 	memprofile, ko, ctlsock, fsname, force_owner, trace, fido2 string
 	// more than one encryption of masterkey
-	user, fido2Name, addUser, deleteUser, addFido2, deleteFido2 string
+	user, fido2Name, addUser, deleteUser, addFido2Device, addFido2, deleteFido2 string
 	// -extpass, -badname, -passfile can be passed multiple times
 	extpass, badname, passfile []string
 	// For reverse mode, several ways to specify exclusions. All can be specified multiple times.
@@ -216,8 +216,9 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.StringVar(&args.fido2Name, "fido2-name", configfile.DefaultKey, "Use <fido2Name> instead of "+configfile.DefaultKey+" for fido2 device registration or decryption")
 	flagSet.StringVar(&args.addUser, "add-user", "", "Add encrypted masterkey for <addUser> using credentials of <user>")
 	flagSet.StringVar(&args.deleteUser, "delete-user", "", "Delete encrypted masterkey for <deleteUser> using credentials of <user>")
-	flagSet.StringVar(&args.addFido2, "add-fido2", "", "Add encrypted masterkey for FIDO2 key <addFido2>")
-	flagSet.StringVar(&args.deleteFido2, "delete-fido2", "", "Delete encrypted masterkey for FIDO <deleteUser>")
+	flagSet.StringVar(&args.addFido2Device, "add-fido2-device", "", "Add FIDO2 device on path <addFido2Device> for masterkey decryption")
+	flagSet.StringVar(&args.addFido2, "add-fido2", configfile.DefaultKey, "Add FIDO2 device with name <addFido2> instead of "+configfile.DefaultKey+" for masterkey decryption")
+	flagSet.StringVar(&args.deleteFido2, "delete-fido2", "", "Delete encrypted masterkey of FIDO2 device with name <addFido2> instead of "+configfile.DefaultKey)
 
 	// Exclusion options
 	flagSet.StringArrayVar(&args.exclude, "e", nil, "Alias for -exclude")
@@ -347,7 +348,7 @@ func countOpFlags(args *argContainer) int {
 	if args.deleteUser != "" {
 		count++
 	}
-	if args.addFido2 != "" {
+	if args.addFido2Device != "" {
 		count++
 	}
 	if args.deleteFido2 != "" {

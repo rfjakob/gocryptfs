@@ -9,7 +9,9 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${fileDirname}"
+            "program": "${fileDirname}/..",
+            "args": ["-init", "-fido2", "/dev/hidraw3", "-fido2-name", "solo", "cipher2"],
+            "cwd": "/mnt/home/tpasch/tmp"
         }
     ]
 }
