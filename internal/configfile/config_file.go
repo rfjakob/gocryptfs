@@ -130,7 +130,7 @@ func Create(args *CreateArgs) error {
 		}
 	}
 	// Catch bugs and invalid cli flag combinations early
-	cf.ScryptObject = NewScryptKDF(args.LogN)
+	initializeScryptObjectIfNeeded(args.LogN, &cf)
 	if err := cf.Validate(); err != nil {
 		return err
 	}
@@ -149,6 +149,23 @@ func Create(args *CreateArgs) error {
 	}
 	// Write file to disk
 	return cf.WriteFile()
+}
+
+// initialize cf.ScryptObject if needed
+func initializeScryptObjectIfNeeded(logN int, cf *ConfFile) {
+	if ScryptKDFEqual(cf.ScryptObject, ScryptKDF{}) || len(cf.EncryptedKeys) < 1 {
+		cf.ScryptObject = NewScryptKDF(logN)
+	} else {
+		var n int
+		if logN <= 0 {
+			n = 1 << ScryptDefaultLogN
+		} else {
+			n = 1 << uint32(logN)
+		}
+		if n != cf.ScryptObject.N {
+			tlog.Warn.Println("Warnung: Change of Scrypt logN for more than one user is not supported")
+		}
+	}
 }
 
 // LoadAndDecrypt - read config file from disk and decrypt the
@@ -251,7 +268,7 @@ func (cf *ConfFile) DecryptMasterKey(user string, password []byte) (masterkey []
 // cf.ScryptObject.
 func (cf *ConfFile) EncryptKey(key []byte, user string, password []byte, logN int) {
 	// Generate scrypt-derived key from password
-	cf.ScryptObject = NewScryptKDF(logN)
+	initializeScryptObjectIfNeeded(logN, cf)
 	scryptHash := cf.ScryptObject.DeriveKey(password)
 
 	// Lock master key using password-based key
