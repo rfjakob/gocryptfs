@@ -21,12 +21,12 @@ func TestLoadV1(t *testing.T) {
 
 // Load a known-good config file and verify that it takes at least 100ms
 // (brute-force protection)
-func TestLoadV2(t *testing.T) {
+func TestLoadV3(t *testing.T) {
 	t1 := time.Now()
 
-	_, _, err := LoadAndDecrypt("config_test.v3/v2.conf", DefaultKey, testPw)
+	_, _, err := LoadAndDecrypt("config_test.v3/v3.conf", DefaultKey, testPw)
 	if err != nil {
-		t.Errorf("Could not load v2 config file: %v", err)
+		t.Errorf("Could not load v3 config file: %v", err)
 	}
 
 	elapsed := time.Since(t1)

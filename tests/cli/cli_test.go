@@ -300,6 +300,7 @@ func TestPasswdScryptn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Warnung: Change of Scrypt logN for more than one user is not supported
 	if cf2.ScryptObject.LogN() != cf.ScryptObject.LogN()+1 {
 		t.Errorf("wrong logN value %d", cf2.ScryptObject.LogN())
 	}
