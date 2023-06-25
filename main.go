@@ -22,6 +22,8 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
+const maxUserEntries = 8
+
 // loadConfig loads the config file `args.config` and decrypts the masterkey,
 // or gets via the `-masterkey` or `-zerokey` command line options, if specified.
 func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, err error) {
@@ -66,7 +68,6 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 }
 
 // changePassword - change the password of config file "filename"
-// Does not return (calls os.Exit both on success and on error).
 func changePassword(args *argContainer) {
 	var confFile *configfile.ConfFile
 	{
@@ -125,7 +126,6 @@ func changePassword(args *argContainer) {
 }
 
 // add user from <addUser> flag to config file "filename"
-// Does not return (calls os.Exit both on success and on error).
 func addUser(args *argContainer) {
 	var confFile *configfile.ConfFile
 	{
@@ -147,6 +147,9 @@ func addUser(args *argContainer) {
 		}
 		if args.addUser == args.user {
 			log.Panic("<addUser> and <user> must be different")
+		}
+		if len(confFile.EncryptedKeys) >= maxUserEntries-1 {
+			log.Panic("only ", maxUserEntries, " user/pw entries are allowed")
 		}
 		if confFile.IsFeatureFlagSet(configfile.FlagFIDO2) {
 			tlog.Fatal.Printf("Password change is not supported on FIDO2-enabled filesystems.")
@@ -177,6 +180,53 @@ func addUser(args *argContainer) {
 		os.Exit(exitcodes.WriteConf)
 	}
 	tlog.Info.Printf(tlog.ColorGreen+"Password set for user %v."+tlog.ColorReset, args.addUser)
+}
+
+// delete user from <deleteUser> flag from config file "filename"
+func deleteUser(args *argContainer) {
+	var confFile *configfile.ConfFile
+	{
+		var masterkey []byte
+		var err error
+		masterkey, confFile, err = loadConfig(args)
+		if err != nil {
+			exitcodes.Exit(err)
+		}
+		if len(masterkey) == 0 {
+			log.Panic("empty masterkey")
+		}
+		// Are we using "-masterkey"?
+		if args.masterkey != "" {
+			log.Panic("<deleteUser> is not allowed in conjunction with '-masterkey'")
+		}
+		if args.deleteUser == "" {
+			log.Panic("missing argument <deleteUser> in deleteUser")
+		}
+		if args.deleteUser == args.user {
+			log.Panic("<deleteUser> and <user> must be different")
+		}
+		if len(confFile.EncryptedKeys) <= 1 {
+			log.Panic("tried to delete last user")
+		}
+		if confFile.IsFeatureFlagSet(configfile.FlagFIDO2) {
+			tlog.Fatal.Printf("Password change is not supported on FIDO2-enabled filesystems.")
+			os.Exit(exitcodes.Usage)
+		}
+		delete(confFile.EncryptedKeys, args.deleteUser)
+		for i := range masterkey {
+			masterkey[i] = 0
+		}
+		// masterkey run out of scope here
+	}
+	err := confFile.WriteFile()
+	if err != nil {
+		tlog.Fatal.Println(err)
+		os.Exit(exitcodes.WriteConf)
+	}
+	tlog.Info.Printf(tlog.ColorGreen+"User %v."+tlog.ColorReset, args.deleteUser)
+	tlog.Info.Printf(tlog.ColorRed, tlog.ColorGreen+
+		"Warning: Deleting a user is unsafe - as the deleted user could have been retrieved the masterkey or copied gocryptfs.conf already"+
+		tlog.ColorReset)
 }
 
 func main() {
@@ -363,7 +413,7 @@ func main() {
 		os.Exit(0)
 	}
 	if args.deleteUser != "" {
-		tlog.Fatal.Printf("not implemented")
+		deleteUser(&args)
 		os.Exit(0)
 	}
 	if args.addFido2 != "" {
