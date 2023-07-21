@@ -4,8 +4,10 @@ package nametransform
 import (
 	"crypto/aes"
 	"encoding/base64"
+	"errors"
 	"math"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/rfjakob/eme"
@@ -44,6 +46,7 @@ func New(e *eme.EMECipher, longNames bool, longNameMax uint8, raw64 bool, badnam
 	if raw64 {
 		b64 = base64.RawURLEncoding
 	}
+	b64 = b64.Strict() // Reject non-zero padding bits
 	var effectiveLongNameMax int = math.MaxInt32
 	if longNames {
 		if longNameMax == 0 {
@@ -81,6 +84,13 @@ func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error
 // decryptName decrypts a base64-encoded encrypted filename "cipherName" using the
 // initialization vector "iv".
 func (n *NameTransform) decryptName(cipherName string, iv []byte) (string, error) {
+	// From https://pkg.go.dev/encoding/base64#Encoding.Strict :
+	// > Note that the input is still malleable, as new line characters
+	// > (CR and LF) are still ignored.
+	// Check for CR and LF ourselves.
+	if strings.ContainsAny(cipherName, "\r\n") {
+		return "", errors.New("characters CR or LF in base64")
+	}
 	bin, err := n.B64.DecodeString(cipherName)
 	if err != nil {
 		return "", err
