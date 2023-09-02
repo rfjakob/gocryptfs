@@ -107,7 +107,7 @@ func main() {
 
 	s := sum(args.dumpmasterkey, args.decryptPaths, args.encryptPaths)
 	if s > 1 {
-		fmt.Printf("fatal: %d operations were requested\n", s)
+		fmt.Fprintf(os.Stderr, "fatal: %d operations were requested\n", s)
 		os.Exit(1)
 	}
 	if flag.NArg() != 1 {
@@ -183,7 +183,7 @@ func inspectCiphertext(args *argContainer, fd *os.File) {
 		fmt.Println("empty file")
 		os.Exit(0)
 	} else if err == io.EOF {
-		fmt.Printf("incomplete file header: read %d bytes, want %d\n", n, contentenc.HeaderLen)
+		fmt.Fprintf(os.Stderr, "incomplete file header: read %d bytes, want %d\n", n, contentenc.HeaderLen)
 		os.Exit(1)
 	} else if err != nil {
 		errExit(err)

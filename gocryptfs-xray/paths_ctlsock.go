@@ -22,7 +22,7 @@ func transformPaths(socketPath string, req *ctlsock.RequestStruct, in *string, s
 	errorCount := 0
 	c, err := ctlsock.New(socketPath)
 	if err != nil {
-		fmt.Printf("fatal: %v\n", err)
+		fmt.Fprintf(os.Stderr, "fatal: %v\n", err)
 		os.Exit(1)
 	}
 	line := 1
