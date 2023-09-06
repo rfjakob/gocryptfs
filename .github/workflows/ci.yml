@@ -10,10 +10,11 @@ jobs:
   build:
     strategy:
       matrix:
+        # Each major Go release is supported until there are two newer major releases.
+        # https://go.dev/doc/devel/release#policy
         go:
-          - "1.13.x" # Ubuntu 20.04 LTS "focal"
-          - "1.15.x" # Debian 11 "Bullseye"
-          - "1.18.x" # Ubuntu 22.04 LTS "jammy"
+          - "1.20.x"
+          - "1.21.x"
           - "oldstable" # 2nd-latest Golang upstream stable
           - "stable" # Latest Go upstream stable
       # Don't cancel everything when one Go version fails
