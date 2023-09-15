@@ -48,6 +48,7 @@ func Run() {
 		{name: cryptocore.BackendXChaCha20Poly1305OpenSSL.String(), f: bStupidXchacha, preferred: stupidgcm.PreferOpenSSLXchacha20poly1305()},
 		{name: cryptocore.BackendXChaCha20Poly1305.String(), f: bXchacha20poly1305, preferred: !stupidgcm.PreferOpenSSLXchacha20poly1305()},
 	}
+	testing.Init()
 	for _, b := range bTable {
 		fmt.Printf("%-26s\t", b.name)
 		mbs := mbPerSec(testing.Benchmark(b.f))
