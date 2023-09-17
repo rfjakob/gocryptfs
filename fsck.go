@@ -305,6 +305,7 @@ func fsck(args *argContainer) (exitcode int) {
 		}
 	}()
 	// Recursively check the root dir
+	tlog.Info.Println(tlog.ColorGreen + "Checking filesystem..." + tlog.ColorReset)
 	ck.dir("")
 	// Report results
 	wipeKeys()
