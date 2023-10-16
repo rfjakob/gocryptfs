@@ -6,7 +6,7 @@ require (
 	github.com/aperturerobotics/jacobsa-crypto v1.0.2
 	github.com/hanwen/go-fuse/v2 v2.4.0
 	github.com/moby/sys/mountinfo v0.6.2
-	github.com/pkg/xattr v0.4.3
+	github.com/pkg/xattr v0.4.9
 	github.com/rfjakob/eme v1.1.2
 	github.com/sabhiram/go-gitignore v0.0.0-20201211210132-54b8a0bf510f
 	github.com/spf13/pflag v1.0.5
