@@ -13,6 +13,8 @@ jobs:
         # Each major Go release is supported until there are two newer major releases.
         # https://go.dev/doc/devel/release#policy
         go:
+          - "1.18.x" # Ubuntu 22.04 LTS "jammy"
+          - "1.19.x" # Debian bookworm, bullseye-backports
           - "1.20.x"
           - "1.21.x"
           - "oldstable" # 2nd-latest Golang upstream stable
