@@ -107,7 +107,7 @@ Run `gocryptfs -speed` to find out if and how much slower.
 
 #### -deterministic-names
 Disable file name randomisation and creation of `gocryptfs.diriv` files.
-This can prevent sync conflicts conflicts when synchronising files, but
+This can prevent sync conflicts when synchronising files, but
 leaks information about identical file names across directories
 ("Identical names leak" in https://nuetzlich.net/gocryptfs/comparison/#file-names ).
 
