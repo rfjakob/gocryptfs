@@ -33,6 +33,7 @@ type FIDO2Params struct {
 	CredentialID []byte
 	// FIDO2 hmac-secret salt
 	HMACSalt []byte
+	AssertOptions []string
 }
 
 // ConfFile is the content of a config file.
@@ -71,6 +72,7 @@ type CreateArgs struct {
 	AESSIV             bool
 	Fido2CredentialID  []byte
 	Fido2HmacSalt      []byte
+	Fido2AssertOptions []string
 	DeterministicNames bool
 	XChaCha20Poly1305  bool
 	LongNameMax        uint8
@@ -116,8 +118,9 @@ func Create(args *CreateArgs) error {
 	if len(args.Fido2CredentialID) > 0 {
 		cf.setFeatureFlag(FlagFIDO2)
 		cf.FIDO2 = &FIDO2Params{
-			CredentialID: args.Fido2CredentialID,
-			HMACSalt:     args.Fido2HmacSalt,
+			CredentialID:     args.Fido2CredentialID,
+			HMACSalt:         args.Fido2HmacSalt,
+			AssertOptions:    args.Fido2AssertOptions,
 		}
 	}
 	// Catch bugs and invalid cli flag combinations early

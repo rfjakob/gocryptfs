@@ -84,7 +84,7 @@ func initDir(args *argContainer) {
 		if args.fido2 != "" {
 			fido2CredentialID = fido2.Register(args.fido2, filepath.Base(args.cipherdir))
 			fido2HmacSalt = cryptocore.RandBytes(32)
-			password = fido2.Secret(args.fido2, fido2CredentialID, fido2HmacSalt)
+			password = fido2.Secret(args.fido2, args.fido2_assert_options, fido2CredentialID, fido2HmacSalt)
 		} else {
 			// normal password entry
 			password, err = readpassword.Twice([]string(args.extpass), []string(args.passfile))
@@ -105,6 +105,7 @@ func initDir(args *argContainer) {
 			AESSIV:             args.aessiv,
 			Fido2CredentialID:  fido2CredentialID,
 			Fido2HmacSalt:      fido2HmacSalt,
+			Fido2AssertOptions: args.fido2_assert_options,
 			DeterministicNames: args.deterministic_names,
 			XChaCha20Poly1305:  args.xchacha,
 			LongNameMax:        args.longnamemax,

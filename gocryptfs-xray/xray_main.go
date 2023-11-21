@@ -146,7 +146,7 @@ func dumpMasterKey(fn string, fido2Path string) {
 			tlog.Fatal.Printf("Masterkey encrypted using FIDO2 token; need to use the --fido2 option.")
 			os.Exit(exitcodes.Usage)
 		}
-		pw = fido2.Secret(fido2Path, cf.FIDO2.CredentialID, cf.FIDO2.HMACSalt)
+		pw = fido2.Secret(fido2Path, cf.FIDO2.AssertOptions, cf.FIDO2.CredentialID, cf.FIDO2.HMACSalt)
 	} else {
 		pw, err = readpassword.Once(nil, nil, "")
 		if err != nil {
