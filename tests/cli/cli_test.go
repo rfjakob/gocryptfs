@@ -407,7 +407,7 @@ func TestMountPasswordIncorrect(t *testing.T) {
 	err := test_helpers.Mount(cDir, pDir, false, "-extpass", "echo WRONG", "-wpanic=false", "-ctlsock", ctlSock)
 	exitCode := test_helpers.ExtractCmdExitCode(err)
 	if exitCode != exitcodes.PasswordIncorrect {
-		t.Errorf("want=%d, got=%d", exitcodes.PasswordIncorrect, exitCode)
+		t.Errorf("wrong exit code: want=%d, have=%d", exitcodes.PasswordIncorrect, exitCode)
 	}
 	if _, err := os.Stat(ctlSock); err == nil {
 		t.Errorf("socket file %q left behind", ctlSock)
