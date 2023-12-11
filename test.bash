@@ -1,4 +1,7 @@
 #!/bin/bash
+#
+# test.bash runs the gocryptfs test suite against $TMPDIR,
+# or, if unset, /var/tmp.
 
 set -eu
 
@@ -71,6 +74,9 @@ if command -v shellcheck > /dev/null ; then
 else
 	echo "shellcheck not installed - skipping"
 fi
+
+echo -n "Testing on TMPDIR=$TMPDIR, filesystem: "
+findmnt --noheadings --target "$TESTDIR" --output FSTYPE,OPTIONS || true
 
 EXTRA_ARGS=""
 if [[ $VERBOSE -eq 1 ]]; then
