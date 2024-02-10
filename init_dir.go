@@ -108,6 +108,7 @@ func initDir(args *argContainer) {
 			DeterministicNames: args.deterministic_names,
 			XChaCha20Poly1305:  args.xchacha,
 			LongNameMax:        args.longnamemax,
+			Masterkey:          handleArgsMasterkey(args),
 		})
 		if err != nil {
 			tlog.Fatal.Println(err)
