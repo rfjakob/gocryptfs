@@ -74,6 +74,7 @@ type CreateArgs struct {
 	DeterministicNames bool
 	XChaCha20Poly1305  bool
 	LongNameMax        uint8
+	Masterkey          []byte
 }
 
 // Create - create a new config with a random key encrypted with
@@ -126,8 +127,11 @@ func Create(args *CreateArgs) error {
 		return err
 	}
 	{
-		// Generate new random master key
-		key := cryptocore.RandBytes(cryptocore.KeyLen)
+		key := args.Masterkey
+		if key == nil {
+			// Generate new random master key
+			key = cryptocore.RandBytes(cryptocore.KeyLen)
+		}
 		tlog.PrintMasterkeyReminder(key)
 		// Encrypt it using the password
 		// This sets ScryptObject and EncryptedKey
