@@ -316,7 +316,7 @@ func (f *File) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
 	if cOff > math.MaxInt64 {
 		return 0, syscall.EFBIG
 	}
-	if !f.rootNode.args.NoPrealloc {
+	if !f.rootNode.args.NoPrealloc && f.rootNode.quirks&syscallcompat.QuirkBrokenFalloc == 0 {
 		err = syscallcompat.EnospcPrealloc(f.intFd(), int64(cOff), int64(len(ciphertext)))
 		if err != nil {
 			if !syscallcompat.IsENOSPC(err) {
