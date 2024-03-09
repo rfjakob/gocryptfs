@@ -280,7 +280,7 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 		tlog.Fatal.Printf("The options -passfile and -masterkey cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
-	if len(args.extpass) > 0 && args.masterkey != "" {
+	if len(args.extpass) > 0 && args.masterkey != "" && !args.init {
 		tlog.Fatal.Printf("The options -extpass and -masterkey cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
