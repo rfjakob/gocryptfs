@@ -2,6 +2,8 @@
 package cli
 
 import (
+	"bytes"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -94,6 +96,19 @@ func TestInitReverse(t *testing.T) {
 	}
 	if !c.IsFeatureFlagSet(configfile.FlagAESSIV) {
 		t.Error("AESSIV flag should be set but is not")
+	}
+}
+
+// Test -init with -masterkey
+func TestInitMasterkey(t *testing.T) {
+	var testMk = make([]byte, 32)
+	dir := test_helpers.InitFS(t, fmt.Sprintf("-masterkey=%s", hex.EncodeToString(testMk)))
+	m, _, err := configfile.LoadAndDecrypt(dir+"/"+configfile.ConfDefaultName, testPw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(testMk, m) {
+		t.Error("masterkey does not match")
 	}
 }
 
