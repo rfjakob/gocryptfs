@@ -25,7 +25,7 @@ func TestBrokenContent(t *testing.T) {
 func TestBrokenNames(t *testing.T) {
 	cDir := "broken_names"
 	pDir := test_helpers.TmpDir + "/" + cDir
-	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test", "-wpanic=false")
+	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test", "-wpanic=false", "-zerokey")
 	_, err := os.Stat(pDir + "/status.txt")
 	if err == nil {
 		t.Error("this should fail")

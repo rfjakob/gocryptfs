@@ -39,7 +39,7 @@ func TestMain(m *testing.M) {
 // Test -init flag
 func TestInit(t *testing.T) {
 	dir := test_helpers.InitFS(t)
-	_, c, err := configfile.LoadAndDecrypt(dir+"/"+configfile.ConfDefaultName, testPw)
+	_, c, err := configfile.LoadAndDecrypt(dir+"/"+configfile.ConfDefaultName, configfile.DefaultKey, testPw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func TestInitDevRandom(t *testing.T) {
 // Test -init with -aessiv
 func TestInitAessiv(t *testing.T) {
 	dir := test_helpers.InitFS(t, "-aessiv")
-	_, c, err := configfile.LoadAndDecrypt(dir+"/"+configfile.ConfDefaultName, testPw)
+	_, c, err := configfile.LoadAndDecrypt(dir+"/"+configfile.ConfDefaultName, configfile.DefaultKey, testPw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestInitAessiv(t *testing.T) {
 // Test -init with -reverse
 func TestInitReverse(t *testing.T) {
 	dir := test_helpers.InitFS(t, "-reverse")
-	_, c, err := configfile.LoadAndDecrypt(dir+"/"+configfile.ConfReverseName, testPw)
+	_, c, err := configfile.LoadAndDecrypt(dir+"/"+configfile.ConfReverseName, configfile.DefaultKey, testPw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -315,6 +315,7 @@ func TestPasswdScryptn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Warning: Change of Scrypt logN for more than one user is not supported
 	if cf2.ScryptObject.LogN() != cf.ScryptObject.LogN()+1 {
 		t.Errorf("wrong logN value %d", cf2.ScryptObject.LogN())
 	}

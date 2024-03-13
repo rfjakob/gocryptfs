@@ -27,8 +27,8 @@ import (
 // > buffered read/write.
 //
 // See also:
-// * https://lore.kernel.org/linux-xfs/20190325001044.GA23020@dastard/
-//   Dave Chinner: XFS is the only linux filesystem that provides this behaviour.
+//   - https://lore.kernel.org/linux-xfs/20190325001044.GA23020@dastard/
+//     Dave Chinner: XFS is the only linux filesystem that provides this behaviour.
 func TestClusterConcurrentRW(t *testing.T) {
 	if os.Getenv("ENABLE_CLUSTER_TEST") != "1" {
 		t.Skipf("This test is disabled by default because it fails unless on XFS.\n" +

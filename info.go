@@ -23,7 +23,7 @@ func info(filename string) {
 	// Pretty-print
 	fmt.Printf("Creator:           %s\n", cf.Creator)
 	fmt.Printf("FeatureFlags:      %s\n", strings.Join(cf.FeatureFlags, " "))
-	fmt.Printf("EncryptedKey:      %dB\n", len(cf.EncryptedKey))
+	fmt.Printf("EncryptedKey:      %dB\n", len(cf.EncryptedKeys[configfile.DefaultKey]))
 	fmt.Printf("ScryptObject:      Salt=%dB N=%d R=%d P=%d KeyLen=%d\n",
 		len(s.Salt), s.N, s.R, s.P, s.KeyLen)
 	fmt.Printf("contentEncryption: %s\n", algo.Algo) // lowercase because not in JSON

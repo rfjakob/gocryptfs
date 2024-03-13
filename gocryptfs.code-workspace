@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"gopls": {
+			"ui.semanticTokens": true
+		}
+	},
+	"extensions": {
+		"recommendations": [
+			"msyrus.go-doc",
+			"766b.go-outliner"
+		],
+		"unwantedRecommendations": []
+	}
+}

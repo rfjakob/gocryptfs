@@ -1,6 +1,7 @@
 package configfile
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"math"
@@ -44,6 +45,10 @@ type ScryptKDF struct {
 	P int
 	// KeyLen is the output data length
 	KeyLen int
+}
+
+func ScryptKDFEqual(a, b ScryptKDF) bool {
+	return a.KeyLen == b.KeyLen && a.N == b.N && a.P == b.P && a.R == b.R && bytes.Equal(a.Salt, b.Salt)
 }
 
 // NewScryptKDF returns a new instance of ScryptKDF.

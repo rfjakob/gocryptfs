@@ -22,7 +22,7 @@ var testPw = []byte("test")
 func TestMain(m *testing.M) {
 	cDir = test_helpers.InitFS(nil, "-deterministic-names")
 	// Check config file sanity
-	_, c, err := configfile.LoadAndDecrypt(cDir+"/"+configfile.ConfDefaultName, testPw)
+	_, c, err := configfile.LoadAndDecrypt(cDir+"/"+configfile.ConfDefaultName, configfile.DefaultKey, testPw)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

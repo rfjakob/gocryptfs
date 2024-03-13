@@ -16,7 +16,7 @@ import (
 
 const (
 	// CurrentVersion is the current On-Disk-Format version
-	CurrentVersion = 2
+	CurrentVersion = 3
 
 	headerVersionLen = 2  // uint16
 	headerIDLen      = 16 // 128 bit random file id

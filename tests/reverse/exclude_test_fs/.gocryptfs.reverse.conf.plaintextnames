@@ -1,6 +1,8 @@
 {
 	"Creator": "gocryptfs v1.5-41-gf48b731-dirty",
-	"EncryptedKey": "wAmckZb7QsIv/GCdkhb5ep8TwJa44qhnswn5tbER6Tifk8TbUmkwBTceaTtYfHAnTQ48q9mnIlcN9cfbNe5oPw==",
+	"EncryptedKeys": { 
+		"DefaultKey":"wAmckZb7QsIv/GCdkhb5ep8TwJa44qhnswn5tbER6Tifk8TbUmkwBTceaTtYfHAnTQ48q9mnIlcN9cfbNe5oPw=="
+	},
 	"ScryptObject": {
 		"Salt": "o5XJ78TgG85zZXRnU55ZqHhKLbPge6jsyDiqrLvSqe0=",
 		"N": 1024,
@@ -8,7 +10,7 @@
 		"P": 1,
 		"KeyLen": 32
 	},
-	"Version": 2,
+	"Version": 3,
 	"FeatureFlags": [
 		"GCMIV128",
 		"HKDF",

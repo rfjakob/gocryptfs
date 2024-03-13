@@ -36,6 +36,8 @@ type argContainer struct {
 	dev, nodev, suid, nosuid, exec, noexec, rw, ro, kernel_cache, acl bool
 	masterkey, mountpoint, cipherdir, cpuprofile,
 	memprofile, ko, ctlsock, fsname, force_owner, trace, fido2 string
+	// more than one encryption of masterkey
+	user, fido2Name, addUser, deleteUser, addFido2, addFido2Name, deleteFido2Name string
 	// -extpass, -badname, -passfile can be passed multiple times
 	extpass, badname, passfile []string
 	// For reverse mode, several ways to specify exclusions. All can be specified multiple times.
@@ -207,7 +209,17 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.StringVar(&args.fsname, "fsname", "", "Override the filesystem name")
 	flagSet.StringVar(&args.force_owner, "force_owner", "", "uid:gid pair to coerce ownership")
 	flagSet.StringVar(&args.trace, "trace", "", "Write execution trace to file")
-	flagSet.StringVar(&args.fido2, "fido2", "", "Protect the masterkey using a FIDO2 token instead of a password")
+	flagSet.StringVar(&args.fido2, "fido2", "", "Protect the masterkey using the FIDO2 device at <fido2> (no password needed in this case)")
+
+	// more than one encryption of masterkey
+	flagSet.StringVar(&args.user, "user", configfile.DefaultKey, "Use <user> instead of "+configfile.DefaultKey+" for decryption of masterkey")
+	flagSet.StringVar(&args.fido2Name, "fido2-name", configfile.DefaultKey, "Use <fido2Name> instead of "+configfile.DefaultKey+" for fido2 device registration or decryption")
+	flagSet.StringVar(&args.addUser, "add-user", "", "Add encrypted masterkey for <addUser> using credentials of <user>")
+	flagSet.StringVar(&args.deleteUser, "delete-user", "", "Delete encrypted masterkey for <deleteUser> using credentials of <user>")
+	flagSet.StringVar(&args.addFido2, "add-fido2", "", "Add FIDO2 device on path <addFido2> for masterkey decryption")
+	flagSet.StringVar(&args.addFido2Name, "add-fido2-name", configfile.DefaultKey,
+		"Add FIDO2 device with name <addFido2Name> instead of "+configfile.DefaultKey+" for masterkey decryption")
+	flagSet.StringVar(&args.deleteFido2Name, "delete-fido2-name", "", "Delete encrypted masterkey of FIDO2 device with name <deleteFido2Name> instead of "+configfile.DefaultKey)
 
 	// Exclusion options
 	flagSet.StringArrayVar(&args.exclude, "e", nil, "Alias for -exclude")
@@ -288,6 +300,30 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 		tlog.Fatal.Printf("The options -extpass and -fido2 cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
+	if args.user != configfile.DefaultKey && args.fido2 != "" {
+		tlog.Fatal.Printf("The options -user and -fido2 cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
+	}
+	if args.user != configfile.DefaultKey && args.fido2Name != configfile.DefaultKey {
+		tlog.Fatal.Printf("The options -user and -fido2-name cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
+	}
+	if args.addUser != "" && args.addFido2 != "" {
+		tlog.Fatal.Printf("The options -add-user and -add-fido2 cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
+	}
+	if args.addUser != "" && args.addFido2Name != configfile.DefaultKey {
+		tlog.Fatal.Printf("The options -add-user and -add-fido2-name cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
+	}
+	if args.addUser != "" && args.deleteUser != "" {
+		tlog.Fatal.Printf("The options -add-user and -delete-user cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
+	}
+	if args.deleteUser != "" && args.deleteFido2Name != "" {
+		tlog.Fatal.Printf("The options -delete-user and -delete-fido2-name cannot be used at the same time")
+		os.Exit(exitcodes.Usage)
+	}
 	if args.idle < 0 {
 		tlog.Fatal.Printf("Idle timeout cannot be less than 0")
 		os.Exit(exitcodes.Usage)
@@ -329,6 +365,18 @@ func countOpFlags(args *argContainer) int {
 		count++
 	}
 	if args.fsck {
+		count++
+	}
+	if args.addUser != "" {
+		count++
+	}
+	if args.deleteUser != "" {
+		count++
+	}
+	if args.addFido2 != "" {
+		count++
+	}
+	if args.deleteFido2Name != "" {
 		count++
 	}
 	return count
