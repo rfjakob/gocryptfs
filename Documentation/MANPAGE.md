@@ -479,10 +479,31 @@ for details.
 
 #### -fido2 DEVICE_PATH
 Use a FIDO2 token to initialize and unlock the filesystem.
-Use "fido2-token -L" to obtain the FIDO2 token device path.
-For linux, "fido2-tools" package is needed.
+Use `fido2-token -L` to obtain the FIDO2 token device path.
+For linux, **fido2-tools** package is needed.
 
 Applies to: all actions that ask for a password.
+
+#### -fido2-assert-option OPTION
+Options passed to `fido2-assert` with `-t` option.
+This option may be specified multiple times, each time it will add two 
+arguements `-t` `OPTION` to `fido2-assert`.
+See `man fido2-assert` to check supported options.
+
+Examples:
+
+Creating a filesystem with no pin verification:
+
+    gocryptfs -init -fido2 DEVICE_PATH -fido2-assert-option pin=false CIPHERDIR
+
+Creating a filesystem with both user presence and pin verification:
+
+    gocryptfs -init -fido2 DEVICE_PATH -fido2-assert-option uv=true -fido2-assert-option pin=true CIPHERDIR
+
+Creating a filesystem with both user presence and user verification:
+
+    gocryptfs -init -fido2 DEVICE_PATH -fido2-assert-option up=true -fido2-assert-option uv=true CIPHERDIR
+
 
 #### -masterkey string
 Use an explicit master key specified on the command line or, if the special

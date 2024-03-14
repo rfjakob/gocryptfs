@@ -43,7 +43,7 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 			tlog.Fatal.Printf("Masterkey encrypted using FIDO2 token; need to use the --fido2 option.")
 			return nil, nil, exitcodes.NewErr("", exitcodes.Usage)
 		}
-		pw = fido2.Secret(args.fido2, cf.FIDO2.CredentialID, cf.FIDO2.HMACSalt)
+		pw = fido2.Secret(args.fido2, cf.FIDO2.AssertOptions, cf.FIDO2.CredentialID, cf.FIDO2.HMACSalt)
 	} else {
 		pw, err = readpassword.Once([]string(args.extpass), []string(args.passfile), "")
 		if err != nil {
