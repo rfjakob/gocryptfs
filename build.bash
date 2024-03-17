@@ -85,6 +85,9 @@ if [[ -n ${LDFLAGS:-} ]] ; then
 	GO_LDFLAGS="$GO_LDFLAGS \"-extldflags=$LDFLAGS\""
 fi
 
+# Set GOAMD64 version to v2
+export GOAMD64=v2
+
 # Actual "go build" call for gocryptfs
 go build "-ldflags=$GO_LDFLAGS" "$@"
 # Additional binaries
