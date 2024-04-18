@@ -15,12 +15,15 @@ import (
 
 	"github.com/rfjakob/gocryptfs/v2/internal/configfile"
 	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/v2/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/v2/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/v2/internal/fido2"
 	"github.com/rfjakob/gocryptfs/v2/internal/readpassword"
 	"github.com/rfjakob/gocryptfs/v2/internal/speed"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
+
+const maxUserEntries = 8
 
 // loadConfig loads the config file `args.config` and decrypts the masterkey,
 // or gets via the `-masterkey` or `-zerokey` command line options, if specified.
@@ -38,12 +41,16 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 		return masterkey, cf, nil
 	}
 	var pw []byte
-	if cf.IsFeatureFlagSet(configfile.FlagFIDO2) {
-		if args.fido2 == "" {
-			tlog.Fatal.Printf("Masterkey encrypted using FIDO2 token; need to use the --fido2 option.")
+	if cf.IsFeatureFlagSet(configfile.FlagFIDO2) && args.fido2 != "" {
+		var fido2Obj = cf.FIDO2[args.fido2Name]
+		if fido2Obj == nil {
+			tlog.Fatal.Printf("Masterkey encrypted using FIDO2 token; password not found: check your --fido2-name option")
 			return nil, nil, exitcodes.NewErr("", exitcodes.Usage)
 		}
-		pw = fido2.Secret(args.fido2, cf.FIDO2.CredentialID, cf.FIDO2.HMACSalt)
+		tlog.Info.Println("Retrieve pseudo user and password from FIDO2 device ", args.fido2Name, " at ", args.fido2)
+		pw = fido2.Secret(args.fido2, fido2Obj.CredentialID, fido2Obj.HMACSalt)
+		// overwrite user to match fido2Name
+		args.user = args.fido2Name
 	} else {
 		pw, err = readpassword.Once([]string(args.extpass), []string(args.passfile), "")
 		if err != nil {
@@ -51,8 +58,8 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 			return nil, nil, exitcodes.NewErr("", exitcodes.ReadPassword)
 		}
 	}
-	tlog.Info.Println("Decrypting master key")
-	masterkey, err = cf.DecryptMasterKey(pw)
+	tlog.Info.Println("Decrypting master key with user " + args.user)
+	masterkey, err = cf.DecryptMasterKey(args.user, pw)
 	for i := range pw {
 		pw[i] = 0
 	}
@@ -65,7 +72,6 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 }
 
 // changePassword - change the password of config file "filename"
-// Does not return (calls os.Exit both on success and on error).
 func changePassword(args *argContainer) {
 	var confFile *configfile.ConfFile
 	{
@@ -78,8 +84,8 @@ func changePassword(args *argContainer) {
 		if len(masterkey) == 0 {
 			log.Panic("empty masterkey")
 		}
-		if confFile.IsFeatureFlagSet(configfile.FlagFIDO2) {
-			tlog.Fatal.Printf("Password change is not supported on FIDO2-enabled filesystems.")
+		if confFile.IsFeatureFlagSet(configfile.FlagFIDO2) && args.fido2 != "" {
+			tlog.Fatal.Printf("Password change is not supported in conjunction with --fido2")
 			os.Exit(exitcodes.Usage)
 		}
 		tlog.Info.Println("Please enter your new password.")
@@ -92,7 +98,7 @@ func changePassword(args *argContainer) {
 		if args._explicitScryptn {
 			logN = args.scryptn
 		}
-		confFile.EncryptKey(masterkey, newPw, logN)
+		confFile.EncryptKey(masterkey, args.user, newPw, logN)
 		for i := range newPw {
 			newPw[i] = 0
 		}
@@ -120,7 +126,244 @@ func changePassword(args *argContainer) {
 		tlog.Fatal.Println(err)
 		os.Exit(exitcodes.WriteConf)
 	}
-	tlog.Info.Printf(tlog.ColorGreen + "Password changed." + tlog.ColorReset)
+	tlog.Info.Printf(tlog.ColorGreen+"Password changed for %v."+tlog.ColorReset, args.user)
+}
+
+// add user from <addUser> flag to config file "filename"
+func addUser(args *argContainer) {
+	var confFile *configfile.ConfFile
+	{
+		var masterkey []byte
+		var err error
+		masterkey, confFile, err = loadConfig(args)
+		if err != nil {
+			exitcodes.Exit(err)
+		}
+		if len(masterkey) == 0 {
+			log.Panic("empty masterkey")
+		}
+		// Are we using "-masterkey"?
+		if args.masterkey != "" {
+			log.Panic("<addUser> is not allowed in conjunction with '-masterkey'")
+		}
+		if args.addUser == "" {
+			log.Panic("missing argument <addUser> in addUser")
+		}
+		if args.addUser == args.user {
+			log.Panic("<addUser> and <user> must be different")
+		}
+		if len(confFile.EncryptedKeys) >= maxUserEntries-1 {
+			log.Panic("only ", maxUserEntries, " user/pw entries are allowed")
+		}
+		if _, ok := confFile.EncryptedKeys[args.addUser]; ok {
+			log.Panic("User ", args.addUser, " does already exist")
+		}
+		tlog.Info.Println("Please enter the password for new user ", args.addUser, ".")
+		newPw, err := readpassword.Twice([]string(args.extpass), []string(args.passfile))
+		if err != nil {
+			tlog.Fatal.Println(err)
+			os.Exit(exitcodes.ReadPassword)
+		}
+		logN := confFile.ScryptObject.LogN()
+		if args._explicitScryptn {
+			logN = args.scryptn
+		}
+		confFile.EncryptKey(masterkey, args.addUser, newPw, logN)
+		for i := range newPw {
+			newPw[i] = 0
+		}
+		for i := range masterkey {
+			masterkey[i] = 0
+		}
+		// masterkey and newPw run out of scope here
+	}
+	err := confFile.WriteFile()
+	if err != nil {
+		tlog.Fatal.Println(err)
+		os.Exit(exitcodes.WriteConf)
+	}
+	tlog.Info.Printf(tlog.ColorGreen+"Password set for user %v."+tlog.ColorReset, args.addUser)
+}
+
+// delete user from <deleteUser> flag from config file "filename"
+func deleteUser(args *argContainer) {
+	var confFile *configfile.ConfFile
+	{
+		var masterkey []byte
+		var err error
+		masterkey, confFile, err = loadConfig(args)
+		if err != nil {
+			exitcodes.Exit(err)
+		}
+		if len(masterkey) == 0 {
+			log.Panic("empty masterkey")
+		}
+		// Are we using "-masterkey"?
+		if args.masterkey != "" {
+			log.Panic("<deleteUser> is not allowed in conjunction with '-masterkey'")
+		}
+		if args.deleteUser == "" {
+			log.Panic("missing argument <deleteUser> in deleteUser")
+		}
+		if args.deleteUser == args.user {
+			log.Panic("<deleteUser> and <user> must be different")
+		}
+		if len(confFile.EncryptedKeys) <= 1 {
+			log.Panic("tried to delete last user")
+		}
+		if _, ok := confFile.EncryptedKeys[args.deleteUser]; !ok {
+			log.Panic("User ", args.deleteUser, " does not exist")
+		}
+		delete(confFile.EncryptedKeys, args.deleteUser)
+		for i := range masterkey {
+			masterkey[i] = 0
+		}
+		// masterkey run out of scope here
+	}
+	err := confFile.WriteFile()
+	if err != nil {
+		tlog.Fatal.Println(err)
+		os.Exit(exitcodes.WriteConf)
+	}
+	tlog.Info.Printf(tlog.ColorGreen+"User %v deleted."+tlog.ColorReset, args.deleteUser)
+	tlog.Info.Printf(tlog.ColorYellow +
+		"Warning: Deleting a user is unsafe - as the deleted user could have retrieved the masterkey or copied gocryptfs.conf already" +
+		tlog.ColorReset)
+}
+
+// add fido2 device from <add-fido2> flag to config file "filename"
+func addFido2(args *argContainer) {
+	var confFile *configfile.ConfFile
+	{
+		var masterkey []byte
+		var err error
+		masterkey, confFile, err = loadConfig(args)
+		if err != nil {
+			exitcodes.Exit(err)
+		}
+		if len(masterkey) == 0 {
+			log.Panic("empty masterkey")
+		}
+		// Are we using "-masterkey"?
+		if args.masterkey != "" {
+			log.Panic("<addFido2> is not allowed in conjunction with '-masterkey'")
+		}
+		if args.addFido2 == "" {
+			log.Panic("missing argument <addFido2> in addFido2")
+		}
+		if args.addFido2Name == "" {
+			log.Panic("missing argument <addFido2Name> in addFido2")
+		}
+		if args.addFido2Name == args.fido2Name {
+			log.Panic("<addFido2> and <fido2Name> must be different")
+		}
+		if len(confFile.EncryptedKeys) >= maxUserEntries-1 {
+			log.Panic("only ", maxUserEntries, " user/pw entries are allowed (including fido2 devices)")
+		}
+		if _, ok := confFile.EncryptedKeys[args.addFido2Name]; ok {
+			log.Panic("User/Device ", args.addFido2Name, " does already exist")
+		}
+		tlog.Info.Println("Adding new FIDO2 device ", args.addFido2Name, " at ", args.addFido2)
+		confFile.SetFeatureFlagFIDO2()
+		params := configfile.FIDO2Params{
+			CredentialID: fido2.Register(args.addFido2, args.addFido2Name),
+			HMACSalt:     cryptocore.RandBytes(32),
+		}
+		password := fido2.Secret(args.addFido2, params.CredentialID, params.HMACSalt)
+		// overwrite addUser to match addFido2Name
+		args.addUser = args.addFido2Name
+
+		logN := confFile.ScryptObject.LogN()
+		if args._explicitScryptn {
+			logN = args.scryptn
+		}
+		confFile.EncryptKey(masterkey, args.addUser, password, logN)
+		if confFile.FIDO2 == nil {
+			confFile.FIDO2 = make(configfile.FIDO2ParamsMap)
+		}
+		if _, ok := confFile.FIDO2[args.addFido2Name]; ok {
+			log.Panic("FIDO2 device ", args.addFido2Name, " does already exist")
+		}
+		confFile.FIDO2[args.addFido2Name] = &params
+
+		for i := range masterkey {
+			masterkey[i] = 0
+		}
+		for i := range password {
+			password[i] = 0
+		}
+		// masterkey and password run out of scope here
+	}
+	err := confFile.WriteFile()
+	if err != nil {
+		tlog.Fatal.Println(err)
+		os.Exit(exitcodes.WriteConf)
+	}
+	tlog.Info.Printf(tlog.ColorGreen+"FIDO2 device %v at %v registered."+tlog.ColorReset, args.addFido2Name, args.addFido2)
+}
+
+// delete fido2 device from <delete-fido2> flag to config file "filename"
+func deleteFido2Name(args *argContainer) {
+	var confFile *configfile.ConfFile
+	{
+		var masterkey []byte
+		var err error
+		masterkey, confFile, err = loadConfig(args)
+		if err != nil {
+			exitcodes.Exit(err)
+		}
+		if len(masterkey) == 0 {
+			log.Panic("empty masterkey")
+		}
+		// Are we using "-masterkey"?
+		if args.masterkey != "" {
+			log.Panic("<deleteFido2Name> is not allowed in conjunction with '-masterkey'")
+		}
+		if args.deleteFido2Name == "" {
+			log.Panic("missing argument <deleteFido2Name> in deleteFido2Name")
+		}
+		if args.deleteFido2Name == args.fido2Name {
+			log.Panic("<deleteFido2Name> and <fido2Name> must be different")
+		}
+		if len(confFile.EncryptedKeys) >= maxUserEntries-1 {
+			log.Panic("only ", maxUserEntries, " user/pw entries are allowed (including fido2 devices)")
+		}
+		if _, ok := confFile.EncryptedKeys[args.deleteFido2Name]; !ok {
+			log.Panic("User/Device ", args.deleteFido2Name, " does not exist")
+		}
+		if confFile.FIDO2 == nil {
+			confFile.FIDO2 = make(configfile.FIDO2ParamsMap)
+		}
+		if _, ok := confFile.FIDO2[args.deleteFido2Name]; !ok {
+			log.Panic("FIDO2 device ", args.deleteFido2Name, " does not exist")
+		}
+		if len(confFile.EncryptedKeys) <= 1 {
+			log.Panic("tried to delete last user/device")
+		}
+		if _, ok := confFile.EncryptedKeys[args.deleteFido2Name]; !ok {
+			log.Panic("User/device ", args.deleteFido2Name, " does not exist")
+		}
+		if _, ok := confFile.FIDO2[args.deleteFido2Name]; !ok {
+			log.Panic("FIDO2 device ", args.deleteFido2Name, " does not exist")
+		}
+		tlog.Info.Println("Deleting FIDO2 device ", args.deleteFido2Name)
+		delete(confFile.EncryptedKeys, args.deleteFido2Name)
+		delete(confFile.FIDO2, args.deleteFido2Name)
+		for i := range masterkey {
+			masterkey[i] = 0
+		}
+		// masterkey run out of scope here
+	}
+	err := confFile.WriteFile()
+	if err != nil {
+		tlog.Fatal.Println(err)
+		os.Exit(exitcodes.WriteConf)
+	}
+	tlog.Info.Printf(tlog.ColorGreen+"FIDO device %v deleted."+tlog.ColorReset, args.deleteFido2Name)
+	tlog.Info.Printf(tlog.ColorYellow +
+		"Warning: Deleting a FIDO device is unsafe - as the user using the FIDO2 device could have retrieved the masterkey or copied gocryptfs.conf already" +
+		tlog.ColorReset)
+
 }
 
 func main() {
@@ -273,11 +516,11 @@ func main() {
 		return
 	}
 	if nOps > 1 {
-		tlog.Fatal.Printf("At most one of -info, -init, -passwd, -fsck is allowed")
+		tlog.Fatal.Printf("At most one of -info, -init, -passwd, -fsck, -add-user, -delete-user, -add-fido2, -delete-fido2-name is allowed")
 		os.Exit(exitcodes.Usage)
 	}
 	if flagSet.NArg() != 1 {
-		tlog.Fatal.Printf("The options -info, -init, -passwd, -fsck take exactly one argument, %d given",
+		tlog.Fatal.Printf("The options -info, -init, -passwd, -fsck, -add-user, -delete-user, -add-fido2, -delete-fido2-name take exactly one argument, %d given",
 			flagSet.NArg())
 		os.Exit(exitcodes.Usage)
 	}
@@ -301,4 +544,23 @@ func main() {
 		code := fsck(&args)
 		os.Exit(code)
 	}
+	// TODO tp
+	if args.addUser != "" {
+		addUser(&args)
+		os.Exit(0)
+	}
+	if args.deleteUser != "" {
+		deleteUser(&args)
+		os.Exit(0)
+	}
+	if args.addFido2 != "" {
+		addFido2(&args)
+		os.Exit(0)
+	}
+	if args.deleteFido2Name != "" {
+		deleteFido2Name(&args)
+		os.Exit(0)
+	}
+	tlog.Fatal.Printf("parsing command line failed")
+	os.Exit(0)
 }

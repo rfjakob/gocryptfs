@@ -76,15 +76,19 @@ func initDir(args *argContainer) {
 	}
 	// Choose password for config file
 	if len(args.extpass) == 0 && args.fido2 == "" {
-		tlog.Info.Printf("Choose a password for protecting your files.")
+		tlog.Info.Printf("As user %v, choose a password for protecting your files.", args.user)
 	}
 	{
 		var password []byte
+		var fido2Name string
 		var fido2CredentialID, fido2HmacSalt []byte
 		if args.fido2 != "" {
-			fido2CredentialID = fido2.Register(args.fido2, filepath.Base(args.cipherdir))
+			fido2Name = args.fido2Name
+			fido2CredentialID = fido2.Register(args.fido2, fido2Name /*filepath.Base(args.cipherdir)*/)
 			fido2HmacSalt = cryptocore.RandBytes(32)
 			password = fido2.Secret(args.fido2, fido2CredentialID, fido2HmacSalt)
+			// overwrite user to match fido2Name
+			args.user = fido2Name
 		} else {
 			// normal password entry
 			password, err = readpassword.Twice([]string(args.extpass), []string(args.passfile))
@@ -92,17 +96,20 @@ func initDir(args *argContainer) {
 				tlog.Fatal.Println(err)
 				os.Exit(exitcodes.ReadPassword)
 			}
+			fido2Name = ""
 			fido2CredentialID = nil
 			fido2HmacSalt = nil
 		}
 		creator := tlog.ProgramName + " " + GitVersion
 		err = configfile.Create(&configfile.CreateArgs{
 			Filename:           args.config,
+			User:               args.user,
 			Password:           password,
 			PlaintextNames:     args.plaintextnames,
 			LogN:               args.scryptn,
 			Creator:            creator,
 			AESSIV:             args.aessiv,
+			Fido2Name:          fido2Name,
 			Fido2CredentialID:  fido2CredentialID,
 			Fido2HmacSalt:      fido2HmacSalt,
 			DeterministicNames: args.deterministic_names,

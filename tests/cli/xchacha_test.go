@@ -16,7 +16,7 @@ import (
 func TestInitXchacha(t *testing.T) {
 	cDir := test_helpers.InitFS(nil, "-xchacha")
 	// Check config file sanity
-	_, c, err := configfile.LoadAndDecrypt(cDir+"/"+configfile.ConfDefaultName, testPw)
+	_, c, err := configfile.LoadAndDecrypt(cDir+"/"+configfile.ConfDefaultName, configfile.DefaultKey, testPw)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

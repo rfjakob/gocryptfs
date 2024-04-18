@@ -14,3 +14,9 @@ require (
 	golang.org/x/sys v0.16.0
 	golang.org/x/term v0.16.0
 )
+
+
+// replace (
+//	"github.com/rfjakob/gocryptfs/v2/internal/configfile" => "./internal/configfile"
+//)
+
