@@ -155,7 +155,10 @@ mounted using gocryptfs v1.2 and higher. Default true.
 
 #### -reverse
 Reverse mode shows a read-only encrypted view of a plaintext
-directory. Implies "-aessiv".
+directory. Implies `-aessiv`.
+
+If you want to mount the encrypted view using `-masterkey`, you *must*
+specify `-aessiv`.
 
 #### -xchacha
 Use XChaCha20-Poly1305 file content encryption. This should be much faster
@@ -501,10 +504,14 @@ settings have to be passed on the command line: `-aessiv` when you
 mount a filesystem that was created using reverse mode, or
 `-plaintextnames` for a filesystem that was created with that option.
 
-Examples:
+Example 1: Mount a filesystem that was created using default options:
 
-    -masterkey=6f717d8b-6b5f8e8a-fd0aa206-778ec093-62c5669b-abd229cd-241e00cd-b4d6713d
-    -masterkey=stdin
+    gocryptfs -masterkey=6f717d8b-6b5f8e8a-fd0aa206-778ec093-62c5669b-abd229cd-241e00cd-b4d6713d cipher mnt
+    gocryptfs -masterkey=stdin cipher mnt
+
+Example 2: Mount a `gocryptfs -reverse` filesystem (note that you *must* specify `-aessiv`):
+
+    gocryptfs -masterkey=stdin -aessiv cipher mnt
 
 Applies to: all actions that ask for a password.
 
