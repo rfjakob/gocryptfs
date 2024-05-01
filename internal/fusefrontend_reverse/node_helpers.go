@@ -91,18 +91,17 @@ func (n *Node) prepareAtSyscall(child string) (d *dirfdPlus, errno syscall.Errno
 
 // newChild attaches a new child inode to n.
 // The passed-in `st` will be modified to get a unique inode number.
+//
+// This function is not used for virtual files. See lookupLongnameName(),
+// lookupDiriv() instead.
 func (n *Node) newChild(ctx context.Context, st *syscall.Stat_t, out *fuse.EntryOut) *fs.Inode {
-	isOtherFilesystem := (uint64(st.Dev) != n.rootNode().rootDev)
-	// Get unique inode number
 	rn := n.rootNode()
+	isOtherFilesystem := (uint64(st.Dev) != rn.rootDev)
+	// Get unique inode number
 	rn.inoMap.TranslateStat(st)
 	out.Attr.FromStat(st)
 	// Create child node
-	id := fs.StableAttr{
-		Mode: uint32(st.Mode),
-		Gen:  1,
-		Ino:  st.Ino,
-	}
+	id := rn.uniqueStableAttr(uint32(st.Mode), st.Ino)
 	node := &Node{
 		isOtherFilesystem: isOtherFilesystem,
 	}
@@ -153,7 +152,7 @@ func (n *Node) lookupLongnameName(ctx context.Context, nameFile string, out *fus
 	}
 	out.Attr = vf.attr
 	// Create child node
-	id := fs.StableAttr{Mode: uint32(vf.attr.Mode), Gen: 1, Ino: vf.attr.Ino}
+	id := rn.uniqueStableAttr(uint32(vf.attr.Mode), vf.attr.Ino)
 	ch = n.NewInode(ctx, vf, id)
 	return
 
@@ -161,7 +160,8 @@ func (n *Node) lookupLongnameName(ctx context.Context, nameFile string, out *fus
 
 // lookupDiriv returns a new Inode for a gocryptfs.diriv file inside `n`.
 func (n *Node) lookupDiriv(ctx context.Context, out *fuse.EntryOut) (ch *fs.Inode, errno syscall.Errno) {
-	if rn := n.rootNode(); rn.args.DeterministicNames {
+	rn := n.rootNode()
+	if rn.args.DeterministicNames {
 		log.Panic("BUG: lookupDiriv called but DeterministicNames is set")
 	}
 
@@ -183,7 +183,7 @@ func (n *Node) lookupDiriv(ctx context.Context, out *fuse.EntryOut) (ch *fs.Inod
 	}
 	out.Attr = vf.attr
 	// Create child node
-	id := fs.StableAttr{Mode: uint32(vf.attr.Mode), Gen: 1, Ino: vf.attr.Ino}
+	id := rn.uniqueStableAttr(uint32(vf.attr.Mode), vf.attr.Ino)
 	ch = n.NewInode(ctx, vf, id)
 	return
 }
@@ -202,11 +202,7 @@ func (n *Node) lookupConf(ctx context.Context, out *fuse.EntryOut) (ch *fs.Inode
 	rn.inoMap.TranslateStat(&st)
 	out.Attr.FromStat(&st)
 	// Create child node
-	id := fs.StableAttr{
-		Mode: uint32(st.Mode),
-		Gen:  1,
-		Ino:  st.Ino,
-	}
+	id := rn.uniqueStableAttr(uint32(st.Mode), st.Ino)
 	node := &VirtualConfNode{path: p}
 	ch = n.NewInode(ctx, node, id)
 	return

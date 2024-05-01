@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"syscall"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/exitcodes"
@@ -45,6 +46,13 @@ type RootNode struct {
 	// If a file name length is shorter than shortNameMax, there is no need to
 	// hash it.
 	shortNameMax int
+	// gen is the node generation number. Normally, it is always set to 1,
+	// but reverse mode, like -sharestorage, uses an incrementing counter for new nodes.
+	// This makes each directory entry unique (even hard links),
+	// makes go-fuse hand out separate FUSE Node IDs for each, and prevents
+	// bizarre problems when inode numbers are reused behind our back,
+	// like this one: https://github.com/rfjakob/gocryptfs/issues/802
+	gen uint64
 }
 
 // NewRootNode returns an encrypted FUSE overlay filesystem.
@@ -148,4 +156,20 @@ func (rn *RootNode) excludeDirEntries(d *dirfdPlus, entries []fuse.DirEntry) (fi
 		filtered = append(filtered, entry)
 	}
 	return filtered
+}
+
+// uniqueStableAttr returns a fs.StableAttr struct with a unique generation number,
+// preventing files to appear hard-linked, even when they have the same inode number.
+//
+// This is good because inode numbers can be reused behind our back, which could make
+// unrelated files appear hard-linked.
+// Example: https://github.com/rfjakob/gocryptfs/issues/802
+func (rn *RootNode) uniqueStableAttr(mode uint32, ino uint64) fs.StableAttr {
+	return fs.StableAttr{
+		Mode: mode,
+		Ino:  ino,
+		// Make each directory entry a unique node by using a unique generation
+		// value. Also see the comment at RootNode.gen for details.
+		Gen: atomic.AddUint64(&rn.gen, 1),
+	}
 }

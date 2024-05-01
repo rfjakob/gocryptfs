@@ -68,6 +68,25 @@ func (n *Node) Lookup(ctx context.Context, cName string, out *fuse.EntryOut) (ch
 	if t == typeReal {
 		n.translateSize(d.dirfd, cName, d.pName, &out.Attr)
 	}
+
+	// Usually we always create a new Node ID by always incrementing the generation
+	// number.
+	//
+	// If we already have a child node that matches what we found on disk*
+	// (as reflected in `ch`), return it here.
+	//
+	// This keeps the Node ID for each directory entry stable
+	// (until forgotten), preventing extra FORGETs from the kernel.
+	//
+	// *We compare `cName`, `Ino`, `Mode` (but not `Gen`!)
+	old := n.Inode.GetChild(cName)
+	if old != nil &&
+		old.StableAttr().Ino == ch.StableAttr().Ino &&
+		// `Mode` has already been masked with syscall.S_IFMT by n.newChild()
+		old.StableAttr().Mode == ch.StableAttr().Mode {
+		return old, 0
+	}
+
 	return ch, 0
 }
 
