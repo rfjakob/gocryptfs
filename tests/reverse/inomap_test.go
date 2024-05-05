@@ -143,7 +143,7 @@ func TestVirtualFileIno(t *testing.T) {
 	if origInos.child == cipherInos.name {
 		t.Errorf("name ino collision: %d == %d", origInos.child, cipherInos.name)
 	}
-	if origInos.child&mask != cipherInos.name&mask {
-		t.Errorf("name ino mismatch: %#x vs %#x", origInos.child, cipherInos.name)
+	if cipherInos.name < 1<<63 {
+		t.Errorf("name ino should be in spill space, but is actually %#x", cipherInos.name)
 	}
 }

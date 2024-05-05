@@ -298,6 +298,10 @@ func TestSeekData(t *testing.T) {
 // gocryptfs.longname.*.name of hardlinked files should not appear hardlinked (as the
 // contents are different).
 //
+// This means that
+// 1) They have a different NodeID, hence the kernel knows it's different files
+// 2) They have a different inode number, hence userspace knows they are not hard-linked.
+//
 // https://github.com/rfjakob/gocryptfs/issues/802
 func TestHardlinkedLongname(t *testing.T) {
 	if plaintextnames {
@@ -334,5 +338,17 @@ func TestHardlinkedLongname(t *testing.T) {
 	}
 	if test_helpers.Md5fn(matches[0]) == test_helpers.Md5fn(matches[1]) {
 		t.Errorf("Files %q are identical - that's wrong!", matches)
+	}
+
+	var st0 syscall.Stat_t
+	if err := syscall.Stat(matches[0], &st0); err != nil {
+		t.Fatal(err)
+	}
+	var st1 syscall.Stat_t
+	if err := syscall.Stat(matches[1], &st1); err != nil {
+		t.Fatal(err)
+	}
+	if st0.Ino == st1.Ino {
+		t.Errorf("Files %q have the same inode number - that's wrong!", matches)
 	}
 }

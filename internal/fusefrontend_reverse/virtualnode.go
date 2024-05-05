@@ -86,8 +86,15 @@ func (n *Node) newVirtualMemNode(content []byte, parentStat *syscall.Stat_t, ino
 	// Adjust inode number and size
 	rn := n.rootNode()
 	st := parentStat
-	q := inomap.NewQIno(uint64(st.Dev), inoTag, uint64(st.Ino))
-	st.Ino = rn.inoMap.Translate(q)
+	if inoTag == inoTagNameFile {
+		// No stable mapping for gocryptfs.longname.*.name files, instead use an
+		// incrementing counter. We don't want two of those files to ever have the
+		// same inode number, even for hard-linked files.
+		st.Ino = rn.inoMap.NextSpillIno()
+	} else {
+		q := inomap.NewQIno(uint64(st.Dev), inoTag, uint64(st.Ino))
+		st.Ino = rn.inoMap.Translate(q)
+	}
 	st.Size = int64(len(content))
 	st.Mode = virtualFileMode
 	st.Nlink = 1
