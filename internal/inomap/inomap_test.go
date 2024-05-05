@@ -107,12 +107,20 @@ func TestSpill(t *testing.T) {
 	if out1&spillBit == 0 {
 		t.Error("spill bit not set")
 	}
+	if out1 != spillSpaceStart {
+		t.Errorf("unexpected first spill inode number %d", out1)
+	}
 	out2 := m.Translate(q)
 	if out2&spillBit == 0 {
 		t.Error("spill bit not set")
 	}
 	if out1 != out2 {
 		t.Errorf("unstable mapping: %d vs %d", out1, out2)
+	}
+	q.Ino = maxPassthruIno + 2
+	out3 := m.Translate(q)
+	if out3 != out1+1 {
+		t.Errorf("unexpected 2nd spill inode number %d", out1)
 	}
 }
 

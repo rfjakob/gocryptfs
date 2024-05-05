@@ -18,6 +18,7 @@ import (
 	"log"
 	"math"
 	"sync"
+	"sync/atomic"
 	"syscall"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
@@ -68,19 +69,28 @@ func New(rootDev uint64) *InoMap {
 
 var spillWarn sync.Once
 
+// NextSpillIno returns a fresh inode number from the spill pool without adding it to
+// spillMap.
+// Reverse mode NextSpillIno() for gocryptfs.longname.*.name files where a stable
+// mapping is not needed.
+func (m *InoMap) NextSpillIno() (out uint64) {
+	if m.spillNext == math.MaxUint64 {
+		log.Panicf("spillMap overflow: spillNext = 0x%x", m.spillNext)
+	}
+	return atomic.AddUint64(&m.spillNext, 1) - 1
+}
+
 func (m *InoMap) spill(in QIno) (out uint64) {
-	spillWarn.Do(func() { tlog.Warn.Printf("InoMap: opening spillMap for %v", in) })
+	spillWarn.Do(func() { tlog.Warn.Printf("InoMap: opening spillMap for %#v", in) })
 
 	out, found := m.spillMap[in]
 	if found {
 		return out
 	}
-	if m.spillNext == math.MaxUint64 {
-		log.Panicf("spillMap overflow: spillNext = 0x%x", m.spillNext)
-	}
-	out = m.spillNext
-	m.spillNext++
+
+	out = m.NextSpillIno()
 	m.spillMap[in] = out
+
 	return out
 }
 
