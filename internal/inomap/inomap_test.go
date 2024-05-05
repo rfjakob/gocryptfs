@@ -5,6 +5,11 @@ import (
 	"testing"
 )
 
+const (
+	// bit 63 is used as the spill bit
+	spillBit = 1 << 63
+)
+
 func TestTranslate(t *testing.T) {
 	m := New(0)
 	q := QIno{Ino: 1}
