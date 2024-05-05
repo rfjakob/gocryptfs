@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -296,22 +295,6 @@ func TestSeekData(t *testing.T) {
 	f.Close()
 }
 
-func findInum(dir string, inum uint64) (name string) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		panic(err)
-	}
-	for _, e := range entries {
-		info, _ := e.Info()
-		st := info.Sys().(*syscall.Stat_t)
-		if st.Ino == inum {
-			return dir + "/" + e.Name()
-		}
-	}
-	log.Panicf("inum %d not found", inum)
-	return ""
-}
-
 // gocryptfs.longname.*.name of hardlinked files should not appear hardlinked (as the
 // contents are different).
 //
@@ -339,7 +322,7 @@ func TestHardlinkedLongname(t *testing.T) {
 	if err := syscall.Stat(workdir, &st); err != nil {
 		t.Fatal(err)
 	}
-	cWorkdir := findInum(dirB, st.Ino)
+	cWorkdir := dirB + "/" + findIno(dirB, st.Ino)
 	t.Logf("workdir=%q cWorkdir=%q", workdir, cWorkdir)
 
 	matches, err := filepath.Glob(cWorkdir + "/gocryptfs.longname.*.name")

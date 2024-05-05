@@ -2,6 +2,7 @@ package reverse_test
 
 import (
 	"bytes"
+	"log"
 	"os"
 	"strings"
 	"syscall"
@@ -30,6 +31,7 @@ func findIno(dir string, ino uint64) string {
 			return entry
 		}
 	}
+	log.Panicf("ino %d not found", ino)
 	return ""
 }
 
