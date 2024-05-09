@@ -499,7 +499,7 @@ Creating a filesystem with no pin verification:
 
     gocryptfs -init -fido2 DEVICE_PATH -fido2-assert-option pin=false CIPHERDIR
 
-Creating a filesystem with both user presence and pin verification:
+Creating a filesystem with both user verification and pin verification:
 
     gocryptfs -init -fido2 DEVICE_PATH -fido2-assert-option uv=true -fido2-assert-option pin=true CIPHERDIR
 
