@@ -60,6 +60,11 @@ func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) 
 			flags |= syscall.O_NOFOLLOW
 		}
 	}
+
+	// os/exec expects all fds to have O_CLOEXEC or it will leak fds to subprocesses.
+	// In our case, that would be logger(1), and we did leak fds to it.
+	flags |= syscall.O_CLOEXEC
+
 	fd, err = retryEINTR2(func() (int, error) {
 		return unix.Openat(dirfd, path, flags, mode)
 	})
