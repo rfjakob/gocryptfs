@@ -90,7 +90,7 @@ func redirectStdFds() {
 	if err != nil {
 		tlog.Warn.Printf("redirectStdFds: stderr dup error: %v\n", err)
 	}
-	// Our stout and stderr point to "pw". We can close the extra copy.
+	// Our stdout and stderr point to "pw". We can close the original copy.
 	pw.Close()
 	// Redirect stdin to /dev/null
 	nullFd, err := os.Open("/dev/null")
