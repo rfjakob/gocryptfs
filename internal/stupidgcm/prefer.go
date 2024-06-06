@@ -2,8 +2,6 @@ package stupidgcm
 
 import (
 	"runtime"
-
-	"golang.org/x/sys/cpu"
 )
 
 // PreferOpenSSLAES256GCM tells us if OpenSSL AES-256-GCM is faster than Go stdlib
@@ -22,7 +20,7 @@ func PreferOpenSSLAES256GCM() bool {
 		return false
 	}
 	// If the CPU has AES acceleration, Go stdlib is faster
-	if CpuHasAES() {
+	if HasAESGCMHardwareSupport() {
 		return false
 	}
 	// Otherwise OpenSSL is probably faster
@@ -44,13 +42,13 @@ func PreferOpenSSLXchacha20poly1305() bool {
 	return true
 }
 
-// CpuHasAES tells you if the CPU we are running has AES acceleration that is
-// usable by the Go crypto library.
-func CpuHasAES() bool {
-	// Safe to call on other architectures - will just read false.
-	if cpu.X86.HasAES || cpu.ARM64.HasAES {
+// HasAESGCMHardwareSupport tells you if the CPU we are running has AES-GCM
+// acceleration that is usable by the Go crypto library.
+func HasAESGCMHardwareSupport() bool {
+	if hasAESGCMHardwareSupport {
 		return true
 	}
+
 	// On the Apple M1, the CPU has AES acceleration, despite cpu.ARM64.HasAES
 	// reading false: https://github.com/rfjakob/gocryptfs/issues/556#issuecomment-848079309
 	if runtime.GOOS == "darwin" && runtime.GOARCH == "arm64" {

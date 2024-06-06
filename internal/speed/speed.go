@@ -31,9 +31,9 @@ func Run() {
 	if cpu == "" {
 		cpu = "unknown"
 	}
-	aes := "; no AES acceleration"
-	if stupidgcm.CpuHasAES() {
-		aes = "; with AES acceleration"
+	aes := "; no AES-GCM acceleration"
+	if stupidgcm.HasAESGCMHardwareSupport() {
+		aes = "; with AES-GCM acceleration"
 	}
 	fmt.Printf("cpu: %s%s\n", cpu, aes)
 

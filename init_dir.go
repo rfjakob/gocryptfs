@@ -68,9 +68,9 @@ func initDir(args *argContainer) {
 			tlog.Fatal.Printf("Invalid cipherdir: %v", err)
 			os.Exit(exitcodes.CipherDir)
 		}
-		if !args.xchacha && !stupidgcm.CpuHasAES() {
+		if !args.xchacha && !stupidgcm.HasAESGCMHardwareSupport() {
 			tlog.Info.Printf(tlog.ColorYellow +
-				"Notice: Your CPU does not have AES acceleration. Consider using -xchacha for better performance." +
+				"Notice: Your CPU does not have AES-GCM acceleration. Consider using -xchacha for better performance." +
 				tlog.ColorReset)
 		}
 	}
