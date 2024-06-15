@@ -402,12 +402,13 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 	}
 
 	mOpts := &fuseOpts.MountOptions
+	opts := make(map[string]string)
 	if args.allow_other {
 		tlog.Info.Printf(tlog.ColorYellow + "The option \"-allow_other\" is set. Make sure the file " +
 			"permissions protect your data from unwanted access." + tlog.ColorReset)
 		mOpts.AllowOther = true
 		// Make the kernel check the file permissions for us
-		mOpts.Options = append(mOpts.Options, "default_permissions")
+		opts["default_permissions"] = ""
 	}
 	if args.acl {
 		mOpts.EnableAcl = true
@@ -415,7 +416,7 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 	// fusermount from libfuse 3.x removed the "nonempty" option and exits
 	// with an error if it sees it. Only add it to the options on libfuse 2.x.
 	if args.nonempty && haveFusermount2() {
-		mOpts.Options = append(mOpts.Options, "nonempty")
+		opts["nonempty"] = ""
 	}
 	// Set values shown in "df -T" and friends
 	// First column, "Filesystem"
@@ -437,40 +438,54 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 	// Add a volume name if running osxfuse. Otherwise the Finder will show it as
 	// something like "osxfuse Volume 0 (gocryptfs)".
 	if runtime.GOOS == "darwin" {
-		volname := strings.Replace(path.Base(args.mountpoint), ",", "_", -1)
-		mOpts.Options = append(mOpts.Options, "volname="+volname)
+		opts["volname"] = strings.Replace(path.Base(args.mountpoint), ",", "_", -1)
 	}
 	// The kernel enforces read-only operation, we just have to pass "ro".
 	// Reverse mounts are always read-only.
 	if args.ro || args.reverse {
-		mOpts.Options = append(mOpts.Options, "ro")
+		opts["ro"] = ""
 	} else if args.rw {
-		mOpts.Options = append(mOpts.Options, "rw")
+		opts["rw"] = ""
 	}
 	// If both "nosuid" & "suid", "nodev" & "dev", etc were passed, the safer
 	// option wins.
 	if args.nosuid {
-		mOpts.Options = append(mOpts.Options, "nosuid")
+		opts["nosuid"] = ""
 	} else if args.suid {
-		mOpts.Options = append(mOpts.Options, "suid")
+		opts["suid"] = ""
 	}
 	if args.nodev {
-		mOpts.Options = append(mOpts.Options, "nodev")
+		opts["nodev"] = ""
 	} else if args.dev {
-		mOpts.Options = append(mOpts.Options, "dev")
+		opts["dev"] = ""
 	}
 	if args.noexec {
-		mOpts.Options = append(mOpts.Options, "noexec")
+		opts["noexec"] = ""
 	} else if args.exec {
-		mOpts.Options = append(mOpts.Options, "exec")
+		opts["exec"] = ""
 	}
 	// Add additional mount options (if any) after the stock ones, so the user has
 	// a chance to override them.
 	if args.ko != "" {
 		parts := strings.Split(args.ko, ",")
 		tlog.Debug.Printf("Adding -ko mount options: %v", parts)
-		mOpts.Options = append(mOpts.Options, parts...)
+		for _, part := range parts {
+			kv := strings.SplitN(part, "=", 2)
+			if len(kv) == 2 {
+				opts[kv[0]] = kv[1]
+			} else {
+				opts[kv[0]] = ""
+			}
+		}
 	}
+	for k, v := range opts {
+		if v == "" {
+			mOpts.Options = append(mOpts.Options, k)
+		} else {
+			mOpts.Options = append(mOpts.Options, k+"="+v)
+		}
+	}
+
 	srv, err := fs.Mount(args.mountpoint, rootNode, fuseOpts)
 	if err != nil {
 		tlog.Fatal.Printf("fs.Mount failed: %s", strings.TrimSpace(err.Error()))
