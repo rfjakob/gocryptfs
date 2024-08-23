@@ -18,6 +18,11 @@ type VirtualConfNode struct {
 	path string
 }
 
+// rootNode returns the Root Node of the filesystem.
+func (n *VirtualConfNode) rootNode() *RootNode {
+	return n.Root().Operations().(*RootNode)
+}
+
 func (n *VirtualConfNode) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, fuseFlags uint32, errno syscall.Errno) {
 	fd, err := syscall.Open(n.path, syscall.O_RDONLY, 0)
 	if err != nil {
@@ -35,6 +40,10 @@ func (n *VirtualConfNode) Getattr(ctx context.Context, fh fs.FileHandle, out *fu
 		return fs.ToErrno(err)
 	}
 	out.FromStat(&st)
+	rn := n.rootNode()
+	if rn.args.ForceOwner != nil {
+		out.Owner = *rn.args.ForceOwner
+	}
 	return 0
 }
 

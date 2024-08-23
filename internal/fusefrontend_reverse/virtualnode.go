@@ -100,7 +100,9 @@ func (n *Node) newVirtualMemNode(content []byte, parentStat *syscall.Stat_t, ino
 	st.Nlink = 1
 	var a fuse.Attr
 	a.FromStat(st)
-
+	if rn.args.ForceOwner != nil {
+		a.Owner = *rn.args.ForceOwner
+	}
 	vf = &VirtualMemNode{content: content, attr: a}
 	return
 }

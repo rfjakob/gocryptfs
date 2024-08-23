@@ -69,6 +69,10 @@ func (n *Node) Lookup(ctx context.Context, cName string, out *fuse.EntryOut) (ch
 		n.translateSize(d.dirfd, cName, d.pName, &out.Attr)
 	}
 
+	if rn.args.ForceOwner != nil {
+		out.Owner = *rn.args.ForceOwner
+	}
+
 	// Usually we always create a new Node ID by always incrementing the generation
 	// number.
 	//

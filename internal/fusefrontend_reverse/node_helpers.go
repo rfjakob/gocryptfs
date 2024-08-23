@@ -201,6 +201,9 @@ func (n *Node) lookupConf(ctx context.Context, out *fuse.EntryOut) (ch *fs.Inode
 	// Get unique inode number
 	rn.inoMap.TranslateStat(&st)
 	out.Attr.FromStat(&st)
+	if rn.args.ForceOwner != nil {
+		out.Owner = *rn.args.ForceOwner
+	}
 	// Create child node
 	id := rn.uniqueStableAttr(uint32(st.Mode), st.Ino)
 	node := &VirtualConfNode{path: p}
