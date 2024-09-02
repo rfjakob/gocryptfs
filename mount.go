@@ -5,7 +5,6 @@ import (
 	"log"
 	"log/syslog"
 	"math"
-	"net"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -91,16 +90,15 @@ func doMount(args *argContainer) {
 		// We must use an absolute path because we cd to / when daemonizing.
 		// This messes up the delete-on-close logic in the unix socket object.
 		args.ctlsock, _ = filepath.Abs(args.ctlsock)
-		var sock net.Listener
-		sock, err = net.Listen("unix", args.ctlsock)
+
+		args._ctlsockFd, err = ctlsocksrv.Listen(args.ctlsock)
 		if err != nil {
 			tlog.Fatal.Printf("ctlsock: %v", err)
 			os.Exit(exitcodes.CtlSock)
 		}
-		args._ctlsockFd = sock
 		// Close also deletes the socket file
 		defer func() {
-			err = sock.Close()
+			err = args._ctlsockFd.Close()
 			if err != nil {
 				tlog.Warn.Printf("ctlsock close: %v", err)
 			}
