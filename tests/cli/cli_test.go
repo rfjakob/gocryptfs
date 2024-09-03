@@ -4,6 +4,7 @@ package cli
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -1032,4 +1033,40 @@ func TestMountCreat(t *testing.T) {
 		wg.Wait()
 		test_helpers.UnmountPanic(mnt)
 	}
+}
+
+// https://github.com/rfjakob/gocryptfs/issues/776
+func TestOrphanedSocket(t *testing.T) {
+	cDir := test_helpers.InitFS(t)
+	ctlSock := cDir + ".sock"
+	mnt := cDir + ".mnt"
+	test_helpers.MountOrFatal(t, cDir, mnt, "-extpass", "echo test", "-wpanic=false", "-ctlsock", ctlSock)
+
+	mnt2 := cDir + ".mnt2"
+	err := test_helpers.Mount(cDir, mnt2, false, "-extpass", "echo test", "-wpanic=false", "-ctlsock", ctlSock)
+	exitCode := test_helpers.ExtractCmdExitCode(err)
+	if exitCode != exitcodes.CtlSock {
+		t.Errorf("wrong exit code: want=%d, have=%d", exitcodes.CtlSock, exitCode)
+	}
+	test_helpers.UnmountPanic(mnt)
+
+	// Unmount returns before the gocryptfs process has terminated and before the
+	// socket file has been deleted. Wait out the deletion.
+	for i := 0; i < 100; i++ {
+		_, err := os.Stat(ctlSock)
+		if errors.Is(err, os.ErrNotExist) {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+
+	// Create orphaned socket file
+	err = syscall.Mknod(ctlSock, syscall.S_IFSOCK|0666, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Should delete the socket file automatically and the mount should work
+	test_helpers.MountOrFatal(t, cDir, mnt, "-extpass", "echo test", "-wpanic=false", "-ctlsock", ctlSock)
+	test_helpers.UnmountPanic(mnt)
 }
