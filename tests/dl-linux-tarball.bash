@@ -20,7 +20,7 @@ fi
 if [[ $SIZE_ACTUAL -ne $SIZE_WANT ]]; then
 	echo "Downloading linux-3.0.tar.gz"
 	if command -v wget > /dev/null ; then
-		wget -nv --show-progress -c -O "$TGZ" "$URL"
+		wget -nv -c -O "$TGZ" "$URL"
 	else
 		curl -o "$TGZ" "$URL"
 	fi
