@@ -8,20 +8,18 @@ import (
 	"sync/atomic"
 	"syscall"
 
-	"github.com/rfjakob/gocryptfs/v2/internal/exitcodes"
-
-	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
-
 	"golang.org/x/sys/unix"
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/v2/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/v2/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/v2/internal/inomap"
 	"github.com/rfjakob/gocryptfs/v2/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
+	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 
 	"github.com/sabhiram/go-gitignore"
 )
