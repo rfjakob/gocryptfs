@@ -351,6 +351,10 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 	return rootNode, func() { cCore.Wipe() }
 }
 
+type RootInoer interface {
+	RootIno() uint64
+}
+
 // initGoFuse calls into go-fuse to mount `rootNode` on `args.mountpoint`.
 // The mountpoint is ready to use when the functions returns.
 // On error, it calls os.Exit and does not return.
@@ -375,6 +379,9 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 		}
 	}
 	fuseOpts.NullPermissions = true
+	// The inode number for the root node must be manually set on mount
+	// https://github.com/hanwen/go-fuse/issues/399
+	fuseOpts.RootStableAttr = &fs.StableAttr{Ino: rootNode.(RootInoer).RootIno()}
 	// Enable go-fuse warnings
 	fuseOpts.Logger = log.New(os.Stderr, "go-fuse: ", log.Lmicroseconds)
 	fuseOpts.MountOptions = fuse.MountOptions{

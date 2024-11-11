@@ -59,13 +59,16 @@ type RootNode struct {
 	// quirks is a bitmap that enables workaround for quirks in the filesystem
 	// backing the cipherdir
 	quirks uint64
+	// rootIno is the inode number that we report for the root node on mount
+	rootIno uint64
 }
 
 func NewRootNode(args Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) *RootNode {
 	var rootDev uint64
 	var st syscall.Stat_t
-	if err := syscall.Stat(args.Cipherdir, &st); err != nil {
-		tlog.Warn.Printf("Could not stat backing directory %q: %v", args.Cipherdir, err)
+	var statErr error
+	if statErr = syscall.Stat(args.Cipherdir, &st); statErr != nil {
+		tlog.Warn.Printf("Could not stat backing directory %q: %v", args.Cipherdir, statErr)
 	} else {
 		rootDev = uint64(st.Dev)
 	}
@@ -86,6 +89,10 @@ func NewRootNode(args Args, c *contentenc.ContentEnc, n *nametransform.NameTrans
 		inoMap:        inomap.New(rootDev),
 		dirCache:      dirCache{ivLen: ivLen},
 		quirks:        syscallcompat.DetectQuirks(args.Cipherdir),
+	}
+	if statErr == nil {
+		rn.inoMap.TranslateStat(&st)
+		rn.rootIno = st.Ino
 	}
 	return rn
 }
@@ -287,4 +294,8 @@ func (rn *RootNode) decryptXattrName(cAttr string) (attr string, err error) {
 		return "", err
 	}
 	return attr, nil
+}
+
+func (rn *RootNode) RootIno() uint64 {
+	return rn.rootIno
 }

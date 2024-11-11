@@ -51,6 +51,8 @@ type RootNode struct {
 	// bizarre problems when inode numbers are reused behind our back,
 	// like this one: https://github.com/rfjakob/gocryptfs/issues/802
 	gen uint64
+	// rootIno is the inode number that we report for the root node on mount
+	rootIno uint64
 }
 
 // NewRootNode returns an encrypted FUSE overlay filesystem.
@@ -59,9 +61,10 @@ type RootNode struct {
 func NewRootNode(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) *RootNode {
 	var rootDev uint64
 	var st syscall.Stat_t
+	var statErr error
 	var shortNameMax int
-	if err := syscall.Stat(args.Cipherdir, &st); err != nil {
-		tlog.Warn.Printf("Could not stat backing directory %q: %v", args.Cipherdir, err)
+	if statErr = syscall.Stat(args.Cipherdir, &st); statErr != nil {
+		tlog.Warn.Printf("Could not stat backing directory %q: %v", args.Cipherdir, statErr)
 		if args.OneFileSystem {
 			tlog.Fatal.Printf("This is a fatal error in combination with -one-file-system")
 			os.Exit(exitcodes.CipherDir)
@@ -80,6 +83,10 @@ func NewRootNode(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransf
 		inoMap:        inomap.New(rootDev),
 		rootDev:       rootDev,
 		shortNameMax:  shortNameMax,
+	}
+	if statErr == nil {
+		rn.inoMap.TranslateStat(&st)
+		rn.rootIno = st.Ino
 	}
 	if len(args.Exclude) > 0 || len(args.ExcludeWildcard) > 0 || len(args.ExcludeFrom) > 0 {
 		rn.excluder = prepareExcluder(args)
@@ -170,4 +177,8 @@ func (rn *RootNode) uniqueStableAttr(mode uint32, ino uint64) fs.StableAttr {
 		// value. Also see the comment at RootNode.gen for details.
 		Gen: atomic.AddUint64(&rn.gen, 1),
 	}
+}
+
+func (rn *RootNode) RootIno() uint64 {
+	return rn.rootIno
 }

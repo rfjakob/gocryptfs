@@ -972,3 +972,13 @@ func TestPwd(t *testing.T) {
 		os.Mkdir(dir, 0700)
 	}
 }
+
+// TestRootIno checks that inode number of the root dir is set
+// https://github.com/hanwen/go-fuse/issues/399
+func TestRootIno(t *testing.T) {
+	var st syscall.Stat_t
+	syscall.Stat(test_helpers.DefaultPlainDir, &st)
+	if st.Ino == 0 {
+		t.Errorf("inode number of root dir is zero")
+	}
+}
