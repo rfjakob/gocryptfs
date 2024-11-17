@@ -23,8 +23,6 @@ func xattrSupported(path string) bool {
 }
 
 func TestXattrList(t *testing.T) {
-	t.Skip("TODO: not implemented yet in reverse mode")
-
 	if !xattrSupported(dirA) {
 		t.Skip()
 	}
@@ -35,7 +33,7 @@ func TestXattrList(t *testing.T) {
 	}
 	val := []byte("xxxxxxxxyyyyyyyyyyyyyyyzzzzzzzzzzzzz")
 	num := 20
-	var namesA map[string]string
+	namesA := map[string]string{}
 	for i := 1; i <= num; i++ {
 		attr := fmt.Sprintf("user.TestXattrList.%02d", i)
 		err = xattr.LSet(fnA, attr, val)
@@ -49,7 +47,7 @@ func TestXattrList(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var namesC map[string]string
+	namesC := map[string]string{}
 	for _, n := range tmp {
 		namesC[n] = string(val)
 	}

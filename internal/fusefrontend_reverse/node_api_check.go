@@ -11,14 +11,8 @@ var _ = (fs.NodeReaddirer)((*Node)(nil))
 var _ = (fs.NodeReadlinker)((*Node)(nil))
 var _ = (fs.NodeOpener)((*Node)(nil))
 var _ = (fs.NodeStatfser)((*Node)(nil))
-
-/*
-TODO but low prio. reverse mode in gocryptfs v1 did not have xattr support
-either.
-
 var _ = (fs.NodeGetxattrer)((*Node)(nil))
 var _ = (fs.NodeListxattrer)((*Node)(nil))
-*/
 
 /* Not needed
 var _ = (fs.NodeOpendirer)((*Node)(nil))
