@@ -117,25 +117,37 @@ func TestInitMasterkey(t *testing.T) {
 // the -extpass method, then from "test" to "newpasswd" using the
 // stdin method.
 func testPasswd(t *testing.T, dir string, extraArgs ...string) {
-	// Change password using "-extpass"
+	// Change password #1: old passwd via "-extpass", new one via stdin
 	args := []string{"-q", "-passwd", "-extpass", "echo test"}
 	args = append(args, extraArgs...)
 	args = append(args, dir)
 	cmd := exec.Command(test_helpers.GocryptfsBinary, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	p, err := cmd.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cmd.Start()
 	if err != nil {
 		t.Error(err)
 	}
-	// Change password using stdin
+	// New password through stdin
+	p.Write([]byte("test\n"))
+	p.Close()
+	err = cmd.Wait()
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Change password #2: using stdin
 	args = []string{"-q", "-passwd"}
 	args = append(args, extraArgs...)
 	args = append(args, dir)
 	cmd = exec.Command(test_helpers.GocryptfsBinary, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	p, err := cmd.StdinPipe()
+	p, err = cmd.StdinPipe()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,10 +348,22 @@ func TestInitConfig(t *testing.T) {
 		"-config", config, dir)
 	cmd2.Stdout = os.Stdout
 	cmd2.Stderr = os.Stderr
-	err = cmd2.Run()
+	p, err := cmd2.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = cmd2.Start()
 	if err != nil {
 		t.Error(err)
 	}
+	// New password
+	p.Write([]byte("passwd\n"))
+	p.Close()
+	err = cmd2.Wait()
+	if err != nil {
+		t.Error(err)
+	}
+
 }
 
 // Test -ro
