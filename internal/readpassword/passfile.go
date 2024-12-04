@@ -46,8 +46,7 @@ func readPassFile(passfile string) ([]byte, error) {
 		return nil, fmt.Errorf("fatal: passfile: max password length (%d bytes) exceeded", maxPasswordLen)
 	}
 	if len(lines) > 1 && len(lines[1]) > 0 {
-		tlog.Warn.Printf("warning: passfile: ignoring trailing garbage (%d bytes) after first line",
-			len(lines[1]))
+		tlog.Warn.Printf("warning: passfile: ignoring trailing garbage after first line")
 	}
 	return lines[0], nil
 }
