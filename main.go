@@ -83,7 +83,7 @@ func changePassword(args *argContainer) {
 			os.Exit(exitcodes.Usage)
 		}
 		tlog.Info.Println("Please enter your new password.")
-		newPw, err := readpassword.Twice(args.extpass, args.passfile)
+		newPw, err := readpassword.Twice(nil, nil)
 		if err != nil {
 			tlog.Fatal.Println(err)
 			os.Exit(exitcodes.ReadPassword)
