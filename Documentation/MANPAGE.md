@@ -580,7 +580,7 @@ files. They are concatenated for the effective password.
 Example:
 
     echo hello > hello.txt
-    echo word > world.txt
+    echo world > world.txt
     gocryptfs -passfile hello.txt -passfile world.txt
 
 The effective password will be "helloworld".
