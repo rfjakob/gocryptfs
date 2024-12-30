@@ -6,7 +6,9 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 )
 
-// SharedStorageLock conveniently wraps F_OFD_SETLKW
+// SharedStorageLock conveniently wraps F_OFD_SETLKW.
+// It is a no-op unless args.SharedStorage is set.
+//
 // See https://man7.org/linux/man-pages/man2/fcntl.2.html -> "Open file description locks (non-POSIX)"
 //
 // lkType is one of:
