@@ -258,7 +258,7 @@ func (f *File) Read(ctx context.Context, buf []byte, off int64) (resultData fuse
 		if !(f.rootNode.args.SharedStorage && errno == syscall.EIO) {
 			return nil, errno
 		}
-		blocks := f.contentEnc.ExplodePlainRange(uint64(off), uint64(len(buf)))
+		blocks := f.rootNode.contentEnc.ExplodePlainRange(uint64(off), uint64(len(buf)))
 		alignedOffset, alignedLength := blocks[0].JointCiphertextRange(blocks)
 		if err := f.LockSharedStorage(unix.F_RDLCK, int64(alignedOffset), int64(alignedLength)); err != nil {
 			tlog.Warn.Printf("ino%d: FUSE Read: LockSharedStorage(F_RDLCK, %d, %d) failed: %v", f.qIno.Ino, alignedOffset, alignedLength, err)
