@@ -175,7 +175,7 @@ func (n *Node) lookupDiriv(ctx context.Context, out *fuse.EntryOut) (ch *fs.Inod
 		errno = fs.ToErrno(err)
 		return
 	}
-	content := pathiv.Derive(d.cPath, pathiv.PurposeDirIV)
+	content := rn.deriveDirIV(d.cPath)
 	var vf *VirtualMemNode
 	vf, errno = n.newVirtualMemNode(content, st, inoTagDirIV)
 	if errno != 0 {
