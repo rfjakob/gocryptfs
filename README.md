@@ -195,6 +195,24 @@ RM:    2,367
 Changelog
 ---------
 
+#### v2.5.0, 2025-01-18
+* **Important fixes for `-reverse` mode affecting the virtual `gocryptfs.diriv` and
+  `gocryptfs.longname.*.name` files.** The bug can cause file *names* to become
+  undecryptable. To make sure that sync tools like rsync copy new, good copies,
+  gocryptfs v2.5.0 and later advance ctime and mtime for these files by 10 seconds.
+  * Fix `-reverse` mode sometimes (triggered by inode number reuse) returning stale
+    data for `gocryptfs.diriv` (#802)
+  * Fix `-reverse` mode hardlinking `gocryptfs.longname.*.name` files of hardlinked
+    files together (#802)
+* Fix `-reverse` mode ignoring `-force-owner` (#809)
+* Add workaround for excessive file fragementation on btrfs (#811)
+* `-ctlsock`: automatically delete orphaned colliding socket file (#776)
+* MacOS: Fix XTIMES panic on startup (#823)
+* MacOS: merge kernel options before passing them on (#854, #557)
+* Add `-fido2-assert-option` (#807)
+* `-init` now accepts `-masterkey`
+* `-passwd` now ignores `-extpass` and `-passfile` for the *new* password (#287, #882)
+
 #### v2.4.0, 2023-06-10
 * Try the `mount(2)` syscall before falling back to `fusermount(1)`. This means we
   don't need `fusermount(1)` at all if running as root or in a root-like namespace
