@@ -100,6 +100,15 @@ func (n *Node) newVirtualMemNode(content []byte, parentStat *syscall.Stat_t, ino
 	st.Nlink = 1
 	var a fuse.Attr
 	a.FromStat(st)
+	// With inode number reuse and hard links, we could have returned
+	// wrong data for gocryptfs.diriv and gocryptfs.xyz.longname files, respectively
+	// (https://github.com/rfjakob/gocryptfs/issues/802).
+	//
+	// Now that this is fixed, ensure that rsync and similar tools pick up the new
+	// correct files by advancing mtime and ctime by 10 seconds, which should be more
+	// than any filesytems' timestamp granularity (FAT32 has 2 seconds).
+	a.Mtime += 10
+	a.Ctime += 10
 	if rn.args.ForceOwner != nil {
 		a.Owner = *rn.args.ForceOwner
 	}

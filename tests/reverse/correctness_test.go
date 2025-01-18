@@ -363,3 +363,68 @@ func TestHardlinkedLongname(t *testing.T) {
 		t.Errorf("Files %q have the same inode number - that's wrong!", matches)
 	}
 }
+
+// With inode number reuse and hard links, we could have returned
+// wrong data for gocryptfs.diriv and gocryptfs.xyz.longname files, respectively
+// (https://github.com/rfjakob/gocryptfs/issues/802).
+//
+// Now that this is fixed, ensure that rsync and similar tools pick up the new
+// correct files by advancing mtime and ctime by 10 seconds, which should be more
+// than any filesytems' timestamp granularity (FAT32 has 2 seconds).
+func TestMtimePlus10(t *testing.T) {
+	if plaintextnames {
+		t.Skip("plaintextnames mode does not have virtual files")
+	}
+
+	workdirA, workdirB := newWorkdir(t)
+
+	long := workdirA + "/" + strings.Repeat("x", 200)
+	if err := os.WriteFile(long, nil, 0600); err != nil {
+		t.Fatal(err)
+	}
+	var long_stat syscall.Stat_t
+	if err := syscall.Stat(long, &long_stat); err != nil {
+		t.Fatal(err)
+	}
+
+	var workdirA_stat syscall.Stat_t
+	if err := syscall.Stat(workdirA, &workdirA_stat); err != nil {
+		t.Fatal(err)
+	}
+
+	// Find and check gocryptfs.longname.*.name
+	matches, err := filepath.Glob(workdirB + "/gocryptfs.longname.*.name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 1 {
+		t.Fatal(matches)
+	}
+	var name_stat syscall.Stat_t
+	if err := syscall.Stat(matches[0], &name_stat); err != nil {
+		t.Fatal(err)
+	}
+	if name_stat.Mtim.Sec != long_stat.Mtim.Sec+10 {
+		t.Errorf(".name file should show mtime+10")
+	}
+	if name_stat.Ctim.Sec != long_stat.Ctim.Sec+10 {
+		t.Errorf(".name file should show ctime+10")
+	}
+
+	if deterministic_names {
+		// No gocryptfs.diriv
+		return
+	}
+
+	// Check gocryptfs.diriv
+	var diriv_stat syscall.Stat_t
+	if err := syscall.Stat(workdirB+"/gocryptfs.diriv", &diriv_stat); err != nil {
+		t.Fatal(err)
+	}
+	if diriv_stat.Mtim.Sec != workdirA_stat.Mtim.Sec+10 {
+		t.Errorf("diriv file should show mtime+10")
+	}
+	if diriv_stat.Ctim.Sec != workdirA_stat.Ctim.Sec+10 {
+		t.Errorf("diriv file should show ctime+10")
+	}
+}
