@@ -295,6 +295,23 @@ func TestSeekData(t *testing.T) {
 	f.Close()
 }
 
+// newWorkdir creates a new empty dir in dirA and returns the full path to it along
+// with the corresponding encrypted path in dirB
+func newWorkdir(t *testing.T) (workdirA, workdirB string) {
+	workdirA = dirA + "/" + t.Name()
+	if err := os.Mkdir(workdirA, 0700); err != nil {
+		t.Fatal(err)
+	}
+	// Find workdir in dirB (=encrypted view)
+	var st syscall.Stat_t
+	if err := syscall.Stat(workdirA, &st); err != nil {
+		t.Fatal(err)
+	}
+	workdirB = dirB + "/" + findIno(dirB, st.Ino)
+	t.Logf("newWorkdir: workdirA=%q workdirB=%q", workdirA, workdirB)
+	return
+}
+
 // gocryptfs.longname.*.name of hardlinked files should not appear hardlinked (as the
 // contents are different).
 //
@@ -308,28 +325,22 @@ func TestHardlinkedLongname(t *testing.T) {
 		t.Skip()
 	}
 
-	workdir := dirA + "/" + t.Name()
-	if err := os.Mkdir(workdir, 0700); err != nil {
-		t.Fatal(err)
-	}
-	long1 := workdir + "/" + strings.Repeat("x", 200)
+	workdirA, workdirB := newWorkdir(t)
+
+	long1 := workdirA + "/" + strings.Repeat("x", 200)
 	if err := ioutil.WriteFile(long1, []byte("hello"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	long2 := workdir + "/" + strings.Repeat("y", 220)
+	var long1_stat syscall.Stat_t
+	if err := syscall.Stat(long1, &long1_stat); err != nil {
+		t.Fatal(err)
+	}
+	long2 := workdirA + "/" + strings.Repeat("y", 220)
 	if err := syscall.Link(long1, long2); err != nil {
 		t.Fatal(err)
 	}
 
-	// Find workdir in encrypted view
-	var st syscall.Stat_t
-	if err := syscall.Stat(workdir, &st); err != nil {
-		t.Fatal(err)
-	}
-	cWorkdir := dirB + "/" + findIno(dirB, st.Ino)
-	t.Logf("workdir=%q cWorkdir=%q", workdir, cWorkdir)
-
-	matches, err := filepath.Glob(cWorkdir + "/gocryptfs.longname.*.name")
+	matches, err := filepath.Glob(workdirB + "/gocryptfs.longname.*.name")
 	if err != nil {
 		t.Fatal(err)
 	}
