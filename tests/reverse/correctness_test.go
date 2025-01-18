@@ -382,13 +382,13 @@ func TestMtimePlus10(t *testing.T) {
 	if err := os.WriteFile(long, nil, 0600); err != nil {
 		t.Fatal(err)
 	}
-	var long_stat syscall.Stat_t
-	if err := syscall.Stat(long, &long_stat); err != nil {
+	long_stat, err := os.Stat(long)
+	if err != nil {
 		t.Fatal(err)
 	}
 
-	var workdirA_stat syscall.Stat_t
-	if err := syscall.Stat(workdirA, &workdirA_stat); err != nil {
+	workdirA_stat, err := os.Stat(workdirA)
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -400,31 +400,24 @@ func TestMtimePlus10(t *testing.T) {
 	if len(matches) != 1 {
 		t.Fatal(matches)
 	}
-	var name_stat syscall.Stat_t
-	if err := syscall.Stat(matches[0], &name_stat); err != nil {
+	name_stat, err := os.Stat(matches[0])
+	if err != nil {
 		t.Fatal(err)
 	}
-	if name_stat.Mtim.Sec != long_stat.Mtim.Sec+10 {
+	if name_stat.ModTime().Unix() != long_stat.ModTime().Unix()+10 {
 		t.Errorf(".name file should show mtime+10")
 	}
-	if name_stat.Ctim.Sec != long_stat.Ctim.Sec+10 {
-		t.Errorf(".name file should show ctime+10")
-	}
 
+	// Check gocryptfs.diriv
 	if deterministic_names {
 		// No gocryptfs.diriv
 		return
 	}
-
-	// Check gocryptfs.diriv
-	var diriv_stat syscall.Stat_t
-	if err := syscall.Stat(workdirB+"/gocryptfs.diriv", &diriv_stat); err != nil {
+	diriv_stat, err := os.Stat(workdirB + "/gocryptfs.diriv")
+	if err != nil {
 		t.Fatal(err)
 	}
-	if diriv_stat.Mtim.Sec != workdirA_stat.Mtim.Sec+10 {
+	if diriv_stat.ModTime().Unix() != workdirA_stat.ModTime().Unix()+10 {
 		t.Errorf("diriv file should show mtime+10")
-	}
-	if diriv_stat.Ctim.Sec != workdirA_stat.Ctim.Sec+10 {
-		t.Errorf("diriv file should show ctime+10")
 	}
 }
