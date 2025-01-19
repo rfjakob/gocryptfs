@@ -208,6 +208,7 @@ Changelog
 * Add workaround for excessive file fragementation on btrfs (#811)
 * `-ctlsock`: automatically delete orphaned colliding socket file (#776)
 * MacOS: Fix XTIMES panic on startup (#823)
+  * Fixed by updating the go-fuse library to v2.5.0
 * MacOS: merge kernel options before passing them on (#854, #557)
 * Add `-fido2-assert-option` (#807)
 * `-init` now accepts `-masterkey`
