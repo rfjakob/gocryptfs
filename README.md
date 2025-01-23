@@ -195,8 +195,10 @@ RM:    2,367
 Changelog
 ---------
 
+#### v2.5.1, 2025-01-23
+* **Downgrade `golang.org/x/sys` to unbreak `-allow_other` (6d342f3, #893, #892)**
+
 #### v2.5.0, 2025-01-18
-* **KNOWN ISSUE: `-allow_other` is broken due to a breaking change is x/sys/unix (#893, #892)**
 * **Important fixes for `-reverse` mode affecting the virtual `gocryptfs.diriv` and
   `gocryptfs.longname.*.name` files.** The bug can cause file *names* to become
   undecryptable. To make sure that sync tools like rsync copy new, good copies,
