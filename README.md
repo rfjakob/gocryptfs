@@ -196,7 +196,9 @@ Changelog
 ---------
 
 #### v2.5.1, 2025-01-23
-* **Downgrade `golang.org/x/sys` to unbreak `-allow_other` (6d342f3, #893, #892)**
+* **Downgrade `golang.org/x/sys` to unbreak `-allow_other`
+  ([6d342f3](https://github.com/rfjakob/gocryptfs/commit/6d342f3f4f1e9468da00b141b2abaf1e55f28665),
+  [#893](https://github.com/rfjakob/gocryptfs/issues/893), [#892](https://github.com/rfjakob/gocryptfs/issues/892))**
 
 #### v2.5.0, 2025-01-18
 * **Important fixes for `-reverse` mode affecting the virtual `gocryptfs.diriv` and
