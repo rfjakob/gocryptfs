@@ -46,7 +46,7 @@ jobs:
 
     # Build & upload static binary
     - run: ./build-without-openssl.bash
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: gocryptfs static binary (Go ${{ matrix.go }})
         path: gocryptfs
