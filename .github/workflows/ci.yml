@@ -20,9 +20,12 @@ jobs:
           - "1.21.x"
           - "oldstable" # 2nd-latest Golang upstream stable
           - "stable" # Latest Go upstream stable
+        os:
+          - "ubuntu-24.04"
+          - "ubuntu-24.04-arm"
       # Don't cancel everything when one Go version fails
       fail-fast: false
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     steps:
 
     - name: Install Go ${{ matrix.go }}
@@ -48,7 +51,7 @@ jobs:
     - run: ./build-without-openssl.bash
     - uses: actions/upload-artifact@v4
       with:
-        name: gocryptfs static binary (Go ${{ matrix.go }})
+        name: gocryptfs ${{ github.sha }} static ${{ runner.arch }} binary, Go ${{ matrix.go }}
         path: gocryptfs
 
     # Actual test steps are in the Makefile
