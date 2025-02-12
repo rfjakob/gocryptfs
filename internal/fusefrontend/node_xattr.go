@@ -12,9 +12,6 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
-// -1 as uint32
-const minus1 = ^uint32(0)
-
 // We store encrypted xattrs under this prefix plus the base64-encoded
 // encrypted original name.
 var xattrStorePrefix = "user.gocryptfs."
@@ -50,13 +47,13 @@ func (n *Node) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, 
 		var errno syscall.Errno
 		data, errno = n.getXAttr(attr)
 		if errno != 0 {
-			return minus1, errno
+			return 0, errno
 		}
 	} else {
 		// encrypted user xattr
 		cAttr, err := rn.encryptXattrName(attr)
 		if err != nil {
-			return minus1, syscall.EIO
+			return 0, syscall.EIO
 		}
 		cData, errno := n.getXAttr(cAttr)
 		if errno != 0 {
@@ -65,15 +62,11 @@ func (n *Node) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, 
 		data, err = rn.decryptXattrValue(cData)
 		if err != nil {
 			tlog.Warn.Printf("GetXAttr: %v", err)
-			return minus1, syscall.EIO
+			return 0, syscall.EIO
 		}
 	}
-	// Caller passes size zero to find out how large their buffer should be
-	if len(dest) == 0 {
-		return uint32(len(data)), 0
-	}
 	if len(dest) < len(data) {
-		return minus1, syscall.ERANGE
+		return uint32(len(data)), syscall.ERANGE
 	}
 	l := copy(dest, data)
 	return uint32(l), 0
@@ -155,12 +148,8 @@ func (n *Node) Listxattr(ctx context.Context, dest []byte) (uint32, syscall.Errn
 		}
 		buf.WriteString(name + "\000")
 	}
-	// Caller passes size zero to find out how large their buffer should be
-	if len(dest) == 0 {
-		return uint32(buf.Len()), 0
-	}
 	if buf.Len() > len(dest) {
-		return minus1, syscall.ERANGE
+		return uint32(buf.Len()), syscall.ERANGE
 	}
 	return uint32(copy(dest, buf.Bytes())), 0
 }
