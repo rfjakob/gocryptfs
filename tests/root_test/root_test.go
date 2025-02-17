@@ -83,16 +83,11 @@ func TestSupplementaryGroups(t *testing.T) {
 	if os.Getuid() != 0 {
 		t.Skip("must run as root")
 	}
-	cDir := test_helpers.InitFS(t)
-	os.Chmod(cDir, 0755)
-	pDir := cDir + ".mnt"
-	test_helpers.MountOrFatal(t, cDir, pDir, "-allow_other", "-extpass=echo test")
-	defer test_helpers.UnmountPanic(pDir)
 
 	// We need an unrestricted umask
 	syscall.Umask(0000)
 
-	dir1 := pDir + "/dir1"
+	dir1 := test_helpers.DefaultPlainDir + "/dir1"
 	err := os.Mkdir(dir1, 0770)
 	if err != nil {
 		t.Fatal(err)
