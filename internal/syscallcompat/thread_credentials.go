@@ -19,6 +19,10 @@
 // Note: _Gid_t is always uint32 on linux, so we can directly use uint32 for setgroups.
 package syscallcompat
 
+import (
+	"log"
+)
+
 func Setgroups(gids []int) (err error) {
 	if len(gids) == 0 {
 		return setgroups(0, nil)
@@ -29,4 +33,28 @@ func Setgroups(gids []int) (err error) {
 		a[i] = uint32(v)
 	}
 	return setgroups(len(a), &a[0])
+}
+
+// SetgroupsPanic calls Setgroups and panics on error
+func SetgroupsPanic(gids []int) {
+	err := Setgroups(gids)
+	if err != nil {
+		log.Panic(err)
+	}
+}
+
+// SetregidPanic calls Setregid and panics on error
+func SetregidPanic(rgid int, egid int) {
+	err := Setregid(rgid, egid)
+	if err != nil {
+		log.Panic(err)
+	}
+}
+
+// SetreuidPanic calls Setreuid and panics on error
+func SetreuidPanic(ruid int, euid int) {
+	err := Setreuid(ruid, euid)
+	if err != nil {
+		log.Panic(err)
+	}
 }
