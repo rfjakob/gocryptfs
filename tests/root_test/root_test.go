@@ -1,5 +1,4 @@
 //go:build linux
-// +build linux
 
 // Package root_test contains tests that need root
 // permissions to run

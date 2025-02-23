@@ -1,3 +1,5 @@
+//go:build linux
+
 package root_test
 
 import (
@@ -9,7 +11,7 @@ import (
 
 func TestMain(m *testing.M) {
 	test_helpers.ResetTmpDir(true)
-	os.Chmod(test_helpers.DefaultCipherDir, 0755)
+	os.Chmod(test_helpers.DefaultCipherDir, 0777)
 	test_helpers.MountOrExit(test_helpers.DefaultCipherDir, test_helpers.DefaultPlainDir, "-zerokey", "-allow_other")
 	r := m.Run()
 	test_helpers.UnmountPanic(test_helpers.DefaultPlainDir)
