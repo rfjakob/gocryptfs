@@ -42,7 +42,7 @@ ci:
 	uname -a ; go version ; openssl version
 	df -Th / /tmp /var/tmp
 
-	./build-without-openssl.bash
+	./build-without-cgo.bash
 	./build.bash
 	./test.bash
 	make root_test

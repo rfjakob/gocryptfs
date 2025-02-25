@@ -49,7 +49,7 @@ type ScryptKDF struct {
 // NewScryptKDF returns a new instance of ScryptKDF.
 func NewScryptKDF(logN int) ScryptKDF {
 	var s ScryptKDF
-	s.Salt = cryptocore.RandBytes(cryptocore.KeyLen)
+	s.Salt = cryptocore.RandBytes(cryptocore.MaxKeyLen)
 	if logN <= 0 {
 		s.N = 1 << ScryptDefaultLogN
 	} else {
@@ -57,7 +57,7 @@ func NewScryptKDF(logN int) ScryptKDF {
 	}
 	s.R = 8 // Always 8
 	s.P = 1 // Always 1
-	s.KeyLen = cryptocore.KeyLen
+	s.KeyLen = cryptocore.MaxKeyLen
 	return s
 }
 
@@ -98,8 +98,8 @@ func (s *ScryptKDF) validateParams() error {
 	if len(s.Salt) < scryptMinSaltLen {
 		return fmt.Errorf("Fatal: scrypt salt length below minimum: value=%d, min=%d", len(s.Salt), scryptMinSaltLen)
 	}
-	if s.KeyLen < cryptocore.KeyLen {
-		return fmt.Errorf("Fatal: scrypt parameter KeyLen below minimum: value=%d, min=%d", s.KeyLen, cryptocore.KeyLen)
+	if s.KeyLen < cryptocore.MinKeyLen {
+		return fmt.Errorf("Fatal: scrypt parameter KeyLen below minimum: value=%d, min=%d", s.KeyLen, cryptocore.MinKeyLen)
 	}
 	return nil
 }

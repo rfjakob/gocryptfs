@@ -95,7 +95,7 @@ Then, download the source code and compile:
 
 	$ git clone https://github.com/rfjakob/gocryptfs.git
 	$ cd gocryptfs
-	$ ./build-without-openssl.bash
+	$ ./build-without-cgo.bash
 
 This will compile a static binary that uses the Go stdlib crypto backend.
 

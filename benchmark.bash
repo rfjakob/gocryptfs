@@ -17,6 +17,7 @@ OPT_OPENSSL=""
 OPT_DIR=""
 DD_ONLY=""
 OPT_XCHACHA=""
+OPT_AEGIS=""
 
 while [[ $# -gt 0 ]] ; do
 	case $1 in
@@ -41,6 +42,9 @@ while [[ $# -gt 0 ]] ; do
 			;;
 		-xchacha)
 			OPT_XCHACHA="-xchacha"
+			;;
+		-aegis)
+			OPT_AEGIS="-aegis"
 			;;
 		-*)
 			echo "Invalid option: $1"
@@ -82,9 +86,10 @@ elif [[ $OPT_LOOPBACK -eq 1 ]]; then
 	"$HOME/go/src/github.com/hanwen/go-fuse/example/loopback/loopback" "$MNT" "$CRYPT" &
 	sleep 0.5
 else
-	echo -n "Testing gocryptfs $OPT_XCHACHA $OPT_OPENSSL at $CRYPT: "
+	echo -n "Testing gocryptfs $OPT_XCHACHA $OPT_AEGIS $OPT_OPENSSL at $CRYPT: "
 	gocryptfs -version
 	gocryptfs $OPT_XCHACHA -q -init -extpass="echo test" -scryptn=10 "$CRYPT"
+	gocryptfs $OPT_AEGIS -q -init -extpass="echo test" -scryptn=10 "$CRYPT"
 	gocryptfs $OPT_OPENSSL -q -extpass="echo test" "$CRYPT" "$MNT"
 fi
 

@@ -72,8 +72,17 @@ var matrix = []testcaseMatrix{
 	{false, "false", false, true, []string{"-xchacha"}},
 }
 
+var matrixAegisAdditions = []testcaseMatrix{
+	{false, "auto", false, false, []string{"-aegis"}},
+	{true, "auto", false, false, []string{"-aegis"}},
+}
+
 // This is the entry point for the tests
 func TestMain(m *testing.M) {
+	if !stupidgcm.BuiltWithoutAegis {
+		matrix = append(matrix, matrixAegisAdditions...)
+	}
+
 	// Make "testing.Verbose()" return the correct value
 	flag.Parse()
 	var i int

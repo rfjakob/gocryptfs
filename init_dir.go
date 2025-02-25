@@ -108,6 +108,7 @@ func initDir(args *argContainer) {
 			Fido2AssertOptions: args.fido2_assert_options,
 			DeterministicNames: args.deterministic_names,
 			XChaCha20Poly1305:  args.xchacha,
+			Aegis:              args.aegis,
 			LongNameMax:        args.longnamemax,
 			Masterkey:          handleArgsMasterkey(args),
 		})

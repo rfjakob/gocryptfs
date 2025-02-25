@@ -48,7 +48,7 @@ jobs:
     - run: echo user_allow_other | sudo tee -a /etc/fuse.conf
 
     # Build & upload static binary
-    - run: ./build-without-openssl.bash
+    - run: ./build-without-cgo.bash
     - uses: actions/upload-artifact@v4
       with:
         name: gocryptfs ${{ github.sha }} static ${{ runner.arch }} binary, Go ${{ matrix.go }}

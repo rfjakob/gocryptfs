@@ -51,8 +51,8 @@ fi
 # Clean up dangling filesystems and don't exit if we found some
 unmount_leftovers || true
 
-./build-without-openssl.bash || {
-	echo "$MYNAME: build-without-openssl.bash failed"
+./build-without-cgo.bash || {
+	echo "$MYNAME: build-without-cgo.bash failed"
 	exit 1
 }
 # Don't build with openssl if we were passed "-tags without_openssl"

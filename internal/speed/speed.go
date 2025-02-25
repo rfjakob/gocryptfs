@@ -47,13 +47,14 @@ func Run() {
 		{name: cryptocore.BackendAESSIV.String(), f: bAESSIV, preferred: false},
 		{name: cryptocore.BackendXChaCha20Poly1305OpenSSL.String(), f: bStupidXchacha, preferred: stupidgcm.PreferOpenSSLXchacha20poly1305()},
 		{name: cryptocore.BackendXChaCha20Poly1305.String(), f: bXchacha20poly1305, preferred: !stupidgcm.PreferOpenSSLXchacha20poly1305()},
+		{name: cryptocore.BackendAegis.String(), f: bAegis, preferred: false},
 	}
 	testing.Init()
 	for _, b := range bTable {
 		fmt.Printf("%-26s\t", b.name)
 		mbs := mbPerSec(testing.Benchmark(b.f))
 		if mbs > 0 {
-			fmt.Printf("%7.2f MB/s", mbs)
+			fmt.Printf("%8.2f MB/s", mbs)
 		} else {
 			fmt.Printf("    N/A")
 		}
@@ -167,4 +168,10 @@ func bStupidXchacha(b *testing.B) {
 		b.Skip("openssl has been disabled at compile-time")
 	}
 	bEncrypt(b, stupidgcm.NewXchacha20poly1305(randBytes(32)))
+}
+
+// bAegis benchmarks Aegis from github.com/aegis-aead/go-libaegis
+func bAegis(b *testing.B) {
+	c := stupidgcm.NewAegis(randBytes(16))
+	bEncrypt(b, c)
 }
