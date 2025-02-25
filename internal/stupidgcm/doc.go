@@ -1,5 +1,5 @@
-// Package stupidgcm wraps OpenSSL to provide a cipher.AEAD interface for
-// authenticated encryption algorithms.
+// Package stupidgcm wraps OpenSSL and libaegis to provide a cipher.AEAD
+// interface for authenticated encryption algorithms.
 //
 // The supported algorithms are:
 //
@@ -8,6 +8,8 @@
 // (2) ChaCha20-Poly1305 (OpenSSL EVP_chacha20_poly1305)
 //
 // (3) XChaCha20-Poly1305 (OpenSSL EVP_chacha20_poly1305 + Go HChaCha20)
+//
+// (4) AEGIS (go-libaegis)
 //
 // The golang.org/x/crypto libraries provides implementations for all algorithms,
 // and the test suite verifies that the implementation in this package gives

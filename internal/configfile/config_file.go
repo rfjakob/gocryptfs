@@ -32,7 +32,7 @@ type FIDO2Params struct {
 	// FIDO2 credential
 	CredentialID []byte
 	// FIDO2 hmac-secret salt
-	HMACSalt []byte
+	HMACSalt      []byte
 	AssertOptions []string
 }
 
@@ -75,6 +75,7 @@ type CreateArgs struct {
 	Fido2AssertOptions []string
 	DeterministicNames bool
 	XChaCha20Poly1305  bool
+	Aegis              bool
 	LongNameMax        uint8
 	Masterkey          []byte
 }
@@ -92,6 +93,8 @@ func Create(args *CreateArgs) error {
 	cf.setFeatureFlag(FlagHKDF)
 	if args.XChaCha20Poly1305 {
 		cf.setFeatureFlag(FlagXChaCha20Poly1305)
+	} else if args.Aegis {
+		cf.setFeatureFlag(FlagAegis)
 	} else {
 		// 128-bit IVs are mandatory for AES-GCM (default is 96!) and AES-SIV,
 		// XChaCha20Poly1305 uses even an even longer IV of 192 bits.
@@ -119,9 +122,9 @@ func Create(args *CreateArgs) error {
 	if len(args.Fido2CredentialID) > 0 {
 		cf.setFeatureFlag(FlagFIDO2)
 		cf.FIDO2 = &FIDO2Params{
-			CredentialID:     args.Fido2CredentialID,
-			HMACSalt:         args.Fido2HmacSalt,
-			AssertOptions:    args.Fido2AssertOptions,
+			CredentialID:  args.Fido2CredentialID,
+			HMACSalt:      args.Fido2HmacSalt,
+			AssertOptions: args.Fido2AssertOptions,
 		}
 	}
 	// Catch bugs and invalid cli flag combinations early
@@ -133,7 +136,7 @@ func Create(args *CreateArgs) error {
 		key := args.Masterkey
 		if key == nil {
 			// Generate new random master key
-			key = cryptocore.RandBytes(cryptocore.KeyLen)
+			key = cryptocore.RandBytes(cryptocore.MaxKeyLen)
 		}
 		tlog.PrintMasterkeyReminder(key)
 		// Encrypt it using the password
@@ -326,6 +329,9 @@ func (cf *ConfFile) ContentEncryption() (algo cryptocore.AEADTypeEnum, err error
 	}
 	if cf.IsFeatureFlagSet(FlagXChaCha20Poly1305) {
 		return cryptocore.BackendXChaCha20Poly1305, nil
+	}
+	if cf.IsFeatureFlagSet(FlagAegis) {
+		return cryptocore.BackendAegis, nil
 	}
 	if cf.IsFeatureFlagSet(FlagAESSIV) {
 		return cryptocore.BackendAESSIV, nil

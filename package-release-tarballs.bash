@@ -49,7 +49,7 @@ package_source() {
 
 package_static_binary() {
 	# Compiles the gocryptfs binary and sets $GITVERSION
-	source build-without-openssl.bash
+	source build-without-cgo.bash
 
 	if ldd gocryptfs > /dev/null ; then
 		echo "error: compiled gocryptfs binary is not static"

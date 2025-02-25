@@ -47,7 +47,7 @@ jobs:
     - run: echo -e 'user_allow_other\nmount_max = 10000' | sudo tee -a /etc/fuse.conf && cat /etc/fuse.conf
 
     # Build & upload static binary
-    - run: ./build-without-openssl.bash
+    - run: ./build-without-cgo.bash
     - uses: actions/upload-artifact@v4
       with:
         name: gocryptfs ${{ github.sha }} static ${{ runner.arch }} binary, Go ${{ matrix.go }}

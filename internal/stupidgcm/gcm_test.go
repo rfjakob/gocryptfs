@@ -1,5 +1,5 @@
-//go:build !without_openssl
-// +build !without_openssl
+//go:build !without_openssl && cgo
+// +build !without_openssl,cgo
 
 // We compare against Go's built-in GCM implementation. Since stupidgcm only
 // supports 128-bit IVs and Go only supports that from 1.5 onward, we cannot
