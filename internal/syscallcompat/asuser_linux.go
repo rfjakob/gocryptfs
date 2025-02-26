@@ -1,7 +1,11 @@
 package syscallcompat
 
 import (
+	"fmt"
+	"io/ioutil"
 	"runtime"
+	"strconv"
+	"strings"
 
 	"golang.org/x/sys/unix"
 
@@ -46,4 +50,30 @@ func asUser(f func() (int, error), context *fuse.Context) (int, error) {
 	defer unix.Setreuid(-1, 0)
 
 	return f()
+}
+
+func getSupplementaryGroups(pid uint32) (gids []int) {
+	procPath := fmt.Sprintf("/proc/%d/task/%d/status", pid, pid)
+	blob, err := ioutil.ReadFile(procPath)
+	if err != nil {
+		return nil
+	}
+
+	lines := strings.Split(string(blob), "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "Groups:") {
+			f := strings.Fields(line[7:])
+			gids = make([]int, len(f))
+			for i := range gids {
+				val, err := strconv.ParseInt(f[i], 10, 32)
+				if err != nil {
+					return nil
+				}
+				gids[i] = int(val)
+			}
+			return gids
+		}
+	}
+
+	return nil
 }

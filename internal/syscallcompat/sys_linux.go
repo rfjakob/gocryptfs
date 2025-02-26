@@ -3,9 +3,6 @@ package syscallcompat
 
 import (
 	"fmt"
-	"io/ioutil"
-	"strconv"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -64,32 +61,6 @@ func EnospcPrealloc(fd int, off int64, len int64) (err error) {
 // Fallocate wraps the Fallocate syscall.
 func Fallocate(fd int, mode uint32, off int64, len int64) (err error) {
 	return syscall.Fallocate(fd, mode, off, len)
-}
-
-func getSupplementaryGroups(pid uint32) (gids []int) {
-	procPath := fmt.Sprintf("/proc/%d/task/%d/status", pid, pid)
-	blob, err := ioutil.ReadFile(procPath)
-	if err != nil {
-		return nil
-	}
-
-	lines := strings.Split(string(blob), "\n")
-	for _, line := range lines {
-		if strings.HasPrefix(line, "Groups:") {
-			f := strings.Fields(line[7:])
-			gids = make([]int, len(f))
-			for i := range gids {
-				val, err := strconv.ParseInt(f[i], 10, 32)
-				if err != nil {
-					return nil
-				}
-				gids[i] = int(val)
-			}
-			return gids
-		}
-	}
-
-	return nil
 }
 
 // Mknodat wraps the Mknodat syscall.
