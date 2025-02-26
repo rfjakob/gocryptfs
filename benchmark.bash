@@ -88,8 +88,7 @@ elif [[ $OPT_LOOPBACK -eq 1 ]]; then
 else
 	echo -n "Testing gocryptfs $OPT_XCHACHA $OPT_AEGIS $OPT_OPENSSL at $CRYPT: "
 	gocryptfs -version
-	gocryptfs $OPT_XCHACHA -q -init -extpass="echo test" -scryptn=10 "$CRYPT"
-	gocryptfs $OPT_AEGIS -q -init -extpass="echo test" -scryptn=10 "$CRYPT"
+	gocryptfs $OPT_XCHACHA $OPT_AEGIS -q -init -extpass="echo test" -scryptn=10 "$CRYPT"
 	gocryptfs $OPT_OPENSSL -q -extpass="echo test" "$CRYPT" "$MNT"
 fi
 
