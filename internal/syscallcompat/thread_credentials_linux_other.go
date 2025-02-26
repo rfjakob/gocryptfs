@@ -8,7 +8,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// See thread_credentials.go for docs
+// See thread_credentials_linux.go for docs
 
 func Setreuid(ruid int, euid int) (err error) {
 	_, _, e1 := unix.RawSyscall(unix.SYS_SETREUID, uintptr(ruid), uintptr(euid), 0)
