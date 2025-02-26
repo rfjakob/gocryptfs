@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"golang.org/x/sys/unix"
-
 	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
@@ -29,25 +27,28 @@ func asUser(f func() (int, error), context *fuse.Context) (int, error) {
 	// syscall.{Setgroups,Setregid,Setreuid} affects all threads, which
 	// is exactly what we not want.
 	//
-	// We now use unix.{Setgroups,Setregid,Setreuid} instead.
+	// And unix.{Setgroups,Setregid,Setreuid} also changed to this behavoir in
+	// v0.1.0 (commit d0df966e6959f00dc1c74363e537872647352d51 ,
+	// https://go-review.googlesource.com/c/sys/+/428174 ), so we use
+	// our own syscall wrappers.
 
-	err := unix.Setgroups(getSupplementaryGroups(context.Pid))
+	err := Setgroups(getSupplementaryGroups(context.Pid))
 	if err != nil {
 		return -1, err
 	}
-	defer unix.Setgroups(nil)
+	defer SetgroupsPanic(nil)
 
-	err = unix.Setregid(-1, int(context.Owner.Gid))
+	err = Setregid(-1, int(context.Owner.Gid))
 	if err != nil {
 		return -1, err
 	}
-	defer unix.Setregid(-1, 0)
+	defer SetregidPanic(-1, 0)
 
-	err = unix.Setreuid(-1, int(context.Owner.Uid))
+	err = Setreuid(-1, int(context.Owner.Uid))
 	if err != nil {
 		return -1, err
 	}
-	defer unix.Setreuid(-1, 0)
+	defer SetreuidPanic(-1, 0)
 
 	return f()
 }
