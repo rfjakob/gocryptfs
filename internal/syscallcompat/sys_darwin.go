@@ -3,7 +3,6 @@ package syscallcompat
 import (
 	"log"
 	"path/filepath"
-	"runtime"
 	"syscall"
 	"time"
 	"unsafe"
@@ -26,21 +25,7 @@ const (
 	RENAME_NOREPLACE = 1
 	RENAME_EXCHANGE  = 2
 	RENAME_WHITEOUT  = 4
-
-	// KAUTH_UID_NONE and KAUTH_GID_NONE are special values to
-	// revert permissions to the process credentials.
-	KAUTH_UID_NONE = ^uint32(0) - 100
-	KAUTH_GID_NONE = ^uint32(0) - 100
 )
-
-// Unfortunately pthread_setugid_np does not have a syscall wrapper yet.
-func pthread_setugid_np(uid uint32, gid uint32) (err error) {
-	_, _, e1 := syscall.RawSyscall(syscall.SYS_SETTID, uintptr(uid), uintptr(gid), 0)
-	if e1 != 0 {
-		err = e1
-	}
-	return
-}
 
 // Unfortunately fsetattrlist does not have a syscall wrapper yet.
 func fsetattrlist(fd int, list unsafe.Pointer, buf unsafe.Pointer, size uintptr, options int) (err error) {
@@ -84,72 +69,12 @@ func Dup3(oldfd int, newfd int, flags int) (err error) {
 //// Emulated Syscalls (see emulate.go) ////////////////
 ////////////////////////////////////////////////////////
 
-func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Context) (fd int, err error) {
-	if context != nil {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-
-		err = pthread_setugid_np(context.Owner.Uid, context.Owner.Gid)
-		if err != nil {
-			return -1, err
-		}
-		defer pthread_setugid_np(KAUTH_UID_NONE, KAUTH_GID_NONE)
-	}
-
-	return Openat(dirfd, path, flags, mode)
-}
-
 func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 	return emulateMknodat(dirfd, path, mode, dev)
 }
 
-func MknodatUser(dirfd int, path string, mode uint32, dev int, context *fuse.Context) (err error) {
-	if context != nil {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-
-		err = pthread_setugid_np(context.Owner.Uid, context.Owner.Gid)
-		if err != nil {
-			return err
-		}
-		defer pthread_setugid_np(KAUTH_UID_NONE, KAUTH_GID_NONE)
-	}
-
-	return Mknodat(dirfd, path, mode, dev)
-}
-
 func FchmodatNofollow(dirfd int, path string, mode uint32) (err error) {
 	return unix.Fchmodat(dirfd, path, mode, unix.AT_SYMLINK_NOFOLLOW)
-}
-
-func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.Context) (err error) {
-	if context != nil {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-
-		err = pthread_setugid_np(context.Owner.Uid, context.Owner.Gid)
-		if err != nil {
-			return err
-		}
-		defer pthread_setugid_np(KAUTH_UID_NONE, KAUTH_GID_NONE)
-	}
-
-	return unix.Symlinkat(oldpath, newdirfd, newpath)
-}
-
-func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
-	if context != nil {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-
-		err = pthread_setugid_np(context.Owner.Uid, context.Owner.Gid)
-		if err != nil {
-			return err
-		}
-		defer pthread_setugid_np(KAUTH_UID_NONE, KAUTH_GID_NONE)
-	}
-
-	return unix.Mkdirat(dirfd, path, mode)
 }
 
 type attrList struct {
