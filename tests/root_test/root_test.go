@@ -16,8 +16,6 @@ import (
 
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 
-	"golang.org/x/sys/unix"
-
 	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
 )
 
@@ -25,36 +23,23 @@ func asUser(uid int, gid int, supplementaryGroups []int, f func() error) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	err := unix.Setgroups(supplementaryGroups)
+	err := syscallcompat.Setgroups(supplementaryGroups)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		err = unix.Setgroups(nil)
-		if err != nil {
-			panic(err)
-		}
-	}()
-	err = unix.Setregid(-1, gid)
+	defer syscallcompat.SetgroupsPanic(nil)
+
+	err = syscallcompat.Setregid(-1, gid)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		err = unix.Setregid(-1, 0)
-		if err != nil {
-			panic(err)
-		}
-	}()
-	err = unix.Setreuid(-1, uid)
+	defer syscallcompat.SetregidPanic(-1, 0)
+
+	err = syscallcompat.Setreuid(-1, uid)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		err = unix.Setreuid(-1, 0)
-		if err != nil {
-			panic(err)
-		}
-	}()
+	defer syscallcompat.SetreuidPanic(-1, 0)
 
 	ret := f()
 
@@ -66,13 +51,13 @@ func asUser(uid int, gid int, supplementaryGroups []int, f func() error) error {
 	//
 	// How to check:
 	// ps -o tid,pid,euid,ruid,suid,egid,rgid,sgid,cmd -eL
-	err = unix.Setresuid(0, 0, 0)
-	if err != nil {
-		panic(err)
+	_, _, errno := syscall.RawSyscall(syscall.SYS_SETRESUID, uintptr(0), uintptr(0), uintptr(0))
+	if errno != 0 {
+		panic(errno)
 	}
-	err = unix.Setresgid(0, 0, 0)
-	if err != nil {
-		panic(err)
+	_, _, errno = syscall.RawSyscall(syscall.SYS_SETRESGID, uintptr(0), uintptr(0), uintptr(0))
+	if errno != 0 {
+		panic(errno)
 	}
 
 	return ret
