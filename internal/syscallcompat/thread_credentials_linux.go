@@ -23,6 +23,7 @@ import (
 	"log"
 )
 
+// Setgroups is like setgroups(2) but affects only the current thread
 func Setgroups(gids []int) (err error) {
 	if len(gids) == 0 {
 		return setgroups(0, nil)
