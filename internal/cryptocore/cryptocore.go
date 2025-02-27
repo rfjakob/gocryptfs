@@ -23,9 +23,13 @@ const (
 	// AuthTagLen is the length of a authentication tag in bytes.
 	// All backends use 16 bytes.
 	AuthTagLen = 16
-	// Minimum key length
+	// EME key length
+	EMEKeyLen = 32
+	// Key length for key derivation, or directly for ciphers when not using HKDF
+	KDFKeyLen = 32
+	// Minimum AEAD key length
 	MinKeyLen = 16
-	// Maximum key length
+	// Maximum AEAD key length
 	MaxKeyLen = 32
 )
 
@@ -92,13 +96,11 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool) *CryptoC
 		len(key), aeadType, IVBitLen, useHKDF)
 
 	keyLen := aeadType.KeyLen
-	if keyLen < MinKeyLen || keyLen > MaxKeyLen {
-		log.Panicf("Unsupported key length of %d bytes", keyLen)
+	if !useHKDF && len(key) != keyLen {
+		log.Panicf("Key length mismatch: got %d bytes, want %d bytes", len(key), keyLen)
+	} else if useHKDF && len(key) != KDFKeyLen {
+		log.Panicf("Key length mismatch: got %d bytes, want %d bytes for key derivation", len(key), KDFKeyLen)
 	}
-	if len(key) < keyLen {
-		log.Panicf("Unsupported key length of %d bytes", len(key))
-	}
-	key = key[:keyLen] // keys can safely be truncated
 	if IVBitLen != 96 && IVBitLen != 128 && IVBitLen != chacha20poly1305.NonceSizeX*8 {
 		log.Panicf("Unsupported IV length of %d bits", IVBitLen)
 	}
@@ -109,7 +111,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool) *CryptoC
 	{
 		var emeBlockCipher cipher.Block
 		if useHKDF {
-			emeKey := hkdfDerive(key, hkdfInfoEMENames, keyLen)
+			emeKey := hkdfDerive(key, hkdfInfoEMENames, EMEKeyLen)
 			emeBlockCipher, err = aes.NewCipher(emeKey)
 			for i := range emeKey {
 				emeKey[i] = 0
