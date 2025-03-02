@@ -246,6 +246,8 @@ func testWipe(t *testing.T, c cipher.AEAD) {
 				t.Fatal("c2.key is not zeroed")
 			}
 		}
+	case *stupidAegis:
+		c2.Wipe() // AEGIS has its own Wipe method
 	default:
 		t.Fatalf("BUG: unhandled type %T", c2)
 	}

@@ -24,7 +24,13 @@ Data block, XChaCha20-Poly1305 (enabled via `-init -xchacha`)
 	1-4096 bytes encrypted data
 	16 bytes Poly1305 tag
 
-Full block overhead (AES-GCM and AES-SIV mode) = 32/4096 = 1/128 = 0.78125 %
+Data block, AEGIS (enabled via `-init -aegis`)
+
+	16 bytes nonce
+	1-4096 bytes encrypted data
+	16 bytes tag
+
+Full block overhead (AEGIS, AES-GCM and AES-SIV mode) = 32/4096 = 1/128 = 0.78125 %
 
 Full block overhead (XChaCha20-Poly1305 mode) = 40/4096 = \~1 %
 
@@ -36,8 +42,8 @@ Example: 1-byte file, AES-GCM and AES-SIV mode
 
 Total: 51 bytes
 
-Example: 5000-byte file, , AES-GCM and AES-SIV mode
----------------------------------------------------
+Example: 5000-byte file, AEGIS, AES-GCM and AES-SIV mode
+--------------------------------------------------------
 
 	Header       18 bytes
 	Data block 4128 bytes

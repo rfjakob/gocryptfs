@@ -1,5 +1,5 @@
-//go:build !without_openssl
-// +build !without_openssl
+//go:build !without_openssl && cgo
+// +build !without_openssl,cgo
 
 // Copyright 2018 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
