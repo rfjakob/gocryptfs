@@ -20,11 +20,11 @@ import (
 )
 
 const (
+	// KeyLen is the cipher key length in bytes. All backends use 32 bytes.
+	KeyLen = 32
 	// AuthTagLen is the length of a authentication tag in bytes.
 	// All backends use 16 bytes.
 	AuthTagLen = 16
-	//  AEAD key length
-	KeyLen = 32
 )
 
 // AEADTypeEnum indicates the type of AEAD backend in use.
@@ -88,6 +88,9 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool) *CryptoC
 	tlog.Debug.Printf("cryptocore.New: key=%d bytes, aeadType=%v, IVBitLen=%d, useHKDF=%v",
 		len(key), aeadType, IVBitLen, useHKDF)
 
+	if len(key) != KeyLen {
+		log.Panicf("Unsupported key length of %d bytes", len(key))
+	}
 	if IVBitLen != 96 && IVBitLen != 128 && IVBitLen != chacha20poly1305.NonceSizeX*8 {
 		log.Panicf("Unsupported IV length of %d bits", IVBitLen)
 	}
