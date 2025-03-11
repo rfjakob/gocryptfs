@@ -24,6 +24,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
+	"github.com/aegis-aead/go-libaegis/common"
 	"github.com/rfjakob/gocryptfs/v2/internal/stupidgcm"
 	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
 )
@@ -79,7 +80,7 @@ var matrixAegisAdditions = []testcaseMatrix{
 
 // This is the entry point for the tests
 func TestMain(m *testing.M) {
-	if !stupidgcm.BuiltWithoutAegis {
+	if !common.Available {
 		matrix = append(matrix, matrixAegisAdditions...)
 	}
 

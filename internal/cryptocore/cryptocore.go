@@ -12,6 +12,7 @@ import (
 	"golang.org/x/crypto/chacha20poly1305"
 
 	"github.com/aegis-aead/go-libaegis/aegis256x2"
+	"github.com/aegis-aead/go-libaegis/common"
 	"github.com/rfjakob/eme"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/siv_aead"
@@ -187,7 +188,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool) *CryptoC
 			log.Panic(err)
 		}
 	} else if aeadType == BackendAegis {
-		if stupidgcm.BuiltWithoutAegis {
+		if common.Available == false {
 			log.Panic("AEGIS is not available")
 		}
 		if IVBitLen != aegis256x2.NonceSize*8 {
@@ -197,7 +198,10 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool) *CryptoC
 			log.Panic("XChaCha20-Poly1305 must use HKDF, but it is disabled")
 		}
 		aegisKey := hkdfDerive(key, hkdfInfoGCMContent, KeyLen)
-		aeadCipher = stupidgcm.NewAegis(aegisKey)
+		aeadCipher, err = aegis256x2.New(aegisKey, AuthTagLen)
+		if err != nil {
+			log.Panic(err)
+		}
 		for i := range aegisKey {
 			aegisKey[i] = 0
 		}
