@@ -94,7 +94,7 @@ func Create(args *CreateArgs) error {
 	if args.XChaCha20Poly1305 {
 		cf.setFeatureFlag(FlagXChaCha20Poly1305)
 	} else if args.Aegis {
-		cf.setFeatureFlag(FlagAegis)
+		cf.setFeatureFlag(FlagAegis256X2)
 	} else {
 		// 128-bit IVs are mandatory for AES-GCM (default is 96!) and AES-SIV,
 		// XChaCha20Poly1305 uses even an even longer IV of 192 bits.
@@ -136,7 +136,7 @@ func Create(args *CreateArgs) error {
 		key := args.Masterkey
 		if key == nil {
 			// Generate new random master key
-			key = cryptocore.RandBytes(cryptocore.MaxKeyLen)
+			key = cryptocore.RandBytes(cryptocore.KeyLen)
 		}
 		tlog.PrintMasterkeyReminder(key)
 		// Encrypt it using the password
@@ -330,7 +330,7 @@ func (cf *ConfFile) ContentEncryption() (algo cryptocore.AEADTypeEnum, err error
 	if cf.IsFeatureFlagSet(FlagXChaCha20Poly1305) {
 		return cryptocore.BackendXChaCha20Poly1305, nil
 	}
-	if cf.IsFeatureFlagSet(FlagAegis) {
+	if cf.IsFeatureFlagSet(FlagAegis256X2) {
 		return cryptocore.BackendAegis, nil
 	}
 	if cf.IsFeatureFlagSet(FlagAESSIV) {

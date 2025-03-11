@@ -95,7 +95,7 @@ func main() {
 	args.sep0 = flag.Bool("0", false, "Use \\0 instead of \\n as separator")
 	args.aessiv = flag.Bool("aessiv", false, "Assume AES-SIV mode instead of AES-GCM")
 	args.xchacha = flag.Bool("xchacha", false, "Assume XChaCha20-Poly1305 mode instead of AES-GCM")
-	args.aegis = flag.Bool("aegis", false, "Assume AEGIS mode instead of AES-GCM")
+	args.aegis = flag.Bool("aegis", false, "Assume AEGIS-256X2 mode instead of AES-GCM")
 	args.fido2 = flag.String("fido2", "", "Protect the masterkey using a FIDO2 token instead of a password")
 	args.version = flag.Bool("version", false, "Print version information")
 

@@ -165,7 +165,7 @@ Use XChaCha20-Poly1305 file content encryption. This should be much faster
 than AES-GCM on CPUs that lack AES acceleration.
 
 #### -aegis
-Use AEGIS file content encryption. This should be much faster
+Use AEGIS256X2 file content encryption. This should be much faster
 than AES-GCM on CPUs with AES acceleration.
 
 Run `gocryptfs -speed` to find out if and how much faster.

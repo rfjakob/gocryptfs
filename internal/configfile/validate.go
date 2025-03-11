@@ -38,13 +38,16 @@ func (cf *ConfFile) Validate() error {
 				return fmt.Errorf("XChaCha20Poly1305 requires HKDF feature flag")
 			}
 		}
-		if cf.IsFeatureFlagSet(FlagAegis) {
+		if cf.IsFeatureFlagSet(FlagAegis256X2) {
 			if cf.IsFeatureFlagSet(FlagGCMIV128) {
 				return fmt.Errorf("AEGIS conflicts with GCMIV128 feature flag")
 			}
+			if cf.IsFeatureFlagSet(FlagXChaCha20Poly1305) {
+				return fmt.Errorf("AEGIS conflicts with XChaCha20Poly1305 feature flag")
+			}
 		}
 		// The absence of other flags means AES-GCM (oldest algorithm)
-		if !cf.IsFeatureFlagSet(FlagAegis) && !cf.IsFeatureFlagSet(FlagXChaCha20Poly1305) && !cf.IsFeatureFlagSet(FlagAESSIV) {
+		if !cf.IsFeatureFlagSet(FlagAegis256X2) && !cf.IsFeatureFlagSet(FlagXChaCha20Poly1305) && !cf.IsFeatureFlagSet(FlagAESSIV) {
 			if !cf.IsFeatureFlagSet(FlagGCMIV128) {
 				return fmt.Errorf("AES-GCM requires GCMIV128 feature flag")
 			}

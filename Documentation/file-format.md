@@ -26,7 +26,7 @@ Data block, XChaCha20-Poly1305 (enabled via `-init -xchacha`)
 
 Data block, AEGIS (enabled via `-init -aegis`)
 
-	16 bytes nonce
+	32 bytes nonce
 	1-4096 bytes encrypted data
 	16 bytes tag
 

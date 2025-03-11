@@ -11,7 +11,7 @@ import (
 
 	"golang.org/x/crypto/chacha20poly1305"
 
-	"github.com/aegis-aead/go-libaegis/aegis128x2"
+	"github.com/aegis-aead/go-libaegis/aegis256x2"
 	"github.com/rfjakob/eme"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/siv_aead"
@@ -23,14 +23,8 @@ const (
 	// AuthTagLen is the length of a authentication tag in bytes.
 	// All backends use 16 bytes.
 	AuthTagLen = 16
-	// EME key length
-	EMEKeyLen = 32
-	// Key length for key derivation, or directly for ciphers when not using HKDF
-	KDFKeyLen = 32
-	// Minimum AEAD key length
-	MinKeyLen = 16
-	// Maximum AEAD key length
-	MaxKeyLen = 32
+	//  AEAD key length
+	KeyLen = 32
 )
 
 // AEADTypeEnum indicates the type of AEAD backend in use.
@@ -39,7 +33,6 @@ type AEADTypeEnum struct {
 	Algo string
 	// Lib is the library where Algo is implemented. Either "Go" or "OpenSSL".
 	Lib       string
-	KeyLen    int
 	NonceSize int
 }
 
@@ -50,24 +43,24 @@ func (a AEADTypeEnum) String() string {
 
 // BackendOpenSSL specifies the OpenSSL AES-256-GCM backend.
 // "AES-GCM-256-OpenSSL" in gocryptfs -speed.
-var BackendOpenSSL = AEADTypeEnum{"AES-GCM-256", "OpenSSL", 32, 16}
+var BackendOpenSSL = AEADTypeEnum{"AES-GCM-256", "OpenSSL", 16}
 
 // BackendGoGCM specifies the Go based AES-256-GCM backend.
 // "AES-GCM-256-Go" in gocryptfs -speed.
-var BackendGoGCM = AEADTypeEnum{"AES-GCM-256", "Go", 32, 16}
+var BackendGoGCM = AEADTypeEnum{"AES-GCM-256", "Go", 16}
 
 // BackendAESSIV specifies an AESSIV backend.
 // "AES-SIV-512-Go" in gocryptfs -speed.
-var BackendAESSIV = AEADTypeEnum{"AES-SIV-512", "Go", 32, siv_aead.NonceSize}
+var BackendAESSIV = AEADTypeEnum{"AES-SIV-512", "Go", siv_aead.NonceSize}
 
 // BackendXChaCha20Poly1305 specifies XChaCha20-Poly1305-Go.
 // "XChaCha20-Poly1305-Go" in gocryptfs -speed.
-var BackendXChaCha20Poly1305 = AEADTypeEnum{"XChaCha20-Poly1305", "Go", 32, chacha20poly1305.NonceSizeX}
+var BackendXChaCha20Poly1305 = AEADTypeEnum{"XChaCha20-Poly1305", "Go", chacha20poly1305.NonceSizeX}
 
 // BackendXChaCha20Poly1305OpenSSL specifies XChaCha20-Poly1305-OpenSSL.
-var BackendXChaCha20Poly1305OpenSSL = AEADTypeEnum{"XChaCha20-Poly1305", "OpenSSL", 32, chacha20poly1305.NonceSizeX}
+var BackendXChaCha20Poly1305OpenSSL = AEADTypeEnum{"XChaCha20-Poly1305", "OpenSSL", chacha20poly1305.NonceSizeX}
 
-var BackendAegis = AEADTypeEnum{"Aegis128X2", "Go", 16, aegis128x2.NonceSize}
+var BackendAegis = AEADTypeEnum{"Aegis256X2", "Go", aegis256x2.NonceSize}
 
 // CryptoCore is the low level crypto implementation.
 type CryptoCore struct {
@@ -95,12 +88,6 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool) *CryptoC
 	tlog.Debug.Printf("cryptocore.New: key=%d bytes, aeadType=%v, IVBitLen=%d, useHKDF=%v",
 		len(key), aeadType, IVBitLen, useHKDF)
 
-	keyLen := aeadType.KeyLen
-	if !useHKDF && len(key) != keyLen {
-		log.Panicf("Key length mismatch: got %d bytes, want %d bytes", len(key), keyLen)
-	} else if useHKDF && len(key) != KDFKeyLen {
-		log.Panicf("Key length mismatch: got %d bytes, want %d bytes for key derivation", len(key), KDFKeyLen)
-	}
 	if IVBitLen != 96 && IVBitLen != 128 && IVBitLen != chacha20poly1305.NonceSizeX*8 {
 		log.Panicf("Unsupported IV length of %d bits", IVBitLen)
 	}
@@ -111,7 +98,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool) *CryptoC
 	{
 		var emeBlockCipher cipher.Block
 		if useHKDF {
-			emeKey := hkdfDerive(key, hkdfInfoEMENames, EMEKeyLen)
+			emeKey := hkdfDerive(key, hkdfInfoEMENames, KeyLen)
 			emeBlockCipher, err = aes.NewCipher(emeKey)
 			for i := range emeKey {
 				emeKey[i] = 0
@@ -130,7 +117,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool) *CryptoC
 	if aeadType == BackendOpenSSL || aeadType == BackendGoGCM {
 		var gcmKey []byte
 		if useHKDF {
-			gcmKey = hkdfDerive(key, hkdfInfoGCMContent, keyLen)
+			gcmKey = hkdfDerive(key, hkdfInfoGCMContent, KeyLen)
 		} else {
 			// Filesystems created by gocryptfs v0.7 through v1.2 don't use HKDF.
 			// Example: tests/example_filesystems/v0.9
@@ -200,15 +187,13 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool) *CryptoC
 		if stupidgcm.BuiltWithoutAegis {
 			log.Panic("AEGIS is not available")
 		}
-		if IVBitLen != 128 {
-			log.Panicf("AEGIS must use 128-bit IVs, you wanted %d", IVBitLen)
+		if IVBitLen != aegis256x2.NonceSize*8 {
+			log.Panicf("AEGIS-256X2 must use 256-bit IVs, you wanted %d", IVBitLen)
 		}
-		var aegisKey []byte
-		if useHKDF {
-			aegisKey = hkdfDerive(key, hkdfInfoGCMContent, keyLen)
-		} else {
-			aegisKey = append([]byte{}, key...)
+		if !useHKDF {
+			log.Panic("XChaCha20-Poly1305 must use HKDF, but it is disabled")
 		}
+		aegisKey := hkdfDerive(key, hkdfInfoGCMContent, KeyLen)
 		aeadCipher = stupidgcm.NewAegis(aegisKey)
 		for i := range aegisKey {
 			aegisKey[i] = 0

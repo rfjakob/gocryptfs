@@ -188,7 +188,7 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.BoolVar(&args.one_file_system, "one-file-system", false, "Don't cross filesystem boundaries")
 	flagSet.BoolVar(&args.deterministic_names, "deterministic-names", false, "Disable diriv file name randomisation")
 	flagSet.BoolVar(&args.xchacha, "xchacha", false, "Use XChaCha20-Poly1305 file content encryption")
-	flagSet.BoolVar(&args.aegis, "aegis", false, "Use AEGIS file content encryption")
+	flagSet.BoolVar(&args.aegis, "aegis", false, "Use AEGIS-256X2 file content encryption")
 
 	// Mount options with opposites
 	flagSet.BoolVar(&args.dev, "dev", false, "Allow device files")
