@@ -45,7 +45,8 @@ jobs:
     - run: sudo apt-get install -qq fuse3 libssl-dev
 
     # Fix "/usr/bin/fusermount: option allow_other only allowed if 'user_allow_other' is set in /etc/fuse.conf"
-    - run: echo user_allow_other | sudo tee -a /etc/fuse.conf
+    # and "/usr/bin/fusermount3: too many FUSE filesystems mounted"
+    - run: echo -e 'user_allow_other\nmount_max = 10000' | sudo tee -a /etc/fuse.conf && cat /etc/fuse.conf
 
     # Build & upload static binary
     - run: ./build-without-openssl.bash
