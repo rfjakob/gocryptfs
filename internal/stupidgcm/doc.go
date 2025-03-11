@@ -9,8 +9,6 @@
 //
 // (3) XChaCha20-Poly1305 (OpenSSL EVP_chacha20_poly1305 + Go HChaCha20)
 //
-// (4) AEGIS (go-libaegis)
-//
 // The golang.org/x/crypto libraries provides implementations for all algorithms,
 // and the test suite verifies that the implementation in this package gives
 // the exact same results.
