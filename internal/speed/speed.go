@@ -14,6 +14,7 @@ import (
 
 	"golang.org/x/crypto/chacha20poly1305"
 
+	"github.com/aegis-aead/go-libaegis/aegis256x2"
 	"github.com/aegis-aead/go-libaegis/common"
 	"github.com/rfjakob/gocryptfs/v2/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/v2/internal/siv_aead"
@@ -176,6 +177,9 @@ func bAegis(b *testing.B) {
 	if common.Available {
 		b.Skip("aegis is not available")
 	}
-	c := stupidgcm.NewAegis(randBytes(32))
+	c, err := aegis256x2.New(randBytes(aegis256x2.KeySize), cryptocore.AuthTagLen)
+	if err != nil {
+		b.Fatal(err)
+	}
 	bEncrypt(b, c)
 }
