@@ -20,8 +20,8 @@ func unhexMasterKey(masterkey string, fromStdin bool) []byte {
 		tlog.Fatal.Printf("Could not parse master key: %v", err)
 		os.Exit(exitcodes.MasterKey)
 	}
-	if len(key) != cryptocore.MaxKeyLen {
-		tlog.Fatal.Printf("Master key has length %d but we require length %d", len(key), cryptocore.MaxKeyLen)
+	if len(key) != cryptocore.KeyLen {
+		tlog.Fatal.Printf("Master key has length %d but we require length %d", len(key), cryptocore.KeyLen)
 		os.Exit(exitcodes.MasterKey)
 	}
 	tlog.Info.Printf("Using explicit master key.")
@@ -56,7 +56,7 @@ func handleArgsMasterkey(args *argContainer) (masterkey []byte) {
 		tlog.Info.Printf(tlog.ColorYellow +
 			"ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING." +
 			tlog.ColorReset)
-		return make([]byte, cryptocore.MaxKeyLen)
+		return make([]byte, cryptocore.KeyLen)
 	}
 	// No master key source specified on the command line. Caller must parse
 	// the config file.

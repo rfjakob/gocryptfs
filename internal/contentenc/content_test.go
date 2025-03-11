@@ -22,8 +22,7 @@ func TestSplitRange(t *testing.T) {
 		{6654, 8945},
 	}
 
-	keyLen := cryptocore.BackendGoGCM.KeyLen
-	key := make([]byte, keyLen)
+	key := make([]byte, cryptocore.KeyLen)
 	cc := cryptocore.New(key, cryptocore.BackendGoGCM, DefaultIVBits, true)
 	f := New(cc, DefaultBS)
 
@@ -51,8 +50,7 @@ func TestCiphertextRange(t *testing.T) {
 		{6654, 8945},
 	}
 
-	keyLen := cryptocore.BackendGoGCM.KeyLen
-	key := make([]byte, keyLen)
+	key := make([]byte, cryptocore.KeyLen)
 	cc := cryptocore.New(key, cryptocore.BackendGoGCM, DefaultIVBits, true)
 	f := New(cc, DefaultBS)
 
@@ -75,8 +73,7 @@ func TestCiphertextRange(t *testing.T) {
 }
 
 func TestBlockNo(t *testing.T) {
-	keyLen := cryptocore.BackendGoGCM.KeyLen
-	key := make([]byte, keyLen)
+	key := make([]byte, cryptocore.KeyLen)
 	cc := cryptocore.New(key, cryptocore.BackendGoGCM, DefaultIVBits, true)
 	f := New(cc, DefaultBS)
 

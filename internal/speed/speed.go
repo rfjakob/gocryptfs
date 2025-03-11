@@ -14,6 +14,7 @@ import (
 
 	"golang.org/x/crypto/chacha20poly1305"
 
+	"github.com/aegis-aead/go-libaegis/common"
 	"github.com/rfjakob/gocryptfs/v2/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/v2/internal/siv_aead"
 	"github.com/rfjakob/gocryptfs/v2/internal/stupidgcm"
@@ -172,6 +173,9 @@ func bStupidXchacha(b *testing.B) {
 
 // bAegis benchmarks Aegis from github.com/aegis-aead/go-libaegis
 func bAegis(b *testing.B) {
-	c := stupidgcm.NewAegis(randBytes(16))
+	if common.Available {
+		b.Skip("aegis is not available")
+	}
+	c := stupidgcm.NewAegis(randBytes(32))
 	bEncrypt(b, c)
 }

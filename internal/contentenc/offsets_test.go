@@ -9,8 +9,7 @@ import (
 
 // TestSizeToSize tests CipherSizeToPlainSize and PlainSizeToCipherSize
 func TestSizeToSize(t *testing.T) {
-	keyLen := cryptocore.BackendGoGCM.KeyLen
-	key := make([]byte, keyLen)
+	key := make([]byte, cryptocore.KeyLen)
 	cc := cryptocore.New(key, cryptocore.BackendGoGCM, DefaultIVBits, true)
 	ce := New(cc, DefaultBS)
 
