@@ -80,7 +80,7 @@ var matrixAegisAdditions = []testcaseMatrix{
 
 // This is the entry point for the tests
 func TestMain(m *testing.M) {
-	if !common.Available {
+	if common.Available {
 		matrix = append(matrix, matrixAegisAdditions...)
 	}
 
