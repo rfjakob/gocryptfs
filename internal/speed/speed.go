@@ -174,7 +174,7 @@ func bStupidXchacha(b *testing.B) {
 
 // bAegis benchmarks Aegis from github.com/aegis-aead/go-libaegis
 func bAegis(b *testing.B) {
-	if common.Available {
+	if !common.Available {
 		b.Skip("aegis is not available")
 	}
 	c, err := aegis256x2.New(randBytes(aegis256x2.KeySize), cryptocore.AuthTagLen)
