@@ -30,9 +30,11 @@ Data block, AEGIS (enabled via `-init -aegis`)
 	1-4096 bytes encrypted data
 	16 bytes tag
 
-Full block overhead (AEGIS, AES-GCM and AES-SIV mode) = 32/4096 = 1/128 = 0.78125 %
+Full block overhead (AES-GCM and AES-SIV mode) = 32/4096 = 1/128 = 0.78125 %
 
 Full block overhead (XChaCha20-Poly1305 mode) = 40/4096 = \~1 %
+
+Full block overhead (AEGIS-256X2 mode) = 48/4096 = 3/256 = 1.171875 %
 
 Example: 1-byte file, AES-GCM and AES-SIV mode
 ----------------------------------------------
