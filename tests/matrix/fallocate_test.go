@@ -161,6 +161,10 @@ func TestFallocate(t *testing.T) {
 		// xchacha has 24 byte ivs instead of 16. 8kiB are two blocks, so
 		// 2x8=16 bytes more.
 		plain = plain - 16
+	} else if testcase.isSet("-aegis") {
+		// aegis256 has 32 byte ivs and mac instead of 16. 8kiB are two blocks, so
+		// 2x32=64 bytes more.
+		plain = plain - 64
 	}
 	err = syscallcompat.Fallocate(fd, FALLOC_DEFAULT, 0, plain)
 	if err != nil {
