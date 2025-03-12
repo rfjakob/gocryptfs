@@ -19,6 +19,7 @@ import (
 
 	"golang.org/x/crypto/chacha20poly1305"
 
+	"github.com/aegis-aead/go-libaegis/aegis256x2"
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 
@@ -267,6 +268,7 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 	}
 	if args.aegis {
 		cryptoBackend = cryptocore.BackendAegis
+		IVBits = aegis256x2.NonceSize * 8
 	}
 	// forceOwner implies allow_other, as documented.
 	// Set this early, so args.allow_other can be relied on below this point.
