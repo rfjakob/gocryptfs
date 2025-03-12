@@ -188,7 +188,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool) *CryptoC
 			log.Panic(err)
 		}
 	} else if aeadType == BackendAegis {
-		if common.Available == false {
+		if !common.Available {
 			log.Panic("AEGIS is not available")
 		}
 		if IVBitLen != aegis256x2.NonceSize*8 {
