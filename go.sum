@@ -1,5 +1,5 @@
-github.com/aegis-aead/go-libaegis v0.2.10 h1:5BJd8dgl2Fv3XwJ+W1dSWoS9FBaA61ryLnu2E4H2Vdw=
-github.com/aegis-aead/go-libaegis v0.2.10/go.mod h1:WKSG0pcdvpDrwDPBl9NdAIxHxpZOCqlKWH7EOnPLKHc=
+github.com/aegis-aead/go-libaegis v0.2.11 h1:kNdRXhvVlysx2E5wrNPY0k6x1mznEgRvRVNEb4ztE9k=
+github.com/aegis-aead/go-libaegis v0.2.11/go.mod h1:WKSG0pcdvpDrwDPBl9NdAIxHxpZOCqlKWH7EOnPLKHc=
 github.com/aperturerobotics/jacobsa-crypto v1.0.2 h1:tNvVy1rev9FagnOyBmTcI6d23FfNceG9IujZROTRtlc=
 github.com/aperturerobotics/jacobsa-crypto v1.0.2/go.mod h1:buWU1iY+FjIcfpb1aYfFJZfl07WlS7O30lTyC2iwjv8=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
