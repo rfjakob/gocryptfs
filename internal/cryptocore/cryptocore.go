@@ -92,7 +92,7 @@ func New(key []byte, aeadType AEADTypeEnum, IVBitLen int, useHKDF bool) *CryptoC
 	if len(key) != KeyLen {
 		log.Panicf("Unsupported key length of %d bytes", len(key))
 	}
-	if IVBitLen != 96 && IVBitLen != 128 && IVBitLen != chacha20poly1305.NonceSizeX*8 {
+	if IVBitLen != 96 && IVBitLen != 128 && IVBitLen != chacha20poly1305.NonceSizeX*8 && IVBitLen != aegis256x2.NonceSize*8 {
 		log.Panicf("Unsupported IV length of %d bits", IVBitLen)
 	}
 
