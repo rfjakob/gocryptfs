@@ -59,6 +59,8 @@ type argContainer struct {
 	_forceOwner *fuse.Owner
 	// _explicitScryptn is true then the user passed "-scryptn=xyz"
 	_explicitScryptn bool
+  // full URL to key management server endpoint
+  kms string
 }
 
 var flagSet *flag.FlagSet
@@ -212,6 +214,7 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.StringVar(&args.trace, "trace", "", "Write execution trace to file")
 	flagSet.StringVar(&args.fido2, "fido2", "", "Protect the masterkey using a FIDO2 token instead of a password")
 	flagSet.StringArrayVar(&args.fido2_assert_options, "fido2-assert-option", nil, "Options to be passed with `fido2-assert -t`")
+  flagSet.StringVar(&args.kms, "kms", "", "Full URL to Key Management Server to enable per-file encryption")
 
 	// Exclusion options
 	flagSet.StringArrayVar(&args.exclude, "e", nil, "Alias for -exclude")
@@ -292,6 +295,14 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 		tlog.Fatal.Printf("The options -extpass and -fido2 cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
+  if args.kms != "" && !args.hkdf {
+    tlog.Fatal.Printf("Currently, KMS support requires hkdf to be enabled")
+    os.Exit(exitcodes.Usage)
+  }
+  if args.kms != "" && args.reverse {
+    tlog.Fatal.Printf("KMS support is not yet implemented for reverse mode")
+    os.Exit(exitcodes.Usage)
+  }
 	if args.idle < 0 {
 		tlog.Fatal.Printf("Idle timeout cannot be less than 0")
 		os.Exit(exitcodes.Usage)

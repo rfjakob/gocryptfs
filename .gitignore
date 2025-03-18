@@ -20,3 +20,7 @@ gocryptfs.1
 
 # Source tarball version. Should never be committed to git.
 /VERSION
+
+# Debug
+/cipher
+/plain

@@ -5,11 +5,14 @@ package fusefrontend
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"math"
+	"net/http"
 	"os"
 	"sync"
 	"syscall"
@@ -18,6 +21,7 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
+	"github.com/rfjakob/gocryptfs/v2/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/v2/internal/inomap"
 	"github.com/rfjakob/gocryptfs/v2/internal/openfiletable"
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
@@ -57,7 +61,7 @@ type File struct {
 // is returned because node.Create() needs it.
 //
 // `cName` is only used for error logging and may be left blank.
-func NewFile(fd int, cName string, rn *RootNode) (f *File, st *syscall.Stat_t, errno syscall.Errno) {
+func NewFile(fd int, cName string, rn *RootNode, path string) (f *File, st *syscall.Stat_t, errno syscall.Errno) {
 	// Need device number and inode number for openfiletable locking
 	st = &syscall.Stat_t{}
 	if err := syscall.Fstat(fd, st); err != nil {
@@ -69,9 +73,78 @@ func NewFile(fd int, cName string, rn *RootNode) (f *File, st *syscall.Stat_t, e
 
 	osFile := os.NewFile(uintptr(fd), cName)
 
+  var cEnc *contentenc.ContentEnc
+  if rn.kms != "" {
+    // Per file encryption
+    url := rn.kms
+    payload := map[string]string{
+      "path": path,
+    }
+    payloadBytes, err := json.Marshal(payload)
+    if err != nil {
+      log.Panicf("Error marshalling JSON: %v", err)
+    }
+
+    var kmsKey []byte
+    success := false
+    nAttempt := 5
+    // Lets give it multiple tries
+    for attempt := 1; attempt <= nAttempt; attempt++ {
+      resp, err := http.Post(url, "application/json", bytes.NewBuffer(payloadBytes))
+      if err != nil {
+        tlog.Warn.Printf("Error sending request to KMS: %v", err)
+        continue
+      }
+
+      defer resp.Body.Close()
+      body, err := io.ReadAll(resp.Body)
+      if err != nil {
+        tlog.Warn.Printf("Error reading response from KMS: %v", err)
+        continue
+      }
+
+      // Structure: {"key": "BASE64_ENCODED_KEY_OF_DECODED_LENGTH_keylen"}
+      jsonStr := string(body)
+      var data map[string]any
+      err = json.Unmarshal([]byte(jsonStr), &data)
+      if err != nil {
+        tlog.Warn.Printf("Error unmarshaling response from KMS: %v", err)
+        continue
+      }
+      base64key, ok := data["key"].(string)
+      if !ok {
+        tlog.Warn.Println("JSON key attribute is not a string")
+        continue
+      }
+      kmsKey, err = base64.StdEncoding.DecodeString(base64key)
+      if err != nil {
+        tlog.Warn.Printf("Error decoding base64, %v", err)
+        continue
+      }
+      success = true
+    }
+    if !success {
+      log.Panicf("Fetching KMS key failed after %d tries", nAttempt)
+    }
+
+    // Create a new cryptoCore with 2 HKDF keys
+    // See mount.go for how it gets created for the RootNode
+    // Note: Enabled kms implies that khdf is set to true, which is why
+    // we can also hardcode it in cryptocore.New
+    cryptoBackend := rn.contentEnc.GetAEADBackend()
+    ivBits := rn.contentEnc.GetIVLen()*8
+    cCore := cryptocore.New(kmsKey, cryptoBackend, ivBits, true)
+    cEnc = contentenc.New(cCore, contentenc.DefaultBS)
+    for i := range kmsKey {
+      kmsKey[i] = 0
+    }
+  } else {
+    cEnc = rn.contentEnc
+  }
+
 	f = &File{
 		fd:             osFile,
-		contentEnc:     rn.contentEnc,
+		contentEnc:     cEnc,
 		qIno:           qi,
 		fileTableEntry: e,
 		rootNode:       rn,

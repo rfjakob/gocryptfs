@@ -2,6 +2,7 @@ package fusefrontend
 
 import (
 	"context"
+	"path/filepath"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fs"
@@ -50,7 +51,7 @@ func (n *Node) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, fuseFl
 		errno = fs.ToErrno(err)
 		return
 	}
-	fh, _, errno = NewFile(fd, cName, rn)
+	fh, _, errno = NewFile(fd, cName, rn, n.GetFullFilepath())
 	return fh, fuseFlags, errno
 }
 
@@ -99,7 +100,11 @@ func (n *Node) Create(ctx context.Context, name string, flags uint32, mode uint3
 		return nil, nil, 0, fs.ToErrno(err)
 	}
 
-	fh, st, errno := NewFile(fd, cName, rn)
+  // It is not yet part of the node path since it does not yet exists
+  // (This is not the case when Open-ing files)
+  path := filepath.Join(n.GetFullFilepath(), name)
+
+	fh, st, errno := NewFile(fd, cName, rn, path)
 	if errno != 0 {
 		return
 	}

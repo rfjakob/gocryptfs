@@ -2,6 +2,8 @@ package fusefrontend
 
 import (
 	"context"
+	"path/filepath"
+	"slices"
 	"sync/atomic"
 	"syscall"
 
@@ -102,4 +104,20 @@ func (n *Node) newChild(ctx context.Context, st *syscall.Stat_t, out *fuse.Entry
 	}
 	node := &Node{}
 	return n.NewInode(ctx, node, id)
+}
+
+func (n *Node) GetFullFilepath() string {
+  var parts []string
+  var curr *fs.Inode
+  curr = &n.Inode
+  // Traverse up
+  for curr != nil {
+    name, parent := curr.Parent()
+    if name != "" {
+      parts = append(parts, name)
+    }
+    curr = parent
+  }
+  slices.Reverse(parts)
+  return filepath.Join(parts...)
 }

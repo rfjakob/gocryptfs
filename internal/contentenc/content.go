@@ -322,3 +322,11 @@ func (be *ContentEnc) Wipe() {
 	be.cryptoCore.Wipe()
 	be.cryptoCore = nil
 }
+
+func (ce *ContentEnc) GetIVLen() int {
+  return ce.cryptoCore.IVLen
+}
+
+func (ce *ContentEnc) GetAEADBackend() cryptocore.AEADTypeEnum {
+  return ce.cryptoCore.AEADBackend
+}

@@ -51,4 +51,6 @@ type Args struct {
 	OneFileSystem bool
 	// DeterministicNames disables gocryptfs.diriv files
 	DeterministicNames bool
+  // URL to kms for per-file encryption. If "", rootNode encrypts everything
+  Kms string
 }
