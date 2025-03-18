@@ -105,7 +105,7 @@ func NewFile(fd int, cName string, rn *RootNode, path string) (f *File, st *sysc
 
       // Structure: {"key": "BASE64_ENCODED_KEY_OF_DECODED_LENGTH_keylen"}
       jsonStr := string(body)
-      var data map[string]interface{}
+      var data map[string]any
       err = json.Unmarshal([]byte(jsonStr), &data)
       if err != nil {
         tlog.Warn.Printf("Error unmarshaling response from KMS: %v", err)
@@ -129,7 +129,8 @@ func NewFile(fd int, cName string, rn *RootNode, path string) (f *File, st *sysc
 
     // Create a new cryptoCore with 2 HKDF keys
     // See mount.go for how it gets created for the RootNode
-    // TODO args.hkdf IS HARDCODED TO TRUE
+    // Note: Enabled kms implies that khdf is set to true, which is why
+    // we can also hardcode it in cryptocore.New
     cryptoBackend := rn.contentEnc.GetAEADBackend()
     ivBits := rn.contentEnc.GetIVLen()*8
     cCore := cryptocore.New(kmsKey, cryptoBackend, ivBits, true)

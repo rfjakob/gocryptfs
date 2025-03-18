@@ -295,6 +295,14 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 		tlog.Fatal.Printf("The options -extpass and -fido2 cannot be used at the same time")
 		os.Exit(exitcodes.Usage)
 	}
+  if args.kms != "" && !args.hkdf {
+    tlog.Fatal.Printf("Currently, KMS support requires hkdf to be enabled")
+    os.Exit(exitcodes.Usage)
+  }
+  if args.kms != "" && args.reverse {
+    tlog.Fatal.Printf("KMS support is not yet implemented for reverse mode")
+    os.Exit(exitcodes.Usage)
+  }
 	if args.idle < 0 {
 		tlog.Fatal.Printf("Idle timeout cannot be less than 0")
 		os.Exit(exitcodes.Usage)
