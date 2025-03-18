@@ -9,6 +9,7 @@ import (
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 
+	"github.com/rfjakob/gocryptfs/v2/internal/audit_log"
 	"github.com/rfjakob/gocryptfs/v2/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
@@ -118,6 +119,9 @@ func (n *Node) Unlink(ctx context.Context, name string) (errno syscall.Errno) {
 	if errno != 0 {
 		return
 	}
+  ctx2 := toFuseCtx(ctx)
+  m := n.GetAuditPayload(nil, &name)
+  audit_log.WriteAuditEvent(audit_log.EventUnlink, ctx2, m)
 	defer syscall.Close(dirfd)
 
 	// Delete content
@@ -143,6 +147,9 @@ func (n *Node) Readlink(ctx context.Context) (out []byte, errno syscall.Errno) {
 	if errno != 0 {
 		return
 	}
+  ctx2 := toFuseCtx(ctx)
+  m := n.GetAuditPayload(nil, &cName)
+  audit_log.WriteAuditEvent(audit_log.EventReadlink, ctx2, m)
 	defer syscall.Close(dirfd)
 
 	return n.readlink(dirfd, cName)
@@ -252,6 +259,9 @@ func (n *Node) Mknod(ctx context.Context, name string, mode, rdev uint32, out *f
 	if errno != 0 {
 		return
 	}
+  ctx2 := toFuseCtx(ctx)
+  m := n.GetAuditPayload(nil, &name)
+  audit_log.WriteAuditEvent(audit_log.EventMknod, ctx2, m)
 	defer syscall.Close(dirfd)
 
 	// Make sure context is nil if we don't want to preserve the owner
@@ -262,7 +272,6 @@ func (n *Node) Mknod(ctx context.Context, name string, mode, rdev uint32, out *f
 
 	// Create ".name" file to store long file name (except in PlaintextNames mode)
 	var err error
-	ctx2 := toFuseCtx(ctx)
 	if !rn.args.PlaintextNames && nametransform.IsLongContent(cName) {
 		err := rn.nameTransform.WriteLongNameAt(dirfd, cName, name)
 		if err != nil {
@@ -307,6 +316,8 @@ func (n *Node) Link(ctx context.Context, target fs.InodeEmbedder, name string, o
 	if errno != 0 {
 		return
 	}
+  ctx2 := toFuseCtx(ctx)
+  audit_log.WriteAuditEvent(audit_log.EventLink, ctx2, nil)
 	defer syscall.Close(dirfd)
 
 	n2 := toNode(target)
@@ -357,6 +368,8 @@ func (n *Node) Symlink(ctx context.Context, target, name string, out *fuse.Entry
 	if errno != 0 {
 		return
 	}
+  ctx2 := toFuseCtx(ctx)
+  audit_log.WriteAuditEvent(audit_log.EventSymlink, ctx2, nil)
 	defer syscall.Close(dirfd)
 
 	// Make sure context is nil if we don't want to preserve the owner
@@ -372,7 +385,6 @@ func (n *Node) Symlink(ctx context.Context, target, name string, out *fuse.Entry
 	}
 	// Create ".name" file to store long file name (except in PlaintextNames mode)
 	var err error
-	ctx2 := toFuseCtx(ctx)
 	if !rn.args.PlaintextNames && nametransform.IsLongContent(cName) {
 		err = rn.nameTransform.WriteLongNameAt(dirfd, cName, name)
 		if err != nil {
@@ -429,6 +441,9 @@ func (n *Node) Rename(ctx context.Context, name string, newParent fs.InodeEmbedd
 	if errno != 0 {
 		return
 	}
+  ctx2 := toFuseCtx(ctx)
+  m := n.GetAuditPayload2(nil, name, newName)
+  audit_log.WriteAuditEvent(audit_log.EventRename, ctx2, m)
 	defer syscall.Close(dirfd)
 
 	n2 := toNode(newParent)

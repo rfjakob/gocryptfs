@@ -11,6 +11,7 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fs"
 
+	"github.com/rfjakob/gocryptfs/v2/internal/audit_log"
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
@@ -45,6 +46,10 @@ func (f *File) Allocate(ctx context.Context, off uint64, sz uint64, mode uint32)
 		allocateWarnOnce.Do(f)
 		return syscall.EOPNOTSUPP
 	}
+
+  ctx2 := toFuseCtx(ctx)
+  m := f.GetAuditPayload()
+  audit_log.WriteAuditEvent(audit_log.EventAllocate, ctx2, m)
 
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()

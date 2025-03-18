@@ -9,6 +9,7 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fs"
 
+	"github.com/rfjakob/gocryptfs/v2/internal/audit_log"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
@@ -98,6 +99,10 @@ func (f *File) Lseek(ctx context.Context, off uint64, whence uint32) (uint64, sy
 	if f.rootNode.contentEnc.PlainOffToCipherOff(off) >= uint64(fileSize) {
 		return MinusOne, syscall.ENXIO
 	}
+
+  ctx2 := toFuseCtx(ctx)
+  m := f.GetAuditPayload()
+  audit_log.WriteAuditEvent(audit_log.EventLseek, ctx2, m)
 
 	// Round down to start of block:
 	cipherOff := f.rootNode.contentEnc.BlockNoToCipherOff(f.rootNode.contentEnc.PlainOffToBlockNo(off))

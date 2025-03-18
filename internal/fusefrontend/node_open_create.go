@@ -8,6 +8,7 @@ import (
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 
+	"github.com/rfjakob/gocryptfs/v2/internal/audit_log"
 	"github.com/rfjakob/gocryptfs/v2/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
@@ -51,7 +52,12 @@ func (n *Node) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, fuseFl
 		errno = fs.ToErrno(err)
 		return
 	}
-	fh, _, errno = NewFile(fd, cName, rn, n.GetFullFilepath())
+  var f *File
+	f, _, errno = NewFile(fd, cName, rn, n.GetFullFilepath())
+  fh = f
+  ctx2 := toFuseCtx(ctx)
+  m := n.GetAuditPayload(f, nil)
+  audit_log.WriteAuditEvent(audit_log.EventOpen, ctx2, m)
 	return fh, fuseFlags, errno
 }
 
@@ -104,7 +110,11 @@ func (n *Node) Create(ctx context.Context, name string, flags uint32, mode uint3
   // (This is not the case when Open-ing files)
   path := filepath.Join(n.GetFullFilepath(), name)
 
-	fh, st, errno := NewFile(fd, cName, rn, path)
+  var f *File
+	f, st, errno := NewFile(fd, cName, rn, path)
+  fh = f
+  m := n.GetAuditPayload(f, &name)
+  audit_log.WriteAuditEvent(audit_log.EventCreate, ctx2, m)
 	if errno != 0 {
 		return
 	}

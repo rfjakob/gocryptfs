@@ -2,6 +2,7 @@ package fusefrontend
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"slices"
 	"sync/atomic"
@@ -120,4 +121,42 @@ func (n *Node) GetFullFilepath() string {
   }
   slices.Reverse(parts)
   return filepath.Join(parts...)
+}
+
+func (n *Node) GetIdentifier() (uint64, uint64) {
+  return n.Inode.StableAttr().Ino, n.Inode.StableAttr().Gen
+}
+
+// File can be nil in case one doesn't have it
+// some operations include the filename in the node information (open) while
+// other do not (create), for which we manually pass it in
+func (n *Node) GetAuditPayload(f *File, filename *string) map[string]string {
+  m := make(map[string]string)
+  nIno, nGen := n.GetIdentifier()
+  m["node"] = fmt.Sprintf("[%d, %d]", nIno, nGen)
+  if f != nil {
+    fDev, fTag, fIno := f.GetIdentifier()
+    m["file"] = fmt.Sprintf("[%d, %d, %d]", fDev, fTag, fIno)
+  }
+  if filename != nil && *filename != "" {
+    m["filepath"] = n.GetFullFilepath() + "/" + *filename
+  } else {
+    m["filepath"] = n.GetFullFilepath()
+  }
+  return m
+}
+
+// for functions that have multiple files (i.e. rename, symlink, link)
+// in this case we do not use pointers as we expect them to be there
+func (n *Node) GetAuditPayload2(f *File, src string, dst string) map[string]string {
+  m := make(map[string]string)
+  nIno, nGen := n.GetIdentifier()
+  m["node"] = fmt.Sprintf("[%d, %d]", nIno, nGen)
+  if f != nil {
+    fDev, fTag, fIno := f.GetIdentifier()
+    m["file"] = fmt.Sprintf("[%d, %d, %d]", fDev, fTag, fIno)
+  }
+  m["source"] = n.GetFullFilepath() + "/" + src
+  m["destination"] = n.GetFullFilepath() + "/" + dst
+  return m
 }

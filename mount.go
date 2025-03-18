@@ -22,6 +22,7 @@ import (
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 
+	"github.com/rfjakob/gocryptfs/v2/internal/audit_log"
 	"github.com/rfjakob/gocryptfs/v2/internal/configfile"
 	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/v2/internal/cryptocore"
@@ -104,6 +105,8 @@ func doMount(args *argContainer) {
 			}
 		}()
 	}
+  audit_log.StartAuditTrail()
+  defer audit_log.EndAuditTrail()
 	// Initialize gocryptfs (read config file, ask for password, ...)
 	fs, wipeKeys := initFuseFrontend(args)
 	// Try to wipe secret keys from memory after unmount
