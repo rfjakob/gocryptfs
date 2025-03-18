@@ -59,6 +59,8 @@ type argContainer struct {
 	_forceOwner *fuse.Owner
 	// _explicitScryptn is true then the user passed "-scryptn=xyz"
 	_explicitScryptn bool
+  // full URL to key management server endpoint
+  kms string
 }
 
 var flagSet *flag.FlagSet
@@ -212,6 +214,7 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.StringVar(&args.trace, "trace", "", "Write execution trace to file")
 	flagSet.StringVar(&args.fido2, "fido2", "", "Protect the masterkey using a FIDO2 token instead of a password")
 	flagSet.StringArrayVar(&args.fido2_assert_options, "fido2-assert-option", nil, "Options to be passed with `fido2-assert -t`")
+  flagSet.StringVar(&args.kms, "kms", "", "Full URL to Key Management Server to enable per-file encryption")
 
 	// Exclusion options
 	flagSet.StringArrayVar(&args.exclude, "e", nil, "Alias for -exclude")

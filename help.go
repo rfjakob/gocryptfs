@@ -28,6 +28,7 @@ Common Options (use -hh to show all):
   -fusedebug         Debug FUSE calls
   -h, -help          This short help text
   -hh                Long help text with all options
+  -kms string        Full URL to Key Management Server to enable per-file encryption
   -init              Initialize encrypted directory
   -info              Display information about encrypted directory
   -masterkey         Mount with explicit master key instead of password

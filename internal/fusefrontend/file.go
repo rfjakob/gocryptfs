@@ -73,72 +73,76 @@ func NewFile(fd int, cName string, rn *RootNode, path string) (f *File, st *sysc
 
 	osFile := os.NewFile(uintptr(fd), cName)
 
-  // TODO refactor me out
-  url := "http://localhost:5000"
-  payload := map[string]string{
-    "path": path,
-  }
-  payloadBytes, err := json.Marshal(payload)
-  if err != nil {
-    log.Panicf("Error marshalling JSON: %v", err)
-  }
-
-  var kmsKey []byte
-  success := false
-  nAttempt := 5
-  // Lets give it multiple tries
-  for attempt := 1; attempt <= nAttempt; attempt++ {
-    resp, err := http.Post(url, "application/json", bytes.NewBuffer(payloadBytes))
+  var cEnc *contentenc.ContentEnc
+  if rn.kms != "" {
+    // Per file encryption
+    url := rn.kms
+    payload := map[string]string{
+      "path": path,
+    }
+    payloadBytes, err := json.Marshal(payload)
     if err != nil {
-      tlog.Warn.Printf("Error sending request to KMS: %v", err)
-      continue
+      log.Panicf("Error marshalling JSON: %v", err)
     }
 
-    defer resp.Body.Close()
-    body, err := io.ReadAll(resp.Body)
-    if err != nil {
-      tlog.Warn.Printf("Error reading response from KMS: %v", err)
-      continue
+    var kmsKey []byte
+    success := false
+    nAttempt := 5
+    // Lets give it multiple tries
+    for attempt := 1; attempt <= nAttempt; attempt++ {
+      resp, err := http.Post(url, "application/json", bytes.NewBuffer(payloadBytes))
+      if err != nil {
+        tlog.Warn.Printf("Error sending request to KMS: %v", err)
+        continue
+      }
+
+      defer resp.Body.Close()
+      body, err := io.ReadAll(resp.Body)
+      if err != nil {
+        tlog.Warn.Printf("Error reading response from KMS: %v", err)
+        continue
+      }
+
+      // Structure: {"key": "BASE64_ENCODED_KEY_OF_DECODED_LENGTH_keylen"}
+      jsonStr := string(body)
+      var data map[string]interface{}
+      err = json.Unmarshal([]byte(jsonStr), &data)
+      if err != nil {
+        tlog.Warn.Printf("Error unmarshaling response from KMS: %v", err)
+        continue
+      }
+      base64key, ok := data["key"].(string)
+      if !ok {
+        tlog.Warn.Println("JSON key attribute is not a string")
+        continue
+      }
+      kmsKey, err = base64.StdEncoding.DecodeString(base64key)
+      if err != nil {
+        tlog.Warn.Printf("Error decoding base64, %v", err)
+        continue
+      }
+      success = true
+    }
+    if !success {
+      log.Panicf("Fetching KMS key failed after %d tries", nAttempt)
     }
 
-    // Structure: {"key": "BASE64_ENCODED_KEY_OF_DECODED_LENGTH_keylen"}
-    jsonStr := string(body)
-    var data map[string]interface{}
-    err = json.Unmarshal([]byte(jsonStr), &data)
-    if err != nil {
-      tlog.Warn.Printf("Error unmarshaling response from KMS: %v", err)
-      continue
+    // Create a new cryptoCore with 2 HKDF keys
+    // See mount.go for how it gets created for the RootNode
+    // TODO args.hkdf IS HARDCODED TO TRUE
+    cryptoBackend := rn.contentEnc.GetAEADBackend()
+    ivBits := rn.contentEnc.GetIVLen()*8
+    cCore := cryptocore.New(kmsKey, cryptoBackend, ivBits, true)
+    cEnc = contentenc.New(cCore, contentenc.DefaultBS)
+    for i := range kmsKey {
+      kmsKey[i] = 0
     }
-    base64key, ok := data["key"].(string)
-    if !ok {
-      tlog.Warn.Println("JSON key attribute is not a string")
-      continue
-    }
-    kmsKey, err = base64.StdEncoding.DecodeString(base64key)
-    if err != nil {
-      tlog.Warn.Printf("Error decoding base64, %v", err)
-      continue
-    }
-    success = true
-  }
-  if !success {
-    log.Panicf("Fetching KMS key failed after %d tries", nAttempt)
-  }
-
-  // Create a new cryptoCore with 2 HKDF keys
-  // See mount.go for how it gets created for the RootNode
-  // TODO args.hkdf IS HARDCODED TO TRUE
-  cryptoBackend := rn.contentEnc.GetAEADBackend()
-  ivBits := rn.contentEnc.GetIVLen()*8
-  cCore := cryptocore.New(kmsKey, cryptoBackend, ivBits, true)
-  cEnc := contentenc.New(cCore, contentenc.DefaultBS)
-  for i := range kmsKey {
-    kmsKey[i] = 0
+  } else {
+    cEnc = rn.contentEnc
   }
 
 	f = &File{
 		fd:             osFile,
-		//contentEnc:     rn.contentEnc,
 		contentEnc:     cEnc,
 		qIno:           qi,
 		fileTableEntry: e,

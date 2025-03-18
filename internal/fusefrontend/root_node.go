@@ -61,6 +61,8 @@ type RootNode struct {
 	quirks uint64
 	// rootIno is the inode number that we report for the root node on mount
 	rootIno uint64
+  // URL to kms for per-file encryption. If "", rootNode encrypts everything
+  kms string
 }
 
 func NewRootNode(args Args, c *contentenc.ContentEnc, n *nametransform.NameTransform) *RootNode {
@@ -89,6 +91,7 @@ func NewRootNode(args Args, c *contentenc.ContentEnc, n *nametransform.NameTrans
 		inoMap:        inomap.New(rootDev),
 		dirCache:      dirCache{ivLen: ivLen},
 		quirks:        syscallcompat.DetectQuirks(args.Cipherdir),
+    kms: args.Kms,
 	}
 	if statErr == nil {
 		rn.inoMap.TranslateStat(&st)
