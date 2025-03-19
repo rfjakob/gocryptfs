@@ -15,7 +15,6 @@ function compile_tests {
 
 set -eux
 
-export GO111MODULE=on
 export CGO_ENABLED=0
 
 GOOS=linux  GOARCH=amd64         build
@@ -30,8 +29,4 @@ GOOS=darwin GOARCH=amd64 build
 time GOOS=darwin GOARCH=amd64 compile_tests
 
 # MacOS on Apple Silicon M1.
-# Go 1.16 added support for the M1 and added ios/arm64,
-# so we use this to check if we should attempt a build.
-if go tool dist list | grep ios/arm64 ; then
-	GOOS=darwin GOARCH=arm64 build
-fi
+GOOS=darwin GOARCH=arm64 build

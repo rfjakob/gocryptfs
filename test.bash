@@ -22,7 +22,6 @@ else
 fi
 
 cd "$(dirname "$0")"
-export GO111MODULE=on
 MYNAME=$(basename "$0")
 TESTDIR=$TMPDIR/gocryptfs-test-parent-$UID
 mkdir -p "$TESTDIR"
