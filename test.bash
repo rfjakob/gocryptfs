@@ -110,9 +110,12 @@ if find internal -type f -name \*.go -print0 | xargs -0 grep "panic("; then
 	exit 1
 fi
 
-# All functions from the commit msg in https://go-review.googlesource.com/c/go/+/210639
-if find . -type f -name \*.go -print0 | xargs -0 grep -E 'syscall.(Setegid|Seteuid|Setgroups|Setgid|Setregid|Setreuid|Setresgid|Setresuid|Setuid)\(' ; then
-	echo "$MYNAME: You probably want to use unix.Setgroups and friends. See the comments in OpenatUser() for why."
+# Both syscall.Setreuid etc (since 2020, https://github.com/golang/go/commit/d1b1145cace8b968307f9311ff611e4bb810710c)
+# and unix.Setreuid etc (since 2022, https://github.com/golang/sys/commit/d0df966e6959f00dc1c74363e537872647352d51)
+# affect the whole process, not only the current thread, which is what we do NOT want.
+if find . -type f -name \*.go -print0 | xargs -0 grep -v -E '^//' |
+	grep -E '(syscall|unix).(Setegid|Seteuid|Setgroups|Setgid|Setregid|Setreuid|Setresgid|Setresuid|Setuid)\(' ; then
+	echo "$MYNAME: This affects the whole process. Please use the syscallcompat wrappers instead."
 	exit 1
 fi
 
