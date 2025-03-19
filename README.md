@@ -195,8 +195,14 @@ RM:    2,367
 Changelog
 ---------
 
+#### v2.5.2, 2025-03-19
+* Use our own `syscallcompat.Setreuid` (and friends) wrappers
+  ([6b1ba584](https://github.com/rfjakob/gocryptfs/commit/6b1ba5846b17eec710a70cb6c6bf23e3f2024289))
+* Upgrade `golang.org/x/sys` again
+* Provide arm64 binaries in releases in addition to amd64
+
 #### v2.5.1, 2025-01-23
-* **Downgrade `golang.org/x/sys` to unbreak `-allow_other`
+* **Downgrade `golang.org/x/sys` to unbreak `unix.Setreuid` and `-allow_other`
   ([6d342f3](https://github.com/rfjakob/gocryptfs/commit/6d342f3f4f1e9468da00b141b2abaf1e55f28665),
   [#893](https://github.com/rfjakob/gocryptfs/issues/893), [#892](https://github.com/rfjakob/gocryptfs/issues/892))**
 

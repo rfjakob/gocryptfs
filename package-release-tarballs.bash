@@ -94,4 +94,6 @@ fi
 
 package_source
 package_static_binary
+export GOARCH=arm64
+package_static_binary
 signing_hint
