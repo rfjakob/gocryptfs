@@ -50,6 +50,8 @@ type File struct {
 	lastOpCount uint64
 	// Parent filesystem
 	rootNode *RootNode
+	// If this open file is a directory, dirHandle will be set, otherwise it's nil.
+	dirHandle *DirHandle
 }
 
 // NewFile returns a new go-fuse File instance based on an already-open file

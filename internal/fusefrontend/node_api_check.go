@@ -7,7 +7,6 @@ import (
 // Check that we have implemented the fs.Node* interfaces
 var _ = (fs.NodeGetattrer)((*Node)(nil))
 var _ = (fs.NodeLookuper)((*Node)(nil))
-var _ = (fs.NodeReaddirer)((*Node)(nil))
 var _ = (fs.NodeCreater)((*Node)(nil))
 var _ = (fs.NodeMkdirer)((*Node)(nil))
 var _ = (fs.NodeRmdirer)((*Node)(nil))

@@ -12,7 +12,6 @@ import (
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 
-	"github.com/rfjakob/gocryptfs/v2/internal/configfile"
 	"github.com/rfjakob/gocryptfs/v2/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/v2/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
@@ -157,91 +156,6 @@ func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.En
 	// Create child node & return
 	ch := n.newChild(ctx, &st, out)
 	return ch, 0
-}
-
-// Readdir - FUSE call.
-//
-// This function is symlink-safe through use of openBackingDir() and
-// ReadDirIVAt().
-func (n *Node) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
-	parentDirFd, cDirName, errno := n.prepareAtSyscallMyself()
-	if errno != 0 {
-		return nil, errno
-	}
-	defer syscall.Close(parentDirFd)
-
-	// Read ciphertext directory
-	fd, err := syscallcompat.Openat(parentDirFd, cDirName, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
-	if err != nil {
-		return nil, fs.ToErrno(err)
-	}
-	defer syscall.Close(fd)
-	cipherEntries, specialEntries, err := syscallcompat.GetdentsSpecial(fd)
-	if err != nil {
-		return nil, fs.ToErrno(err)
-	}
-	// Get DirIV (stays nil if PlaintextNames is used)
-	var cachedIV []byte
-	rn := n.rootNode()
-	if !rn.args.PlaintextNames {
-		// Read the DirIV from disk
-		cachedIV, err = rn.nameTransform.ReadDirIVAt(fd)
-		if err != nil {
-			tlog.Warn.Printf("OpenDir %q: could not read %s: %v", cDirName, nametransform.DirIVFilename, err)
-			return nil, syscall.EIO
-		}
-	}
-	// Decrypted directory entries
-	var plain []fuse.DirEntry
-	// Add "." and ".."
-	plain = append(plain, specialEntries...)
-	// Filter and decrypt filenames
-	for i := range cipherEntries {
-		cName := cipherEntries[i].Name
-		if n.IsRoot() && cName == configfile.ConfDefaultName {
-			// silently ignore "gocryptfs.conf" in the top level dir
-			continue
-		}
-		if rn.args.PlaintextNames {
-			plain = append(plain, cipherEntries[i])
-			continue
-		}
-		if !rn.args.DeterministicNames && cName == nametransform.DirIVFilename {
-			// silently ignore "gocryptfs.diriv" everywhere if dirIV is enabled
-			continue
-		}
-		// Handle long file name
-		isLong := nametransform.LongNameNone
-		if rn.args.LongNames {
-			isLong = nametransform.NameType(cName)
-		}
-		if isLong == nametransform.LongNameContent {
-			cNameLong, err := nametransform.ReadLongNameAt(fd, cName)
-			if err != nil {
-				tlog.Warn.Printf("OpenDir %q: invalid entry %q: Could not read .name: %v",
-					cDirName, cName, err)
-				rn.reportMitigatedCorruption(cName)
-				continue
-			}
-			cName = cNameLong
-		} else if isLong == nametransform.LongNameFilename {
-			// ignore "gocryptfs.longname.*.name"
-			continue
-		}
-		name, err := rn.nameTransform.DecryptName(cName, cachedIV)
-		if err != nil {
-			tlog.Warn.Printf("OpenDir %q: invalid entry %q: %v",
-				cDirName, cName, err)
-			rn.reportMitigatedCorruption(cName)
-			continue
-		}
-		// Override the ciphertext name with the plaintext name but reuse the rest
-		// of the structure
-		cipherEntries[i].Name = name
-		plain = append(plain, cipherEntries[i])
-	}
-
-	return fs.NewListDirStream(plain), 0
 }
 
 // Rmdir - FUSE call.
