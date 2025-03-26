@@ -71,7 +71,9 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (ch 
 func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) (errno syscall.Errno) {
 	// If the kernel gives us a file handle, use it.
 	if f != nil {
-		return f.(fs.FileGetattrer).Getattr(ctx, out)
+		if fga, ok := f.(fs.FileGetattrer); ok {
+			return fga.Getattr(ctx, out)
+		}
 	}
 
 	dirfd, cName, errno := n.prepareAtSyscallMyself()
