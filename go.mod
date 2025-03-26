@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/aperturerobotics/jacobsa-crypto v1.0.2
-	github.com/hanwen/go-fuse/v2 v2.5.0
+	github.com/hanwen/go-fuse/v2 v2.7.2
 	github.com/moby/sys/mountinfo v0.6.2
 	github.com/pkg/xattr v0.4.9
 	github.com/rfjakob/eme v1.1.2
