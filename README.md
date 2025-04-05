@@ -195,6 +195,11 @@ RM:    2,367
 Changelog
 ---------
 
+#### v2.5.3, 2025-04-05
+* Fix `go install` failing with `g: malformed file path "tests/fsck/malleable_base64/27AG8t-XZH7G9ou2OSD_z\ng": invalid char '\n'`
+  ([c80558](https://github.com/rfjakob/gocryptfs/commit/c8055829c311ecaf532fd171f3a5d104f873272d))
+* Fix panic when go-fuse is newer than specified in go.mod ([#897](https://github.com/rfjakob/gocryptfs/issues/897))
+
 #### v2.5.2, 2025-03-19
 * Use our own `syscallcompat.Setreuid` (and friends) wrappers
   ([6b1ba584](https://github.com/rfjakob/gocryptfs/commit/6b1ba5846b17eec710a70cb6c6bf23e3f2024289))
