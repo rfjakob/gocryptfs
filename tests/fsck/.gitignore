@@ -1,0 +1,7 @@
+# Cannot have these "evil" files in git because they break "go install"
+# https://github.com/golang/go/issues/28001
+#
+#	"malleable_base64/27AG8t-XZH7G9ou2OSD_z\ng"
+#	"malleable_base64/27AG8t-XZH7G9ou2OSD_z\rg"
+#
+malleable_base64/27AG8t-XZH7G9ou2OSD_z?g

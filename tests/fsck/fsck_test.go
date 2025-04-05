@@ -50,6 +50,17 @@ func TestBrokenFsV14(t *testing.T) {
 }
 
 func TestMalleableBase64(t *testing.T) {
+	// Evil filenames. Cannot have them in git, because if we do,
+	//  go install github.com/rfjakob/gocryptfs/v2@latest
+	// fails with
+	//  g: malformed file path "tests/fsck/malleable_base64/27AG8t-XZH7G9ou2OSD_z\rg": invalid char '\r'
+	//  g: malformed file path "tests/fsck/malleable_base64/27AG8t-XZH7G9ou2OSD_z\rg": invalid char '\r'
+	if err := os.WriteFile("malleable_base64/27AG8t-XZH7G9ou2OSD_z\ng", nil, 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile("malleable_base64/27AG8t-XZH7G9ou2OSD_z\rg", nil, 0644); err != nil {
+		t.Fatal(err)
+	}
 	cmd := exec.Command(test_helpers.GocryptfsBinary, "-fsck", "-extpass", "echo test", "malleable_base64")
 	outBin, err := cmd.CombinedOutput()
 	out := string(outBin)
