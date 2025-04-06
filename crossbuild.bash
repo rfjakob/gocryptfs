@@ -18,6 +18,7 @@ set -eux
 export CGO_ENABLED=0
 
 GOOS=linux  GOARCH=amd64         build
+GOOS=linux  GOARCH=386           build
 
 # See https://go.dev/wiki/GoArm
 GOOS=linux  GOARCH=arm   GOARM=7 build
