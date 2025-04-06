@@ -1,5 +1,8 @@
 //go:build (linux && 386) || (linux && arm)
 
+// Linux on i386 and 32-bit ARM has SYS_SETREUID and friends returning 16-bit values.
+// We need to use SYS_SETREUID32 instead.
+
 package syscallcompat
 
 import (
