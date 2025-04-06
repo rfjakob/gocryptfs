@@ -19,7 +19,7 @@ export CGO_ENABLED=0
 
 GOOS=linux  GOARCH=amd64         build
 
-# See https://github.com/golang/go/wiki/GoArm
+# See https://go.dev/wiki/GoArm
 GOOS=linux  GOARCH=arm   GOARM=7 build
 GOOS=linux  GOARCH=arm64         build
 
