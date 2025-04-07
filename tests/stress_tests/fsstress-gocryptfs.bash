@@ -27,11 +27,11 @@ MYNAME=$(basename "$0")
 source ../fuse-unmount.bash
 
 # fsstress binary
-FSSTRESS=/opt/fuse-xfstests/ltp/fsstress
+FSSTRESS=/var/lib/xfstests/ltp/fsstress
 if [[ ! -x $FSSTRESS ]]
 then
 	echo "$MYNAME: fsstress binary not found at $FSSTRESS"
-	echo "Please clone and compile https://github.com/rfjakob/fuse-xfstests"
+	echo "Please build and \"sudo make install\" git://git.kernel.org/pub/scm/fs/xfs/xfstests-dev.git"
 	exit 1
 fi
 
@@ -62,9 +62,8 @@ if [[ $MYNAME = fsstress-loopback.bash ]]; then
 	$GOPATH/bin/loopback $OPTS "$MNT" "$DIR" &
 	disown
 elif [[ $MYNAME = fsstress-gocryptfs.bash ]]; then
-	echo "Recompile gocryptfs"
-	cd "$GOPATH/src/github.com/rfjakob/gocryptfs"
-	./build.bash # also prints the version
+	echo "$MYNAME: using gocryptfs at $GOPATH/bin/gocryptfs"
+	$GOPATH/bin/gocryptfs --version
 	$GOPATH/bin/gocryptfs -q -init -extpass "echo test" -scryptn=10 "$DIR"
 	$GOPATH/bin/gocryptfs -q -extpass "echo test" -nosyslog -fusedebug="$DEBUG" "$DIR" "$MNT"
 elif [[ $MYNAME = fsstress-encfs.bash ]]; then
