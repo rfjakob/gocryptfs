@@ -2,15 +2,16 @@
 #
 # Simplified xfstests generic/273
 #
-# Fails with
+# Used to fail with
 #
 #   cp: cannot create regular file 'sub_49/file_773': No such file or directory
 #
 # If you cannot reproduce, try running this in the background:
 #
-#   while sleep 0.1 ; do echo 3 > /proc/sys/vm/drop_caches ; done"
+#   while sleep 0.1 ; do echo 3 > /proc/sys/vm/drop_caches ; done
 #
 # See https://github.com/rfjakob/gocryptfs/issues/322 for details.
+# Fixed by https://github.com/hanwen/go-fuse/commit/d0fca860a5759d17592becfa1b8e5b1bd354b24a .
 
 if [[ -z $TMPDIR ]]; then
 	TMPDIR=/var/tmp
@@ -23,6 +24,9 @@ source ../fuse-unmount.bash
 
 # Set the GOPATH variable to the default if it is empty
 GOPATH=$(go env GOPATH)
+
+echo "$MYNAME: using gocryptfs at $GOPATH/bin/gocryptfs"
+$GOPATH/bin/gocryptfs --version
 
 # Backing directory
 DIR=$(mktemp -d "$TMPDIR/$MYNAME.XXX")
