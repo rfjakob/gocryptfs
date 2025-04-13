@@ -195,6 +195,11 @@ RM:    2,367
 Changelog
 ---------
 
+#### v2.5.4, 2025-04-13
+* Drop `GOAMD64=v2` from `build.bash`, there's user(s) still running `GOAMD64=v1` CPUs
+  ([#908](https://github.com/rfjakob/gocryptfs/issues/908),
+  [commit](https://github.com/rfjakob/gocryptfs/commit/4851c322d5ce06c559eed9e9f3cb0a5c2c72fd5e))
+
 #### v2.5.3, 2025-04-05
 * Fix `go install` failing with `g: malformed file path "tests/fsck/malleable_base64/27AG8t-XZH7G9ou2OSD_z\ng": invalid char '\n'`
   ([c80558](https://github.com/rfjakob/gocryptfs/commit/c8055829c311ecaf532fd171f3a5d104f873272d))
