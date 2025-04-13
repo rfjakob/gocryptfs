@@ -1,7 +1,8 @@
 #!/bin/bash
 #
 # Mounts two gocryptfs filesystems, "ping" and "pong" and moves the
-# linux-3.0 kernel tree back and forth between them.
+# linux-3.0 kernel tree back and forth between them, checking integrity
+# using md5sum.
 #
 # When called as "pingpong-rsync.bash" it uses "rsync --remove-source-files"
 # for moving the files, otherwise plain "mv".
@@ -28,6 +29,9 @@ mkdir "$PING.mnt" "$PONG.mnt"
 # Note: gocryptfs may have already umounted itself because bash relays SIGINT
 # Just ignore unmount errors.
 trap "set +e ; cd /tmp; fuse-unmount -z $PING.mnt ; fuse-unmount -z $PONG.mnt ; rm -rf $PING $PONG $PING.mnt $PONG.mnt" EXIT
+
+echo "$MYNAME: using gocryptfs at $(command -v gocryptfs)"
+gocryptfs --version
 
 gocryptfs -q -init -extpass="echo test" -scryptn=10 "$PING"
 gocryptfs -q -init -extpass="echo test" -scryptn=10 "$PONG"
