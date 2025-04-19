@@ -35,9 +35,9 @@ type argContainer struct {
 	// Mount options with opposites
 	dev, nodev, suid, nosuid, exec, noexec, rw, ro, kernel_cache, acl bool
 	masterkey, mountpoint, cipherdir, cpuprofile,
-	memprofile, ko, ctlsock, fsname, force_owner, trace string
+	memprofile, ko, ctlsock, fsname, force_owner, trace, context string
 	// FIDO2
-	fido2 string
+	fido2                string
 	fido2_assert_options []string
 	// -extpass, -badname, -passfile can be passed multiple times
 	extpass, badname, passfile []string
@@ -211,6 +211,7 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.StringVar(&args.force_owner, "force_owner", "", "uid:gid pair to coerce ownership")
 	flagSet.StringVar(&args.trace, "trace", "", "Write execution trace to file")
 	flagSet.StringVar(&args.fido2, "fido2", "", "Protect the masterkey using a FIDO2 token instead of a password")
+	flagSet.StringVar(&args.context, "context", "", "Set SELinux context (see mount(8) for details)")
 	flagSet.StringArrayVar(&args.fido2_assert_options, "fido2-assert-option", nil, "Options to be passed with `fido2-assert -t`")
 
 	// Exclusion options

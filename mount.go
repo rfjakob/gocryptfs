@@ -469,6 +469,9 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 	} else if args.exec {
 		opts["exec"] = ""
 	}
+	if args.context != "" {
+		opts["context"] = args.context
+	}
 	// Add additional mount options (if any) after the stock ones, so the user has
 	// a chance to override them.
 	if args.ko != "" {

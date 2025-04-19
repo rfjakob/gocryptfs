@@ -208,6 +208,16 @@ Show all invalid filenames:
 
     -badname '*'
 
+#### -context string
+Set the SELinux context. See mount(8) for details.
+
+This option was added for compatibility with xfstests which sets
+this option via `-o context="system_u:object_r:root_t:s0"`.
+
+Only works when mounting as root, otherwise you get this error from fusermount3:
+
+    fusermount3: unknown option 'context="system_u:object_r:root_t:s0"'
+
 #### -ctlsock string
 Create a control socket at the specified location. The socket can be
 used to decrypt and encrypt paths inside the filesystem. When using
