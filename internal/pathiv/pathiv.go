@@ -20,6 +20,8 @@ const (
 	PurposeSymlinkIV Purpose = "SYMLINKIV"
 	// PurposeBlock0IV means the value will be used as the IV of ciphertext block #0.
 	PurposeBlock0IV Purpose = "BLOCK0IV"
+	// PurposeXattrIV means the value will be used as a xattr IV
+	PurposeXattrIV Purpose = "XATTRIV"
 )
 
 // Derive derives an IV from an encrypted path by hashing it with sha256
