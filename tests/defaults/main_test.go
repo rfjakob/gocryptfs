@@ -529,13 +529,13 @@ func TestSeekDir(t *testing.T) {
 	defer syscall.Close(fd)
 
 	buf := make([]byte, 1000)
-	n, err := unix.Getdents(fd, buf)
+	n, err := getdents(fd, buf)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Logf("1st getdents returned %d bytes", n)
 
-	n, err = unix.Getdents(fd, buf)
+	n, err = getdents(fd, buf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -546,7 +546,7 @@ func TestSeekDir(t *testing.T) {
 		t.Error(err)
 	}
 
-	n, err = unix.Getdents(fd, buf)
+	n, err = getdents(fd, buf)
 	if err != nil {
 		t.Fatal(err)
 	}
