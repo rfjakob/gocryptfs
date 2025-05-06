@@ -50,7 +50,7 @@ type RootNode struct {
 	// makes go-fuse hand out separate FUSE Node IDs for each, and prevents
 	// bizarre problems when inode numbers are reused behind our back,
 	// like this one: https://github.com/rfjakob/gocryptfs/issues/802
-	gen uint64
+	gen atomic.Uint64
 	// rootIno is the inode number that we report for the root node on mount
 	rootIno uint64
 }
@@ -175,7 +175,7 @@ func (rn *RootNode) uniqueStableAttr(mode uint32, ino uint64) fs.StableAttr {
 		Ino:  ino,
 		// Make each directory entry a unique node by using a unique generation
 		// value. Also see the comment at RootNode.gen for details.
-		Gen: atomic.AddUint64(&rn.gen, 1),
+		Gen: rn.gen.Add(1),
 	}
 }
 

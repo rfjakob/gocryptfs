@@ -45,7 +45,7 @@ type InoMap struct {
 	// spill is used once the namespaces map is full
 	spillMap map[QIno]uint64
 	// spillNext is the next free inode number in the spill map
-	spillNext uint64
+	spillNext atomic.Uint64
 }
 
 // New returns a new InoMap.
@@ -57,8 +57,9 @@ func New(rootDev uint64) *InoMap {
 		namespaceMap:  make(map[namespaceData]uint16),
 		namespaceNext: 0,
 		spillMap:      make(map[QIno]uint64),
-		spillNext:     spillSpaceStart,
 	}
+	m.spillNext.Store(spillSpaceStart)
+
 	if rootDev > 0 {
 		// Reserve namespace 0 for rootDev
 		m.namespaceMap[namespaceData{rootDev, 0}] = 0
@@ -74,10 +75,10 @@ var spillWarn sync.Once
 // Reverse mode NextSpillIno() for gocryptfs.longname.*.name files where a stable
 // mapping is not needed.
 func (m *InoMap) NextSpillIno() (out uint64) {
-	if m.spillNext == math.MaxUint64 {
-		log.Panicf("spillMap overflow: spillNext = 0x%x", m.spillNext)
+	if m.spillNext.Load() == math.MaxUint64 {
+		log.Panicf("spillMap overflow: spillNext = 0x%x", m.spillNext.Load())
 	}
-	return atomic.AddUint64(&m.spillNext, 1) - 1
+	return m.spillNext.Add(1) - 1
 }
 
 func (m *InoMap) spill(in QIno) (out uint64) {

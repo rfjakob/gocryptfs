@@ -29,7 +29,7 @@ type table struct {
 	// The variable is accessed without holding any locks so atomic operations
 	// must be used. It must be the first element of the struct to guarantee
 	// 64-bit alignment.
-	writeOpCount uint64
+	writeOpCount atomic.Uint64
 	// Protects map access
 	sync.Mutex
 	// Table entries
@@ -85,13 +85,13 @@ type countingMutex struct {
 
 func (c *countingMutex) Lock() {
 	c.RWMutex.Lock()
-	atomic.AddUint64(&t.writeOpCount, 1)
+	t.writeOpCount.Add(1)
 }
 
 // WriteOpCount returns the write lock counter value. This value is incremented
 // each time writeLock.Lock() on a file table entry is called.
 func WriteOpCount() uint64 {
-	return atomic.LoadUint64(&t.writeOpCount)
+	return t.writeOpCount.Load()
 }
 
 // CountOpenFiles returns how many entries are currently in the table

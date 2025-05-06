@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -55,7 +56,7 @@ type RootNode struct {
 	// This makes each directory entry unique (even hard links),
 	// makes go-fuse hand out separate FUSE Node IDs for each, and prevents
 	// bizarre problems when inode numbers are reused behind our back.
-	gen uint64
+	gen atomic.Uint64
 	// quirks is a bitmap that enables workaround for quirks in the filesystem
 	// backing the cipherdir
 	quirks uint64
