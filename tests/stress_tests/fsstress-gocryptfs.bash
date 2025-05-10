@@ -83,7 +83,7 @@ done
 echo " ok: $MNT"
 
 # Cleanup trap
-trap "kill %1 ; cd / ; fuse-unmount -z $MNT ; rm -rf $DIR $MNT" EXIT
+trap "echo ' cleaning up...' ; kill %1 ; cd / ; fuse-unmount -z $MNT ; rm -rf $DIR $MNT" EXIT
 
 echo "Starting fsstress loop"
 N=1
