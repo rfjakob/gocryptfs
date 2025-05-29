@@ -45,7 +45,7 @@ type RootNode struct {
 	// (uint32 so that it can be reset with CompareAndSwapUint32).
 	// When -idle was used when mounting, idleMonitor() sets it to 1
 	// periodically.
-	IsIdle uint32
+	IsIdle atomic.Bool
 	// dirCache caches directory fds
 	dirCache dirCache
 	// inoMap translates inode numbers from different devices to unique inode

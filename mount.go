@@ -13,7 +13,6 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strings"
-	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -181,7 +180,7 @@ func idleMonitor(idleTimeout time.Duration, fs *fusefrontend.RootNode, srv *fuse
 	}
 	for {
 		// Atomically check whether the flag is 0 and reset it to 1 if so.
-		isIdle := !atomic.CompareAndSwapUint32(&fs.IsIdle, 0, 1)
+		isIdle := !fs.IsIdle.CompareAndSwap(false, true)
 		// Any form of current or recent access resets the idle counter.
 		openFileCount := openfiletable.CountOpenFiles()
 		if !isIdle || openFileCount > 0 {

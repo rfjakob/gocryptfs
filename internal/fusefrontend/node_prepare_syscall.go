@@ -1,7 +1,6 @@
 package fusefrontend
 
 import (
-	"sync/atomic"
 	"syscall"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
@@ -24,7 +23,7 @@ func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno sy
 
 	// All filesystem operations go through here, so this is a good place
 	// to reset the idle marker.
-	atomic.StoreUint32(&rn.IsIdle, 0)
+	rn.IsIdle.Store(false)
 
 	if n.IsRoot() && rn.isFiltered(child) {
 		return -1, "", syscall.EPERM
