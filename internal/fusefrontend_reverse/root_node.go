@@ -182,3 +182,38 @@ func (rn *RootNode) uniqueStableAttr(mode uint32, ino uint64) fs.StableAttr {
 func (rn *RootNode) RootIno() uint64 {
 	return rn.rootIno
 }
+
+// encryptXattrValue encrypts the xattr value "data".
+// The data is encrypted like a file content block, but without binding it to
+// a file location (block number and file id are set to zero).
+// Special case: an empty value is encrypted to an empty value.
+func (rn *RootNode) encryptXattrValue(data []byte, nonce []byte) (cData []byte) {
+	if len(data) == 0 {
+		return []byte{}
+	}
+	return rn.contentEnc.EncryptBlockNonce(data, 0, nil, nonce)
+}
+
+// encryptXattrName transforms "user.foo" to "user.gocryptfs.a5sAd4XAa47f5as6dAf"
+func (rn *RootNode) encryptXattrName(attr string) (string, error) {
+	// xattr names are encrypted like file names, but with a fixed IV.
+	cAttr, err := rn.nameTransform.EncryptXattrName(attr)
+	if err != nil {
+		return "", err
+	}
+	return xattrStorePrefix + cAttr, nil
+}
+
+func (rn *RootNode) decryptXattrName(cAttr string) (attr string, err error) {
+	// Reject anything that does not start with "user.gocryptfs."
+	if !strings.HasPrefix(cAttr, xattrStorePrefix) {
+		return "", syscall.EINVAL
+	}
+	// Strip "user.gocryptfs." prefix
+	cAttr = cAttr[len(xattrStorePrefix):]
+	attr, err = rn.nameTransform.DecryptXattrName(cAttr)
+	if err != nil {
+		return "", err
+	}
+	return attr, nil
+}
