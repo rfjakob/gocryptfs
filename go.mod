@@ -3,7 +3,7 @@ module github.com/rfjakob/gocryptfs/v2
 go 1.19
 
 require (
-	github.com/aperturerobotics/jacobsa-crypto v1.0.2
+	github.com/aperturerobotics/jacobsa-crypto v1.1.0
 	github.com/hanwen/go-fuse/v2 v2.7.3-0.20250306214706-e3463465126a
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/pkg/xattr v0.4.9

@@ -1,5 +1,5 @@
-github.com/aperturerobotics/jacobsa-crypto v1.0.2 h1:tNvVy1rev9FagnOyBmTcI6d23FfNceG9IujZROTRtlc=
-github.com/aperturerobotics/jacobsa-crypto v1.0.2/go.mod h1:buWU1iY+FjIcfpb1aYfFJZfl07WlS7O30lTyC2iwjv8=
+github.com/aperturerobotics/jacobsa-crypto v1.1.0 h1:0hig54FMzU80OHrqSfqmj/W8HydRymVdz2K6D9Guffs=
+github.com/aperturerobotics/jacobsa-crypto v1.1.0/go.mod h1:buWU1iY+FjIcfpb1aYfFJZfl07WlS7O30lTyC2iwjv8=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/hanwen/go-fuse/v2 v2.7.3-0.20250306214706-e3463465126a h1:Q+A/Qcj02oRubB/7+18SGNxAG/GtnoXxf0UKRJ2/ZE4=
