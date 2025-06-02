@@ -50,8 +50,14 @@ of macOS support but please create a new ticket if you hit a problem.
 For Windows, an independent C++ reimplementation can be found here:
 [cppcryptfs](https://github.com/bailey27/cppcryptfs)
 
-A standalone Python tool that can decrypt files & file names is here:
+Standalone tools:
+
 [gocryptfs-inspect](https://github.com/slackner/gocryptfs-inspect)
+is Python tool that can decrypt files & file names without
+using FUSE.
+
+[gocryptfs-create-folder](https://codeberg.org/LGLQ/gocryptfs-create-folder)
+is a Python tool can encrypt a directory without using FUSE.
 
 Installation
 ------------
