@@ -379,3 +379,39 @@ func TestOverlay(t *testing.T) {
 	}
 	defer syscall.Unmount(ovlMnt, 0)
 }
+
+// Check that mkdir and file create works with force_owner and runnung as root
+// https://github.com/rfjakob/gocryptfs/issues/783
+func TestRootForceOwner(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skip("must run as root")
+	}
+	cDir := test_helpers.InitFS(t)
+	pDir := cDir + ".mnt"
+	test_helpers.MountOrFatal(t, cDir, pDir, "-allow_other", "-extpass=echo test", "-force_owner=1234:1234")
+	defer test_helpers.UnmountPanic(pDir)
+
+	err := asUser(1234, 1234, nil, func() error {
+		return os.Mkdir(pDir+"/dir1", 0700)
+	})
+	if err != nil {
+		t.Error(err)
+	}
+	err = asUser(1234, 1234, nil, func() error {
+		f, err := os.Create(pDir + "/file1")
+		if err == nil {
+			f.Close()
+		}
+		return err
+	})
+	if err != nil {
+		t.Error(err)
+	}
+	err = asUser(1234, 1234, nil, func() error {
+		sock := pDir + "/sock"
+		return syscall.Mknod(sock, syscall.S_IFSOCK|0600, 0)
+	})
+	if err != nil {
+		t.Errorf("mknod: %v", err)
+	}
+}
