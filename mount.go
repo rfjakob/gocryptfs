@@ -315,9 +315,13 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 			}
 		}
 	}
-	// If allow_other is set and we run as root, try to give newly created files to
-	// the right user.
-	if args.allow_other && os.Getuid() == 0 {
+	// If allow_other is set and we run as root, create files as the accessing
+	// user.
+	// Except when -force_owner is set, because in this case the user may
+	// not have write permissions. And the point of -force_owner is to map uids,
+	// so we want the files on the backing dir to get the uid the gocryptfs process
+	// is running as.
+	if args.allow_other && os.Getuid() == 0 && args._forceOwner == nil {
 		frontendArgs.PreserveOwner = true
 	}
 
