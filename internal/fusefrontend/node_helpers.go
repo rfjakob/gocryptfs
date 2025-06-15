@@ -95,7 +95,7 @@ func (n *Node) newChild(ctx context.Context, st *syscall.Stat_t, out *fuse.Entry
 
 	// Create child node
 	id := fs.StableAttr{
-		Mode: uint32(st.Mode),
+		Mode: uint32(st.Mode), // go-fuse masks this with syscall.S_IFMT
 		Gen:  gen,
 		Ino:  st.Ino,
 	}
