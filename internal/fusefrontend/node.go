@@ -75,26 +75,50 @@ func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) 
 			return fga.Getattr(ctx, out)
 		}
 	}
+	rn := n.rootNode()
+	var st *syscall.Stat_t
+	var err error
 
 	dirfd, cName, errno := n.prepareAtSyscallMyself()
+	// Hack for deleted fifos. As OPEN on a fifo does not reach
+	// the filesystem, we have no fd to access it. To make "cat" and git's
+	// t9300-fast-import.sh happy, we fake it as best as we can.
+	// https://github.com/rfjakob/gocryptfs/issues/929
+	if errno == syscall.ENOENT && n.StableAttr().Mode == syscall.S_IFIFO {
+		out.Mode = syscall.S_IFIFO
+		out.Ino = n.StableAttr().Ino
+		// cat looks at this to determine the optimal io size. Seems to be always 4096 for fifos.
+		out.Blksize = 4096
+		// We don't know what the owner was. Set it to nobody which seems safer
+		// than leaving it at 0 (root).
+		out.Owner.Gid = 65534
+		out.Owner.Uid = 65534
+		// All the other fields stay 0. This is what cat sees (strace -v log):
+		//
+		// fstat(1, {st_dev=makedev(0, 0x4d), st_ino=3838227, st_mode=S_IFIFO|000, st_nlink=0,
+		// st_uid=65534, st_gid=65534, st_blksize=4096, st_blocks=0, st_size=0, st_atime=0,
+		// st_atime_nsec=0, st_mtime=0, st_mtime_nsec=0, st_ctime=0, st_ctime_nsec=0}) = 0
+		goto out
+	}
 	if errno != 0 {
 		return
 	}
+
 	defer syscall.Close(dirfd)
 
-	st, err := syscallcompat.Fstatat2(dirfd, cName, unix.AT_SYMLINK_NOFOLLOW)
+	st, err = syscallcompat.Fstatat2(dirfd, cName, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		return fs.ToErrno(err)
 	}
 
 	// Fix inode number
-	rn := n.rootNode()
 	rn.inoMap.TranslateStat(st)
 	out.Attr.FromStat(st)
 
 	// Translate ciphertext size in `out.Attr.Size` to plaintext size
 	n.translateSize(dirfd, cName, &out.Attr)
 
+out:
 	if rn.args.ForceOwner != nil {
 		out.Owner = *rn.args.ForceOwner
 	}
