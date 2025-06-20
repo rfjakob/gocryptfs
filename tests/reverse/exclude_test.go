@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/v2/ctlsock"
@@ -193,6 +194,98 @@ func TestExcludeAllOnlyDir1(t *testing.T) {
 		"longdir2" + x240 + "/bkp~",
 		"longfile2" + x240,
 		"longfile3" + x240,
+	}
+	doTestExcludeTestFs(t, "-exclude-wildcard", patterns, tree)
+}
+
+// Test that the "exclude everything except" example
+// from https://git-scm.com/docs/gitignore works
+// (copied below):
+//
+//	$ cat .gitignore
+//	# exclude everything except directory foo/bar
+//	/*
+//	!/foo
+//	/foo/*
+//	!/foo/bar
+func TestGitignoreExampleExcludeEverythingExcept(t *testing.T) {
+	// --exclude-wildcard patterns, gitignore syntax
+	patterns := []string{
+		"/*",
+		"!/foo",
+		"/foo/*",
+		"!/foo/bar",
+	}
+	var tree directoryTree
+	// visible are plaintext paths that should be visible in the encrypted view
+	tree.visibleDirs = []string{
+		"foo",
+		"foo/bar",
+	}
+	tree.visibleFiles = []string{}
+	// hidden are plaintext paths that should be hidden in the encrypted view
+	tree.hiddenDirs = []string{
+		"baz",
+	}
+	tree.hiddenFiles = []string{
+		"boing",
+	}
+	doTestExcludeTestFs(t, "-exclude-wildcard", patterns, tree)
+}
+
+// Issue https://github.com/rfjakob/gocryptfs/issues/927
+//
+// Patterns ending with "/" are not handled correctly by
+// https://github.com/sabhiram/go-gitignore
+func TestIssue927(t *testing.T) {
+	patterns := strings.Split(`
+/*
+.gitignore
+.config/**
+!.config/
+.config/conky/*
+!.config/conky/
+!.config/conky/conkyrc
+
+.config/geany/*
+!.config/geany/
+.config/geany/colorschemes/*
+!.config/geany/colorschemes/
+!.config/geany/colorschemes/dark3.conf
+
+/.config/mpv/*
+!/.config/mpv/
+!/.config/mpv/config
+!/.config/mpv/scripts/
+!/.config/mpv/scripts/*
+.config/mpv/scripts/sub.lua
+!/.config/mpv/script-opts/
+!/.config/mpv/script-opts/*
+!/.config/mpv/input.conf
+`, "\n")
+	var tree directoryTree
+	// visible are plaintext paths that should be visible in the encrypted view
+	tree.visibleDirs = []string{
+		".config",
+		".config/conky",
+	}
+	tree.visibleFiles = []string{
+		".config/conky/conkyrc",
+		".config/geany/colorschemes/dark3.conf",
+		".config/mpv/input.conf",
+		".config/mpv/script-opts/hello",
+	}
+	// hidden are plaintext paths that should be hidden in the encrypted view
+	tree.hiddenDirs = []string{
+		"ddd",
+		".config/conky/ddd",
+	}
+	tree.hiddenFiles = []string{
+		"fff",
+		".config/conky/fff",
+		".config/geany/colorschemes/fff",
+		".config/mpv/fff",
+		".config/mpv/scripts/sub.lua",
 	}
 	doTestExcludeTestFs(t, "-exclude-wildcard", patterns, tree)
 }

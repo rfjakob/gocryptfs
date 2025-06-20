@@ -39,8 +39,8 @@ func TestMain(m *testing.M) {
 		plaintextnames      bool
 		deterministic_names bool
 	}{
-		{false, false},
 		{true, false},
+		{false, false},
 		{false, true},
 	}
 	for i, tc := range testcases {
