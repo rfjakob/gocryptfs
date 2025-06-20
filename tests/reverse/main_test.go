@@ -2,7 +2,9 @@ package reverse_test
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
+	"log"
 	"os"
 	"testing"
 
@@ -31,6 +33,8 @@ var dirC string
 func TestMain(m *testing.M) {
 	var r int
 
+	flag.Parse()
+
 	testcases := []struct {
 		plaintextnames      bool
 		deterministic_names bool
@@ -42,6 +46,9 @@ func TestMain(m *testing.M) {
 	for i, tc := range testcases {
 		// Fill the global vars
 		plaintextnames, deterministic_names = tc.plaintextnames, tc.deterministic_names
+		if testing.Verbose() {
+			log.Printf("TestMain: plaintextnames=%v deterministic_names=%v", plaintextnames, deterministic_names)
+		}
 
 		dirA, dirB, _ = newReverseFS(nil)
 		dirC = test_helpers.TmpDir + "/c"
@@ -79,5 +86,9 @@ func newReverseFS(extraMountArgs []string) (backingDir, mntDir, ctlsockPath stri
 	mountArgs := []string{"-reverse", "-extpass", "echo test", "-ctlsock", ctlsockPath}
 	mountArgs = append(mountArgs, extraMountArgs...)
 	test_helpers.MountOrExit(backingDir, mntDir, mountArgs...)
+
+	if testing.Verbose() {
+		log.Printf("newReverseFS: mounted %q on %q", backingDir, mntDir)
+	}
 	return
 }
