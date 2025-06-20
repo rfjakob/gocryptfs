@@ -1,7 +1,8 @@
 package reverse_test
 
 import (
-	"io/ioutil"
+	"log"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -19,27 +20,22 @@ func ctlsockEncryptPath(t *testing.T, sock string, path string) string {
 	return response.Result
 }
 
-// doTestExcludeTestFs runs exclude tests against the exclude_test_fs folder
-func doTestExcludeTestFs(t *testing.T, flag string, patterns, visible, hidden []string) {
-	// Mount reverse fs
-	mnt, err := ioutil.TempDir(test_helpers.TmpDir, t.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-	sock := mnt + ".sock"
-	cliArgs := []string{"-reverse", "-extpass", "echo test", "-ctlsock", sock}
+// doTestExcludeTestFs runs exclude tests against the exclude_test_fs folder.
+// flag is either "--exclude-wildcard" or "--exclude"
+func doTestExcludeTestFs(t *testing.T, flag string, patterns []string, tree directoryTree) {
+	var extraArgs []string
 	for _, v := range patterns {
-		cliArgs = append(cliArgs, flag, v)
+		extraArgs = append(extraArgs, flag, v)
 	}
-	if plaintextnames {
-		cliArgs = append(cliArgs, "-config", "exclude_test_fs/.gocryptfs.reverse.conf.plaintextnames")
-	}
-	test_helpers.MountOrFatal(t, "exclude_test_fs", mnt, cliArgs...)
+	// Mount reverse fs
+	backingDir, mnt, sock := newReverseFS(extraArgs)
 	defer test_helpers.UnmountPanic(mnt)
 
+	tree.createOnDisk(backingDir)
+
 	// Get encrypted version of visible and hidden paths
-	cVisible := encryptExcludeTestPaths(t, sock, visible)
-	cHidden := encryptExcludeTestPaths(t, sock, hidden)
+	cVisible := encryptExcludeTestPaths(t, sock, tree.visible())
+	cHidden := encryptExcludeTestPaths(t, sock, tree.hidden())
 
 	// Check that hidden paths are not there and visible paths are there
 	for _, v := range cHidden {
@@ -74,6 +70,44 @@ func encryptExcludeTestPaths(t *testing.T, socket string, pRelPaths []string) (o
 	return out
 }
 
+type directoryTree struct {
+	visibleFiles []string
+	visibleDirs  []string
+	hiddenFiles  []string
+	hiddenDirs   []string
+}
+
+func (tr *directoryTree) visible() []string {
+	return append(tr.visibleDirs, tr.visibleFiles...)
+}
+
+func (tr *directoryTree) hidden() []string {
+	return append(tr.hiddenDirs, tr.hiddenFiles...)
+}
+
+func (tr *directoryTree) createOnDisk(baseDir string) {
+	dirs := append(tr.hiddenDirs, tr.visibleDirs...)
+	for _, d := range dirs {
+		err := os.MkdirAll(baseDir+"/"+d, 0700)
+		if err != nil {
+			log.Panic(err)
+		}
+	}
+
+	files := append(tr.hiddenFiles, tr.visibleFiles...)
+	for _, f := range files {
+		d := filepath.Dir(f)
+		err := os.MkdirAll(baseDir+"/"+d, 0700)
+		if err != nil {
+			log.Panic(err)
+		}
+		err = os.WriteFile(baseDir+"/"+f, nil, 0600)
+		if err != nil {
+			log.Panic(err)
+		}
+	}
+}
+
 // TestExcludeTestFs runs exclude tests against the exclude_test_fs folder.
 func TestExcludeTestFs(t *testing.T) {
 	// --exclude-wildcard patterns, gitignore syntax
@@ -90,19 +124,22 @@ func TestExcludeTestFs(t *testing.T) {
 		"dir1/**/exclude",             // ** matches any number of directories
 		"file3/",                      // pattern with trailing slash should not match a file
 	}
+	var tree directoryTree
 	// visible are plaintext paths that should be visible in the encrypted view
-	visible := []string{
+	tree.visibleFiles = []string{
 		"file2",
 		"dir1/longfile1" + x240,
 		"dir1/longfile3" + x240,
-		"longdir1" + x240,
 		"longdir1" + x240 + "/file1",
 		"longdir2" + x240 + "/file",
 		"longfile1" + x240,
 		"file3",
 	}
+	tree.visibleDirs = []string{
+		"longdir1" + x240,
+	}
 	// hidden are plaintext paths that should be hidden in the encrypted view
-	hidden := []string{
+	tree.hiddenFiles = []string{
 		"bkp1~",
 		"dir1/file1",
 		"dir1/file2",
@@ -111,20 +148,21 @@ func TestExcludeTestFs(t *testing.T) {
 		"dir1/longfile2" + x240,
 		"dir1/subdir1/exclude",
 		"dir1/subdir1/subdir2/exclude",
-		"dir2",
 		"dir2/file",
 		"dir2/longdir1" + x240 + "/file",
 		"dir2/longfile." + x240,
-		"dir2/subdir",
 		"dir2/subdir/file",
 		"file1",
 		"longdir2" + x240 + "/bkp~",
 		"longfile2" + x240,
 		"longfile3" + x240,
 	}
-
-	doTestExcludeTestFs(t, "-exclude-wildcard", patterns, visible, hidden)
-	doTestExcludeTestFs(t, "-ew", patterns, visible, hidden)
+	tree.hiddenDirs = []string{
+		"dir2",
+		"dir2/subdir",
+	}
+	doTestExcludeTestFs(t, "-exclude-wildcard", patterns, tree)
+	doTestExcludeTestFs(t, "-ew", patterns, tree)
 }
 
 // Exclude everything using "/*", then selectively include only dir1 using "!/dir1"
@@ -135,23 +173,28 @@ func TestExcludeAllOnlyDir1(t *testing.T) {
 		"*",
 		"!/dir1",
 	}
+	var tree directoryTree
 	// visible are plaintext paths that should be visible in the encrypted view
-	visible := []string{
+	tree.visibleDirs = []string{
 		"dir1",
+	}
+	tree.visibleFiles = []string{
 		"dir1/file1",
 	}
 	// hidden are plaintext paths that should be hidden in the encrypted view
-	hidden := []string{
+	tree.hiddenDirs = []string{
 		"dir2",
+		"dir2/subdir",
+	}
+	tree.hiddenFiles = []string{
 		"dir2/file",
 		"dir2/longdir1" + x240 + "/file",
 		"dir2/longfile." + x240,
-		"dir2/subdir",
 		"dir2/subdir/file",
 		"file1",
 		"longdir2" + x240 + "/bkp~",
 		"longfile2" + x240,
 		"longfile3" + x240,
 	}
-	doTestExcludeTestFs(t, "-exclude-wildcard", patterns, visible, hidden)
+	doTestExcludeTestFs(t, "-exclude-wildcard", patterns, tree)
 }
