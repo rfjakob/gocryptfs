@@ -62,6 +62,10 @@ func (n *Node) Lookup(ctx context.Context, cName string, out *fuse.EntryOut) (ch
 	if err != nil {
 		return nil, fs.ToErrno(err)
 	}
+	if rn.isExcludedMode(d.pPath, st.Mode) {
+		tlog.Debug.Printf("Lookup: %q is excluded. Returning EPERM.", d.cPath)
+		return nil, syscall.EPERM
+	}
 	// Create new inode and fill `out`
 	ch = n.newChild(ctx, st, out)
 	// Translate ciphertext size in `out.Attr.Size` to plaintext size

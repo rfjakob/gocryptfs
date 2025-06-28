@@ -109,10 +109,6 @@ func (rn *RootNode) openBackingDir(cPath string) (dirfd int, pPath string, err e
 	if err != nil {
 		return
 	}
-	if rn.isExcludedPlain(pPath) {
-		err = syscall.EPERM
-		return
-	}
 	// Open directory, safe against symlink races
 	pDir := filepath.Dir(pPath)
 	dirfd, err = syscallcompat.OpenDirNofollow(rn.args.Cipherdir, pDir)

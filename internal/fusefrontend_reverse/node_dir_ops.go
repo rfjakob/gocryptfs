@@ -59,8 +59,8 @@ func (n *Node) Readdir(ctx context.Context) (stream fs.DirStream, errno syscall.
 		return n.readdirPlaintextnames(entries)
 	}
 
-	dirIV := rn.deriveDirIV(d.cPath)
 	// Encrypt names
+	dirIV := rn.deriveDirIV(d.cPath)
 	for i := range entries {
 		var cName string
 		// ".gocryptfs.reverse.conf" in the root directory is mapped to "gocryptfs.conf"

@@ -14,6 +14,7 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/configfile"
 	"github.com/rfjakob/gocryptfs/v2/internal/pathiv"
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
+	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
 const (
@@ -113,6 +114,7 @@ func (n *Node) isRoot() bool {
 	return &rn.Node == n
 }
 
+// lookupLongnameName is called by Lookup for gocryptfs.longname.XYZ.name files
 func (n *Node) lookupLongnameName(ctx context.Context, nameFile string, out *fuse.EntryOut) (ch *fs.Inode, errno syscall.Errno) {
 	d, errno := n.prepareAtSyscall("")
 	if errno != 0 {
@@ -134,15 +136,15 @@ func (n *Node) lookupLongnameName(ctx context.Context, nameFile string, out *fus
 	if errno != 0 {
 		return
 	}
-	if rn.isExcludedPlain(filepath.Join(d.cPath, pName)) {
-		errno = syscall.EPERM
-		return
-	}
 	// Get attrs from parent file
 	st, err := syscallcompat.Fstatat2(fd, pName, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		errno = fs.ToErrno(err)
 		return
+	}
+	if rn.isExcludedMode(filepath.Join(d.pPath, pName), st.Mode) {
+		tlog.Debug.Printf("lookupLongnameName: %q is excluded. Returning EPERM.", d.cPath)
+		return nil, syscall.EPERM
 	}
 	var vf *VirtualMemNode
 	vf, errno = n.newVirtualMemNode([]byte(cFullname), st, inoTagNameFile)
@@ -190,6 +192,10 @@ func (n *Node) lookupDiriv(ctx context.Context, out *fuse.EntryOut) (ch *fs.Inod
 // lookupConf returns a new Inode for the gocryptfs.conf file
 func (n *Node) lookupConf(ctx context.Context, out *fuse.EntryOut) (ch *fs.Inode, errno syscall.Errno) {
 	rn := n.rootNode()
+	if rn.isExcludedMode(configfile.ConfReverseName, syscall.S_IFREG) {
+		tlog.Debug.Printf("lookupConf: file %q is excluded. Returning EPERM.", configfile.ConfDefaultName)
+		return nil, syscall.EPERM
+	}
 	p := filepath.Join(rn.args.Cipherdir, configfile.ConfReverseName)
 	var st syscall.Stat_t
 	err := syscall.Stat(p, &st)

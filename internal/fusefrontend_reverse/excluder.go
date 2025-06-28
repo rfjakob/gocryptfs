@@ -9,17 +9,23 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/fusefrontend"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 
-	"github.com/sabhiram/go-gitignore"
+	gitignore "github.com/rfjakob/gocryptfs/v2/internal/go-git-gitignore"
 )
 
 // prepareExcluder creates an object to check if paths are excluded
 // based on the patterns specified in the command line.
-func prepareExcluder(args fusefrontend.Args) *ignore.GitIgnore {
-	patterns := getExclusionPatterns(args)
-	if len(patterns) == 0 {
-		log.Panic(patterns)
+func prepareExcluder(args fusefrontend.Args) gitignore.Matcher {
+	lines := getExclusionPatterns(args)
+	if len(lines) == 0 {
+		log.Panic(lines)
 	}
-	return ignore.CompileIgnoreLines(patterns...)
+
+	var patterns []gitignore.Pattern
+	for _, l := range lines {
+		patterns = append(patterns, gitignore.ParsePattern(l, nil))
+	}
+
+	return gitignore.NewMatcher(patterns)
 }
 
 // getExclusionPatters prepares a list of patterns to be excluded.

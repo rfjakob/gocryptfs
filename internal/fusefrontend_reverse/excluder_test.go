@@ -3,6 +3,7 @@ package fusefrontend_reverse
 import (
 	"os"
 	"reflect"
+	"syscall"
 	"testing"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/fusefrontend"
@@ -59,7 +60,8 @@ func TestShouldReadExcludePatternsFromFiles(t *testing.T) {
 
 func TestShouldReturnFalseIfThereAreNoExclusions(t *testing.T) {
 	var rfs RootNode
-	if rfs.isExcludedPlain("any/path") {
+	if rfs.isExcludedMode("any/path", syscall.S_IFREG) {
 		t.Error("Should not exclude any path if no exclusions were specified")
+		// Also should not panic
 	}
 }

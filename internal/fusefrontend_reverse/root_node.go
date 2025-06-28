@@ -16,12 +16,11 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/v2/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/v2/internal/fusefrontend"
+	gitignore "github.com/rfjakob/gocryptfs/v2/internal/go-git-gitignore"
 	"github.com/rfjakob/gocryptfs/v2/internal/inomap"
 	"github.com/rfjakob/gocryptfs/v2/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
-
-	ignore "github.com/sabhiram/go-gitignore"
 )
 
 // RootNode is the root directory in a `gocryptfs -reverse` mount
@@ -34,7 +33,7 @@ type RootNode struct {
 	// Content encryption helper
 	contentEnc *contentenc.ContentEnc
 	// Tests whether a path is excluded (hidden) from the user. Used by -exclude.
-	excluder ignore.IgnoreParser
+	excluder gitignore.Matcher
 	// inoMap translates inode numbers from different devices to unique inode
 	// numbers.
 	inoMap *inomap.InoMap
@@ -132,14 +131,18 @@ func (rn *RootNode) findLongnameParent(fd int, diriv []byte, longname string) (p
 	return
 }
 
-// isExcludedPlain finds out if the plaintext path "pPath" is
-// excluded (used when -exclude is passed by the user).
-func (rn *RootNode) isExcludedPlain(pPath string) bool {
+// isExcludedSt finds out if the plaintext path "pPath" with the stat result
+// "st.Mode" is excluded (used when -exclude is passed by the user).
+func (rn *RootNode) isExcludedMode(pPath string, mode uint32) bool {
 	// root dir can't be excluded
 	if pPath == "" {
 		return false
 	}
-	return rn.excluder != nil && rn.excluder.MatchesPath(pPath)
+	if rn.excluder == nil {
+		return false
+	}
+	isDir := mode&syscall.S_IFDIR != 0
+	return rn.excluder.Match(strings.Split(pPath, "/"), isDir)
 }
 
 // excludeDirEntries filters out directory entries that are "-exclude"d.
@@ -154,8 +157,9 @@ func (rn *RootNode) excludeDirEntries(d *dirfdPlus, entries []fuse.DirEntry) (fi
 		// filepath.Join handles the case of pDir="" correctly:
 		// Join("", "foo") -> "foo". This does not: pDir + "/" + name"
 		p := filepath.Join(d.pPath, entry.Name)
-		if rn.isExcludedPlain(p) {
-			// Skip file
+		if rn.isExcludedMode(p, entry.Mode) {
+			// Skip file, and don't leak the plaintext name in the logs.
+			tlog.Debug.Printf("excludeDirEntries: ino%d is excluded. Skipping.", entry.Ino)
 			continue
 		}
 		filtered = append(filtered, entry)
