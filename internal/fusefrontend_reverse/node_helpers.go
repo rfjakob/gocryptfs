@@ -24,7 +24,6 @@ const (
 	// * base64(192 bytes) = 256 bytes (over 255!)
 	// But the PKCS#7 padding is at least one byte. This means we can only use
 	// 175 bytes for the file name.
-	shortNameMax = 175
 )
 
 // translateSize translates the ciphertext size in `out` into plaintext size.
