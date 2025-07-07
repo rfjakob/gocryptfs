@@ -112,13 +112,13 @@ fi
 # Both syscall.Setreuid etc (since 2020, https://github.com/golang/go/commit/d1b1145cace8b968307f9311ff611e4bb810710c)
 # and unix.Setreuid etc (since 2022, https://github.com/golang/sys/commit/d0df966e6959f00dc1c74363e537872647352d51)
 # affect the whole process, not only the current thread, which is what we do NOT want.
-if find . -type f -name \*.go -print0 | xargs -0 grep -v -E '^//' |
+if find . ! -path "./vendor/*" -type f -name \*.go -print0 | xargs -0 grep -v -E '^//' |
 	grep -E '(syscall|unix).(Setegid|Seteuid|Setgroups|Setgid|Setregid|Setreuid|Setresgid|Setresuid|Setuid)\(' ; then
 	echo "$MYNAME: This affects the whole process. Please use the syscallcompat wrappers instead."
 	exit 1
 fi
 
-if find . -type f -name \*.go -print0 | xargs -0 grep '\.Creat('; then
+if find . ! -path "./vendor/*" -type f -name \*.go -print0 | xargs -0 grep '\.Creat('; then
 	# MacOS does not have syscall.Creat(). Creat() is equivalent to Open(..., O_CREAT|O_WRONLY|O_TRUNC, ...),
 	# but usually you want O_EXCL instead of O_TRUNC because it is safer, so that's what we suggest
 	# instead.
