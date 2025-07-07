@@ -282,10 +282,27 @@ func TestIssue927(t *testing.T) {
 	}
 	tree.hiddenFiles = []string{
 		"fff",
-		".config/conky/fff",
+		".config/conky/xxx",
 		".config/geany/colorschemes/fff",
 		".config/mpv/fff",
 		".config/mpv/scripts/sub.lua",
+	}
+	doTestExcludeTestFs(t, "-exclude-wildcard", patterns, tree)
+}
+
+func TestIssue927Minimal(t *testing.T) {
+	patterns := strings.Split(`dir/*
+!dir/`, "\n")
+	var tree directoryTree
+	// visible are plaintext paths that should be visible in the encrypted view
+	tree.visibleDirs = []string{
+		"dir",
+	}
+	tree.visibleFiles = []string{}
+	// hidden are plaintext paths that should be hidden in the encrypted view
+	tree.hiddenDirs = []string{}
+	tree.hiddenFiles = []string{
+		"dir/zzz",
 	}
 	doTestExcludeTestFs(t, "-exclude-wildcard", patterns, tree)
 }
