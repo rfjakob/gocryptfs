@@ -21,10 +21,10 @@ func newTestFS(args Args) *RootNode {
 	cEnc := contentenc.New(cCore, contentenc.DefaultBS)
 	n := nametransform.New(cCore.EMECipher, true, 0, true, nil, false)
 	rn := NewRootNode(args, cEnc, n)
-	oneSec := time.Second
+	oneSecond := time.Second
 	options := &fs.Options{
-		EntryTimeout: &oneSec,
-		AttrTimeout:  &oneSec,
+		EntryTimeout: &oneSecond,
+		AttrTimeout:  &oneSecond,
 	}
 	fs.NewNodeFS(rn, options)
 	return rn

@@ -16,10 +16,7 @@ func xattrSupported(path string) bool {
 		return true
 	}
 	err2 := err.(*xattr.Error)
-	if err2.Err == syscall.EOPNOTSUPP {
-		return false
-	}
-	return true
+	return err2.Err != syscall.EOPNOTSUPP
 }
 
 func TestXattrList(t *testing.T) {

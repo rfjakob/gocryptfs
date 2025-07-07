@@ -124,8 +124,16 @@ func LsetxattrUser(path string, attr string, data []byte, flags int, context *fu
 
 func timesToTimespec(a *time.Time, m *time.Time) []unix.Timespec {
 	ts := make([]unix.Timespec, 2)
-	ts[0] = unix.Timespec(fuse.UtimeToTimespec(a))
-	ts[1] = unix.Timespec(fuse.UtimeToTimespec(m))
+	if a == nil {
+		ts[0] = unix.Timespec{Nsec: unix.UTIME_OMIT}
+	} else {
+		ts[0], _ = unix.TimeToTimespec(*a)
+	}
+	if m == nil {
+		ts[1] = unix.Timespec{Nsec: unix.UTIME_OMIT}
+	} else {
+		ts[1], _ = unix.TimeToTimespec(*m)
+	}
 	return ts
 }
 

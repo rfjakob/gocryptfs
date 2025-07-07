@@ -67,6 +67,12 @@ else
 	go vet ./...
 fi
 
+if command -v staticcheck > /dev/null ; then
+	staticcheck ./...
+else
+	echo "staticcheck not installed - skipping"
+fi
+
 if command -v shellcheck > /dev/null ; then
 	# SC2002 = useless cat. Does no harm, disable the check.
 	shellcheck -x -e SC2002 ./*.bash

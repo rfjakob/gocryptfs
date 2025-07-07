@@ -42,9 +42,7 @@ func doTestExcludeTestFs(t *testing.T, flag string, patterns []string, tree dire
 		if test_helpers.VerifyExistence(t, mnt+"/"+v) {
 			t.Errorf("File %q is visible, but should be hidden", v)
 		}
-		if nametransform.IsLongContent(filepath.Base(v)) {
-			// TODO ???
-		}
+
 	}
 	for _, v := range cVisible {
 		if !test_helpers.VerifyExistence(t, mnt+"/"+v) {
