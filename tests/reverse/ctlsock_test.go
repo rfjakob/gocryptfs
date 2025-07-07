@@ -1,7 +1,7 @@
 package reverse_test
 
 import (
-	"io/ioutil"
+	"os"
 	"syscall"
 	"testing"
 
@@ -28,7 +28,7 @@ func TestCtlSockPathOps(t *testing.T) {
 	if plaintextnames {
 		t.Skip("this only tests encrypted names")
 	}
-	mnt, err := ioutil.TempDir(test_helpers.TmpDir, "reverse_mnt_")
+	mnt, err := os.MkdirTemp(test_helpers.TmpDir, "reverse_mnt_")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestCtlSockCrash(t *testing.T) {
 	if plaintextnames {
 		t.Skip("this only tests encrypted names")
 	}
-	mnt, err := ioutil.TempDir(test_helpers.TmpDir, "reverse_mnt_")
+	mnt, err := os.MkdirTemp(test_helpers.TmpDir, "reverse_mnt_")
 	if err != nil {
 		t.Fatal(err)
 	}

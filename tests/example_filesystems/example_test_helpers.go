@@ -1,7 +1,6 @@
 package example_filesystems
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,7 +14,7 @@ const statusTxtContent = "It works!\n"
 func checkExampleFS(t *testing.T, dir string, rw bool) {
 	// Read regular file
 	statusFile := filepath.Join(dir, "status.txt")
-	contentBytes, err := ioutil.ReadFile(statusFile)
+	contentBytes, err := os.ReadFile(statusFile)
 	if err != nil {
 		t.Error(err)
 		return
@@ -68,7 +67,7 @@ func checkExampleFSrw(t *testing.T, dir string, rw bool) {
 		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" +
 		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" +
 		"xxxxxxxxxxxxxxxxxxxxxxxx"
-	contentBytes, err := ioutil.ReadFile(filepath.Join(dir, longname))
+	contentBytes, err := os.ReadFile(filepath.Join(dir, longname))
 	if err != nil {
 		t.Error(err)
 		return

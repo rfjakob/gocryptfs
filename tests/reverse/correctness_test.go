@@ -3,7 +3,6 @@ package reverse_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -72,7 +71,7 @@ func TestSymlinkDentrySize(t *testing.T) {
 	}
 	symlink := "a_symlink"
 
-	mnt, err := ioutil.TempDir(test_helpers.TmpDir, "reverse_mnt_")
+	mnt, err := os.MkdirTemp(test_helpers.TmpDir, "reverse_mnt_")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +110,7 @@ func TestConfigMapping(t *testing.T) {
 	if !test_helpers.VerifyExistence(t, c) {
 		t.Errorf("%s missing", c)
 	}
-	data, err := ioutil.ReadFile(c)
+	data, err := os.ReadFile(c)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +232,7 @@ func Test0100Dir(t *testing.T) {
 		t.Fatal(err)
 	}
 	file := dir + "/hello"
-	err = ioutil.WriteFile(file, []byte("hello"), 0600)
+	err = os.WriteFile(file, []byte("hello"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -328,7 +327,7 @@ func TestHardlinkedLongname(t *testing.T) {
 	workdirA, workdirB := newWorkdir(t)
 
 	long1 := workdirA + "/" + strings.Repeat("x", 200)
-	if err := ioutil.WriteFile(long1, []byte("hello"), 0600); err != nil {
+	if err := os.WriteFile(long1, []byte("hello"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	var long1_stat syscall.Stat_t

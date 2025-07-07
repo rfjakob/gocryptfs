@@ -32,10 +32,10 @@ func pad16(orig []byte) (padded []byte) {
 func unPad16(padded []byte) ([]byte, error) {
 	oldLen := len(padded)
 	if oldLen == 0 {
-		return nil, errors.New("Empty input")
+		return nil, errors.New("empty input")
 	}
 	if oldLen%aes.BlockSize != 0 {
-		return nil, errors.New("Unaligned size")
+		return nil, errors.New("unaligned size")
 	}
 	// The last byte is always a padding byte
 	padByte := padded[oldLen-1]
@@ -43,20 +43,20 @@ func unPad16(padded []byte) ([]byte, error) {
 	padLen := int(padByte)
 	// Padding must be at least 1 byte
 	if padLen == 0 {
-		return nil, errors.New("Padding cannot be zero-length")
+		return nil, errors.New("padding cannot be zero-length")
 	}
 	// Padding more than 16 bytes make no sense
 	if padLen > aes.BlockSize {
-		return nil, fmt.Errorf("Padding too long, padLen=%d > 16", padLen)
+		return nil, fmt.Errorf("padding too long, padLen=%d > 16", padLen)
 	}
 	// Padding cannot be as long as (or longer than) the whole string,
 	if padLen >= oldLen {
-		return nil, fmt.Errorf("Padding too long, oldLen=%d >= padLen=%d", oldLen, padLen)
+		return nil, fmt.Errorf("padding too long, oldLen=%d >= padLen=%d", oldLen, padLen)
 	}
 	// All padding bytes must be identical
 	for i := oldLen - padLen; i < oldLen; i++ {
 		if padded[i] != padByte {
-			return nil, fmt.Errorf("Padding byte at i=%d is invalid", i)
+			return nil, fmt.Errorf("padding byte at i=%d is invalid", i)
 		}
 	}
 	newLen := oldLen - padLen

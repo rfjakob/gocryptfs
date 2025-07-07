@@ -1,7 +1,6 @@
 package fusefrontend_reverse
 
 import (
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -50,7 +49,7 @@ func getExclusionPatterns(args fusefrontend.Args) []string {
 
 // getLines reads a file and splits it into lines
 func getLines(file string) ([]string, error) {
-	buffer, err := ioutil.ReadFile(file)
+	buffer, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}

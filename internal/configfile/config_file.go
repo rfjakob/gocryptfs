@@ -5,7 +5,6 @@ package configfile
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"syscall"
 
 	"os"
@@ -183,12 +182,12 @@ func Load(filename string) (*ConfFile, error) {
 	cf.filename = filename
 
 	// Read from disk
-	js, err := ioutil.ReadFile(filename)
+	js, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
 	if len(js) == 0 {
-		return nil, fmt.Errorf("Config file is empty")
+		return nil, fmt.Errorf("config file is empty")
 	}
 
 	// Unmarshal

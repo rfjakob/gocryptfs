@@ -3,7 +3,7 @@ package xray_tests
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/exec"
 	"testing"
 
@@ -11,7 +11,7 @@ import (
 )
 
 func TestAesgcmXray(t *testing.T) {
-	expected, err := ioutil.ReadFile("aesgcm_fs.xray.txt")
+	expected, err := os.ReadFile("aesgcm_fs.xray.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func TestAesgcmXray(t *testing.T) {
 }
 
 func TestAessivXray(t *testing.T) {
-	expected, err := ioutil.ReadFile("aessiv_fs.xray.txt")
+	expected, err := os.ReadFile("aessiv_fs.xray.txt")
 	if err != nil {
 		t.Fatal(err)
 	}

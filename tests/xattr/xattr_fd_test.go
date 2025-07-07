@@ -6,7 +6,7 @@
 package xattr_tests
 
 import (
-	"io/ioutil"
+	"os"
 	"syscall"
 	"testing"
 
@@ -18,7 +18,7 @@ import (
 func TestFdXattr(t *testing.T) {
 	attr := "user.foo"
 	fn := test_helpers.DefaultPlainDir + "/TestFdXattr"
-	err := ioutil.WriteFile(fn, nil, 0700)
+	err := os.WriteFile(fn, nil, 0700)
 	if err != nil {
 		t.Fatalf("creating empty file failed: %v", err)
 	}

@@ -5,7 +5,6 @@
 package root_test
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -203,7 +202,7 @@ func TestDiskFull(t *testing.T) {
 	}
 	t.Logf("sz1=%d, sz2=%d", sz1, sz2)
 
-	foo1, err := ioutil.ReadFile(mnt + "/foo1")
+	foo1, err := os.ReadFile(mnt + "/foo1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +210,7 @@ func TestDiskFull(t *testing.T) {
 		t.Fail()
 	}
 
-	foo2, err := ioutil.ReadFile(mnt + "/foo2")
+	foo2, err := os.ReadFile(mnt + "/foo2")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +230,7 @@ func TestAcl(t *testing.T) {
 	defer test_helpers.UnmountPanic(pDir)
 
 	f1 := pDir + "/f1"
-	if err := ioutil.WriteFile(f1, []byte("hello world\n"), 000); err != nil {
+	if err := os.WriteFile(f1, []byte("hello world\n"), 000); err != nil {
 		t.Fatal(err)
 	}
 

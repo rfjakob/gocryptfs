@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"syscall"
@@ -31,7 +30,7 @@ func TestMain(m *testing.M) {
 	// Write deterministic diriv so encrypted filenames are deterministic.
 	os.Remove(test_helpers.DefaultCipherDir + "/gocryptfs.diriv")
 	diriv := []byte("1234567890123456")
-	err := ioutil.WriteFile(test_helpers.DefaultCipherDir+"/gocryptfs.diriv", diriv, 0400)
+	err := os.WriteFile(test_helpers.DefaultCipherDir+"/gocryptfs.diriv", diriv, 0400)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -92,7 +91,7 @@ func setGetRmList3(fn string, attr string, val []byte) error {
 // Test xattr set, get, rm on a regular file.
 func TestSetGetRmRegularFile(t *testing.T) {
 	fn := test_helpers.DefaultPlainDir + "/TestSetGetRmRegularFile"
-	err := ioutil.WriteFile(fn, []byte("12345"), 0700)
+	err := os.WriteFile(fn, []byte("12345"), 0700)
 	if err != nil {
 		t.Fatalf("creating empty file failed: %v", err)
 	}
@@ -132,7 +131,7 @@ func TestSetGetRmDir(t *testing.T) {
 func TestXattrSetEmpty(t *testing.T) {
 	attr := "user.foo"
 	fn := test_helpers.DefaultPlainDir + "/TestXattrSetEmpty1"
-	err := ioutil.WriteFile(fn, nil, 0700)
+	err := os.WriteFile(fn, nil, 0700)
 	if err != nil {
 		t.Fatalf("creating empty file failed: %v", err)
 	}
@@ -185,7 +184,7 @@ func TestXattrSetEmpty(t *testing.T) {
 
 func TestXattrList(t *testing.T) {
 	fn := test_helpers.DefaultPlainDir + "/TestXattrList"
-	err := ioutil.WriteFile(fn, nil, 0700)
+	err := os.WriteFile(fn, nil, 0700)
 	if err != nil {
 		t.Fatalf("creating empty file failed: %v", err)
 	}
@@ -236,7 +235,7 @@ func TestBase64XattrRead(t *testing.T) {
 
 	plainFn := test_helpers.DefaultPlainDir + "/" + fileName
 	encryptedFn := test_helpers.DefaultCipherDir + "/" + encryptedFileName
-	err := ioutil.WriteFile(plainFn, nil, 0700)
+	err := os.WriteFile(plainFn, nil, 0700)
 	if err != nil {
 		t.Fatalf("creating empty file failed: %v", err)
 	}
@@ -289,7 +288,7 @@ func TestBase64XattrRead(t *testing.T) {
 // Listing xattrs should work even when we don't have read access
 func TestList0000File(t *testing.T) {
 	fn := test_helpers.DefaultPlainDir + "/TestList0000File"
-	err := ioutil.WriteFile(fn, nil, 0000)
+	err := os.WriteFile(fn, nil, 0000)
 	if err != nil {
 		t.Fatalf("creating empty file failed: %v", err)
 	}
@@ -302,7 +301,7 @@ func TestList0000File(t *testing.T) {
 // Setting xattrs should work even when we don't have read access
 func TestSet0200File(t *testing.T) {
 	fn := test_helpers.DefaultPlainDir + "/TestSet0200File"
-	err := ioutil.WriteFile(fn, nil, 0200)
+	err := os.WriteFile(fn, nil, 0200)
 	if err != nil {
 		t.Fatalf("creating empty file failed: %v", err)
 	}
@@ -342,7 +341,7 @@ func TestSet0200Dir(t *testing.T) {
 
 func TestAcl(t *testing.T) {
 	fn := test_helpers.DefaultPlainDir + "/TestAcl"
-	err := ioutil.WriteFile(fn, nil, 0600)
+	err := os.WriteFile(fn, nil, 0600)
 	if err != nil {
 		t.Fatalf("creating empty file failed: %v", err)
 	}
@@ -374,7 +373,7 @@ func TestAcl(t *testing.T) {
 // https://github.com/rfjakob/gocryptfs/issues/627
 func TestSlashInName(t *testing.T) {
 	fn := test_helpers.DefaultPlainDir + "/" + t.Name()
-	err := ioutil.WriteFile(fn, []byte("12345"), 0700)
+	err := os.WriteFile(fn, []byte("12345"), 0700)
 	if err != nil {
 		t.Fatalf("creating empty file failed: %v", err)
 	}

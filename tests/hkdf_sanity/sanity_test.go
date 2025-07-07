@@ -4,7 +4,6 @@
 package hkdf_sanity
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -15,7 +14,7 @@ func TestBrokenContent(t *testing.T) {
 	cDir := "broken_content"
 	pDir := test_helpers.TmpDir + "/" + cDir
 	test_helpers.MountOrFatal(t, cDir, pDir, "-extpass", "echo test", "-wpanic=false")
-	_, err := ioutil.ReadFile(pDir + "/status.txt")
+	_, err := os.ReadFile(pDir + "/status.txt")
 	if err == nil {
 		t.Error("this should fail")
 	}

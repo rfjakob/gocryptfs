@@ -1,7 +1,6 @@
 package fusefrontend_reverse
 
 import (
-	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -23,7 +22,7 @@ func TestShouldPrefixExcludeValuesWithSlash(t *testing.T) {
 }
 
 func TestShouldReadExcludePatternsFromFiles(t *testing.T) {
-	tmpfile1, err := ioutil.TempFile("", "excludetest")
+	tmpfile1, err := os.CreateTemp("", "excludetest")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +30,7 @@ func TestShouldReadExcludePatternsFromFiles(t *testing.T) {
 	defer os.Remove(exclude1)
 	defer tmpfile1.Close()
 
-	tmpfile2, err := ioutil.TempFile("", "excludetest")
+	tmpfile2, err := os.CreateTemp("", "excludetest")
 	if err != nil {
 		t.Fatal(err)
 	}

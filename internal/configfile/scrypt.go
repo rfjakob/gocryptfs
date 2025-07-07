@@ -87,19 +87,19 @@ func (s *ScryptKDF) LogN() int {
 func (s *ScryptKDF) validateParams() error {
 	minN := 1 << scryptMinLogN
 	if s.N < minN {
-		return fmt.Errorf("Fatal: scryptn below 10 is too low to make sense")
+		return fmt.Errorf("fatal: scryptn below 10 is too low to make sense")
 	}
 	if s.R < scryptMinR {
-		return fmt.Errorf("Fatal: scrypt parameter R below minimum: value=%d, min=%d", s.R, scryptMinR)
+		return fmt.Errorf("fatal: scrypt parameter R below minimum: value=%d, min=%d", s.R, scryptMinR)
 	}
 	if s.P < scryptMinP {
-		return fmt.Errorf("Fatal: scrypt parameter P below minimum: value=%d, min=%d", s.P, scryptMinP)
+		return fmt.Errorf("fatal: scrypt parameter P below minimum: value=%d, min=%d", s.P, scryptMinP)
 	}
 	if len(s.Salt) < scryptMinSaltLen {
-		return fmt.Errorf("Fatal: scrypt salt length below minimum: value=%d, min=%d", len(s.Salt), scryptMinSaltLen)
+		return fmt.Errorf("fatal: scrypt salt length below minimum: value=%d, min=%d", len(s.Salt), scryptMinSaltLen)
 	}
 	if s.KeyLen < cryptocore.KeyLen {
-		return fmt.Errorf("Fatal: scrypt parameter KeyLen below minimum: value=%d, min=%d", s.KeyLen, cryptocore.KeyLen)
+		return fmt.Errorf("fatal: scrypt parameter KeyLen below minimum: value=%d, min=%d", s.KeyLen, cryptocore.KeyLen)
 	}
 	return nil
 }

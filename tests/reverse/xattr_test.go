@@ -2,7 +2,7 @@ package reverse_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"syscall"
 	"testing"
@@ -29,7 +29,7 @@ func TestXattrList(t *testing.T) {
 		t.Skip()
 	}
 	fnA := filepath.Join(dirA, t.Name())
-	err := ioutil.WriteFile(fnA, nil, 0700)
+	err := os.WriteFile(fnA, nil, 0700)
 	if err != nil {
 		t.Fatalf("creating empty file failed: %v", err)
 	}

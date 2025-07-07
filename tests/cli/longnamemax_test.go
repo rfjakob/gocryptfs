@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -38,7 +37,7 @@ func TestLongnamemax100(t *testing.T) {
 
 	for l := 1; l <= 255; l++ {
 		path := pDir + "/" + strings.Repeat("x", l)
-		if err := ioutil.WriteFile(path, nil, 0600); err != nil {
+		if err := os.WriteFile(path, nil, 0600); err != nil {
 			t.Fatal(err)
 		}
 		matches, err := filepath.Glob(cDir + "/gocryptfs.longname.*")
@@ -84,7 +83,7 @@ func TestLongnamemax100Reverse(t *testing.T) {
 
 	for l := 1; l <= 255; l++ {
 		path := backingDir + "/" + strings.Repeat("x", l)
-		if err := ioutil.WriteFile(path, nil, 0600); err != nil {
+		if err := os.WriteFile(path, nil, 0600); err != nil {
 			t.Fatal(err)
 		}
 		matches, err := filepath.Glob(mntDir + "/gocryptfs.longname.*")

@@ -4,7 +4,6 @@
 package syscallcompat
 
 import (
-	"io/ioutil"
 	"os"
 	"runtime"
 	"strings"
@@ -49,13 +48,13 @@ func testGetdents(t *testing.T) {
 		getdentsUnderTest = emulateGetdents
 	}
 	// Fill a directory with filenames of length 1 ... 255
-	testDir, err := ioutil.TempDir(tmpDir, "TestGetdents")
+	testDir, err := os.MkdirTemp(tmpDir, "TestGetdents")
 	if err != nil {
 		t.Fatal(err)
 	}
 	for i := 1; i <= unix.NAME_MAX; i++ {
 		n := strings.Repeat("x", i)
-		err = ioutil.WriteFile(testDir+"/"+n, nil, 0600)
+		err = os.WriteFile(testDir+"/"+n, nil, 0600)
 		if err != nil {
 			t.Fatal(err)
 		}

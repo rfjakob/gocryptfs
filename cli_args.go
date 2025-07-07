@@ -84,7 +84,7 @@ func prefixOArgs(osArgs []string) ([]string, error) {
 		if osArgs[i] == "-o" {
 			// Last argument?
 			if i+1 >= len(osArgs) {
-				return nil, fmt.Errorf("The \"-o\" option requires an argument")
+				return nil, fmt.Errorf("the \"-o\" option requires an argument")
 			}
 			oOpts = strings.Split(osArgs[i+1], ",")
 			// Skip over the arguments to "-o"

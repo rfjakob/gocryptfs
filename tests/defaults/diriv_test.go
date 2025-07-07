@@ -1,7 +1,6 @@
 package defaults
 
 import (
-	"io/ioutil"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -19,7 +18,7 @@ func TestDirIVRace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = ioutil.WriteFile(dir1+"/file", nil, 0600)
+	err = os.WriteFile(dir1+"/file", nil, 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +30,7 @@ func TestDirIVRace(t *testing.T) {
 		t.Fatal(err)
 	}
 	file2 := dir2 + "/file"
-	err = ioutil.WriteFile(file2, nil, 0600)
+	err = os.WriteFile(file2, nil, 0600)
 	if err != nil {
 		t.Fatal(err)
 	}

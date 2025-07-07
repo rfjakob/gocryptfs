@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -176,7 +175,7 @@ func TestXfs124(t *testing.T) {
 
 func TestWrite0200File(t *testing.T) {
 	fn := test_helpers.DefaultPlainDir + "/TestWrite0200File"
-	err := ioutil.WriteFile(fn, nil, 0200)
+	err := os.WriteFile(fn, nil, 0200)
 	if err != nil {
 		t.Fatalf("creating empty file failed: %v", err)
 	}
@@ -212,7 +211,7 @@ func TestWrite0200File(t *testing.T) {
 // Now we return EOPNOTSUPP and mv is happy.
 func TestMvWarnings(t *testing.T) {
 	fn := test_helpers.TmpDir + "/TestMvWarnings"
-	err := ioutil.WriteFile(fn, nil, 0600)
+	err := os.WriteFile(fn, nil, 0600)
 	if err != nil {
 		t.Fatalf("creating file failed: %v", err)
 	}
@@ -257,7 +256,7 @@ func TestMvWarningSymlink(t *testing.T) {
 // See TestMvWarnings.
 func TestCpWarnings(t *testing.T) {
 	fn := test_helpers.TmpDir + "/TestCpWarnings"
-	err := ioutil.WriteFile(fn, []byte("foo"), 0600)
+	err := os.WriteFile(fn, []byte("foo"), 0600)
 	if err != nil {
 		t.Fatalf("creating file failed: %v", err)
 	}

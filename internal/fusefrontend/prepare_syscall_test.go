@@ -1,6 +1,7 @@
 package fusefrontend
 
 import (
+	"context"
 	"strings"
 	"syscall"
 	"testing"
@@ -22,13 +23,13 @@ func TestPrepareAtSyscall(t *testing.T) {
 	rn := newTestFS(args)
 	out := &fuse.EntryOut{}
 
-	child, errno := rn.Mkdir(nil, "dir1", 0700, out)
+	child, errno := rn.Mkdir(context.TODO(), "dir1", 0700, out)
 	if errno != 0 {
 		t.Fatal(errno)
 	}
 	rn.AddChild("dir1", child, false)
 	dir1 := toNode(child.Operations())
-	_, errno = dir1.Mkdir(nil, "dir2", 0700, out)
+	_, errno = dir1.Mkdir(context.TODO(), "dir2", 0700, out)
 	if errno != 0 {
 		t.Fatal(errno)
 	}
@@ -43,7 +44,7 @@ func TestPrepareAtSyscall(t *testing.T) {
 	syscall.Close(dirfd)
 
 	// Again, but populate the cache for "" by looking up a non-existing file
-	rn.Lookup(nil, "xyz1234", &fuse.EntryOut{})
+	rn.Lookup(context.TODO(), "xyz1234", &fuse.EntryOut{})
 	dirfd, cName, errno = rn.prepareAtSyscallMyself()
 	if errno != 0 {
 		t.Fatal(errno)
@@ -89,7 +90,7 @@ func TestPrepareAtSyscall(t *testing.T) {
 	syscall.Close(dirfd)
 
 	n255 := strings.Repeat("n", 255)
-	dir1.Mkdir(nil, n255, 0700, out)
+	dir1.Mkdir(context.TODO(), n255, 0700, out)
 	dirfd, cName, errno = dir1.prepareAtSyscall(n255)
 	if errno != 0 {
 		t.Fatal(errno)
@@ -116,13 +117,13 @@ func TestPrepareAtSyscallPlaintextnames(t *testing.T) {
 	rn := newTestFS(args)
 	out := &fuse.EntryOut{}
 
-	child, errno := rn.Mkdir(nil, "dir1", 0700, out)
+	child, errno := rn.Mkdir(context.TODO(), "dir1", 0700, out)
 	if errno != 0 {
 		t.Fatal(errno)
 	}
 	rn.AddChild("dir1", child, false)
 	dir1 := toNode(child.Operations())
-	_, errno = dir1.Mkdir(nil, "dir2", 0700, out)
+	_, errno = dir1.Mkdir(context.TODO(), "dir2", 0700, out)
 	if errno != 0 {
 		t.Fatal(errno)
 	}

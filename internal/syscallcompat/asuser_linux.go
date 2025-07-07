@@ -2,7 +2,7 @@ package syscallcompat
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -55,7 +55,7 @@ func asUser(f func() (int, error), context *fuse.Context) (int, error) {
 
 func getSupplementaryGroups(pid uint32) (gids []int) {
 	procPath := fmt.Sprintf("/proc/%d/task/%d/status", pid, pid)
-	blob, err := ioutil.ReadFile(procPath)
+	blob, err := os.ReadFile(procPath)
 	if err != nil {
 		return nil
 	}

@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"testing"
@@ -42,7 +41,7 @@ func TestZerokey(t *testing.T) {
 	mnt := dir + ".mnt"
 	test_helpers.MountOrFatal(t, dir, mnt, "-extpass", "echo test")
 	file1 := mnt + "/file1"
-	err = ioutil.WriteFile(file1, []byte("somecontent"), 0600)
+	err = os.WriteFile(file1, []byte("somecontent"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +49,7 @@ func TestZerokey(t *testing.T) {
 
 	// Mount using -zerokey and verify we get the same result
 	test_helpers.MountOrFatal(t, dir, mnt, "-extpass", "echo test")
-	content, err := ioutil.ReadFile(file1)
+	content, err := os.ReadFile(file1)
 	if err != nil {
 		t.Error(err)
 	} else if string(content) != "somecontent" {

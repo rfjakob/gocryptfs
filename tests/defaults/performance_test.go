@@ -4,7 +4,6 @@ package defaults
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -96,7 +95,7 @@ func createFiles(t *testing.B, count int, size int) {
 	for i = 0; i < count; i++ {
 		file := fmt.Sprintf("%s/%d", dir, i)
 		if size > 0 {
-			err = ioutil.WriteFile(file, buf, 0666)
+			err = os.WriteFile(file, buf, 0666)
 		} else {
 			var fh *os.File
 			fh, err = os.Create(file)

@@ -67,7 +67,7 @@ func fdReadDirIV(fd *os.File) (iv []byte, err error) {
 func WriteDirIVAt(dirfd int) error {
 	iv := cryptocore.RandBytes(DirIVLen)
 	// 0400 permissions: gocryptfs.diriv should never be modified after creation.
-	// Don't use "ioutil.WriteFile", it causes trouble on NFS:
+	// Don't use "os.WriteFile", it causes trouble on NFS:
 	// https://github.com/rfjakob/gocryptfs/commit/7d38f80a78644c8ec4900cc990bfb894387112ed
 	fd, err := syscallcompat.Openat(dirfd, DirIVFilename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, dirivPerms)
 	if err != nil {

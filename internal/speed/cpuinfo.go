@@ -1,7 +1,7 @@
 package speed
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 	"runtime"
 	"strings"
@@ -33,7 +33,7 @@ func cpuModelName() string {
 	if err != nil {
 		return ""
 	}
-	content, err := ioutil.ReadAll(f)
+	content, err := io.ReadAll(f)
 	if err != nil {
 		return ""
 	}

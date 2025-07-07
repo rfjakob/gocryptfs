@@ -4,7 +4,6 @@ package deterministic_names
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -70,7 +69,7 @@ func TestDeterministicNames(t *testing.T) {
 	if err := os.RemoveAll(pDir + "/foo"); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(pDir+"/foo", nil, 0700); err != nil {
+	if err := os.WriteFile(pDir+"/foo", nil, 0700); err != nil {
 		t.Fatal(err)
 	}
 	_, err = os.Stat(cDir + "/" + fooEncrypted)

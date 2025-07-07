@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"sync/atomic"
@@ -49,7 +48,7 @@ func main() {
 		srcFiles[srcName] = struct{}{}
 		buf := bytes.Repeat([]byte("_"), i)
 		buf = append(buf, hello...)
-		if err := ioutil.WriteFile(srcName, buf, 0600); err != nil {
+		if err := os.WriteFile(srcName, buf, 0600); err != nil {
 			panic(err)
 		}
 		fmt.Print(".")
@@ -58,7 +57,7 @@ func main() {
 
 	// prepare destination file
 	const dstName = "dst.atomicrename"
-	if err := ioutil.WriteFile(dstName, hello, 0600); err != nil {
+	if err := os.WriteFile(dstName, hello, 0600); err != nil {
 		panic(err)
 	}
 
@@ -69,7 +68,7 @@ func main() {
 	// read thread
 	go func() {
 		for atomic.LoadInt32(&running) == 1 {
-			have, err := ioutil.ReadFile(dstName)
+			have, err := os.ReadFile(dstName)
 			if err != nil {
 				fmt.Println(err)
 				stats.readError++

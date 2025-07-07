@@ -17,7 +17,7 @@ func TestOneFileSystem(t *testing.T) {
 	}
 	// Let's not explode with "TempDir: pattern contains path separator"
 	myEscapedName := url.PathEscape(t.Name())
-	mnt, err := ioutil.TempDir(test_helpers.TmpDir, myEscapedName)
+	mnt, err := os.MkdirTemp(test_helpers.TmpDir, myEscapedName)
 	if err != nil {
 		t.Fatal(err)
 	}

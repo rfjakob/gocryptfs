@@ -2,7 +2,6 @@ package syscallcompat
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 )
@@ -23,7 +22,7 @@ func TestMain(m *testing.M) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	tmpDir, err = ioutil.TempDir(parent, "syscallcompat")
+	tmpDir, err = os.MkdirTemp(parent, "syscallcompat")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

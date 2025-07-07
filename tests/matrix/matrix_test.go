@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -327,7 +326,7 @@ func TestFileHoles(t *testing.T) {
 	foo := []byte("foo")
 	file.Write(foo)
 	file.WriteAt(foo, 4096)
-	_, err = ioutil.ReadFile(fn)
+	_, err = os.ReadFile(fn)
 	if err != nil {
 		t.Error(err)
 	}
@@ -391,7 +390,7 @@ func TestRmwRace(t *testing.T) {
 		// but it must not be
 		// [oooooossss]
 
-		buf, _ := ioutil.ReadFile(fn)
+		buf, _ := os.ReadFile(fn)
 		m := test_helpers.Md5hex(buf)
 		goodMd5[m] = goodMd5[m] + 1
 
@@ -495,7 +494,7 @@ func TestNameLengths(t *testing.T) {
 }
 
 func TestLongNames(t *testing.T) {
-	fi, err := ioutil.ReadDir(test_helpers.DefaultCipherDir)
+	fi, err := os.ReadDir(test_helpers.DefaultCipherDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -607,7 +606,7 @@ func TestLongNames(t *testing.T) {
 		t.Error(err)
 	}
 	// Check for orphaned files
-	fi, err = ioutil.ReadDir(test_helpers.DefaultCipherDir)
+	fi, err = os.ReadDir(test_helpers.DefaultCipherDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -740,7 +739,7 @@ func doTestUtimesNano(t *testing.T, path string) {
 // Set nanoseconds by path, normal file
 func TestUtimesNano(t *testing.T) {
 	path := test_helpers.DefaultPlainDir + "/utimesnano"
-	err := ioutil.WriteFile(path, []byte("foobar"), 0600)
+	err := os.WriteFile(path, []byte("foobar"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -788,7 +787,7 @@ func TestMagicNames(t *testing.T) {
 		t.Logf("Testing n=%q", n)
 		p := test_helpers.DefaultPlainDir + "/" + n
 		// Create file
-		err := ioutil.WriteFile(p, []byte("xxxxxxx"), 0200)
+		err := os.WriteFile(p, []byte("xxxxxxx"), 0200)
 		if err != nil {
 			t.Fatalf("creating file %q failed: %v", n, err)
 		}
@@ -825,7 +824,7 @@ func TestMagicNames(t *testing.T) {
 		syscall.Unlink(p)
 		// Link
 		target := test_helpers.DefaultPlainDir + "/linktarget"
-		err = ioutil.WriteFile(target, []byte("yyyyy"), 0600)
+		err = os.WriteFile(target, []byte("yyyyy"), 0600)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -13,8 +13,8 @@ const tUsage = "" +
 // helpShort is what gets displayed when passed "-h" or on syntax error.
 func helpShort() {
 	printVersion()
-	fmt.Printf("\n")
-	fmt.Printf(tUsage)
+	fmt.Print("\n")
+	fmt.Print(tUsage)
 	fmt.Printf(`
 Common Options (use -hh to show all):
   -aessiv            Use AES-SIV encryption (with -init)
@@ -48,8 +48,8 @@ Common Options (use -hh to show all):
 // helpLong gets only displayed on "-hh"
 func helpLong() {
 	printVersion()
-	fmt.Printf("\n")
-	fmt.Printf(tUsage)
+	fmt.Print("\n")
+	fmt.Print(tUsage)
 	fmt.Printf(`
 Notes: All options can equivalently use "-" (single dash) or "--" (double dash).
        A standalone "--" stops option parsing.

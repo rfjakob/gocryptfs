@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"syscall"
 	"testing"
@@ -40,7 +39,7 @@ func TestXchacha(t *testing.T) {
 	test_helpers.MountOrExit(cDir, pDir, "-extpass", "echo test")
 	defer test_helpers.UnmountPanic(pDir)
 
-	if err := ioutil.WriteFile(pDir+"/1byte", []byte("x"), 0700); err != nil {
+	if err := os.WriteFile(pDir+"/1byte", []byte("x"), 0700); err != nil {
 		t.Fatal(err)
 	}
 	var st syscall.Stat_t
@@ -53,7 +52,7 @@ func TestXchacha(t *testing.T) {
 	}
 
 	// 1 MiB = 256 4kiB blocks
-	if err := ioutil.WriteFile(pDir+"/1MiB", make([]byte, 1024*1024), 0700); err != nil {
+	if err := os.WriteFile(pDir+"/1MiB", make([]byte, 1024*1024), 0700); err != nil {
 		t.Fatal(err)
 	}
 	if err := syscall.Stat(cDir+"/1MiB", &st); err != nil {

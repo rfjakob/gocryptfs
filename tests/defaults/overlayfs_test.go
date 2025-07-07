@@ -4,7 +4,6 @@
 package defaults
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -43,7 +42,7 @@ func TestRenameWhiteout(t *testing.T) {
 		for _, n := range names {
 			pSrc := test_helpers.DefaultPlainDir + "/" + n[0]
 			pDst := test_helpers.DefaultPlainDir + "/" + n[1]
-			if err := ioutil.WriteFile(pSrc, nil, 0200); err != nil {
+			if err := os.WriteFile(pSrc, nil, 0200); err != nil {
 				t.Fatalf("creating empty file failed: %v", err)
 			}
 			err := unix.Renameat2(-1, pSrc, -1, pDst, flags)
@@ -96,10 +95,10 @@ func TestRenameExchange(t *testing.T) {
 	for _, n := range names {
 		pSrc := test_helpers.DefaultPlainDir + "/" + n[0]
 		pDst := test_helpers.DefaultPlainDir + "/" + n[1]
-		if err := ioutil.WriteFile(pSrc, nil, 0200); err != nil {
+		if err := os.WriteFile(pSrc, nil, 0200); err != nil {
 			t.Fatalf("creating empty file failed: %v", err)
 		}
-		if err := ioutil.WriteFile(pDst, nil, 0200); err != nil {
+		if err := os.WriteFile(pDst, nil, 0200); err != nil {
 			t.Fatalf("creating empty file failed: %v", err)
 		}
 		err := unix.Renameat2(-1, pSrc, -1, pDst, unix.RENAME_EXCHANGE)

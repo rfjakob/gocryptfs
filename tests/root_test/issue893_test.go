@@ -4,7 +4,6 @@ package root_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"sync"
 	"syscall"
@@ -35,10 +34,10 @@ func TestConcurrentUserOps(t *testing.T) {
 				if err = os.MkdirAll(d, 0700); err != nil {
 					return
 				}
-				if err = ioutil.WriteFile(d+"/foo", nil, 0400); err != nil {
+				if err = os.WriteFile(d+"/foo", nil, 0400); err != nil {
 					return
 				}
-				if err = ioutil.WriteFile(d+"/bar", []byte("aaaaaaaaaaaaaaaaaaaaa"), 0400); err != nil {
+				if err = os.WriteFile(d+"/bar", []byte("aaaaaaaaaaaaaaaaaaaaa"), 0400); err != nil {
 					return
 				}
 				if err = syscall.Unlink(d + "/foo"); err != nil {

@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strconv"
@@ -174,7 +173,7 @@ func TestPasswd(t *testing.T) {
 	// Add content
 	test_helpers.MountOrFatal(t, dir, mnt, "-extpass", "echo test")
 	file1 := mnt + "/file1"
-	err := ioutil.WriteFile(file1, []byte("somecontent"), 0600)
+	err := os.WriteFile(file1, []byte("somecontent"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +185,7 @@ func TestPasswd(t *testing.T) {
 	testPasswd(t, dir)
 	// Mount and verify
 	test_helpers.MountOrFatal(t, dir, mnt, "-extpass", "echo newpasswd")
-	content, err := ioutil.ReadFile(file1)
+	content, err := os.ReadFile(file1)
 	if err != nil {
 		t.Error(err)
 	} else if string(content) != "somecontent" {
@@ -201,12 +200,12 @@ func TestPasswd(t *testing.T) {
 // cp copies file at `src` to `dst`, overwriting
 // `dst` if it already exists. Calls t.Fatal on failure.
 func cp(t *testing.T, src string, dst string) {
-	conf, err := ioutil.ReadFile(src)
+	conf, err := os.ReadFile(src)
 	if err != nil {
 		t.Fatal(err)
 	}
 	syscall.Unlink(dst)
-	err = ioutil.WriteFile(dst, conf, 0600)
+	err = os.WriteFile(dst, conf, 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,7 +221,7 @@ func TestPasswdMasterkey(t *testing.T) {
 	mnt := dir + ".mnt"
 	test_helpers.MountOrFatal(t, dir, mnt, "-extpass", "echo test")
 	file1 := mnt + "/file1"
-	err := ioutil.WriteFile(file1, []byte("somecontent"), 0600)
+	err := os.WriteFile(file1, []byte("somecontent"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -251,7 +250,7 @@ func TestPasswdMasterkey(t *testing.T) {
 	}
 	// Mount and verify
 	test_helpers.MountOrFatal(t, dir, mnt, "-extpass", "echo newpasswd")
-	content, err := ioutil.ReadFile(file1)
+	content, err := os.ReadFile(file1)
 	if err != nil {
 		t.Error(err)
 	} else if string(content) != "somecontent" {
@@ -270,7 +269,7 @@ func TestPasswdMasterkeyStdin(t *testing.T) {
 	mnt := dir + ".mnt"
 	test_helpers.MountOrFatal(t, dir, mnt, "-extpass", "echo test")
 	file1 := mnt + "/file1"
-	err := ioutil.WriteFile(file1, []byte("somecontent"), 0600)
+	err := os.WriteFile(file1, []byte("somecontent"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,7 +299,7 @@ func TestPasswdMasterkeyStdin(t *testing.T) {
 	}
 	// Mount and verify
 	test_helpers.MountOrFatal(t, dir, mnt, "-extpass", "echo newpasswd")
-	content, err := ioutil.ReadFile(file1)
+	content, err := os.ReadFile(file1)
 	if err != nil {
 		t.Fatal(err)
 	} else if string(content) != "somecontent" {
@@ -392,7 +391,7 @@ func TestNonempty(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = ioutil.WriteFile(mnt+"/somefile", []byte("xyz"), 0600)
+	err = os.WriteFile(mnt+"/somefile", []byte("xyz"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -586,7 +585,7 @@ func TestNoexec(t *testing.T) {
 	content := `#!/bin/bash
 echo hello
 `
-	err := ioutil.WriteFile(sh, []byte(content), 0755)
+	err := os.WriteFile(sh, []byte(content), 0755)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -697,13 +696,13 @@ func TestNotIdle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = ioutil.WriteFile(mnt+"/foo", []byte("foo"), 0600)
+	err = os.WriteFile(mnt+"/foo", []byte("foo"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// Read every 10 milliseconds for a total of 1 second
 	for i := 1; i < 100; i++ {
-		_, err = ioutil.ReadFile(mnt + "/foo")
+		_, err = os.ReadFile(mnt + "/foo")
 		if err != nil {
 			t.Fatalf("iteration %d failed: %v", i, err)
 		}
@@ -784,7 +783,7 @@ func TestBadname(t *testing.T) {
 
 	file := mnt + "/" + validFileName
 	// Case 1: write one valid filename (empty content)
-	err := ioutil.WriteFile(file, nil, 0600)
+	err := os.WriteFile(file, nil, 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -809,26 +808,26 @@ func TestBadname(t *testing.T) {
 	}
 	//Generate valid cipherdata for all cases
 	for i := 0; i < len(contentCipher); i++ {
-		err := ioutil.WriteFile(file, []byte(fmt.Sprintf("Content Case %d.", i+1)), 0600)
+		err := os.WriteFile(file, []byte(fmt.Sprintf("Content Case %d.", i+1)), 0600)
 		if err != nil {
 			t.Fatal(err)
 		}
 		//save the cipher data for file operations in cipher dir
-		contentCipher[i], err = ioutil.ReadFile(dir + "/" + encryptedfilename)
+		contentCipher[i], err = os.ReadFile(dir + "/" + encryptedfilename)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
 	//re-write content for case 1
-	err = ioutil.WriteFile(file, []byte("Content Case 1."), 0600)
+	err = os.WriteFile(file, []byte("Content Case 1."), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Case 2: File with invalid suffix in plain name but valid cipher file
 	file = mnt + "/" + validFileName + nametransform.BadnameSuffix
-	err = ioutil.WriteFile(file, []byte("Content Case 2."), 0600)
+	err = os.WriteFile(file, []byte("Content Case 2."), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -842,29 +841,29 @@ func TestBadname(t *testing.T) {
 	// Case 3 is impossible: only BadnameSuffix would mean the cipher name is valid
 
 	// Case 4: write invalid file which should be decodable
-	err = ioutil.WriteFile(dir+"/"+encryptedfilename+invalidSuffix, contentCipher[3], 0600)
+	err = os.WriteFile(dir+"/"+encryptedfilename+invalidSuffix, contentCipher[3], 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
 	//Case 5: write invalid file which is not decodable (replace last 2 bytes with percent sign)
-	err = ioutil.WriteFile(dir+"/"+encryptedfilename[:len(encryptedfilename)-2]+"%%"+invalidSuffix, contentCipher[4], 0600)
+	err = os.WriteFile(dir+"/"+encryptedfilename[:len(encryptedfilename)-2]+"%%"+invalidSuffix, contentCipher[4], 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Case 6: Multiple possible matches
 	// generate two files with invalid cipher names which can both match the badname pattern
-	err = ioutil.WriteFile(dir+"/mzaZRF9_0IU-_5vv2wPC"+invalidSuffix, contentCipher[5], 0600)
+	err = os.WriteFile(dir+"/mzaZRF9_0IU-_5vv2wPC"+invalidSuffix, contentCipher[5], 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = ioutil.WriteFile(dir+"/mzaZRF9_0IU-_5vv2wP"+invalidSuffix, contentCipher[5], 0600)
+	err = os.WriteFile(dir+"/mzaZRF9_0IU-_5vv2wP"+invalidSuffix, contentCipher[5], 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Case 7: Non-Matching badname pattern
-	err = ioutil.WriteFile(dir+"/"+encryptedfilename+"wrongPattern", contentCipher[6], 0600)
+	err = os.WriteFile(dir+"/"+encryptedfilename+"wrongPattern", contentCipher[6], 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -894,7 +893,7 @@ func TestBadname(t *testing.T) {
 	for _, name := range names {
 		if name == searchstrings[0] {
 			//Case 1: Test access
-			filebytes, err = ioutil.ReadFile(mnt + "/" + name)
+			filebytes, err = os.ReadFile(mnt + "/" + name)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -905,7 +904,7 @@ func TestBadname(t *testing.T) {
 
 		} else if name == searchstrings[1] {
 			//Case 2: Test Access
-			filebytes, err = ioutil.ReadFile(mnt + "/" + name)
+			filebytes, err = os.ReadFile(mnt + "/" + name)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -915,7 +914,7 @@ func TestBadname(t *testing.T) {
 			}
 		} else if name == searchstrings[3] {
 			//Case 4: Test Access
-			filebytes, err = ioutil.ReadFile(mnt + "/" + name)
+			filebytes, err = os.ReadFile(mnt + "/" + name)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -925,7 +924,7 @@ func TestBadname(t *testing.T) {
 			}
 		} else if name == searchstrings[4] {
 			//Case 5: Test Access
-			filebytes, err = ioutil.ReadFile(mnt + "/" + name)
+			filebytes, err = os.ReadFile(mnt + "/" + name)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -955,7 +954,7 @@ func TestPassfile(t *testing.T) {
 	dir := test_helpers.InitFS(t)
 	mnt := dir + ".mnt"
 	passfile1 := mnt + ".1.txt"
-	ioutil.WriteFile(passfile1, []byte("test"), 0600)
+	os.WriteFile(passfile1, []byte("test"), 0600)
 	test_helpers.MountOrFatal(t, dir, mnt, "-passfile="+passfile1)
 	defer test_helpers.UnmountPanic(mnt)
 }
@@ -966,8 +965,8 @@ func TestPassfileX2(t *testing.T) {
 	mnt := dir + ".mnt"
 	passfile1 := mnt + ".1.txt"
 	passfile2 := mnt + ".2.txt"
-	ioutil.WriteFile(passfile1, []byte("te"), 0600)
-	ioutil.WriteFile(passfile2, []byte("st"), 0600)
+	os.WriteFile(passfile1, []byte("te"), 0600)
+	os.WriteFile(passfile2, []byte("st"), 0600)
 	test_helpers.MountOrFatal(t, dir, mnt, "-passfile="+passfile1, "-passfile="+passfile2)
 	defer test_helpers.UnmountPanic(mnt)
 }
@@ -979,7 +978,7 @@ func TestInitNotEmpty(t *testing.T) {
 	if err := os.Mkdir(dir, 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(dir+"/foo", nil, 0700); err != nil {
+	if err := os.WriteFile(dir+"/foo", nil, 0700); err != nil {
 		t.Fatal(err)
 	}
 	cmd := exec.Command(test_helpers.GocryptfsBinary, "-init", "-extpass", "echo test", dir)
@@ -1001,7 +1000,7 @@ func TestSharedstorage(t *testing.T) {
 	defer test_helpers.UnmountPanic(mnt)
 	foo1 := mnt + "/foo1"
 	foo2 := mnt + "/foo2"
-	if err := ioutil.WriteFile(foo1, nil, 0755); err != nil {
+	if err := os.WriteFile(foo1, nil, 0755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Link(foo1, foo2); err != nil {
@@ -1020,7 +1019,7 @@ func TestSharedstorage(t *testing.T) {
 	}
 	// Check that we we don't have stat caching. New length should show up
 	// on the hard link immediately.
-	if err := ioutil.WriteFile(foo1, []byte("xxxxxx"), 0755); err != nil {
+	if err := os.WriteFile(foo1, []byte("xxxxxx"), 0755); err != nil {
 		t.Fatal(err)
 	}
 	if err := syscall.Stat(foo2, &st2); err != nil {

@@ -151,7 +151,7 @@ func (be *ContentEnc) DecryptBlock(ciphertext []byte, blockNo uint64, fileID []b
 
 	if len(ciphertext) < be.cryptoCore.IVLen {
 		tlog.Warn.Printf("DecryptBlock: Block is too short: %d bytes", len(ciphertext))
-		return nil, errors.New("Block is too short")
+		return nil, errors.New("block is too short")
 	}
 
 	// Extract nonce

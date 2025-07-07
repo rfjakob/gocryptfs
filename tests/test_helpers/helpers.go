@@ -5,7 +5,6 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -55,7 +54,7 @@ func doInit() {
 		fmt.Printf("test_helpers: warning: testParentDir %q does not reside on ext4, we will miss failures caused by ino reuse\n", testParentDir)
 	}
 	var err error
-	TmpDir, err = ioutil.TempDir(testParentDir, "")
+	TmpDir, err = os.MkdirTemp(testParentDir, "")
 	if err != nil {
 		panic(err)
 	}
@@ -73,7 +72,7 @@ func doInit() {
 //	    *-- gocryptfs.diriv
 func ResetTmpDir(createDirIV bool) {
 	// Try to unmount and delete everything
-	entries, err := ioutil.ReadDir(TmpDir)
+	entries, err := os.ReadDir(TmpDir)
 	if err == nil {
 		for _, e := range entries {
 			d := filepath.Join(TmpDir, e.Name())
@@ -148,7 +147,7 @@ func InitFS(t *testing.T, extraArgs ...string) string {
 	if t != nil {
 		prefix = t.Name() + "."
 	}
-	dir, err := ioutil.TempDir(TmpDir, prefix)
+	dir, err := os.MkdirTemp(TmpDir, prefix)
 	if err != nil {
 		if t != nil {
 			t.Fatal(err)
@@ -178,7 +177,7 @@ func InitFS(t *testing.T, extraArgs ...string) string {
 
 // Md5fn returns an md5 string for file "filename"
 func Md5fn(filename string) string {
-	buf, err := ioutil.ReadFile(filename)
+	buf, err := os.ReadFile(filename)
 	if err != nil {
 		fmt.Printf("ReadFile: %v\n", err)
 		return ""
@@ -199,7 +198,7 @@ func Md5hex(buf []byte) string {
 // 3) Size reported by Fstat()
 func VerifySize(t *testing.T, path string, want int) {
 	// Read whole file
-	buf, err := ioutil.ReadFile(path)
+	buf, err := os.ReadFile(path)
 	if err != nil {
 		t.Errorf("ReadFile failed: %v", err)
 	} else if len(buf) != want {
@@ -299,7 +298,7 @@ func TestMkdirRmdir(t *testing.T, plainDir string) {
 func TestRename(t *testing.T, plainDir string) {
 	file1 := plainDir + "/rename1"
 	file2 := plainDir + "/rename2"
-	err := ioutil.WriteFile(file1, []byte("content"), 0777)
+	err := os.WriteFile(file1, []byte("content"), 0777)
 	if err != nil {
 		t.Error(err)
 		return
