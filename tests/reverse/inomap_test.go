@@ -85,7 +85,7 @@ func TestVirtualFileIno(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dirents, err := fd.Readdirnames(0)
+	_, err = fd.Readdirnames(0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestVirtualFileIno(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dirents, err = fd.Readdirnames(0)
+	dirents, err := fd.Readdirnames(0)
 	if err != nil {
 		t.Fatal(err)
 	}

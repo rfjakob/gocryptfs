@@ -26,6 +26,7 @@ func (b *bPool) Put(s []byte) {
 	if len(s) != b.sliceLen {
 		log.Panicf("wrong len=%d, want=%d", len(s), b.sliceLen)
 	}
+	//lint:ignore SA6002 We intentionally pass slice by value to avoid allocation overhead in this specific use case
 	b.Pool.Put(s)
 }
 

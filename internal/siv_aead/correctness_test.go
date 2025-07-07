@@ -50,7 +50,7 @@ func TestK32(t *testing.T) {
 	expectedResult, _ := hex.DecodeString(
 		"02020202020202020202020202020202ad7a4010649a84d8c1dd5f752e935eed57d45b8b10008f3834")
 	if !bytes.Equal(aResult, expectedResult) {
-		t.Errorf(hex.EncodeToString(aResult))
+		t.Error(hex.EncodeToString(aResult))
 	}
 	// Verify overhead
 	overhead := len(aResult) - len(plaintext) - len(nonce)
@@ -108,7 +108,7 @@ func TestK64(t *testing.T) {
 	expectedResult, _ := hex.DecodeString(
 		"02020202020202020202020202020202317b316f67c3ad336c01c9a01b4c5e552ba89e966bc4c1ade1")
 	if !bytes.Equal(aResult, expectedResult) {
-		t.Errorf(hex.EncodeToString(aResult))
+		t.Error(hex.EncodeToString(aResult))
 	}
 	// Verify overhead
 	overhead := len(aResult) - len(plaintext) - len(nonce)

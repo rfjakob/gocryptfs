@@ -101,7 +101,7 @@ func (ch *ctlSockHandler) handleRequest(in *ctlsock.RequestStruct, conn *net.Uni
 	}
 	// Neither encryption nor encryption has been requested, makes no sense
 	if in.DecryptPath == "" && in.EncryptPath == "" {
-		err = errors.New("Empty input")
+		err = errors.New("empty input")
 		sendResponse(conn, err, "", "")
 		return
 	}
@@ -118,7 +118,7 @@ func (ch *ctlSockHandler) handleRequest(in *ctlsock.RequestStruct, conn *net.Uni
 	}
 	// Error out if the canonical path is now empty
 	if clean == "" {
-		err = errors.New("Empty input after canonicalization")
+		err = errors.New("empty input after canonicalization")
 		sendResponse(conn, err, "", warnText)
 		return
 	}
