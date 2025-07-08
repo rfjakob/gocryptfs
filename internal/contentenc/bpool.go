@@ -14,10 +14,7 @@ type bPool struct {
 func newBPool(sliceLen int) bPool {
 	return bPool{
 		Pool: sync.Pool{
-			New: func() interface{} {
-				s := make([]byte, sliceLen)
-				return &s
-			},
+			New: func() interface{} { return make([]byte, sliceLen) },
 		},
 		sliceLen: sliceLen,
 	}
@@ -29,13 +26,13 @@ func (b *bPool) Put(s []byte) {
 	if len(s) != b.sliceLen {
 		log.Panicf("wrong len=%d, want=%d", len(s), b.sliceLen)
 	}
-	b.Pool.Put(&s)
+	//lint:ignore SA6002 We intentionally pass slice by value to avoid allocation overhead in this specific use case
+	b.Pool.Put(s)
 }
 
 // Get returns a byte slice from the pool.
 func (b *bPool) Get() (s []byte) {
-	sp := b.Pool.Get().(*[]byte)
-	s = *sp
+	s = b.Pool.Get().([]byte)
 	if len(s) != b.sliceLen {
 		log.Panicf("wrong len=%d, want=%d", len(s), b.sliceLen)
 	}
