@@ -90,6 +90,13 @@ func (p *pattern) Match(path []string, isDir bool) MatchResult {
 }
 
 func (p *pattern) simpleNameMatch(path []string, isDir bool) bool {
+	// gocryptfs patch: simple fix for https://github.com/go-git/go-git/issues/1596
+	// gocryptfs can get away with this because each parent directory has already been checked
+	// separately on LOOKUP.
+	if p.dirOnly && !isDir {
+		return false
+	}
+
 	for i, name := range path {
 		if match, err := filepath.Match(p.pattern[0], name); err != nil {
 			return false

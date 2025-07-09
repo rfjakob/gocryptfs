@@ -41,7 +41,7 @@ func (s *PatternSuite) TestMatch_domainMismatch_mismatch() {
 func (s *PatternSuite) TestSimpleMatch_withDomain() {
 	p := ParsePattern("middle/", []string{"value", "volcano"})
 	r := p.Match([]string{"value", "volcano", "middle", "tail"}, false)
-	s.Equal(Exclude, r)
+	s.Equal(NoMatch, r)
 }
 
 func (s *PatternSuite) TestSimpleMatch_onlyMatchInDomain_mismatch() {
@@ -71,13 +71,13 @@ func (s *PatternSuite) TestSimpleMatch_atEnd() {
 func (s *PatternSuite) TestSimpleMatch_atStart_dirWanted() {
 	p := ParsePattern("value/", nil)
 	r := p.Match([]string{"value", "tail"}, false)
-	s.Equal(Exclude, r)
+	s.Equal(NoMatch, r)
 }
 
 func (s *PatternSuite) TestSimpleMatch_inTheMiddle_dirWanted() {
 	p := ParsePattern("value/", nil)
 	r := p.Match([]string{"head", "value", "tail"}, false)
-	s.Equal(Exclude, r)
+	s.Equal(NoMatch, r)
 }
 
 func (s *PatternSuite) TestSimpleMatch_atEnd_dirWanted() {
