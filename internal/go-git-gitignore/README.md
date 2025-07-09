@@ -5,5 +5,6 @@ using the commands below:
 ```
 curl --remote-name-all https://raw.githubusercontent.com/go-git/go-git/refs/heads/main/LICENSE \
  https://raw.githubusercontent.com/go-git/go-git/refs/heads/main/plumbing/format/gitignore/matcher.go \
- https://raw.githubusercontent.com/go-git/go-git/refs/heads/main/plumbing/format/gitignore/pattern.go
+ https://raw.githubusercontent.com/go-git/go-git/refs/heads/main/plumbing/format/gitignore/pattern.go \
+ https://raw.githubusercontent.com/go-git/go-git/refs/heads/main/plumbing/format/gitignore/pattern_test.go
 ```
