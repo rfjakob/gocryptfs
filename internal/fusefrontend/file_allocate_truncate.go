@@ -54,7 +54,7 @@ func (f *File) Allocate(ctx context.Context, off uint64, sz uint64, mode uint32)
 	f.fileTableEntry.ContentLock.Lock()
 	defer f.fileTableEntry.ContentLock.Unlock()
 
-	blocks := f.contentEnc.ExplodePlainRange(off, sz)
+	blocks := f.rootNode.contentEnc.ExplodePlainRange(off, sz)
 	firstBlock := blocks[0]
 	lastBlock := blocks[len(blocks)-1]
 
@@ -63,7 +63,7 @@ func (f *File) Allocate(ctx context.Context, off uint64, sz uint64, mode uint32)
 	// the file.
 	cipherOff := firstBlock.BlockCipherOff()
 	cipherSz := lastBlock.BlockCipherOff() - cipherOff +
-		f.contentEnc.BlockOverhead() + lastBlock.Skip + lastBlock.Length
+		f.rootNode.contentEnc.BlockOverhead() + lastBlock.Skip + lastBlock.Length
 	err := syscallcompat.Fallocate(f.intFd(), FALLOC_FL_KEEP_SIZE, int64(cipherOff), int64(cipherSz))
 	tlog.Debug.Printf("Allocate off=%d sz=%d mode=%x cipherOff=%d cipherSz=%d\n",
 		off, sz, mode, cipherOff, cipherSz)
@@ -113,8 +113,8 @@ func (f *File) truncate(newSize uint64) (errno syscall.Errno) {
 		return fs.ToErrno(err)
 	}
 
-	oldB := float32(oldSize) / float32(f.contentEnc.PlainBS())
-	newB := float32(newSize) / float32(f.contentEnc.PlainBS())
+	oldB := float32(oldSize) / float32(f.rootNode.contentEnc.PlainBS())
+	newB := float32(newSize) / float32(f.rootNode.contentEnc.PlainBS())
 	tlog.Debug.Printf("ino%d: FUSE Truncate from %.2f to %.2f blocks (%d to %d bytes)", f.qIno.Ino, oldB, newB, oldSize, newSize)
 
 	// File size stays the same - nothing to do
@@ -127,9 +127,9 @@ func (f *File) truncate(newSize uint64) (errno syscall.Errno) {
 	}
 
 	// File shrinks
-	blockNo := f.contentEnc.PlainOffToBlockNo(newSize)
-	cipherOff := f.contentEnc.BlockNoToCipherOff(blockNo)
-	plainOff := f.contentEnc.BlockNoToPlainOff(blockNo)
+	blockNo := f.rootNode.contentEnc.PlainOffToBlockNo(newSize)
+	cipherOff := f.rootNode.contentEnc.BlockNoToCipherOff(blockNo)
+	plainOff := f.rootNode.contentEnc.BlockNoToPlainOff(blockNo)
 	lastBlockLen := newSize - plainOff
 	var data []byte
 	if lastBlockLen > 0 {
@@ -161,7 +161,7 @@ func (f *File) statPlainSize() (uint64, error) {
 		return 0, err
 	}
 	cipherSz := uint64(fi.Size())
-	plainSz := uint64(f.contentEnc.CipherSizeToPlainSize(cipherSz))
+	plainSz := uint64(f.rootNode.contentEnc.CipherSizeToPlainSize(cipherSz))
 	return plainSz, nil
 }
 
@@ -174,8 +174,8 @@ func (f *File) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) syscall.Er
 	}
 	newEOFOffset := newPlainSz - 1
 	if oldPlainSz > 0 {
-		n1 := f.contentEnc.PlainOffToBlockNo(oldPlainSz - 1)
-		n2 := f.contentEnc.PlainOffToBlockNo(newEOFOffset)
+		n1 := f.rootNode.contentEnc.PlainOffToBlockNo(oldPlainSz - 1)
+		n2 := f.rootNode.contentEnc.PlainOffToBlockNo(newEOFOffset)
 		// The file is grown within one block, no need to pad anything.
 		// Write a single zero to the last byte and let doWrite figure out the RMW.
 		if n1 == n2 {
@@ -194,7 +194,7 @@ func (f *File) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) syscall.Er
 	}
 	// The new size is block-aligned. In this case we can do everything ourselves
 	// and avoid the call to doWrite.
-	if newPlainSz%f.contentEnc.PlainBS() == 0 {
+	if newPlainSz%f.rootNode.contentEnc.PlainBS() == 0 {
 		// The file was empty, so it did not have a header. Create one.
 		if oldPlainSz == 0 {
 			id, err := f.createHeader()
@@ -203,7 +203,7 @@ func (f *File) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) syscall.Er
 			}
 			f.fileTableEntry.ID = id
 		}
-		cSz := int64(f.contentEnc.PlainSizeToCipherSize(newPlainSz))
+		cSz := int64(f.rootNode.contentEnc.PlainSizeToCipherSize(newPlainSz))
 		err := syscall.Ftruncate(f.intFd(), cSz)
 		if err != nil {
 			tlog.Warn.Printf("Truncate: grow Ftruncate returned error: %v", err)

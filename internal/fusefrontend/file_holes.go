@@ -21,12 +21,12 @@ func (f *File) writePadHole(targetOff int64) syscall.Errno {
 		tlog.Warn.Printf("checkAndPadHole: Fstat failed: %v", err)
 		return fs.ToErrno(err)
 	}
-	plainSize := f.contentEnc.CipherSizeToPlainSize(uint64(fi.Size()))
+	plainSize := f.rootNode.contentEnc.CipherSizeToPlainSize(uint64(fi.Size()))
 	// Appending a single byte to the file (equivalent to writing to
 	// offset=plainSize) would write to "nextBlock".
-	nextBlock := f.contentEnc.PlainOffToBlockNo(plainSize)
+	nextBlock := f.rootNode.contentEnc.PlainOffToBlockNo(plainSize)
 	// targetBlock is the block the user wants to write to.
-	targetBlock := f.contentEnc.PlainOffToBlockNo(uint64(targetOff))
+	targetBlock := f.rootNode.contentEnc.PlainOffToBlockNo(uint64(targetOff))
 	// The write goes into an existing block or (if the last block was full)
 	// starts a new one directly after the last block. Nothing to do.
 	if targetBlock <= nextBlock {
@@ -45,12 +45,12 @@ func (f *File) writePadHole(targetOff int64) syscall.Errno {
 // Zero-pad the file of size plainSize to the next block boundary. This is a no-op
 // if the file is already block-aligned.
 func (f *File) zeroPad(plainSize uint64) syscall.Errno {
-	lastBlockLen := plainSize % f.contentEnc.PlainBS()
+	lastBlockLen := plainSize % f.rootNode.contentEnc.PlainBS()
 	if lastBlockLen == 0 {
 		// Already block-aligned
 		return 0
 	}
-	missing := f.contentEnc.PlainBS() - lastBlockLen
+	missing := f.rootNode.contentEnc.PlainBS() - lastBlockLen
 	pad := make([]byte, missing)
 	tlog.Debug.Printf("zeroPad: Writing %d bytes\n", missing)
 	_, errno := f.doWrite(pad, int64(plainSize))
