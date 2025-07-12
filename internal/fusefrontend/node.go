@@ -140,6 +140,7 @@ func (n *Node) Access(ctx context.Context, mode uint32) syscall.Errno {
 //
 // Symlink-safe through use of Unlinkat().
 func (n *Node) Unlink(ctx context.Context, name string) (errno syscall.Errno) {
+	name = normalizeFilename(name) // Always store as NFC
 	dirfd, cName, errno := n.prepareAtSyscall(name)
 	if errno != 0 {
 		return
@@ -274,6 +275,7 @@ func (n *Node) Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno {
 //
 // Symlink-safe through use of Mknodat().
 func (n *Node) Mknod(ctx context.Context, name string, mode, rdev uint32, out *fuse.EntryOut) (inode *fs.Inode, errno syscall.Errno) {
+	name = normalizeFilename(name) // Always store as NFC
 	dirfd, cName, errno := n.prepareAtSyscall(name)
 	if errno != 0 {
 		return
@@ -329,6 +331,7 @@ func (n *Node) Mknod(ctx context.Context, name string, mode, rdev uint32, out *f
 //
 // Symlink-safe through use of Linkat().
 func (n *Node) Link(ctx context.Context, target fs.InodeEmbedder, name string, out *fuse.EntryOut) (inode *fs.Inode, errno syscall.Errno) {
+	name = normalizeFilename(name) // Always store as NFC
 	dirfd, cName, errno := n.prepareAtSyscall(name)
 	if errno != 0 {
 		return
@@ -379,6 +382,7 @@ func (n *Node) Link(ctx context.Context, target fs.InodeEmbedder, name string, o
 //
 // Symlink-safe through use of Symlinkat.
 func (n *Node) Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (inode *fs.Inode, errno syscall.Errno) {
+	name = normalizeFilename(name) // Always store as NFC
 	dirfd, cName, errno := n.prepareAtSyscall(name)
 	if errno != 0 {
 		return
@@ -450,6 +454,9 @@ func (n *Node) Rename(ctx context.Context, name string, newParent fs.InodeEmbedd
 	if errno = rejectRenameFlags(flags); errno != 0 {
 		return errno
 	}
+
+	name = normalizeFilename(name)       // Always store as NFC  
+	newName = normalizeFilename(newName) // Always store as NFC
 
 	dirfd, cName, errno := n.prepareAtSyscall(name)
 	if errno != 0 {

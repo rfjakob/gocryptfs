@@ -58,6 +58,7 @@ func (n *Node) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, fuseFl
 //
 // Symlink-safe through the use of Openat().
 func (n *Node) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (inode *fs.Inode, fh fs.FileHandle, fuseFlags uint32, errno syscall.Errno) {
+	name = normalizeFilename(name) // Always store as NFC
 	dirfd, cName, errno := n.prepareAtSyscall(name)
 	if errno != 0 {
 		return
