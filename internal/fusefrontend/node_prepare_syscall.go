@@ -163,6 +163,11 @@ func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno sy
 		if errno == 0 {
 			return dirfd, cName, 0 // Found NFC version
 		}
+		
+		// Only proceed with fallback if we got ENOENT (file not found)
+		if errno != syscall.ENOENT {
+			return dirfd, cName, errno
+		}
 
 		// Step 2: Try alternate form if input was different
 		if normalizedChild != child {

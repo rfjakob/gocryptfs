@@ -181,6 +181,7 @@ func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.En
 //
 // Symlink-safe through Unlinkat() + AT_REMOVEDIR.
 func (n *Node) Rmdir(ctx context.Context, name string) (code syscall.Errno) {
+	name = normalizeFilename(name) // Always store as NFC
 	rn := n.rootNode()
 	parentDirFd, cName, errno := n.prepareAtSyscall(name)
 	if errno != 0 {

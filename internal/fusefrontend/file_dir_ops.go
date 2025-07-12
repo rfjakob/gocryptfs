@@ -2,6 +2,8 @@ package fusefrontend
 
 import (
 	"context"
+	"os"
+	"runtime"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fs"
@@ -18,6 +20,7 @@ func (n *Node) OpendirHandle(ctx context.Context, flags uint32) (fh fs.FileHandl
 	var file *File
 	var dirIV []byte
 	var ds fs.DirStream
+	var err error
 	rn := n.rootNode()
 
 	dirfd, cName, errno := n.prepareAtSyscallMyself()
@@ -27,7 +30,7 @@ func (n *Node) OpendirHandle(ctx context.Context, flags uint32) (fh fs.FileHandl
 	defer syscall.Close(dirfd)
 
 	// Open backing directory
-	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
+	fd, err = syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		errno = fs.ToErrno(err)
 		return
@@ -35,15 +38,23 @@ func (n *Node) OpendirHandle(ctx context.Context, flags uint32) (fh fs.FileHandl
 
 	// NewLoopbackDirStreamFd gets its own fd to untangle Release vs Releasedir
 	fdDup, err = syscall.Dup(fd)
-
 	if err != nil {
 		errno = fs.ToErrno(err)
 		goto err_out
 	}
 
-	ds, errno = fs.NewLoopbackDirStreamFd(fdDup)
-	if errno != 0 {
-		goto err_out
+	// Use custom directory stream on macOS due to issues with go-fuse loopback implementation
+	if runtime.GOOS == "darwin" {
+		// On macOS, use our custom directory stream implementation
+		// The go-fuse NewLoopbackDirStreamFd has compatibility issues with macOS/APFS
+		ds = &customDirStream{fd: fdDup}
+		errno = 0
+	} else {
+		// On other platforms, use the standard loopback directory stream
+		ds, errno = fs.NewLoopbackDirStreamFd(fdDup)
+		if errno != 0 {
+			goto err_out
+		}
 	}
 
 	if !rn.args.PlaintextNames {
@@ -93,6 +104,106 @@ type DirHandle struct {
 	ds fs.FileHandle
 }
 
+// customDirStream implements our own directory reading for macOS.
+// This works around compatibility issues with go-fuse's NewLoopbackDirStreamFd on macOS/APFS.
+type customDirStream struct {
+	fd      int
+	entries []string
+	pos     int
+}
+
+func (ds *customDirStream) Readdirent(ctx context.Context) (entry *fuse.DirEntry, errno syscall.Errno) {
+	// Load entries on first call
+	if ds.entries == nil {
+		osFile := os.NewFile(uintptr(ds.fd), "custom-dir")
+		if osFile == nil {
+			return nil, syscall.EIO
+		}
+		
+		// Don't close osFile since that would close our fd
+		defer func() {
+			// Seek back to beginning for potential future reads
+			osFile.Seek(0, 0)
+		}()
+		
+		entries, err := osFile.Readdirnames(-1)
+		if err != nil {
+			return nil, fs.ToErrno(err)
+		}
+		
+		ds.entries = entries
+		ds.pos = 0
+	}
+	
+	// Return next entry
+	if ds.pos >= len(ds.entries) {
+		return nil, 0
+	}
+	
+	name := ds.entries[ds.pos]
+	ds.pos++
+	
+	return &fuse.DirEntry{
+		Name: name,
+		Mode: 0, // We don't provide mode info, let FUSE handle it
+	}, 0
+}
+
+func (ds *customDirStream) Seekdir(ctx context.Context, off uint64) syscall.Errno {
+	if ds.entries == nil {
+		// Not loaded yet, seeking to 0 is OK
+		if off == 0 {
+			return 0
+		}
+		return syscall.EINVAL
+	}
+	
+	if off > uint64(len(ds.entries)) {
+		return syscall.EINVAL
+	}
+	
+	ds.pos = int(off)
+	return 0
+}
+
+func (ds *customDirStream) Releasedir(ctx context.Context, flags uint32) {
+	if ds.fd >= 0 {
+		syscall.Close(ds.fd)
+		ds.fd = -1
+	}
+}
+
+func (ds *customDirStream) Fsyncdir(ctx context.Context, flags uint32) syscall.Errno {
+	// No-op for directory streams
+	return 0
+}
+
+func (ds *customDirStream) Close() {
+	// Close is part of the fs.DirStream interface
+	if ds.fd >= 0 {
+		syscall.Close(ds.fd)
+		ds.fd = -1
+	}
+}
+
+func (ds *customDirStream) HasNext() bool {
+	// HasNext is part of the fs.DirStream interface
+	if ds.entries == nil {
+		// Not loaded yet, assume we have entries to avoid early termination
+		return true
+	}
+	return ds.pos < len(ds.entries)
+}
+
+func (ds *customDirStream) Next() (fuse.DirEntry, syscall.Errno) {
+	// Next is part of the fs.DirStream interface
+	entry, errno := ds.Readdirent(context.Background())
+	if entry == nil {
+		return fuse.DirEntry{}, errno
+	}
+	return *entry, errno
+}
+
 var _ = (fs.FileReleasedirer)((*File)(nil))
 
 func (f *File) Releasedir(ctx context.Context, flags uint32) {
@@ -124,11 +235,13 @@ func (f *File) Readdirent(ctx context.Context) (entry *fuse.DirEntry, errno sysc
 
 	for {
 		entry, errno = f.dirHandle.ds.(fs.FileReaddirenter).Readdirent(ctx)
+		
 		if errno != 0 || entry == nil {
 			return
 		}
 
 		cName := entry.Name
+
 		if cName == "." || cName == ".." {
 			// We want these as-is
 			return
