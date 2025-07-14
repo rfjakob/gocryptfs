@@ -290,7 +290,9 @@ func TestIssue927(t *testing.T) {
 	doTestExcludeTestFs(t, "-exclude-wildcard", patterns, tree)
 }
 
-func TestIssue927Minimal(t *testing.T) {
+// Subset of TestIssue927 to repro the "!dir/" issue
+// https://github.com/go-git/go-git/issues/1596
+func TestIssue927MinimalNotDir(t *testing.T) {
 	patterns := strings.Split(`dir/*
 !dir/`, "\n")
 	var tree directoryTree
@@ -303,6 +305,24 @@ func TestIssue927Minimal(t *testing.T) {
 	tree.hiddenDirs = []string{}
 	tree.hiddenFiles = []string{
 		"dir/zzz",
+	}
+	doTestExcludeTestFs(t, "-exclude-wildcard", patterns, tree)
+}
+
+func TestIssue927MinimalNotDir2(t *testing.T) {
+	patterns := strings.Split(`.config/conky/*
+!.config/conky/
+!.config/conky/conkyrc`, "\n")
+	var tree directoryTree
+	// visible are plaintext paths that should be visible in the encrypted view
+	tree.visibleDirs = []string{}
+	tree.visibleFiles = []string{
+		".config/conky/conkyrc",
+	}
+	// hidden are plaintext paths that should be hidden in the encrypted view
+	tree.hiddenDirs = []string{}
+	tree.hiddenFiles = []string{
+		".config/conky/xxx",
 	}
 	doTestExcludeTestFs(t, "-exclude-wildcard", patterns, tree)
 }
