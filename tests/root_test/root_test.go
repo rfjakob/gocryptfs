@@ -319,6 +319,10 @@ func TestBtrfsQuirks(t *testing.T) {
 	}
 
 	// Format as Btrfs
+	_, err = exec.LookPath("mkfs.btrfs")
+	if err != nil {
+		t.Skip("mkfs.btrfs not found, skipping test")
+	}
 	cmd := exec.Command("mkfs.btrfs", img)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
