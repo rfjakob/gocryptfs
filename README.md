@@ -201,6 +201,12 @@ RM:    2,367
 Changelog
 ---------
 
+#### v2.6.0, 2025-07-14
+* Upgrade to go-fuse v2.8.0
+* Switch to the new go-fuse directory API( https://github.com/rfjakob/gocryptfs/commit/ae3c859c1179498a4882b4bd69c2243aa6912332 )
+* Fix `-force_owner` not allowing file/dir create ( https://github.com/rfjakob/gocryptfs/issues/783 )
+* Skip `TestBtrfsQuirks` if mkfs.btrfs is not installed ( https://github.com/rfjakob/gocryptfs/issues/930 )
+
 #### v2.5.4, 2025-04-13
 * Drop `GOAMD64=v2` from `build.bash`, there's user(s) still running `GOAMD64=v1` CPUs
   ([#908](https://github.com/rfjakob/gocryptfs/issues/908),
