@@ -183,3 +183,5 @@ func Dir(path string) string {
 func (n *NameTransform) GetLongNameMax() int {
 	return n.longNameMax
 }
+
+

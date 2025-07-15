@@ -2,9 +2,11 @@ package nametransform
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"syscall"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/cryptocore"
@@ -95,4 +97,17 @@ func WriteDirIVAt(dirfd int) error {
 		return err
 	}
 	return nil
+}
+
+// ReadDirIV reads the DirIV from "dir"/gocryptfs.diriv.
+func ReadDirIV(dir string) ([]byte, error) {
+	ivPath := filepath.Join(dir, DirIVFilename)
+	iv, err := os.ReadFile(ivPath)
+	if err != nil {
+		return nil, err
+	}
+	if len(iv) != DirIVLen {
+		return nil, errors.New("DirIV has wrong length")
+	}
+	return iv, nil
 }
