@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"math"
+	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -182,6 +183,20 @@ func Dir(path string) string {
 // this should be hashed.
 func (n *NameTransform) GetLongNameMax() int {
 	return n.longNameMax
+}
+
+// IsLongName checks if `cipherName` is a longname file.
+func IsLongName(cipherName string) bool {
+	return strings.HasPrefix(cipherName, "gocryptfs.longname.")
+}
+
+// ReadLongName reads the content of a longname file.
+func ReadLongName(longNamePath string) (string, error) {
+	content, err := os.ReadFile(longNamePath)
+	if err != nil {
+		return "", err
+	}
+	return string(content), nil
 }
 
 

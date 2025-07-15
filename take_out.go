@@ -21,6 +21,17 @@ func decryptRelativePath(encryptedRelPath string, cipherdir string, nameTransfor
 	decryptedPathParts := make([]string, len(encryptedComponents))
 
 	for i, comp := range encryptedComponents {
+		// Handle longname files
+		if nametransform.IsLongName(comp) {
+			longNamePath := filepath.Join(cipherdir, filepath.Join(encryptedComponents[:i+1]...))
+			decryptedComp, err := nametransform.ReadLongName(longNamePath)
+			if err != nil {
+				return "", fmt.Errorf("failed to read longname file %q: %w", longNamePath, err)
+			}
+			decryptedPathParts[i] = decryptedComp
+			continue
+		}
+
 		var iv []byte
 		var errIV error
 
@@ -101,7 +112,7 @@ func takeOut(args *argContainer) {
 		}
 
 		// Skip special files
-		if info.Name() == nametransform.DirIVFilename || info.Name() == configfile.ConfDefaultName || info.Name() == configfile.ConfReverseName {
+		if info.Name() == nametransform.DirIVFilename || info.Name() == configfile.ConfDefaultName || info.Name() == configfile.ConfReverseName || strings.HasPrefix(info.Name(), "._") {
 			return nil
 		}
 
