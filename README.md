@@ -30,7 +30,7 @@ hours and hours of stress (fsstress, extractloop.bash) and correctness
 testing (xfstests). It is now considered ready for general consumption.
 
 The old principle still applies: Important data should have a backup.
-Also, keep a copy of your master key (printed on mount) in a safe place.
+Also, keep a copy of your master key (printed at init) in a safe place.
 This allows you to access the data even if the gocryptfs.conf config
 file is damaged or you lose the password.
 
