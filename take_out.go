@@ -5,13 +5,49 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/configfile"
 	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/v2/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/v2/internal/exitcodes"
+	"github.com/rfjakob/gocryptfs/v2/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
+
+// Helper function to decrypt a full encrypted relative path
+func decryptRelativePath(encryptedRelPath string, cipherdir string, nameTransform *nametransform.NameTransform, args *argContainer) (string, error) {
+	encryptedComponents := strings.Split(encryptedRelPath, string(filepath.Separator))
+	decryptedPathParts := make([]string, len(encryptedComponents))
+
+	for i, comp := range encryptedComponents {
+		var iv []byte
+		var errIV error
+
+		var encryptedParentDir string
+		if i == 0 {
+			encryptedParentDir = cipherdir
+		} else {
+			encryptedParentDir = filepath.Join(cipherdir, filepath.Join(encryptedComponents[:i]...))
+		}
+
+		iv, errIV = nametransform.ReadDirIV(encryptedParentDir)
+		if errIV != nil {
+			if os.IsNotExist(errIV) || args.plaintextnames {
+				iv = make([]byte, nametransform.DirIVLen)
+			} else {
+				return "", fmt.Errorf("failed to read IV for parent %q of component %q: %w", encryptedParentDir, comp, errIV)
+			}
+		}
+
+		decryptedComp, errDecrypt := nameTransform.DecryptName(comp, iv)
+		if errDecrypt != nil {
+			return "", fmt.Errorf("failed to decrypt component %q: %w", comp, errDecrypt)
+		}
+		decryptedPathParts[i] = decryptedComp
+	}
+	return filepath.Join(decryptedPathParts...), nil
+}
 
 func takeOut(args *argContainer) {
 	if flagSet.NArg() != 3 {
@@ -19,7 +55,7 @@ func takeOut(args *argContainer) {
 		os.Exit(exitcodes.Usage)
 	}
 	cipherdir := flagSet.Arg(0)
-	path := flagSet.Arg(1)
+	userPath := flagSet.Arg(1) // Renamed to userPath to avoid conflict with filepath.Walk's path
 	destdir := flagSet.Arg(2)
 
 	masterkey, confFile, err := loadConfig(args)
@@ -43,19 +79,15 @@ func takeOut(args *argContainer) {
 			aeadType = cryptocore.BackendGoGCM
 		}
 	}
-	contentEnc := contentenc.New(cryptocore.New(masterkey, aeadType, contentenc.DefaultIVBits, args.hkdf), contentenc.DefaultBS)
+	var cCore *cryptocore.CryptoCore
+	cCore = cryptocore.New(masterkey, aeadType, contentenc.DefaultIVBits, args.hkdf)
+	contentEnc := contentenc.New(cCore, contentenc.DefaultBS)
+	nameTransform := nametransform.New(cCore.EMECipher, args.longnames, args.longnamemax, args.raw64, args.badname, args.deterministic_names)
 
-	takeOutPath := filepath.Join(cipherdir, path)
 
-	err = filepath.Walk(takeOutPath, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(cipherdir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		if path == args.config {
-			return nil
 		}
 
 		relPath, err := filepath.Rel(cipherdir, path)
@@ -63,8 +95,41 @@ func takeOut(args *argContainer) {
 			return err
 		}
 
-		destPath := filepath.Join(destdir, relPath)
-		err = os.MkdirAll(filepath.Dir(destPath), 0755)
+		// Skip the root directory itself
+		if relPath == "." {
+			return nil
+		}
+
+		// Skip special files
+		if info.Name() == nametransform.DirIVFilename || info.Name() == configfile.ConfDefaultName || info.Name() == configfile.ConfReverseName {
+			return nil
+		}
+
+		// Decrypt the full relative path
+		decryptedRelPath, err := decryptRelativePath(relPath, cipherdir, nameTransform, args)
+		if err != nil {
+			tlog.Warn.Printf("Failed to decrypt path %q: %v", path, err)
+			return nil // Skip this path
+		}
+
+		// Check if the decrypted path matches the user's target path
+		if !strings.HasPrefix(decryptedRelPath, userPath) {
+			return nil // Not the target path or its child
+		}
+
+		// If it's a directory, create it in the destination and continue walking
+		if info.IsDir() {
+			destPath := filepath.Join(destdir, decryptedRelPath)
+			err = os.MkdirAll(destPath, info.Mode())
+			if err != nil {
+				tlog.Warn.Printf("Failed to create directory %q: %v", destPath, err)
+			}
+			return nil
+		}
+
+		// If it's a file, decrypt and move it
+		destPath := filepath.Join(destdir, decryptedRelPath)
+		err = os.MkdirAll(filepath.Dir(destPath), 0755) // Ensure parent directory exists
 		if err != nil {
 			return err
 		}
@@ -76,16 +141,20 @@ func takeOut(args *argContainer) {
 
 		var fileID []byte
 		var blockNo uint64
+		// These feature flags are not directly relevant for content decryption in this context,
+		// but are part of the original `take_out.go` and `contentenc.DecryptBlocks` signature.
+		// For a full implementation, these would need to be derived from the config file or file headers.
+		// For now, we'll assume default behavior or skip if flags are set.
 		if confFile.IsFeatureFlagSet(configfile.FlagEMENames) {
-			// EME names not supported in this simplified example
+			tlog.Warn.Printf("Skipping file %q: EME names not supported in this simplified takeout tool", path)
 			return nil
 		}
 		if confFile.IsFeatureFlagSet(configfile.FlagDirIV) {
-			// DirIV not supported in this simplified example
+			tlog.Warn.Printf("Skipping file %q: DirIV not supported in this simplified takeout tool", path)
 			return nil
 		}
 		if confFile.IsFeatureFlagSet(configfile.FlagGCMIV128) {
-			// GCMIV128 not supported in this simplified example
+			tlog.Warn.Printf("Skipping file %q: GCMIV128 not supported in this simplified takeout tool", path)
 			return nil
 		}
 

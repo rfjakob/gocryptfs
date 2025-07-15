@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/rfjakob/gocryptfs/v2/internal/configfile"
 	"github.com/rfjakob/gocryptfs/v2/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/v2/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/v2/internal/nametransform"
@@ -47,45 +49,70 @@ func list(args *argContainer) {
 			return err
 		}
 
+		// Get the relative path from the cipherdir
 		relPath, err := filepath.Rel(cipherdir, path)
 		if err != nil {
 			return err
 		}
 
+		// Skip the root directory itself
 		if relPath == "." {
-			fmt.Println(".")
 			return nil
 		}
 
-		parentDir := filepath.Dir(path)
-		iv, err := nametransform.ReadDirIV(parentDir)
-		if err != nil {
-			if os.IsNotExist(err) || args.plaintextnames {
-				// In plaintextnames mode, or if gocryptfs.diriv is missing, we can just use an all-zero IV.
-				iv = make([]byte, nametransform.DirIVLen)
-			} else {
-				tlog.Warn.Printf("Failed to read IV for %q: %v", path, err)
-				return nil
-			}
-		}
-
-		decryptedName, err := nameTransform.DecryptName(info.Name(), iv)
-		if err != nil {
-			tlog.Warn.Printf("Failed to decrypt name %q: %v", info.Name(), err)
+		// Skip special files
+		if info.Name() == nametransform.DirIVFilename || info.Name() == configfile.ConfDefaultName || info.Name() == configfile.ConfReverseName {
 			return nil
 		}
 
-		// Simple tree printing
-		level := len(filepath.SplitList(relPath))
-		indent := ""
-		for i := 0; i < level-1; i++ {
-			indent += "|   "
-		}
+		// Only list files, not directories, for "git ls-files" behavior
 		if info.IsDir() {
-			fmt.Printf("%s|-- %s/\n", indent, decryptedName)
-		} else {
-			fmt.Printf("%s|-- %s\n", indent, decryptedName)
+			return nil
 		}
+
+		// Split the relative encrypted path into components
+		encryptedComponents := strings.Split(relPath, string(filepath.Separator))
+		decryptedPathParts := make([]string, len(encryptedComponents))
+
+		// Iterate through components to decrypt each part
+		for i, comp := range encryptedComponents {
+			var iv []byte
+			var errIV error
+
+			// Determine the encrypted parent directory for the current component
+			var encryptedParentDir string
+			if i == 0 {
+				// For the first component, the parent is the cipherdir itself
+				encryptedParentDir = cipherdir
+			} else {
+				// For subsequent components, the parent is the path formed by previous encrypted components
+				encryptedParentDir = filepath.Join(cipherdir, filepath.Join(encryptedComponents[:i]...))
+			}
+
+			// Read the IV for the parent directory
+			iv, errIV = nametransform.ReadDirIV(encryptedParentDir)
+			if errIV != nil {
+				if os.IsNotExist(errIV) || args.plaintextnames {
+					// In plaintextnames mode, or if gocryptfs.diriv is missing, use an all-zero IV.
+					iv = make([]byte, nametransform.DirIVLen)
+				} else {
+					tlog.Warn.Printf("Failed to read IV for parent %q of component %q: %v", encryptedParentDir, comp, errIV)
+					return nil // Skip this path if IV cannot be read
+				}
+			}
+
+			// Decrypt the current component name
+			decryptedComp, errDecrypt := nameTransform.DecryptName(comp, iv)
+			if errDecrypt != nil {
+				tlog.Warn.Printf("Failed to decrypt component %q (full encrypted path: %q): %v", comp, path, errDecrypt)
+				return nil // Skip this path if decryption fails
+			}
+			decryptedPathParts[i] = decryptedComp
+		}
+
+		// Join the decrypted components to form the full relative decrypted path
+		fullDecryptedPath := filepath.Join(decryptedPathParts...)
+		fmt.Println(fullDecryptedPath)
 
 		return nil
 	})
@@ -94,4 +121,5 @@ func list(args *argContainer) {
 		tlog.Fatal.Printf("Error walking directory: %v", err)
 		os.Exit(exitcodes.Walk)
 	}
-}
+	}
+
