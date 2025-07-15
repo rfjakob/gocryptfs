@@ -2,10 +2,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/configfile"
 	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
@@ -14,6 +16,8 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
+
+var ErrNotGocryptfsFile = errors.New("not a gocryptfs file")
 
 // Helper function to decrypt a full encrypted relative path
 func decryptRelativePath(encryptedRelPath string, cipherdir string, nameTransform *nametransform.NameTransform, args *argContainer) (string, error) {
@@ -51,9 +55,22 @@ func decryptRelativePath(encryptedRelPath string, cipherdir string, nameTransfor
 			}
 		}
 
+				// If not a valid base64 string, treat as plaintext
+		if !nametransform.IsValidBase64(comp) {
+			tlog.Debug.Printf("Treating component %q as plaintext (not valid base64)", comp)
+			decryptedPathParts[i] = comp
+			continue
+		}
+
 		decryptedComp, errDecrypt := nameTransform.DecryptName(comp, iv)
 		if errDecrypt != nil {
-			return "", fmt.Errorf("failed to decrypt component %q: %w", comp, errDecrypt)
+			// Check for specific decryption errors that indicate a non-gocryptfs file
+			if errDecrypt == syscall.EBADMSG || strings.Contains(errDecrypt.Error(), "padding too long") || strings.Contains(errDecrypt.Error(), "padding cannot be zero-length") {
+				tlog.Debug.Printf("Skipping non-gocryptfs component %q: %v", comp, errDecrypt)
+				return "", ErrNotGocryptfsFile
+			} else {
+				return "", fmt.Errorf("failed to decrypt component %q: %w", comp, errDecrypt)
+			}
 		}
 		decryptedPathParts[i] = decryptedComp
 	}
@@ -119,7 +136,11 @@ func takeOut(args *argContainer) {
 		// Decrypt the full relative path
 		decryptedRelPath, err := decryptRelativePath(relPath, cipherdir, nameTransform, args)
 		if err != nil {
-			tlog.Warn.Printf("Failed to decrypt path %q: %v", path, err)
+			if errors.Is(err, ErrNotGocryptfsFile) {
+				tlog.Debug.Printf("Skipping non-gocryptfs path %q: %v", path, err)
+			} else {
+				tlog.Warn.Printf("Failed to decrypt path %q: %v", path, err)
+			}
 			return nil // Skip this path
 		}
 
@@ -185,6 +206,7 @@ func takeOut(args *argContainer) {
 		if err != nil {
 			tlog.Warn.Printf("Failed to remove %q: %v", path, err)
 		}
+		tlog.Info.Printf("Took out %q -> %q", path, destPath)
 
 		return nil
 	})

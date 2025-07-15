@@ -199,4 +199,10 @@ func ReadLongName(longNamePath string) (string, error) {
 	return string(content), nil
 }
 
+// IsValidBase64 checks if a string is a valid base64 encoding.
+func IsValidBase64(s string) bool {
+	_, err := base64.URLEncoding.DecodeString(s)
+	return err == nil
+}
+
 
