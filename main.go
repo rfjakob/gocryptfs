@@ -272,13 +272,24 @@ func main() {
 		// Don't call os.Exit to give deferred functions a chance to run
 		return
 	}
-	if nOps > 1 {
-		tlog.Fatal.Printf("At most one of -info, -init, -passwd, -fsck is allowed")
+		if nOps > 1 {
+		tlog.Fatal.Printf("At most one of -info, -init, -passwd, -fsck, -takeout, -list is allowed")
 		os.Exit(exitcodes.Usage)
 	}
-	if flagSet.NArg() != 1 {
-		tlog.Fatal.Printf("The options -info, -init, -passwd, -fsck take exactly one argument, %d given",
-			flagSet.NArg())
+
+	// Check argument count
+	expectedNArg := 1
+	if args.takeout {
+		expectedNArg = 3
+	}
+	if flagSet.NArg() != expectedNArg {
+		if args.takeout {
+			tlog.Fatal.Printf("The option -takeout takes exactly three arguments (CIPHERDIR, PATH, DESTDIR), %d given", flagSet.NArg())
+		} else if args.list {
+			tlog.Fatal.Printf("The option -list takes exactly one argument (CIPHERDIR), %d given", flagSet.NArg())
+		} else {
+			tlog.Fatal.Printf("The options -info, -init, -passwd, -fsck take exactly one argument, %d given", flagSet.NArg())
+		}
 		os.Exit(exitcodes.Usage)
 	}
 	// "-info"
@@ -300,5 +311,15 @@ func main() {
 	if args.fsck {
 		code := fsck(&args)
 		os.Exit(code)
+	}
+	// "-takeout"
+	if args.takeout {
+		takeOut(&args)
+		os.Exit(0)
+	}
+	// "-list"
+	if args.list {
+		list(&args)
+		os.Exit(0)
 	}
 }
