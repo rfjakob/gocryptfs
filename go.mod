@@ -1,6 +1,8 @@
 module github.com/rfjakob/gocryptfs/v2
 
-go 1.19
+go 1.23.0
+
+toolchain go1.24.4
 
 require (
 	github.com/aperturerobotics/jacobsa-crypto v1.1.0
@@ -14,3 +16,5 @@ require (
 	golang.org/x/sys v0.30.0
 	golang.org/x/term v0.29.0
 )
+
+require golang.org/x/text v0.27.0 // indirect
