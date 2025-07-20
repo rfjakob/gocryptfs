@@ -138,6 +138,8 @@ func (f *File) Readdirent(ctx context.Context) (entry *fuse.DirEntry, errno sysc
 			continue
 		}
 		if f.rootNode.args.PlaintextNames {
+			// Even in plaintext mode, normalize for macOS display
+			entry.Name = normalizeFilenameForDisplay(cName)
 			return
 		}
 		if !f.rootNode.args.DeterministicNames && cName == nametransform.DirIVFilename {
@@ -171,7 +173,7 @@ func (f *File) Readdirent(ctx context.Context) (entry *fuse.DirEntry, errno sysc
 		}
 		// Override the ciphertext name with the plaintext name but reuse the rest
 		// of the structure
-		entry.Name = name
+		entry.Name = normalizeFilenameForDisplay(name)
 		return
 	}
 }
