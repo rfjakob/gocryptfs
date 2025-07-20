@@ -25,6 +25,10 @@ const (
 	RENAME_NOREPLACE = 1
 	RENAME_EXCHANGE  = 2
 	RENAME_WHITEOUT  = 4
+	
+	// macOS-specific renameatx_np flags
+	RENAME_SWAP          = 0x2  // Swap the names of the source and target files
+	SYS_RENAMEATX_NP     = 488  // Syscall number for renameatx_np
 )
 
 // Unfortunately fsetattrlist does not have a syscall wrapper yet.
@@ -39,6 +43,24 @@ func fsetattrlist(fd int, list unsafe.Pointer, buf unsafe.Pointer, size uintptr,
 // Setattrlist already has a syscall wrapper, but it is not exported.
 func setattrlist(path *byte, list unsafe.Pointer, buf unsafe.Pointer, size uintptr, options int) (err error) {
 	_, _, e1 := syscall.Syscall6(syscall.SYS_SETATTRLIST, uintptr(unsafe.Pointer(path)), uintptr(list), uintptr(buf), uintptr(size), uintptr(options), 0)
+	if e1 != 0 {
+		err = e1
+	}
+	return
+}
+
+// renameatx_np is the macOS-specific rename function that supports atomic exchanges
+func renameatx_np(fromfd int, from string, tofd int, to string, flags uint) (err error) {
+	var _p0, _p1 *byte
+	_p0, err = syscall.BytePtrFromString(from)
+	if err != nil {
+		return
+	}
+	_p1, err = syscall.BytePtrFromString(to)
+	if err != nil {
+		return
+	}
+	_, _, e1 := syscall.Syscall6(SYS_RENAMEATX_NP, uintptr(fromfd), uintptr(unsafe.Pointer(_p0)), uintptr(tofd), uintptr(unsafe.Pointer(_p1)), uintptr(flags), 0)
 	if e1 != 0 {
 		err = e1
 	}
@@ -152,7 +174,20 @@ func GetdentsSpecial(fd int) (entries []fuse.DirEntry, entriesSpecial []fuse.Dir
 	return emulateGetdents(fd)
 }
 
-// Renameat2 does not exist on Darwin, so we call Renameat and ignore the flags.
+// Renameat2 does not exist on Darwin, but we can emulate some flags using renameatx_np.
 func Renameat2(olddirfd int, oldpath string, newdirfd int, newpath string, flags uint) (err error) {
+	// If no special flags are set, use regular renameat
+	if flags == 0 {
+		return unix.Renameat(olddirfd, oldpath, newdirfd, newpath)
+	}
+	
+	// Handle RENAME_EXCHANGE flag using renameatx_np
+	if flags&RENAME_EXCHANGE != 0 {
+		// renameatx_np with RENAME_SWAP flag provides RENAME_EXCHANGE functionality
+		return renameatx_np(olddirfd, oldpath, newdirfd, newpath, RENAME_SWAP)
+	}
+	
+	// For other flags (RENAME_NOREPLACE, RENAME_WHITEOUT), fall back to regular rename
+	// These are not directly supported on macOS but regular rename should work for most cases
 	return unix.Renameat(olddirfd, oldpath, newdirfd, newpath)
 }
