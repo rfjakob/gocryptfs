@@ -20,11 +20,13 @@ const (
 	// O_PATH is only defined on Linux
 	O_PATH = 0
 
+	// Same meaning, different name
+	RENAME_NOREPLACE = unix.RENAME_EXCL
+	RENAME_EXCHANGE  = unix.RENAME_SWAP
+
 	// Only exists on Linux. Define here to fix build failure, even though
-	// we will never see the flags.
-	RENAME_NOREPLACE = 1
-	RENAME_EXCHANGE  = 2
-	RENAME_WHITEOUT  = 4
+	// we will never see this flag.
+	RENAME_WHITEOUT = 1 << 30
 )
 
 // Unfortunately fsetattrlist does not have a syscall wrapper yet.
@@ -152,7 +154,12 @@ func GetdentsSpecial(fd int) (entries []fuse.DirEntry, entriesSpecial []fuse.Dir
 	return emulateGetdents(fd)
 }
 
-// Renameat2 does not exist on Darwin, so we call Renameat and ignore the flags.
+// Renameat2 does not exist on Darwin, but RenameatxNp does.
 func Renameat2(olddirfd int, oldpath string, newdirfd int, newpath string, flags uint) (err error) {
-	return unix.Renameat(olddirfd, oldpath, newdirfd, newpath)
+	// If no flags are set, use tried and true renameat
+	if flags == 0 {
+		return unix.Renameat(olddirfd, oldpath, newdirfd, newpath)
+	}
+	// Let RenameatxNp handle everything else
+	return unix.RenameatxNp(olddirfd, oldpath, newdirfd, newpath, uint32(flags))
 }
