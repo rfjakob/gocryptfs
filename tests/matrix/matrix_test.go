@@ -16,6 +16,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/rfjakob/gocryptfs/v2/ctlsock"
+	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
 )
 
@@ -950,5 +951,45 @@ func TestDirSize(t *testing.T) {
 			t.Fatal(err)
 		}
 		compareSize()
+	}
+}
+
+// TestRenameExchangeOnGocryptfs tests the core RENAME_EXCHANGE functionality
+// on a mounted gocryptfs filesystem
+func TestRenameExchangeOnGocryptfs(t *testing.T) {
+	// Create two files with different content
+	file1 := filepath.Join(test_helpers.DefaultPlainDir, "file1.txt")
+	file2 := filepath.Join(test_helpers.DefaultPlainDir, "file2.txt")
+	content1 := []byte("Content of file 1")
+	content2 := []byte("Content of file 2")
+
+	if err := os.WriteFile(file1, content1, 0644); err != nil {
+		t.Fatalf("Failed to create file1: %v", err)
+	}
+	if err := os.WriteFile(file2, content2, 0644); err != nil {
+		t.Fatalf("Failed to create file2: %v", err)
+	}
+
+	// Use RENAME_EXCHANGE to atomically swap the files
+	err := syscallcompat.Renameat2(unix.AT_FDCWD, file1, unix.AT_FDCWD, file2, syscallcompat.RENAME_EXCHANGE)
+	if err != nil {
+		t.Fatalf("RENAME_EXCHANGE failed on gocryptfs: %v", err)
+	}
+
+	// Verify the files were swapped
+	newContent1, err := os.ReadFile(file1)
+	if err != nil {
+		t.Fatalf("Failed to read file1 after exchange: %v", err)
+	}
+	newContent2, err := os.ReadFile(file2)
+	if err != nil {
+		t.Fatalf("Failed to read file2 after exchange: %v", err)
+	}
+
+	if string(newContent1) != string(content2) {
+		t.Errorf("file1 content wrong after exchange. Expected: %s, Got: %s", content2, newContent1)
+	}
+	if string(newContent2) != string(content1) {
+		t.Errorf("file2 content wrong after exchange. Expected: %s, Got: %s", content1, newContent2)
 	}
 }
