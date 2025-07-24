@@ -3,9 +3,7 @@ package fusefrontend_reverse
 import (
 	"context"
 	"fmt"
-	"runtime"
 	"syscall"
-	"unicode/utf8"
 
 	"golang.org/x/sys/unix"
 
@@ -117,15 +115,4 @@ func (n *Node) readdirPlaintextnames(entries []fuse.DirEntry) (stream fs.DirStre
 		entries[dupe].Name = "gocryptfs.conf_NAME_COLLISION_" + fmt.Sprintf("%d", cryptocore.RandUint64())
 	}
 	return fs.NewListDirStream(entries), 0
-}
-
-// normalizeFilenameForDisplay converts stored filenames to the form expected by macOS GUI.
-// In reverse mode, we present the plaintext files as-is, but ensure proper display normalization.
-func normalizeFilenameForDisplay(name string) string {
-	if runtime.GOOS == "darwin" && utf8.ValidString(name) {
-		// For reverse mode, we typically want to preserve the original normalization
-		// of the plaintext files, but ensure they display correctly
-		return name
-	}
-	return name
 }
