@@ -4,12 +4,8 @@ import (
 	"encoding/base64"
 	"log"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"syscall"
-	"unicode/utf8"
-
-	"golang.org/x/text/unicode/norm"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/v2/internal/pathiv"
@@ -38,33 +34,6 @@ func (rfs *RootNode) rDecryptName(cName string, dirIV []byte, pDir string) (pNam
 				return "", syscall.ENOENT
 			}
 			return "", err
-		}
-		
-		// On macOS, handle Unicode normalization fallback for reverse mode
-		if runtime.GOOS == "darwin" && utf8.ValidString(pName) {
-			// Check if the decrypted name actually exists on disk
-			pPath := filepath.Join(rfs.args.Cipherdir, pDir, pName)
-			var st syscall.Stat_t
-			if statErr := syscall.Stat(pPath, &st); statErr != nil {
-				// Try the alternate Unicode form
-				var alternateName string
-				if norm.NFC.String(pName) == pName {
-					// pName is NFC, try NFD
-					alternateName = norm.NFD.String(pName)
-				} else {
-					// pName is NFD (or mixed), try NFC
-					alternateName = norm.NFC.String(pName)
-				}
-				
-				if alternateName != pName {
-					alternatePath := filepath.Join(rfs.args.Cipherdir, pDir, alternateName)
-					var altSt syscall.Stat_t
-					if altStatErr := syscall.Stat(alternatePath, &altSt); altStatErr == nil {
-						// The alternate form exists, use it
-						return alternateName, nil
-					}
-				}
-			}
 		}
 	} else if nameType == nametransform.LongNameContent {
 		dirfd, err := syscallcompat.OpenDirNofollow(rfs.args.Cipherdir, filepath.Dir(pDir))

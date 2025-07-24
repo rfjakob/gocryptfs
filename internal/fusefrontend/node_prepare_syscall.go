@@ -94,58 +94,6 @@ func (n *Node) prepareAtSyscallDirect(child string) (dirfd int, cName string, er
 	return
 }
 
-// migrateFilename migrates a filename from NFD to NFC form
-func (n *Node) migrateFilename(oldName, newName string) syscall.Errno {
-	if oldName == newName {
-		return 0 // Nothing to do
-	}
-
-	rn := n.rootNode()
-	
-	// Get directory file descriptor
-	dirfd, _, errno := n.prepareAtSyscallMyself()
-	if errno != 0 {
-		return errno
-	}
-	defer syscall.Close(dirfd)
-
-	// For plaintext names: simple rename
-	if rn.args.PlaintextNames {
-		err := syscallcompat.Renameat(dirfd, oldName, dirfd, newName)
-		return fs.ToErrno(err)
-	}
-
-	// For encrypted names: encrypt both names and rename
-	iv, err := rn.nameTransform.ReadDirIVAt(dirfd)
-	if err != nil {
-		return fs.ToErrno(err)
-	}
-
-	var encryptName func(int, string, []byte) (string, error)
-	if rn.nameTransform.HaveBadnamePatterns() {
-		encryptName = func(dirfd int, child string, iv []byte) (string, error) {
-			return rn.nameTransform.EncryptAndHashBadName(child, iv, dirfd)
-		}
-	} else {
-		encryptName = func(dirfd int, child string, iv []byte) (string, error) {
-			return rn.nameTransform.EncryptAndHashName(child, iv)
-		}
-	}
-
-	oldCName, err := encryptName(dirfd, oldName, iv)
-	if err != nil {
-		return fs.ToErrno(err)
-	}
-
-	newCName, err := encryptName(dirfd, newName, iv)
-	if err != nil {
-		return fs.ToErrno(err)
-	}
-
-	err = syscallcompat.Renameat(dirfd, oldCName, dirfd, newCName)
-	return fs.ToErrno(err)
-}
-
 // prepareAtSyscall returns a (dirfd, cName) pair that can be used
 // with the "___at" family of system calls (openat, fstatat, unlinkat...) to
 // access the backing encrypted child file.
@@ -155,7 +103,7 @@ func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno sy
 		return n.prepareAtSyscallMyself()
 	}
 
-	// On macOS, implement Unicode normalization with fallback and migration
+	// On macOS, implement Unicode normalization with fallback
 	if runtime.GOOS == "darwin" && utf8.ValidString(child) {
 		// Step 1: Always try NFC first (canonical storage form)
 		normalizedChild := norm.NFC.String(child)
@@ -169,15 +117,7 @@ func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno sy
 			// Input was NFD, try original NFD form
 			dirfdNFD, cNameNFD, errnoNFD := n.prepareAtSyscallDirect(child)
 			if errnoNFD == 0 {
-				// Found NFD file - migrate it to NFC
-				if errno := n.migrateFilename(child, normalizedChild); errno == 0 {
-					// Migration successful, use NFC
-					syscall.Close(dirfdNFD) // Close the NFD dirfd
-					return n.prepareAtSyscallDirect(normalizedChild)
-				} else {
-					// Migration failed, use NFD
-					return dirfdNFD, cNameNFD, 0
-				}
+				return dirfdNFD, cNameNFD, 0
 			}
 		}
 
@@ -187,15 +127,7 @@ func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno sy
 			if nfdChild != child {
 				dirfdNFD, cNameNFD, errnoNFD := n.prepareAtSyscallDirect(nfdChild)
 				if errnoNFD == 0 {
-					// Found NFD file - migrate it to NFC
-					if errno := n.migrateFilename(nfdChild, normalizedChild); errno == 0 {
-						// Migration successful, use NFC
-						syscall.Close(dirfdNFD) // Close the NFD dirfd
-						return n.prepareAtSyscallDirect(normalizedChild)
-					} else {
-						// Migration failed, use NFD
-						return dirfdNFD, cNameNFD, 0
-					}
+					return dirfdNFD, cNameNFD, 0
 				}
 			}
 		}
