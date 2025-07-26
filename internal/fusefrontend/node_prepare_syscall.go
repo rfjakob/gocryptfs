@@ -1,7 +1,11 @@
 package fusefrontend
 
 import (
+	"runtime"
 	"syscall"
+	"unicode/utf8"
+
+	"golang.org/x/text/unicode/norm"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 
@@ -10,12 +14,10 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 )
 
-// prepareAtSyscall returns a (dirfd, cName) pair that can be used
-// with the "___at" family of system calls (openat, fstatat, unlinkat...) to
-// access the backing encrypted child file.
-func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno syscall.Errno) {
+// prepareAtSyscallDirect is the direct version without Unicode normalization fallback
+func (n *Node) prepareAtSyscallDirect(child string) (dirfd int, cName string, errno syscall.Errno) {
 	if child == "" {
-		tlog.Warn.Printf("BUG: prepareAtSyscall: child=%q, should have called prepareAtSyscallMyself", child)
+		tlog.Warn.Printf("BUG: prepareAtSyscallDirect: child=%q, should have called prepareAtSyscallMyself", child)
 		return n.prepareAtSyscallMyself()
 	}
 
@@ -90,6 +92,48 @@ func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno sy
 	}
 
 	return
+}
+
+// prepareAtSyscall returns a (dirfd, cName) pair that can be used
+// with the "___at" family of system calls (openat, fstatat, unlinkat...) to
+// access the backing encrypted child file.
+func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno syscall.Errno) {
+	if child == "" {
+		tlog.Warn.Printf("BUG: prepareAtSyscall: child=%q, should have called prepareAtSyscallMyself", child)
+		return n.prepareAtSyscallMyself()
+	}
+
+	// On macOS, implement Unicode normalization with fallback
+	if runtime.GOOS == "darwin" && utf8.ValidString(child) {
+		// Step 1: Always try NFC first (canonical storage form)
+		normalizedChild := norm.NFC.String(child)
+		dirfd, cName, errno = n.prepareAtSyscallDirect(normalizedChild)
+		if errno == 0 {
+			return dirfd, cName, 0 // Found NFC version
+		}
+
+		// Step 2: Try alternate form if input was different
+		if normalizedChild != child {
+			// Input was NFD, try original NFD form
+			dirfdNFD, cNameNFD, errnoNFD := n.prepareAtSyscallDirect(child)
+			if errnoNFD == 0 {
+				return dirfdNFD, cNameNFD, 0
+			}
+		}
+
+		// Step 3: If input was NFC, also try NFD as fallback
+		if normalizedChild == child {
+			nfdChild := norm.NFD.String(child)
+			if nfdChild != child {
+				dirfdNFD, cNameNFD, errnoNFD := n.prepareAtSyscallDirect(nfdChild)
+				if errnoNFD == 0 {
+					return dirfdNFD, cNameNFD, 0
+				}
+			}
+		}
+	}
+
+	return n.prepareAtSyscallDirect(child) // Non-macOS or fallback
 }
 
 func (n *Node) prepareAtSyscallMyself() (dirfd int, cName string, errno syscall.Errno) {

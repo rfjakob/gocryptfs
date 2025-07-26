@@ -6,8 +6,10 @@ import (
 	"io"
 	"runtime"
 	"syscall"
+	"unicode/utf8"
 
 	"golang.org/x/sys/unix"
+	"golang.org/x/text/unicode/norm"
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -19,6 +21,22 @@ import (
 )
 
 const dsStoreName = ".DS_Store"
+
+// normalizeFilename converts filenames to NFC for consistent internal storage
+func normalizeFilename(name string) string {
+	if runtime.GOOS == "darwin" && utf8.ValidString(name) {
+		return norm.NFC.String(name)
+	}
+	return name
+}
+
+// normalizeFilenameForDisplay converts NFC to NFD for macOS GUI compatibility
+func normalizeFilenameForDisplay(name string) string {
+	if runtime.GOOS == "darwin" && utf8.ValidString(name) {
+		return norm.NFD.String(name)
+	}
+	return name
+}
 
 // haveDsstore return true if one of the entries in "names" is ".DS_Store".
 func haveDsstore(entries []fuse.DirEntry) bool {
@@ -70,6 +88,7 @@ func (n *Node) mkdirWithIv(dirfd int, cName string, mode uint32, context *fuse.C
 //
 // Symlink-safe through use of Mkdirat().
 func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
+	name = normalizeFilename(name) // Always store as NFC
 	dirfd, cName, errno := n.prepareAtSyscall(name)
 	if errno != 0 {
 		return nil, errno
