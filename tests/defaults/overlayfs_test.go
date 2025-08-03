@@ -118,7 +118,7 @@ func TestRenameExchange(t *testing.T) {
 	}
 }
 
-// Looks like the FUSE protocol does support O_TMPFILE yet
+// Looks like the FUSE protocol does not support O_TMPFILE yet
 func TestOTmpfile(t *testing.T) {
 	p := test_helpers.DefaultPlainDir + "/" + t.Name()
 	fd, err := unix.Openat(-1, p, unix.O_TMPFILE, 0600)
