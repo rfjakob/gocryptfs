@@ -11,6 +11,8 @@ func RandBytes(n int) []byte {
 	b := make([]byte, n)
 	_, err := rand.Read(b)
 	if err != nil {
+		// crypto/rand.Read() is documented to never return an
+		// error, so this should never happen. Still, better safe than sorry.
 		log.Panic("Failed to read random bytes: " + err.Error())
 	}
 	return b
