@@ -878,3 +878,77 @@ func TestRootIno(t *testing.T) {
 		t.Errorf("inode number of root dir is zero")
 	}
 }
+
+// TestDirSize checks that we report the correct size for directories.
+//
+// https://github.com/rfjakob/gocryptfs/issues/951:
+// "cipherSize 30: incomplete last block" after upgrade to 2.6.0
+func TestDirSize(t *testing.T) {
+	pDir := test_helpers.DefaultPlainDir + "/" + t.Name()
+	err := os.Mkdir(pDir, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := ctlsock.RequestStruct{
+		EncryptPath: t.Name(),
+	}
+	resp := test_helpers.QueryCtlSock(t, ctlsockPath, req)
+	if resp.Result == "" {
+		t.Fatal(resp)
+	}
+	cDir := test_helpers.DefaultCipherDir + "/" + resp.Result
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fstat := func(path string) (st syscall.Stat_t) {
+		fd, err := syscall.Open(path, syscall.O_RDONLY, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer syscall.Close(fd)
+
+		err = syscall.Fstat(fd, &st)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return st
+	}
+
+	// Check that plaintext size is equal to ciphertext size and
+	// that stat and fstat gives the same result
+	compareSize := func() {
+		var pStat, cStat syscall.Stat_t
+		err = syscall.Stat(pDir, &pStat)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pFstat := fstat(pDir)
+
+		err = syscall.Stat(cDir, &cStat)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cFstat := fstat(cDir)
+
+		if pStat.Size != cStat.Size {
+			t.Errorf("stat size is different: pSt=%d cSt=%d", pStat.Size, cStat.Size)
+		}
+		if pStat.Size != pFstat.Size {
+			t.Errorf("stat size is different from fstat size: pStat=%d pFstat=%d", pStat.Size, pFstat.Size)
+		}
+		if pFstat.Size != cFstat.Size {
+			t.Errorf("fstat size is different: pSt=%d cSt=%d", pFstat.Size, cFstat.Size)
+		}
+	}
+
+	for i := 0; i < 100; i++ {
+		// Grow the directory by creating new files with long names inside it
+		path := fmt.Sprintf("%s/%0100d", pDir, i)
+		err = os.WriteFile(path, nil, 0600)
+		if err != nil {
+			t.Fatal(err)
+		}
+		compareSize()
+	}
+}
