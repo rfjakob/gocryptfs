@@ -37,9 +37,9 @@ unmount_leftovers() {
 	return $RET
 }
 
-(
 # Prevent multiple parallel test.bash instances as this causes
 # all kinds of mayhem
+exec 200> "$LOCKFILE"
 if ! command -v flock > /dev/null ; then
 	echo "flock is not available, skipping"
 elif ! flock -n 200 ; then
@@ -131,5 +131,3 @@ if find . ! -path "./vendor/*" -type f -name \*.go -print0 | xargs -0 grep '\.Cr
 	echo "$MYNAME: Please use Open(..., O_CREAT|O_WRONLY|O_EXCL, ...) instead of Creat()! https://github.com/rfjakob/gocryptfs/issues/623"
 	exit 1
 fi
-
-) 200> "$LOCKFILE"
