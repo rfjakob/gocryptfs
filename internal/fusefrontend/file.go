@@ -436,7 +436,10 @@ func (f *File) Getattr(ctx context.Context, a *fuse.AttrOut) syscall.Errno {
 	}
 	f.rootNode.inoMap.TranslateStat(&st)
 	a.FromStat(&st)
-	a.Size = f.rootNode.contentEnc.CipherSizeToPlainSize(a.Size)
+	if a.IsRegular() {
+		a.Size = f.rootNode.contentEnc.CipherSizeToPlainSize(a.Size)
+	}
+	// TODO: Handle symlink size similar to node.translateSize()
 	if f.rootNode.args.ForceOwner != nil {
 		a.Owner = *f.rootNode.args.ForceOwner
 	}
