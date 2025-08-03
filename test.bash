@@ -80,7 +80,7 @@ else
 fi
 
 echo -n "Testing on TMPDIR=$TMPDIR, filesystem: "
-findmnt --noheadings --target "$TESTDIR" --output FSTYPE,OPTIONS || true
+findmnt --noheadings --target "$TESTDIR" --output FSTYPE,OPTIONS || echo "?"
 
 EXTRA_ARGS=""
 if [[ $VERBOSE -eq 1 ]]; then
