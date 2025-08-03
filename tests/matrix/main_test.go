@@ -22,6 +22,8 @@ import (
 // a global variable
 var testcase testcaseMatrix
 
+var ctlsockPath string
+
 type testcaseMatrix struct {
 	plaintextnames bool
 	openssl        string
@@ -80,8 +82,9 @@ func TestMain(m *testing.M) {
 		} else if testcase.isSet("-deterministic-names") {
 			createDirIV = false
 		}
+		ctlsockPath = test_helpers.TmpDir + "/ctlsock"
 		test_helpers.ResetTmpDir(createDirIV)
-		opts := []string{"-zerokey"}
+		opts := []string{"-zerokey", "-ctlsock", ctlsockPath}
 		//opts = append(opts, "-fusedebug")
 		opts = append(opts, fmt.Sprintf("-openssl=%v", testcase.openssl))
 		opts = append(opts, fmt.Sprintf("-plaintextnames=%v", testcase.plaintextnames))
@@ -109,6 +112,10 @@ func TestMain(m *testing.M) {
 			fmt.Printf("TestMain: matrix[%d] = %#v failed\n", i, testcase)
 			os.Exit(r)
 		}
+		// The ctlsock file is deleted asynchronously after unmount.
+		// Ensure it is delete here so it does not race (and trip up) ResetTmpDir() of the next
+		// loop iteration.
+		os.Remove(ctlsockPath)
 	}
 	os.Exit(0)
 }

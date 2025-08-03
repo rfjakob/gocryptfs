@@ -15,6 +15,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
+	"github.com/rfjakob/gocryptfs/v2/ctlsock"
 	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
 )
 
