@@ -1,0 +1,34 @@
+name: macos
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+
+    - uses: actions/setup-go@v5
+      with:
+        go-version: 'stable'
+
+    - name: Install macports
+      run: |
+        wget --no-verbose https://github.com/macports/macports-base/releases/download/v2.11.4/MacPorts-2.11.4-15-Sequoia.pkg
+        sudo installer -pkg MacPorts*.pkg -target /
+        rm MacPorts*.pkg
+
+    - name: Install macfuse
+      run: |
+        sudo /opt/local/bin/port install macfuse
+        sudo ln -fsn /opt/local/Library/Filesystems/macfuse.fs /Library/Filesystems/macfuse.fs
+
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Make "git describe" work
+
+    - name: test
+      run: |
+        ./test-without-openssl.bash
