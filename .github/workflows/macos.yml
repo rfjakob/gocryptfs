@@ -22,8 +22,7 @@ jobs:
 
     - name: Install macfuse
       run: |
-        sudo /opt/local/bin/port install macfuse
-        sudo ln -fsn /opt/local/Library/Filesystems/macfuse.fs /Library/Filesystems/macfuse.fs
+        sudo /opt/local/bin/port install macfuse +fs_link
 
     - uses: actions/checkout@v4
       with:
@@ -31,4 +30,4 @@ jobs:
 
     - name: test
       run: |
-        ./test-without-openssl.bash
+        ./test-without-openssl.bash -v
