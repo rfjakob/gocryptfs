@@ -40,30 +40,30 @@ func (tc *testcaseMatrix) isSet(extraArg string) bool {
 	return false
 }
 
-var matrix = []testcaseMatrix{
-	// Normal
-	{false, "auto", false, false, nil},
-	{false, "true", false, false, nil},
-	{false, "false", false, false, nil},
-	// Plaintextnames
-	{true, "true", false, false, nil},
-	{true, "false", false, false, nil},
-	// AES-SIV (does not use openssl, no need to test permutations)
-	{false, "auto", true, false, nil},
-	{true, "auto", true, false, nil},
-	// Raw64
-	{false, "auto", false, true, nil},
-	// -serialize_reads
-	{false, "auto", false, false, []string{"-serialize_reads"}},
-	{false, "auto", false, false, []string{"-sharedstorage"}},
-	{false, "auto", false, false, []string{"-deterministic-names"}},
-	// Test xchacha with and without openssl
-	{false, "true", false, true, []string{"-xchacha"}},
-	{false, "false", false, true, []string{"-xchacha"}},
-}
-
 // This is the entry point for the tests
 func TestMain(m *testing.M) {
+	var matrix = []testcaseMatrix{
+		// Normal
+		{false, "auto", false, false, nil},
+		{false, "true", false, false, nil},
+		{false, "false", false, false, nil},
+		// Plaintextnames
+		{true, "true", false, false, nil},
+		{true, "false", false, false, nil},
+		// AES-SIV (does not use openssl, no need to test permutations)
+		{false, "auto", true, false, nil},
+		{true, "auto", true, false, nil},
+		// Raw64
+		{false, "auto", false, true, nil},
+		// -serialize_reads
+		{false, "auto", false, false, []string{"-serialize_reads"}},
+		{false, "auto", false, false, []string{"-sharedstorage"}},
+		{false, "auto", false, false, []string{"-deterministic-names"}},
+		// Test xchacha with and without openssl
+		{false, "true", false, true, []string{"-xchacha"}},
+		{false, "false", false, true, []string{"-xchacha"}},
+	}
+
 	// Make "testing.Verbose()" return the correct value
 	flag.Parse()
 	var i int
