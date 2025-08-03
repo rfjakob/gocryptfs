@@ -97,7 +97,7 @@ func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
 	case <-time.After(2 * time.Second):
 		fmt.Printf("Timeout, sending SIGQUIT and SIGKILL")
 		cmd.Process.Signal(syscall.SIGQUIT)
-		// SIGQUIT should trigger a backtrace. Give it some time to print it.
+		// SIGQUIT should trigger a backtrace. Give it some time to print
 		time.Sleep(time.Second)
 		cmd.Process.Kill()
 		log.Panicf("Timeout waiting for process %d", pid)

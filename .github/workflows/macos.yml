@@ -23,6 +23,7 @@ jobs:
     - name: Install macfuse
       run: |
         sudo /opt/local/bin/port install macfuse +fs_link
+        sudo /usr/bin/kmutil load -p /Library/Filesystems/macfuse.fs/Contents/Extensions/15/macfuse.kext
 
     - uses: actions/checkout@v4
       with:
