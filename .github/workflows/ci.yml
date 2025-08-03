@@ -26,6 +26,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
 
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Make "git describe" work
+
     - name: Install Go ${{ matrix.go }}
       uses: actions/setup-go@v5
       with:
@@ -34,10 +38,6 @@ jobs:
     # Looks like Github Actions leaks fds to child processes
     # https://github.com/actions/runner/issues/1188
     - run: ls -l /proc/self/fd
-
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0 # Make "git describe" work
 
     # CI platform specific setup steps happen here
     - run: sudo apt-get install -qq fuse3 libssl-dev
