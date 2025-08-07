@@ -82,7 +82,7 @@ func TestMain(m *testing.M) {
 		} else if testcase.isSet("-deterministic-names") {
 			createDirIV = false
 		}
-		ctlsockPath = test_helpers.TmpDir + "/ctlsock"
+		ctlsockPath = fmt.Sprintf("%s/ctlsock.%d", test_helpers.TmpDir, i)
 		test_helpers.ResetTmpDir(createDirIV)
 		opts := []string{"-zerokey", "-ctlsock", ctlsockPath}
 		//opts = append(opts, "-fusedebug")
@@ -96,7 +96,7 @@ func TestMain(m *testing.M) {
 		t0 := time.Now()
 		r := m.Run()
 		if testing.Verbose() {
-			fmt.Printf("matrix: run took %v\n", time.Since(t0))
+			fmt.Printf("matrix[%d]: run took %v\n", i, time.Since(t0))
 		}
 		// Catch fd leaks in the tests. NOTE: this does NOT catch leaks in
 		// the gocryptfs FUSE process, but only in the tests that access it!
