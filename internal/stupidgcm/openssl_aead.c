@@ -1,4 +1,4 @@
-// +build !without_openssl
+//go:build cgo && !without_openssl
 
 #include "openssl_aead.h"
 #include <openssl/evp.h>
