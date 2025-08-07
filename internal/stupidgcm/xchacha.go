@@ -7,7 +7,7 @@
 //
 // Copied from
 // https://github.com/golang/crypto/blob/32db794688a5a24a23a43f2a984cecd5b3d8da58/chacha20poly1305/xchacha20poly1305.go
-// and adapted for stupidgcm by @rfjakob.
+// and adapted to use OpenSSL ChaCha20 (see chacha.go) instaed of stdlib by @rfjakob.
 
 package stupidgcm
 
