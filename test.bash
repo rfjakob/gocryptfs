@@ -54,8 +54,8 @@ unmount_leftovers || true
 	echo "$MYNAME: build-without-openssl.bash failed"
 	exit 1
 }
-# Don't build with openssl if we were passed "-tags without_openssl"
-if [[ "$*" != *without_openssl* ]] ; then
+# Only build with openssl if cgo is enabled
+if [[ $(go env CGO_ENABLED) -eq 1 ]] ; then
 	./build.bash
 fi
 
