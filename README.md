@@ -201,6 +201,13 @@ RM:    2,367
 Changelog
 ---------
 
+#### v2.6.1, 2025-08-10
+* Fix warnings `cipherSize X: incomplete last block (Y bytes), padding to Z bytes`
+  (harmless but annoying, [#951](https://github.com/rfjakob/gocryptfs/issues/951))
+* MacOS: Fix GUI apps reporting failure to save files [#914](https://github.com/rfjakob/gocryptfs/issues/914)
+* MacOS: Fix `test-without-openssl.bash` trying to build tests with openssl enabled
+  ([2ebd0d754b8ee4](https://github.com/rfjakob/gocryptfs/commit/2ebd0d754b8ee46e6c65e90e1d1e13491b03b7b5))
+
 #### v2.6.0, 2025-07-14
 * Upgrade to go-fuse v2.8.0
 * Switch to the new go-fuse directory API( https://github.com/rfjakob/gocryptfs/commit/ae3c859c1179498a4882b4bd69c2243aa6912332 )
