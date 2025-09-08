@@ -31,7 +31,7 @@ jobs:
         fetch-depth: 0 # Make "git describe" work
 
     - name: Install Go ${{ matrix.go }}
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: ${{ matrix.go }}
 
