@@ -72,6 +72,8 @@ const (
 	DevNull = 30
 	// FIDO2Error - an error was encountered while interacting with a FIDO2 token
 	FIDO2Error = 31
+	// Walk - an error was encountered while walking a directory
+	Walk = 32
 )
 
 // Err wraps an error with an associated numeric exit code
