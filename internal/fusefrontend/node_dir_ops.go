@@ -136,12 +136,6 @@ func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.En
 	}
 	defer syscall.Close(fd)
 
-	err = syscall.Fstat(fd, &st)
-	if err != nil {
-		tlog.Warn.Printf("Mkdir %q: Fstat failed: %v", cName, err)
-		return nil, fs.ToErrno(err)
-	}
-
 	// Fix permissions
 	if origMode != mode {
 		// Preserve SGID bit if it was set due to inheritance.
@@ -150,7 +144,12 @@ func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.En
 		if err != nil {
 			tlog.Warn.Printf("Mkdir %q: Fchmod %#o -> %#o failed: %v", cName, mode, origMode, err)
 		}
+	}
 
+	err = syscall.Fstat(fd, &st)
+	if err != nil {
+		tlog.Warn.Printf("Mkdir %q: Fstat failed: %v", cName, err)
+		return nil, fs.ToErrno(err)
 	}
 
 	// Create child node & return
