@@ -70,3 +70,27 @@ func TestHaveDotdot(t *testing.T) {
 		t.Errorf("have=%q want=%q", have, want)
 	}
 }
+
+// mkdir used to report the wrong file mode when creating a read-only
+// director.
+// https://github.com/rfjakob/gocryptfs/issues/964
+func Test555Dir(t *testing.T) {
+	dir1 := test_helpers.DefaultPlainDir + "/" + t.Name()
+	err := os.Mkdir(dir1, 0555)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Avoid permission errors when cleaning up the directory later
+	defer syscall.Chmod(dir1, 0700)
+
+	var st syscall.Stat_t
+	err = syscall.Stat(dir1, &st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	have := st.Mode & 0777
+	if have != 0555 {
+		t.Errorf("wrong mode. want 0555 have %04o", have)
+	}
+}
