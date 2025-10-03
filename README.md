@@ -56,7 +56,7 @@ Standalone tools:
 is Python tool that can decrypt files & file names without
 using FUSE.
 
-[gocryptfs-create-folder](https://codeberg.org/LGLQ/gocryptfs-create-folder)
+[gocryptfs-create-folder](https://github.com/lquenti/gocryptfs-create-folder)
 is a Python tool can encrypt a directory without using FUSE.
 
 Installation
