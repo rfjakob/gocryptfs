@@ -44,6 +44,8 @@ jobs:
 
     # Fix "/usr/bin/fusermount: option allow_other only allowed if 'user_allow_other' is set in /etc/fuse.conf"
     # and "/usr/bin/fusermount3: too many FUSE filesystems mounted"
+    # The latter is likely a bug in fusermount, fixed in Oct 2025 by
+    # https://github.com/libfuse/libfuse/commit/bf3dd153fbfcd610d799562490f6555b9d708905
     - run: echo -e 'user_allow_other\nmount_max = 10000' | sudo tee -a /etc/fuse.conf && cat /etc/fuse.conf
 
     # Build & upload static binary
