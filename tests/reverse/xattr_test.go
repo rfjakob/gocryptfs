@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 
@@ -46,7 +47,12 @@ func TestXattrList(t *testing.T) {
 	}
 	namesC := map[string]string{}
 	for _, n := range tmp {
-		namesC[n] = string(val)
+		if strings.HasPrefix(n, "security.") {
+			t.Logf("Ignoring xattr %q", n)
+			continue
+		}
+		v, _ := xattr.LGet(fnC, n)
+		namesC[n] = string(v)
 	}
 	if len(namesA) != len(namesC) {
 		t.Errorf("wrong number of names, want=%d have=%d", len(namesA), len(namesC))
