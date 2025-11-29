@@ -13,8 +13,6 @@ const (
 	// On MacOS ExFAT, all empty files share inode number 1:
 	// https://github.com/rfjakob/gocryptfs/issues/585
 	QuirkDuplicateIno1
-	// QuirkNoUserXattr means that user.* xattrs are not supported
-	QuirkNoUserXattr
 )
 
 func logQuirk(s string) {

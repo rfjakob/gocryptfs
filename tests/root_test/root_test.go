@@ -305,9 +305,6 @@ func TestOverlay(t *testing.T) {
 		t.Skip("must run as root")
 	}
 	cDir := test_helpers.InitFS(t)
-	if syscallcompat.DetectQuirks(cDir)&syscallcompat.QuirkNoUserXattr != 0 {
-		t.Logf("No user xattrs! overlay mount will likely fail.")
-	}
 	os.Chmod(cDir, 0755)
 	pDir := cDir + ".mnt"
 	test_helpers.MountOrFatal(t, cDir, pDir, "-allow_other", "-extpass=echo test")

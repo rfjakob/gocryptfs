@@ -27,9 +27,5 @@ func DetectQuirks(cipherdir string) (q uint64) {
 		q |= QuirkBrokenFalloc
 	}
 
-	if uint32(st.Type) == unix.TMPFS_MAGIC {
-		logQuirk("tmpfs detected, no extended attributes except acls will work.")
-	}
-
 	return q
 }
