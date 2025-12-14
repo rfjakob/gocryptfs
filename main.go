@@ -120,7 +120,7 @@ func changePassword(args *argContainer) {
 		tlog.Fatal.Println(err)
 		os.Exit(exitcodes.WriteConf)
 	}
-	tlog.Info.Printf(tlog.ColorGreen + "Password changed." + tlog.ColorReset)
+	tlog.Info.Println(tlog.ColorGreen + "Password changed." + tlog.ColorReset)
 }
 
 func main() {

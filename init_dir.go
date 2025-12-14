@@ -68,14 +68,14 @@ func initDir(args *argContainer) {
 			os.Exit(exitcodes.CipherDir)
 		}
 		if !args.xchacha && !stupidgcm.HasAESGCMHardwareSupport() {
-			tlog.Info.Printf(tlog.ColorYellow +
+			tlog.Info.Println(tlog.ColorYellow +
 				"Notice: Your CPU does not have AES-GCM acceleration. Consider using -xchacha for better performance." +
 				tlog.ColorReset)
 		}
 	}
 	// Choose password for config file
 	if len(args.extpass) == 0 && args.fido2 == "" {
-		tlog.Info.Printf("Choose a password for protecting your files.")
+		tlog.Info.Println("Choose a password for protecting your files.")
 	}
 	{
 		var password []byte

@@ -412,7 +412,7 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 	mOpts := &fuseOpts.MountOptions
 	opts := make(map[string]string)
 	if args.allow_other {
-		tlog.Info.Printf(tlog.ColorYellow + "The option \"-allow_other\" is set. Make sure the file " +
+		tlog.Info.Println(tlog.ColorYellow + "The option \"-allow_other\" is set. Make sure the file " +
 			"permissions protect your data from unwanted access." + tlog.ColorReset)
 		mOpts.AllowOther = true
 		// Make the kernel check the file permissions for us

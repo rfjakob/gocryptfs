@@ -73,7 +73,7 @@ func (l *toggledLogger) Printf(format string, v ...interface{}) {
 		return
 	}
 	msg := trimNewline(fmt.Sprintf(format, v...))
-	l.Logger.Printf(l.prefix + msg + l.postfix)
+	l.Logger.Print(l.prefix + msg + l.postfix)
 	if l.Wpanic {
 		l.Logger.Panic(wpanicMsg + msg)
 	}

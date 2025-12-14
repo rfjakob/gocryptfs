@@ -24,9 +24,9 @@ func unhexMasterKey(masterkey string, fromStdin bool) []byte {
 		tlog.Fatal.Printf("Master key has length %d but we require length %d", len(key), cryptocore.KeyLen)
 		os.Exit(exitcodes.MasterKey)
 	}
-	tlog.Info.Printf("Using explicit master key.")
+	tlog.Info.Println("Using explicit master key.")
 	if !fromStdin {
-		tlog.Info.Printf(tlog.ColorYellow +
+		tlog.Info.Println(tlog.ColorYellow +
 			"THE MASTER KEY IS VISIBLE VIA \"ps ax\" AND MAY BE STORED IN YOUR SHELL HISTORY!\n" +
 			"ONLY USE THIS MODE FOR EMERGENCIES" + tlog.ColorReset)
 	}
@@ -52,8 +52,8 @@ func handleArgsMasterkey(args *argContainer) (masterkey []byte) {
 	}
 	// "-zerokey"
 	if args.zerokey {
-		tlog.Info.Printf("Using all-zero dummy master key.")
-		tlog.Info.Printf(tlog.ColorYellow +
+		tlog.Info.Println("Using all-zero dummy master key.")
+		tlog.Info.Println(tlog.ColorYellow +
 			"ZEROKEY MODE PROVIDES NO SECURITY AT ALL AND SHOULD ONLY BE USED FOR TESTING." +
 			tlog.ColorReset)
 		return make([]byte, cryptocore.KeyLen)
