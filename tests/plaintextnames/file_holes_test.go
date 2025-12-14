@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"syscall"
 	"testing"
-	"time"
 
 	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
 
@@ -140,7 +139,6 @@ func TestFileHoleCopy(t *testing.T) {
 		return
 	}
 
-	rand.Seed(time.Now().UnixNano())
 	for k := 0; k < 100; k++ {
 		c1 := make([]int64, 10)
 		for i := range c1 {

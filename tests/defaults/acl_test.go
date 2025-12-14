@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"syscall"
 	"testing"
-	"time"
 
 	"golang.org/x/sys/unix"
 
@@ -20,8 +19,6 @@ import (
 func TestCpA(t *testing.T) {
 	fn1 := filepath.Join(test_helpers.TmpDir, t.Name())
 	fn2 := filepath.Join(test_helpers.DefaultPlainDir, t.Name())
-
-	rand.Seed(int64(time.Now().Nanosecond()))
 
 	{
 		// Need unrestricted umask
