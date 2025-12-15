@@ -14,8 +14,6 @@ jobs:
         # Each major Go release is supported until there are two newer major releases.
         # https://go.dev/doc/devel/release#policy
         go:
-          - "1.19.x" # Debian bookworm, bullseye-backports
-          - "1.22.x" # Ubuntu 24.04 LTS "noble"
           - "oldstable" # 2nd-latest Golang upstream stable
           - "stable" # Latest Go upstream stable
         os:
