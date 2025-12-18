@@ -31,6 +31,7 @@ Common Options (use -hh to show all):
   -init              Initialize encrypted directory
   -info              Display information about encrypted directory
   -masterkey         Mount with explicit master key instead of password
+  -mkdir             Create mountpoint if it does not already exist
   -nonempty          Allow mounting over non-empty directory
   -nosyslog          Do not redirect log messages to syslog
   -passfile          Read password from plain text file(s)

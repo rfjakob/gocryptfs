@@ -63,6 +63,20 @@ func doMount(args *argContainer) {
 			args.mountpoint, args.cipherdir)
 		os.Exit(exitcodes.MountPoint)
 	}
+	// Create directory if option mkdir has been typed
+	// Checking whether the mountpoint path exists, regardless of whether it is
+	// a directory or a regular file
+	_, err = os.Stat(args.mountpoint)
+	if os.IsNotExist(err) {
+		if args.mkdir {
+			err = os.MkdirAll(args.mountpoint, 0700)
+			if err != nil {
+				tlog.Fatal.Printf("Failed to create mountpoint: %v", err)
+				os.Exit(exitcodes.MountPoint)
+			}
+			tlog.Info.Printf(tlog.ColorGreen + "Mountpoint %q created." + tlog.ColorReset, args.mountpoint)
+		}
+	}
 	if args.nonempty {
 		err = isDir(args.mountpoint)
 	} else if strings.HasPrefix(args.mountpoint, "/dev/fd/") {
