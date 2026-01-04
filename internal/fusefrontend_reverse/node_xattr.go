@@ -25,6 +25,10 @@ func isAcl(attr string) bool {
 // This function is symlink-safe through Fgetxattr.
 func (n *Node) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, syscall.Errno) {
 	rn := n.rootNode()
+	// If -noxattr is enabled, return ENOATTR for all getxattr calls
+	if rn.args.NoXattr {
+		return 0, syscall.ENOATTR
+	}
 	var data []byte
 	// ACLs are passed through without encryption
 	if isAcl(attr) {
@@ -56,11 +60,15 @@ func (n *Node) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, 
 //
 // This function is symlink-safe through Flistxattr.
 func (n *Node) Listxattr(ctx context.Context, dest []byte) (uint32, syscall.Errno) {
+	rn := n.rootNode()
+	// If -noxattr is enabled, return zero results for listxattr
+	if rn.args.NoXattr {
+		return 0, 0
+	}
 	pNames, errno := n.listXAttr()
 	if errno != 0 {
 		return 0, errno
 	}
-	rn := n.rootNode()
 	var buf bytes.Buffer
 	for _, pName := range pNames {
 		// ACLs are passed through without encryption

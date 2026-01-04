@@ -51,4 +51,6 @@ type Args struct {
 	OneFileSystem bool
 	// DeterministicNames disables gocryptfs.diriv files
 	DeterministicNames bool
+	// NoXattr disables extended attribute operations
+	NoXattr bool
 }
