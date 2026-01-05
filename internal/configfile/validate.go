@@ -23,14 +23,10 @@ func (cf *ConfFile) Validate() error {
 	}
 	// File content encryption
 	{
-		if cf.IsFeatureFlagSet(FlagXChaCha20Poly1305) && cf.IsFeatureFlagSet(FlagAESSIV) {
-			return fmt.Errorf("can't have both XChaCha20Poly1305 and AESSIV feature flags")
-		}
-		if cf.IsFeatureFlagSet(FlagAESSIV) && !cf.IsFeatureFlagSet(FlagGCMIV128) {
-
-			return fmt.Errorf("AESSIV requires GCMIV128 feature flag")
-		}
 		if cf.IsFeatureFlagSet(FlagXChaCha20Poly1305) {
+			if cf.IsFeatureFlagSet(FlagAESSIV) {
+				return fmt.Errorf("can't have both XChaCha20Poly1305 and AESSIV feature flags")
+			}
 			if cf.IsFeatureFlagSet(FlagGCMIV128) {
 				return fmt.Errorf("XChaCha20Poly1305 conflicts with GCMIV128 feature flag")
 			}
@@ -38,6 +34,11 @@ func (cf *ConfFile) Validate() error {
 				return fmt.Errorf("XChaCha20Poly1305 requires HKDF feature flag")
 			}
 		}
+
+		if cf.IsFeatureFlagSet(FlagAESSIV) && !cf.IsFeatureFlagSet(FlagGCMIV128) {
+			return fmt.Errorf("AESSIV requires GCMIV128 feature flag")
+		}
+
 		// The absence of other flags means AES-GCM (oldest algorithm)
 		if !cf.IsFeatureFlagSet(FlagXChaCha20Poly1305) && !cf.IsFeatureFlagSet(FlagAESSIV) {
 			if !cf.IsFeatureFlagSet(FlagGCMIV128) {
