@@ -27,7 +27,7 @@ func (n *Node) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, 
 	rn := n.rootNode()
 	// If -noxattr is enabled, return ENOATTR for all getxattr calls
 	if rn.args.NoXattr {
-		return 0, syscall.ENOATTR
+		return 0, noSuchAttributeError
 	}
 	var data []byte
 	// ACLs are passed through without encryption

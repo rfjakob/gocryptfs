@@ -34,7 +34,7 @@ func (n *Node) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, 
 	rn := n.rootNode()
 	// If -noxattr is enabled, return ENOATTR for all getxattr calls
 	if rn.args.NoXattr {
-		return 0, syscall.ENOATTR
+		return 0, noSuchAttributeError
 	}
 	// If we are not mounted with -suid, reading the capability xattr does not
 	// make a lot of sense, so reject the request and gain a massive speedup.

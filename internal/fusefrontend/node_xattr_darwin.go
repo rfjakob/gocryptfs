@@ -11,6 +11,9 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 )
 
+// On Darwin, ENOATTR is returned when an attribute is not found.
+const noSuchAttributeError = syscall.ENOATTR
+
 // On Darwin we have to unset XATTR_NOSECURITY 0x0008
 func filterXattrSetFlags(flags int) int {
 	// See https://opensource.apple.com/source/xnu/xnu-1504.15.3/bsd/sys/xattr.h.auto.html

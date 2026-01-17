@@ -9,6 +9,9 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 )
 
+// On Linux, ENODATA is returned when an attribute is not found.
+const noSuchAttributeError = syscall.ENODATA
+
 func (n *Node) getXAttr(cAttr string) (out []byte, errno syscall.Errno) {
 	d, errno := n.prepareAtSyscall("")
 	if errno != 0 {
