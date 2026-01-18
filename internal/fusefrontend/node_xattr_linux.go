@@ -12,6 +12,9 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 )
 
+// On Linux, ENODATA is returned when an attribute is not found.
+const noSuchAttributeError = syscall.ENODATA
+
 func filterXattrSetFlags(flags int) int {
 	return flags
 }

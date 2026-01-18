@@ -32,6 +32,10 @@ func isAcl(attr string) bool {
 // This function is symlink-safe through Fgetxattr.
 func (n *Node) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, syscall.Errno) {
 	rn := n.rootNode()
+	// If -noxattr is enabled, return ENOATTR for all getxattr calls
+	if rn.args.NoXattr {
+		return 0, noSuchAttributeError
+	}
 	// If we are not mounted with -suid, reading the capability xattr does not
 	// make a lot of sense, so reject the request and gain a massive speedup.
 	// See https://github.com/rfjakob/gocryptfs/issues/515 .
@@ -77,6 +81,10 @@ func (n *Node) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, 
 // This function is symlink-safe through Fsetxattr.
 func (n *Node) Setxattr(ctx context.Context, attr string, data []byte, flags uint32) syscall.Errno {
 	rn := n.rootNode()
+	// If -noxattr is enabled, fail all setxattr calls
+	if rn.args.NoXattr {
+		return syscall.EOPNOTSUPP
+	}
 	flags = uint32(filterXattrSetFlags(int(flags)))
 
 	// ACLs are passed through without encryption
@@ -102,6 +110,10 @@ func (n *Node) Setxattr(ctx context.Context, attr string, data []byte, flags uin
 // This function is symlink-safe through Fremovexattr.
 func (n *Node) Removexattr(ctx context.Context, attr string) syscall.Errno {
 	rn := n.rootNode()
+	// If -noxattr is enabled, fail all removexattr calls
+	if rn.args.NoXattr {
+		return syscall.EOPNOTSUPP
+	}
 
 	// ACLs are passed through without encryption
 	if isAcl(attr) {
@@ -119,11 +131,15 @@ func (n *Node) Removexattr(ctx context.Context, attr string) syscall.Errno {
 //
 // This function is symlink-safe through Flistxattr.
 func (n *Node) Listxattr(ctx context.Context, dest []byte) (uint32, syscall.Errno) {
+	rn := n.rootNode()
+	// If -noxattr is enabled, return zero results for listxattr
+	if rn.args.NoXattr {
+		return 0, 0
+	}
 	cNames, errno := n.listXAttr()
 	if errno != 0 {
 		return 0, errno
 	}
-	rn := n.rootNode()
 	var buf bytes.Buffer
 	for _, curName := range cNames {
 		// ACLs are passed through without encryption
