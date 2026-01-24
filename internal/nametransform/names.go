@@ -7,8 +7,11 @@ import (
 	"errors"
 	"math"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
+
+	"golang.org/x/text/unicode/norm"
 
 	"github.com/rfjakob/eme"
 
@@ -32,6 +35,12 @@ type NameTransform struct {
 	// Patterns to bypass decryption
 	badnamePatterns    []string
 	deterministicNames bool
+	// Convert filenames to NFC before encrypting,
+	// and to NFD when decrypting.
+	// For MacOS compatibility.
+	// Automatically enabled on MacOS, off otherwise,
+	// except in tests (see nfc_test.go).
+	nfd2nfc bool
 }
 
 // New returns a new NameTransform instance.
@@ -55,34 +64,44 @@ func New(e *eme.EMECipher, longNames bool, longNameMax uint8, raw64 bool, badnam
 			effectiveLongNameMax = int(longNameMax)
 		}
 	}
+	nfd2nfc := runtime.GOOS == "darwin"
+	if nfd2nfc {
+		tlog.Info.Printf("Running on MacOS, enabling Unicode normalization")
+	}
 	return &NameTransform{
 		emeCipher:          e,
 		longNameMax:        effectiveLongNameMax,
 		B64:                b64,
 		badnamePatterns:    badname,
 		deterministicNames: deterministicNames,
+		nfd2nfc:            nfd2nfc,
 	}
 }
 
 // DecryptName calls decryptName to try and decrypt a base64-encoded encrypted
 // filename "cipherName", and failing that checks if it can be bypassed
-func (n *NameTransform) DecryptName(cipherName string, iv []byte) (string, error) {
-	res, err := n.decryptName(cipherName, iv)
+func (n *NameTransform) DecryptName(cipherName string, iv []byte) (plainName string, err error) {
+	plainName, err = n.decryptName(cipherName, iv)
 	if err != nil && n.HaveBadnamePatterns() {
-		res, err = n.decryptBadname(cipherName, iv)
+		plainName, err = n.decryptBadname(cipherName, iv)
 	}
 	if err != nil {
 		return "", err
 	}
-	if err := IsValidName(res); err != nil {
+	if err := IsValidName(plainName); err != nil {
 		tlog.Warn.Printf("DecryptName %q: invalid name after decryption: %v", cipherName, err)
 		return "", syscall.EBADMSG
 	}
-	return res, err
+	if n.nfd2nfc {
+		// MacOS expects file names in NFD form. Present them as NFD.
+		// They are converted back to NFC in EncryptName.
+		plainName = norm.NFD.String(plainName)
+	}
+	return plainName, err
 }
 
-// decryptName decrypts a base64-encoded encrypted filename "cipherName" using the
-// initialization vector "iv".
+// decryptName decrypts a base64-encoded encrypted file- or xattr-name "cipherName"
+// using the initialization vector "iv".
 func (n *NameTransform) decryptName(cipherName string, iv []byte) (string, error) {
 	// From https://pkg.go.dev/encoding/base64#Encoding.Strict :
 	// > Note that the input is still malleable, as new line characters
@@ -125,6 +144,16 @@ func (n *NameTransform) EncryptName(plainName string, iv []byte) (cipherName64 s
 	if err := IsValidName(plainName); err != nil {
 		tlog.Warn.Printf("EncryptName %q: invalid plainName: %v", plainName, err)
 		return "", syscall.EBADMSG
+	}
+	if n.nfd2nfc {
+		// MacOS GUI apps expect Unicode in NFD form.
+		// But MacOS CLI apps, Linux and Windows use NFC form.
+		// We normalize to NFC for two reasons:
+		// 1) Make sharing gocryptfs filesystems from MacOS to other systems
+		//    less painful
+		// 2) Enable DecryptName to normalize to NFD, which works for both
+		//    GUI and CLI on MacOS.
+		plainName = norm.NFC.String(plainName)
 	}
 	return n.encryptName(plainName, iv), nil
 }
