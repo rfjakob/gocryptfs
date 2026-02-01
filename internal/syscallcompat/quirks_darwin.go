@@ -33,7 +33,7 @@ func DetectQuirks(cipherdir string) (q uint64) {
 	// On MacOS ExFAT, all empty files share inode number 1:
 	// https://github.com/rfjakob/gocryptfs/issues/585
 	if fstypename == FstypenameExfat {
-		logQuirk("ExFAT detected, disabling hard links. See https://github.com/rfjakob/gocryptfs/issues/585 for why.")
+		LogQuirk("ExFAT detected, disabling hard links. See https://github.com/rfjakob/gocryptfs/issues/585 for why.")
 		q |= QuirkDuplicateIno1
 	}
 
