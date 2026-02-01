@@ -91,6 +91,10 @@ func NewRootNode(args Args, c *contentenc.ContentEnc, n *nametransform.NameTrans
 		dirCache:      dirCache{ivLen: ivLen},
 		quirks:        syscallcompat.DetectQuirks(args.Cipherdir),
 	}
+	// Suppress the message if the user has already specified -noprealloc
+	if rn.quirks&syscallcompat.QuirkBtrfsBrokenFalloc != 0 && !args.NoPrealloc {
+		syscallcompat.LogQuirk("Btrfs detected, forcing -noprealloc. See https://github.com/rfjakob/gocryptfs/issues/395 for why.")
+	}
 	if statErr == nil {
 		rn.inoMap.TranslateStat(&st)
 		rn.rootIno = st.Ino

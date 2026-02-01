@@ -23,8 +23,8 @@ func DetectQuirks(cipherdir string) (q uint64) {
 	//
 	// Cast to uint32 avoids compile error on arm: "constant 2435016766 overflows int32"
 	if uint32(st.Type) == unix.BTRFS_SUPER_MAGIC {
-		logQuirk("Btrfs detected, forcing -noprealloc. See https://github.com/rfjakob/gocryptfs/issues/395 for why.")
-		q |= QuirkBrokenFalloc
+		// LogQuirk is called in fusefrontend/root_node.go
+		q |= QuirkBtrfsBrokenFalloc
 	}
 
 	return q

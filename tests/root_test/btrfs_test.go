@@ -59,7 +59,7 @@ func TestBtrfsQuirks(t *testing.T) {
 	defer syscall.Unmount(mnt, 0)
 
 	quirk := syscallcompat.DetectQuirks(mnt)
-	if quirk != syscallcompat.QuirkBrokenFalloc {
+	if quirk != syscallcompat.QuirkBtrfsBrokenFalloc {
 		t.Errorf("wrong quirk: %v", quirk)
 	}
 }
