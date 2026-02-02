@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
+	"golang.org/x/sys/unix"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/v2/internal/fusefrontend"
@@ -233,7 +234,10 @@ func (ck *fsckObj) watchMitigatedCorruptionsListXAttr(path string) {
 func (ck *fsckObj) xattrs(relPath string) {
 	// Run ListXAttr() and catch transparently mitigated corruptions
 	go ck.watchMitigatedCorruptionsListXAttr(relPath)
-	attrs, err := syscallcompat.Llistxattr(ck.abs(relPath))
+	// TODO: smarter buffer sizing
+	buf := make([]byte, 64*1024)
+	sz, err := unix.Llistxattr(ck.abs(relPath), buf)
+	attrs := syscallcompat.ParseListxattrBlob(buf[:sz])
 	ck.watchDone <- struct{}{}
 	if err != nil {
 		fmt.Printf("fsck: error listing xattrs on %q: %v\n", relPath, err)

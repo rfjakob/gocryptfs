@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/pathiv"
+	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 )
 
 // We store encrypted xattrs under this prefix plus the base64-encoded
@@ -65,10 +66,18 @@ func (n *Node) Listxattr(ctx context.Context, dest []byte) (uint32, syscall.Errn
 	if rn.args.NoXattr {
 		return 0, 0
 	}
-	pNames, errno := n.listXAttr()
+	// Can use dest as a temporary buffer
+	sz, errno := n.listXAttr(dest)
 	if errno != 0 {
 		return 0, errno
 	}
+	// If dest empty, return the required size
+	if len(dest) == 0 {
+		// Asssume ciphertext expansion by a factor of 2
+		// TODO: double-check max expansion factor
+		return uint32(sz * 2), 0
+	}
+	pNames := syscallcompat.ParseListxattrBlob(dest[:sz])
 	var buf bytes.Buffer
 	for _, pName := range pNames {
 		// ACLs are passed through without encryption

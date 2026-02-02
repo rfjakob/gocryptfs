@@ -88,7 +88,7 @@ func (n *Node) removeXAttr(cAttr string) (errno syscall.Errno) {
 	return fs.ToErrno(err)
 }
 
-func (n *Node) listXAttr() (out []string, errno syscall.Errno) {
+func (n *Node) listXAttr(buf []byte) (sz int, errno syscall.Errno) {
 	dirfd, cName, errno := n.prepareAtSyscallMyself()
 	if errno != 0 {
 		return
@@ -98,13 +98,10 @@ func (n *Node) listXAttr() (out []string, errno syscall.Errno) {
 	// O_NONBLOCK to not block on FIFOs.
 	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_NONBLOCK|syscall.O_NOFOLLOW, 0)
 	if err != nil {
-		return nil, fs.ToErrno(err)
+		return 0, fs.ToErrno(err)
 	}
 	defer syscall.Close(fd)
 
-	cNames, err := syscallcompat.Flistxattr(fd)
-	if err != nil {
-		return nil, fs.ToErrno(err)
-	}
-	return cNames, 0
+	sz, err = unix.Flistxattr(fd, buf)
+	return sz, fs.ToErrno(err)
 }

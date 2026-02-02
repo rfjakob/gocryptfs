@@ -57,7 +57,7 @@ func (n *Node) removeXAttr(cAttr string) (errno syscall.Errno) {
 	return fs.ToErrno(unix.Lremovexattr(procPath, cAttr))
 }
 
-func (n *Node) listXAttr() (out []string, errno syscall.Errno) {
+func (n *Node) listXAttr(buf []byte) (sz int, errno syscall.Errno) {
 	dirfd, cName, errno := n.prepareAtSyscallMyself()
 	if errno != 0 {
 		return
@@ -65,9 +65,6 @@ func (n *Node) listXAttr() (out []string, errno syscall.Errno) {
 	defer syscall.Close(dirfd)
 
 	procPath := fmt.Sprintf("/proc/self/fd/%d/%s", dirfd, cName)
-	cNames, err := syscallcompat.Llistxattr(procPath)
-	if err != nil {
-		return nil, fs.ToErrno(err)
-	}
-	return cNames, 0
+	sz, err := unix.Llistxattr(procPath, buf)
+	return sz, fs.ToErrno(err)
 }

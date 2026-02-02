@@ -9,6 +9,7 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 
+	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
@@ -136,10 +137,22 @@ func (n *Node) Listxattr(ctx context.Context, dest []byte) (uint32, syscall.Errn
 	if rn.args.NoXattr {
 		return 0, 0
 	}
-	cNames, errno := n.listXAttr()
+	// cBuf is the buffer for the encrypted attr names. Double the size of what the user
+	// requested to allow for ciphertext expansion due to padding and base64 encoding.
+	// TODO: double-check max expansion factor
+	cBuf := make([]byte, 2*len(dest))
+	sz, errno := n.listXAttr(cBuf)
 	if errno != 0 {
 		return 0, errno
 	}
+	// A call with empty dest is a size probe as described in man 2 llistxattr.
+	// Should return the size of the full attr list and success.
+	// Because we don't know the size of the decrypted names yet, we return the
+	// size of the encrypted names. This is slightly higher and hence safe.
+	if len(dest) == 0 {
+		return uint32(sz), 0
+	}
+	cNames := syscallcompat.ParseListxattrBlob(cBuf[:sz])
 	var buf bytes.Buffer
 	for _, curName := range cNames {
 		// ACLs are passed through without encryption

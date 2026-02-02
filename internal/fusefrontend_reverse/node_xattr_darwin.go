@@ -4,6 +4,7 @@ import (
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fs"
+	"golang.org/x/sys/unix"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 )
@@ -33,7 +34,7 @@ func (n *Node) getXAttr(cAttr string) (out []byte, errno syscall.Errno) {
 	return cData, 0
 }
 
-func (n *Node) listXAttr() (out []string, errno syscall.Errno) {
+func (n *Node) listXAttr(buf []byte) (sz int, errno syscall.Errno) {
 	d, errno := n.prepareAtSyscall("")
 	if errno != 0 {
 		return
@@ -43,13 +44,10 @@ func (n *Node) listXAttr() (out []string, errno syscall.Errno) {
 	// O_NONBLOCK to not block on FIFOs.
 	fd, err := syscallcompat.Openat(d.dirfd, d.pName, syscall.O_RDONLY|syscall.O_NONBLOCK|syscall.O_NOFOLLOW, 0)
 	if err != nil {
-		return nil, fs.ToErrno(err)
+		return 0, fs.ToErrno(err)
 	}
 	defer syscall.Close(fd)
 
-	pNames, err := syscallcompat.Flistxattr(fd)
-	if err != nil {
-		return nil, fs.ToErrno(err)
-	}
-	return pNames, 0
+	sz, err = unix.Flistxattr(fd, buf)
+	return sz, fs.ToErrno(err)
 }

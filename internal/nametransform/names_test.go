@@ -98,3 +98,15 @@ func TestIsValidXattrName(t *testing.T) {
 		}
 	}
 }
+
+func TestNameCiphertextExpansion(t *testing.T) {
+	n := newLognamesTestInstance(NameMax)
+	for l := 1; l <= 300; l++ {
+		name := strings.Repeat("x", l)
+		cName, err := n.EncryptXattrName(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("Name length %d encrypted to %d bytes", l, len(cName))
+	}
+}

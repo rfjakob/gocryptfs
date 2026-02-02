@@ -5,6 +5,7 @@ import (
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fs"
+	"golang.org/x/sys/unix"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 )
@@ -27,7 +28,7 @@ func (n *Node) getXAttr(cAttr string) (out []byte, errno syscall.Errno) {
 	return pData, 0
 }
 
-func (n *Node) listXAttr() (out []string, errno syscall.Errno) {
+func (n *Node) listXAttr(buf []byte) (sz int, errno syscall.Errno) {
 	d, errno := n.prepareAtSyscall("")
 	if errno != 0 {
 		return
@@ -35,9 +36,6 @@ func (n *Node) listXAttr() (out []string, errno syscall.Errno) {
 	defer syscall.Close(d.dirfd)
 
 	procPath := fmt.Sprintf("/proc/self/fd/%d/%s", d.dirfd, d.pName)
-	pNames, err := syscallcompat.Llistxattr(procPath)
-	if err != nil {
-		return nil, fs.ToErrno(err)
-	}
-	return pNames, 0
+	sz, err := unix.Llistxattr(procPath, buf)
+	return sz, fs.ToErrno(err)
 }
