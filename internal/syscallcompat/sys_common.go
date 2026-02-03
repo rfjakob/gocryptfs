@@ -112,10 +112,10 @@ const XATTR_SIZE_MAX = 65536
 
 // Make the buffer 1kB bigger so we can detect overflows. Unfortunately,
 // slices larger than 64kB are always allocated on the heap.
-const XATTR_BUFSZ = XATTR_SIZE_MAX + 1024
+const GETXATTR_BUFSZ_BIG = XATTR_SIZE_MAX + 1024
 
 // We try with a small buffer first - this one can be allocated on the stack.
-const XATTR_BUFSZ_SMALL = 500
+const GETXATTR_BUFSZ_SMALL = 500
 
 // Fgetxattr is a wrapper around unix.Fgetxattr that handles the buffer sizing.
 func Fgetxattr(fd int, attr string) (val []byte, err error) {
@@ -135,7 +135,7 @@ func Lgetxattr(path string, attr string) (val []byte, err error) {
 
 func getxattrSmartBuf(fn func(buf []byte) (int, error)) ([]byte, error) {
 	// Fastpaths. Important for security.capabilities, which gets queried a lot.
-	buf := make([]byte, XATTR_BUFSZ_SMALL)
+	buf := make([]byte, GETXATTR_BUFSZ_SMALL)
 	sz, err := fn(buf)
 	// Non-existing xattr
 	if err == unix.ENODATA {
@@ -159,7 +159,7 @@ func getxattrSmartBuf(fn func(buf []byte) (int, error)) ([]byte, error) {
 	// We choose the simple approach of buffer that is bigger than the limit on
 	// Linux, and return an error for everything that is bigger (which can
 	// only happen on MacOS).
-	buf = make([]byte, XATTR_BUFSZ)
+	buf = make([]byte, GETXATTR_BUFSZ_BIG)
 	sz, err = fn(buf)
 	if err == syscall.ERANGE {
 		// Do NOT return ERANGE - the user might retry ad inifinitum!
@@ -182,42 +182,44 @@ out:
 // Flistxattr is a wrapper for unix.Flistxattr that handles buffer sizing and
 // parsing the returned blob to a string slice.
 func Flistxattr(fd int) (attrs []string, err error) {
-	// See the buffer sizing comments in getxattrSmartBuf.
-	// TODO: smarter buffer sizing?
-	buf := make([]byte, XATTR_BUFSZ)
-	sz, err := unix.Flistxattr(fd, buf)
-	if err == syscall.ERANGE {
-		// Do NOT return ERANGE - the user might retry ad inifinitum!
-		return nil, syscall.EOVERFLOW
+	listxattrSyscall := func(buf []byte) (int, error) {
+		return unix.Flistxattr(fd, buf)
 	}
-	if err != nil {
-		return nil, err
-	}
-	if sz >= XATTR_SIZE_MAX {
-		return nil, syscall.EOVERFLOW
-	}
-	attrs = parseListxattrBlob(buf[:sz])
-	return attrs, nil
+	return listxattrSmartBuf(listxattrSyscall)
 }
 
 // Llistxattr is a wrapper for unix.Llistxattr that handles buffer sizing and
 // parsing the returned blob to a string slice.
 func Llistxattr(path string) (attrs []string, err error) {
-	// TODO: smarter buffer sizing?
-	buf := make([]byte, XATTR_BUFSZ)
-	sz, err := unix.Llistxattr(path, buf)
+	listxattrSyscall := func(buf []byte) (int, error) {
+		return unix.Llistxattr(path, buf)
+	}
+	return listxattrSmartBuf(listxattrSyscall)
+}
+
+// listxattrSmartBuf handles smart buffer sizing for Flistxattr and Llistxattr
+func listxattrSmartBuf(listxattrSyscall func([]byte) (int, error)) ([]string, error) {
+	const LISTXATTR_BUFSZ_SMALL = 100
+
+	// Blindly try with the small buffer first
+	buf := make([]byte, LISTXATTR_BUFSZ_SMALL)
+	sz, err := listxattrSyscall(buf)
 	if err == syscall.ERANGE {
-		// Do NOT return ERANGE - the user might retry ad inifinitum!
-		return nil, syscall.EOVERFLOW
+		// Did not fit. Find the actual size
+		sz, err = listxattrSyscall(nil)
+		if err != nil {
+			return nil, err
+		}
+		// ...and allocate the buffer to fit
+		buf = make([]byte, sz)
+		sz, err = listxattrSyscall(buf)
+		if err != nil {
+			// When an xattr got added between the size probe and here,
+			// we could fail with ERANGE. This is ok as the caller will retry.
+			return nil, err
+		}
 	}
-	if err != nil {
-		return nil, err
-	}
-	if sz >= XATTR_SIZE_MAX {
-		return nil, syscall.EOVERFLOW
-	}
-	attrs = parseListxattrBlob(buf[:sz])
-	return attrs, nil
+	return parseListxattrBlob(buf[:sz]), nil
 }
 
 func parseListxattrBlob(buf []byte) (attrs []string) {
