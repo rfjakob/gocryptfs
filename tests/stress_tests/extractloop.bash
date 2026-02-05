@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Mount a gocryptfs filesystem somewhere on /tmp, then run two parallel
 # infinite loops inside that do the following:

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Build on all supported architectures & operating systems
 
@@ -31,3 +31,7 @@ time GOOS=darwin GOARCH=amd64 compile_tests
 
 # MacOS on Apple Silicon M1.
 GOOS=darwin GOARCH=arm64 build
+
+# FreeBSD
+GOOS=freebsd GOARCH=amd64 build
+

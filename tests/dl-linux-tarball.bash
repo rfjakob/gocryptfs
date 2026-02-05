@@ -1,7 +1,9 @@
-#!/bin/bash -eu
+#!/usr/bin/env bash
 #
 # This script checks the size of /tmp/linux-3.0.tar.gz and downloads
 # a fresh copy if the size is incorrect or the file is missing.
+
+set -eu
 
 URL=https://cdn.kernel.org/pub/linux/kernel/v3.0/linux-3.0.tar.gz
 TGZ=/tmp/linux-3.0.tar.gz

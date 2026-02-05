@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Mounts two gocryptfs filesystems, "ping" and "pong" and moves the
 # linux-3.0 kernel tree back and forth between them, checking integrity

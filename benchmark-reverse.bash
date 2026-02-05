@@ -1,6 +1,8 @@
-#!/bin/bash -eu
+#!/usr/bin/env bash
 
 # Benchmark gocryptfs' reverse mode
+
+set -eu
 
 cd "$(dirname "$0")"
 MYNAME=$(basename "$0")

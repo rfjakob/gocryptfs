@@ -1,10 +1,13 @@
-#!/bin/bash -eu
+#!/usr/bin/env bash
 #
 # Compatibility wrapper around "fusermount" on Linux and "umount" on
 # Mac OS X and friends.
 #
 # This script can be sourced or executed directly.
 #
+
+set -eu
+
 fuse-unmount() {
 	local MYNAME=$(basename "$BASH_SOURCE")
 	if [[ $# -eq 0 ]] ; then

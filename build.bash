@@ -1,4 +1,4 @@
-#!/bin/bash -eu
+#!/usr/bin/env bash
 #
 # Compile gocryptfs and bake the git version string of itself and the go-fuse
 # library into the binary.
@@ -9,6 +9,8 @@
 # or
 #  SOURCE_DATE_EPOCH=1544192417 ./build.bash
 # .
+
+set -eu
 
 cd "$(dirname "$0")"
 

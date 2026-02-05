@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # test.bash runs the gocryptfs test suite against $TMPDIR,
 # or, if unset, /var/tmp.

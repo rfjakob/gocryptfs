@@ -1,7 +1,9 @@
-#!/bin/bash -eu
+#!/usr/bin/env bash
 
 # Run the set of "canonical" benchmarks that are shown on
 # https://nuetzlich.net/gocryptfs/comparison/
+
+set -eu
 
 cd "$(dirname "$0")"
 MYNAME=$(basename "$0")

@@ -1,7 +1,9 @@
-#!/bin/bash -eu
+#!/usr/bin/env bash
 #
 # Write an execution trace of writing 100MB of data
 # to a new gocryptfs mount on /tmp
+
+set -eu
 
 cd "$(dirname "$0")"
 

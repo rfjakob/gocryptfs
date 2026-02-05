@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Conditionally try to mount a gocryptfs filesystem. If either
 # * CIPHERDIR/gocryptfs.conf does not exist OR

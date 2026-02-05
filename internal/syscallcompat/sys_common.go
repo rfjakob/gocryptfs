@@ -138,7 +138,7 @@ func getxattrSmartBuf(fn func(buf []byte) (int, error)) ([]byte, error) {
 	buf := make([]byte, GETXATTR_BUFSZ_SMALL)
 	sz, err := fn(buf)
 	// Non-existing xattr
-	if err == unix.ENODATA {
+	if err == ENODATA {
 		return nil, err
 	}
 	// Underlying fs does not support security.capabilities (example: tmpfs)

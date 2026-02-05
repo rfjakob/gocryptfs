@@ -1,4 +1,4 @@
-#!/bin/bash -eu
+#!/usr/bin/env bash
 #
 # Run the set of "canonical" benchmarks that are shown on
 # https://nuetzlich.net/gocryptfs/comparison/
@@ -6,6 +6,7 @@
 #
 # This is called by the top-level script "benchmark.bash".
 
+set -eu
 
 MYNAME=$(basename "$0")
 

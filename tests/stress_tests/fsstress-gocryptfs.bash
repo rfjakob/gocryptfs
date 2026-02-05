@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Mount a gocryptfs filesystem in /var/tmp and run fsstress against it
 # in an infinite loop, only exiting on errors.

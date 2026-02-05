@@ -32,6 +32,9 @@ const (
 	// On Darwin we use O_SYMLINK which allows opening a symlink itself.
 	// On Linux, we only have O_NOFOLLOW.
 	OpenatFlagNofollowSymlink = unix.O_NOFOLLOW
+
+	// Only defined on Linux
+	ENODATA = unix.ENODATA
 )
 
 var preallocWarn sync.Once
