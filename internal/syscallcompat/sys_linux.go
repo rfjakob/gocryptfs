@@ -28,6 +28,10 @@ const (
 	RENAME_NOREPLACE = unix.RENAME_NOREPLACE
 	RENAME_WHITEOUT  = unix.RENAME_WHITEOUT
 	RENAME_EXCHANGE  = unix.RENAME_EXCHANGE
+
+	// On Darwin we use O_SYMLINK which allows opening a symlink itself.
+	// On Linux, we only have O_NOFOLLOW.
+	OpenatFlagNofollowSymlink = unix.O_NOFOLLOW
 )
 
 var preallocWarn sync.Once

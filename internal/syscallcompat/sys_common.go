@@ -54,10 +54,10 @@ func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) 
 			flags |= syscall.O_EXCL
 		}
 	} else {
-		// If O_CREAT is not used, we should use O_NOFOLLOW
-		if flags&syscall.O_NOFOLLOW == 0 {
-			tlog.Warn.Printf("Openat: O_NOFOLLOW missing: flags = %#x", flags)
-			flags |= syscall.O_NOFOLLOW
+		// If O_CREAT is not used, we should use O_NOFOLLOW or O_SYMLINK
+		if flags&(unix.O_NOFOLLOW|OpenatFlagNofollowSymlink) == 0 {
+			tlog.Warn.Printf("Openat: O_NOFOLLOW/O_SYMLINK missing: flags = %#x", flags)
+			flags |= unix.O_NOFOLLOW
 		}
 	}
 
