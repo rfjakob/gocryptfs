@@ -29,8 +29,8 @@ func (n *Node) getXAttr(cAttr string) (out []byte, errno syscall.Errno) {
 	}
 	defer syscall.Close(dirfd)
 
-	// O_NONBLOCK to not block on FIFOs.
-	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_NONBLOCK|syscall.O_NOFOLLOW, 0)
+	// O_NONBLOCK to not block on FIFOs, O_SYMLINK to open the symlink itself (if it is one).
+	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_NONBLOCK|syscall.O_SYMLINK, 0)
 	if err != nil {
 		return nil, fs.ToErrno(err)
 	}
@@ -52,10 +52,10 @@ func (n *Node) setXAttr(context *fuse.Context, cAttr string, cData []byte, flags
 	defer syscall.Close(dirfd)
 
 	// O_NONBLOCK to not block on FIFOs.
-	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_WRONLY|syscall.O_NONBLOCK|syscall.O_NOFOLLOW, 0)
+	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_WRONLY|syscall.O_NONBLOCK|syscall.O_SYMLINK, 0)
 	// Directories cannot be opened read-write. Retry.
 	if err == syscall.EISDIR {
-		fd, err = syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NONBLOCK|syscall.O_NOFOLLOW, 0)
+		fd, err = syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NONBLOCK|syscall.O_SYMLINK, 0)
 	}
 	if err != nil {
 		fs.ToErrno(err)
@@ -74,10 +74,10 @@ func (n *Node) removeXAttr(cAttr string) (errno syscall.Errno) {
 	defer syscall.Close(dirfd)
 
 	// O_NONBLOCK to not block on FIFOs.
-	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_WRONLY|syscall.O_NONBLOCK|syscall.O_NOFOLLOW, 0)
+	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_WRONLY|syscall.O_NONBLOCK|syscall.O_SYMLINK, 0)
 	// Directories cannot be opened read-write. Retry.
 	if err == syscall.EISDIR {
-		fd, err = syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NONBLOCK|syscall.O_NOFOLLOW, 0)
+		fd, err = syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NONBLOCK|syscall.O_SYMLINK, 0)
 	}
 	if err != nil {
 		return fs.ToErrno(err)
@@ -96,7 +96,7 @@ func (n *Node) listXAttr() (out []string, errno syscall.Errno) {
 	defer syscall.Close(dirfd)
 
 	// O_NONBLOCK to not block on FIFOs.
-	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_NONBLOCK|syscall.O_NOFOLLOW, 0)
+	fd, err := syscallcompat.Openat(dirfd, cName, syscall.O_RDONLY|syscall.O_NONBLOCK|syscall.O_SYMLINK, 0)
 	if err != nil {
 		return nil, fs.ToErrno(err)
 	}
