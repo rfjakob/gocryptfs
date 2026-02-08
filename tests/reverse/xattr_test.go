@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/pkg/xattr"
+	"golang.org/x/sys/unix"
 )
 
 func xattrSupported(path string) bool {
@@ -64,4 +65,19 @@ func TestXattrList(t *testing.T) {
 			t.Errorf("mismatch on attr %q: valA = %q, valC = %q", i, valA, valC)
 		}
 	}
+}
+
+// Shouldn't get EINVAL when querying the mountpoint.
+func TestXattrGetMountpoint(t *testing.T) {
+	_, err := xattr.LGet(dirB, "user.foo453465324")
+	if err == nil {
+		return
+	}
+	e2 := err.(*xattr.Error)
+	if e2.Unwrap() == unix.EINVAL {
+		t.Errorf("LGet: %v", err)
+	}
+	// Let's see what LList says
+	_, err = xattr.LList(dirB)
+	t.Logf("LList: err=%v", err)
 }
