@@ -2,6 +2,7 @@ package fusefrontend
 
 import (
 	"context"
+	"os"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fs"
@@ -11,6 +12,30 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
+
+// mangleOpenCreateFlags is used by Create() and Open() to convert the open flags the user
+// wants to the flags we internally use to open the backing file using Openat().
+// The returned flags always contain O_NOFOLLOW/O_SYMLINK.
+func mangleOpenCreateFlags(flags uint32) (newFlags int) {
+	newFlags = int(flags)
+	// Convert WRONLY to RDWR. We always need read access to do read-modify-write cycles.
+	if (newFlags & syscall.O_ACCMODE) == syscall.O_WRONLY {
+		newFlags = newFlags ^ os.O_WRONLY | os.O_RDWR
+	}
+	// We also cannot open the file in append mode, we need to seek back for RMW
+	newFlags = newFlags &^ os.O_APPEND
+	// O_DIRECT accesses must be aligned in both offset and length. Due to our
+	// crypto header, alignment will be off, even if userspace makes aligned
+	// accesses. Running xfstests generic/013 on ext4 used to trigger lots of
+	// EINVAL errors due to missing alignment. Just fall back to buffered IO.
+	newFlags = newFlags &^ syscallcompat.O_DIRECT
+	// Create and Open are two separate FUSE operations, so O_CREAT should usually not
+	// be part of the Open() flags. Create() will add O_CREAT back itself.
+	newFlags = newFlags &^ syscall.O_CREAT
+	// We always want O_NOFOLLOW/O_SYMLINK to be safe against symlink races
+	newFlags |= syscallcompat.OpenatFlagNofollowSymlink
+	return newFlags
+}
 
 // Open - FUSE call. Open already-existing file.
 //
@@ -23,7 +48,7 @@ func (n *Node) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, fuseFl
 	defer syscall.Close(dirfd)
 
 	rn := n.rootNode()
-	newFlags := rn.mangleOpenFlags(flags)
+	newFlags := mangleOpenCreateFlags(flags)
 	// Taking this lock makes sure we don't race openWriteOnlyFile()
 	rn.openWriteOnlyLock.RLock()
 	defer rn.openWriteOnlyLock.RUnlock()
@@ -71,7 +96,7 @@ func (n *Node) Create(ctx context.Context, name string, flags uint32, mode uint3
 	if !rn.args.PreserveOwner {
 		ctx = nil
 	}
-	newFlags := rn.mangleOpenFlags(flags)
+	newFlags := mangleOpenCreateFlags(flags)
 	// Handle long file name
 	ctx2 := toFuseCtx(ctx)
 	if !rn.args.PlaintextNames && nametransform.IsLongContent(cName) {
