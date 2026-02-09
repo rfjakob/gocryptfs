@@ -134,7 +134,7 @@ func (n *Node) lookupLongnameName(ctx context.Context, nameFile string, out *fus
 	if errno != 0 {
 		return
 	}
-	if rn.isExcludedPlain(filepath.Join(d.cPath, pName)) {
+	if rn.isExcludedPlain(filepath.Join(d.pPath, pName)) {
 		errno = syscall.EPERM
 		return
 	}
