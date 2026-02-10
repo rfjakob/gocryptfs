@@ -2,6 +2,7 @@ package syscallcompat
 
 import (
 	"bytes"
+	"fmt"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -128,6 +129,7 @@ func Fgetxattr(fd int, attr string) (val []byte, err error) {
 // Lgetxattr is a wrapper around unix.Lgetxattr that handles the buffer sizing.
 func Lgetxattr(path string, attr string) (val []byte, err error) {
 	fn := func(buf []byte) (int, error) {
+		fmt.Printf("Lgetxattr(%q, %q, buf %d)\n", path, attr, len(buf))
 		return unix.Lgetxattr(path, attr, buf)
 	}
 	return getxattrSmartBuf(fn)

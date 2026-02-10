@@ -40,7 +40,7 @@ func (n *Node) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, 
 	} else {
 		pAttr, err := rn.decryptXattrName(attr)
 		if err != nil {
-			return 0, syscall.EINVAL
+			return 0, noSuchAttributeError
 		}
 		pData, errno := n.getXAttr(pAttr)
 		if errno != 0 {
