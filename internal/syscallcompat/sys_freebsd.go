@@ -1,84 +1,65 @@
-// Package syscallcompat wraps Linux-specific syscalls.
+// Package syscallcompat wraps FreeBSD-specific syscalls
 package syscallcompat
 
 import (
+	"errors"
 	"fmt"
-	"sync"
-	"syscall"
 	"time"
 
 	"golang.org/x/sys/unix"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
-
-	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
 const (
-	_FALLOC_FL_KEEP_SIZE = 0x01
+	O_DIRECT = unix.O_DIRECT
 
-	// O_DIRECT means oncached I/O on Linux. No direct equivalent on MacOS and defined
-	// to zero there.
-	O_DIRECT = syscall.O_DIRECT
+	// O_PATH is supported on FreeBSD, but is missing from the sys/unix package
+	// FreeBSD-15.0 /usr/src/sys/sys/fcntl.h:135
+	O_PATH = 0x00400000
 
-	// O_PATH is only defined on Linux
-	O_PATH = unix.O_PATH
+	// Only defined on Linux, but we can emulate the functionality on FreeBSD
+	// in Renameat2() below
+	RENAME_NOREPLACE = 0x1
+	RENAME_EXCHANGE  = 0x2
+	RENAME_WHITEOUT  = 0x4
 
-	// Only defined on Linux
-	RENAME_NOREPLACE = unix.RENAME_NOREPLACE
-	RENAME_WHITEOUT  = unix.RENAME_WHITEOUT
-	RENAME_EXCHANGE  = unix.RENAME_EXCHANGE
+	// ENODATA is only defined on Linux, but FreeBSD provides ENOATTR
+	ENODATA = unix.ENOATTR
 
-	// Only defined on Linux
-	ENODATA = unix.ENODATA
-
-	// On Darwin we use O_SYMLINK which allows opening a symlink itself.
-	// On Linux, we only have O_NOFOLLOW.
+	// On FreeBSD, we only have O_NOFOLLOW.
 	OpenatFlagNofollowSymlink = unix.O_NOFOLLOW
 )
 
-var preallocWarn sync.Once
-
-// EnospcPrealloc preallocates ciphertext space without changing the file
-// size. This guarantees that we don't run out of space while writing a
-// ciphertext block (that would corrupt the block).
+// EnospcPrealloc is supposed to preallocate ciphertext space without
+// changing the file size. This guarantees that we don't run out of
+// space while writing a ciphertext block (that would corrupt the block).
+//
+// The fallocate syscall isn't supported on FreeBSD with the same semantics
+// as Linux, in particular the _FALLOC_FL_KEEP_SIZE mode isn't supported.
 func EnospcPrealloc(fd int, off int64, len int64) (err error) {
-	for {
-		err = syscall.Fallocate(fd, _FALLOC_FL_KEEP_SIZE, off, len)
-		if err == syscall.EINTR {
-			// fallocate, like many syscalls, can return EINTR. This is not an
-			// error and just signifies that the operation was interrupted by a
-			// signal and we should try again.
-			continue
-		}
-		if err == syscall.EOPNOTSUPP {
-			// ZFS and ext3 do not support fallocate. Warn but continue anyway.
-			// https://github.com/rfjakob/gocryptfs/issues/22
-			preallocWarn.Do(func() {
-				tlog.Warn.Printf("Warning: The underlying filesystem " +
-					"does not support fallocate(2). gocryptfs will continue working " +
-					"but is no longer resistant against out-of-space errors.\n")
-			})
-			return nil
-		}
-		return err
-	}
+	return nil
 }
 
-// Fallocate wraps the Fallocate syscall.
+// Fallocate wraps the posix_fallocate() syscall.
+// Fallocate returns an error if mode is not 0
 func Fallocate(fd int, mode uint32, off int64, len int64) (err error) {
-	return syscall.Fallocate(fd, mode, off, len)
+	if mode != 0 {
+		return errors.New("fallocate unsupported mode")
+	}
+	_, _, err = unix.Syscall(unix.SYS_POSIX_FALLOCATE, uintptr(fd), uintptr(off), uintptr(len))
+	return err
 }
 
 // Mknodat wraps the Mknodat syscall.
 func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
-	return syscall.Mknodat(dirfd, path, mode, dev)
+	return unix.Mknodat(dirfd, path, mode, uint64(dev))
 }
 
 // Dup3 wraps the Dup3 syscall. We want to use Dup3 rather than Dup2 because Dup2
 // is not implemented on arm64.
 func Dup3(oldfd int, newfd int, flags int) (err error) {
-	return syscall.Dup3(oldfd, newfd, flags)
+	return unix.Dup3(oldfd, newfd, flags)
 }
 
 // FchmodatNofollow is like Fchmodat but never follows symlinks.
@@ -92,27 +73,27 @@ func Dup3(oldfd int, newfd int, flags int) (err error) {
 func FchmodatNofollow(dirfd int, path string, mode uint32) (err error) {
 	// Open handle to the filename (but without opening the actual file).
 	// This succeeds even when we don't have read permissions to the file.
-	fd, err := syscall.Openat(dirfd, path, syscall.O_NOFOLLOW|O_PATH, 0)
+	fd, err := unix.Openat(dirfd, path, unix.O_NOFOLLOW|O_PATH, 0)
 	if err != nil {
 		return err
 	}
-	defer syscall.Close(fd)
+	defer unix.Close(fd)
 
 	// Now we can check the type without the risk of race-conditions.
 	// Return syscall.ELOOP if it is a symlink.
-	var st syscall.Stat_t
-	err = syscall.Fstat(fd, &st)
+	var st unix.Stat_t
+	err = unix.Fstat(fd, &st)
 	if err != nil {
 		return err
 	}
-	if st.Mode&syscall.S_IFMT == syscall.S_IFLNK {
-		return syscall.ELOOP
+	if st.Mode&unix.S_IFMT == unix.S_IFLNK {
+		return unix.ELOOP
 	}
 
 	// Change mode of the actual file. Fchmod does not work with O_PATH,
 	// but Chmod via /proc/self/fd works.
 	procPath := fmt.Sprintf("/proc/self/fd/%d", fd)
-	return syscall.Chmod(procPath, mode)
+	return unix.Chmod(procPath, mode)
 }
 
 // LsetxattrUser runs the Lsetxattr syscall in the context of a different user.
@@ -165,21 +146,59 @@ func UtimesNanoAtNofollow(dirfd int, path string, a *time.Time, m *time.Time) (e
 
 // Getdents syscall with "." and ".." filtered out.
 func Getdents(fd int) ([]fuse.DirEntry, error) {
-	entries, _, err := getdents(fd)
+	entries, _, err := emulateGetdents(fd)
 	return entries, err
 }
 
 // GetdentsSpecial calls the Getdents syscall,
 // with normal entries and "." / ".." split into two slices.
 func GetdentsSpecial(fd int) (entries []fuse.DirEntry, entriesSpecial []fuse.DirEntry, err error) {
-	return getdents(fd)
+	return emulateGetdents(fd)
 }
 
 // Renameat2 does not exist on Darwin, so we have to wrap it here.
 // Retries on EINTR.
 func Renameat2(olddirfd int, oldpath string, newdirfd int, newpath string, flags uint) (err error) {
-	err = retryEINTR(func() error {
-		return unix.Renameat2(olddirfd, oldpath, newdirfd, newpath, flags)
-	})
-	return err
+	if flags&(RENAME_NOREPLACE|RENAME_EXCHANGE) == RENAME_NOREPLACE|RENAME_EXCHANGE {
+		return unix.EINVAL
+	}
+	if flags&(RENAME_NOREPLACE|RENAME_EXCHANGE) == RENAME_NOREPLACE|RENAME_EXCHANGE {
+		return unix.EINVAL
+	}
+
+	if flags&RENAME_NOREPLACE != 0 {
+		var st unix.Stat_t
+		err = unix.Fstatat(newdirfd, newpath, &st, 0)
+		if err == nil {
+			// Assume newpath is an existing file if we can stat() it.
+			// On Linux, RENAME_NOREPLACE fails with EEXIST if newpath
+			// already exists.
+			return unix.EEXIST
+		}
+	}
+	if flags&RENAME_EXCHANGE != 0 {
+		// Note that on Linux, RENAME_EXCHANGE can handle oldpath and
+		// newpath of different file types (e.g. directory and
+		// symbolic link). On FreeBSD the file types must be the same.
+		var stold, stnew unix.Stat_t
+		err = unix.Fstatat(olddirfd, oldpath, &stold, 0)
+		if err != nil {
+			// Assume file does not exist if we can't stat() it.
+			// On Linux, RENAME_EXCHANGE requires both oldpath
+			// and newpath exist.
+			return unix.ENOENT
+		}
+		err = unix.Fstatat(newdirfd, newpath, &stnew, 0)
+		if err != nil {
+			// Assume file does not exist if we can't stat() it.
+			// On Linux, RENAME_EXCHANGE requires both oldpath
+			// and newpath exist.
+			return unix.ENOENT
+		}
+	}
+	if flags&RENAME_WHITEOUT != 0 {
+		return unix.EINVAL
+	}
+
+	return unix.Renameat(olddirfd, oldpath, newdirfd, newpath)
 }

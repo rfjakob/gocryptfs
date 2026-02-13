@@ -24,6 +24,8 @@ const (
 	RENAME_NOREPLACE = unix.RENAME_EXCL
 	RENAME_EXCHANGE  = unix.RENAME_SWAP
 
+	ENODATA = unix.ENODATA
+
 	// Only exists on Linux. Define here to fix build failure, even though
 	// we will never see this flag.
 	RENAME_WHITEOUT = 1 << 30
