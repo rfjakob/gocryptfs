@@ -26,6 +26,9 @@ const (
 
 	// ENODATA is only defined on Linux, but FreeBSD provides ENOATTR
 	ENODATA = unix.ENOATTR
+
+	// On FreeBSD, we only have O_NOFOLLOW.
+	OpenatFlagNofollowSymlink = unix.O_NOFOLLOW
 )
 
 // EnospcPrealloc is supposed to preallocate ciphertext space without

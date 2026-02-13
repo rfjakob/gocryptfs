@@ -13,6 +13,7 @@ import (
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 
+	"github.com/rfjakob/gocryptfs/v2/internal/configfile"
 	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/v2/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/v2/internal/fusefrontend"
@@ -136,7 +137,8 @@ func (rn *RootNode) findLongnameParent(fd int, diriv []byte, longname string) (p
 // excluded (used when -exclude is passed by the user).
 func (rn *RootNode) isExcludedPlain(pPath string) bool {
 	// root dir can't be excluded
-	if pPath == "" {
+	// Don't exclude gocryptfs.conf too
+	if pPath == "" || pPath == configfile.ConfReverseName {
 		return false
 	}
 	return rn.excluder != nil && rn.excluder.MatchesPath(pPath)

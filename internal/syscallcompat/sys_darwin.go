@@ -29,6 +29,10 @@ const (
 	// Only exists on Linux. Define here to fix build failure, even though
 	// we will never see this flag.
 	RENAME_WHITEOUT = 1 << 30
+
+	// On Darwin we use O_SYMLINK which allows opening a symlink itself.
+	// On Linux, we only have O_NOFOLLOW.
+	OpenatFlagNofollowSymlink = unix.O_SYMLINK
 )
 
 // Unfortunately fsetattrlist does not have a syscall wrapper yet.

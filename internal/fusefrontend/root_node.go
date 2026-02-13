@@ -1,7 +1,6 @@
 package fusefrontend
 
 import (
-	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -93,7 +92,9 @@ func NewRootNode(args Args, c *contentenc.ContentEnc, n *nametransform.NameTrans
 	}
 	// Suppress the message if the user has already specified -noprealloc
 	if rn.quirks&syscallcompat.QuirkBtrfsBrokenFalloc != 0 && !args.NoPrealloc {
-		syscallcompat.LogQuirk("Btrfs detected, forcing -noprealloc. See https://github.com/rfjakob/gocryptfs/issues/395 for why.")
+		syscallcompat.LogQuirk("Btrfs detected, forcing -noprealloc. " +
+			"Use \"chattr +C\" on the backing directory to enable NOCOW and allow preallocation. " +
+			"See https://github.com/rfjakob/gocryptfs/issues/395 for details.")
 	}
 	if statErr == nil {
 		rn.inoMap.TranslateStat(&st)
@@ -106,30 +107,6 @@ func NewRootNode(args Args, c *contentenc.ContentEnc, n *nametransform.NameTrans
 func (rn *RootNode) AfterUnmount() {
 	// print stats before we exit
 	rn.dirCache.stats()
-}
-
-// mangleOpenFlags is used by Create() and Open() to convert the open flags the user
-// wants to the flags we internally use to open the backing file.
-// The returned flags always contain O_NOFOLLOW.
-func (rn *RootNode) mangleOpenFlags(flags uint32) (newFlags int) {
-	newFlags = int(flags)
-	// Convert WRONLY to RDWR. We always need read access to do read-modify-write cycles.
-	if (newFlags & syscall.O_ACCMODE) == syscall.O_WRONLY {
-		newFlags = newFlags ^ os.O_WRONLY | os.O_RDWR
-	}
-	// We also cannot open the file in append mode, we need to seek back for RMW
-	newFlags = newFlags &^ os.O_APPEND
-	// O_DIRECT accesses must be aligned in both offset and length. Due to our
-	// crypto header, alignment will be off, even if userspace makes aligned
-	// accesses. Running xfstests generic/013 on ext4 used to trigger lots of
-	// EINVAL errors due to missing alignment. Just fall back to buffered IO.
-	newFlags = newFlags &^ syscallcompat.O_DIRECT
-	// Create and Open are two separate FUSE operations, so O_CREAT should not
-	// be part of the open flags.
-	newFlags = newFlags &^ syscall.O_CREAT
-	// We always want O_NOFOLLOW to be safe against symlink races
-	newFlags |= syscall.O_NOFOLLOW
-	return newFlags
 }
 
 // reportMitigatedCorruption is used to report a corruption that was transparently
