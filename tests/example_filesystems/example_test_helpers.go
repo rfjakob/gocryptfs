@@ -27,26 +27,26 @@ func checkExampleFS(t *testing.T, dir string, rw bool) {
 	symlink := filepath.Join(dir, "rel")
 	target, err := os.Readlink(symlink)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("relative symlink: Readlink: %v", err)
 		return
 	}
 	if target != "status.txt" {
-		t.Errorf("Unexpected link target: %s\n", target)
+		t.Errorf("relative symlink: Unexpected link target: %s\n", target)
 	}
 	// Read absolute symlink
 	symlink = filepath.Join(dir, "abs")
 	target, err = os.Readlink(symlink)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("absolute symlink: Readlink: %v", err)
 		return
 	}
 	if target != "/a/b/c/d" {
-		t.Errorf("Unexpected link target: %s\n", target)
+		t.Errorf("absolute symlink: Unexpected link target: %s\n", target)
 	}
 	if rw {
 		// Test directory operations
-		test_helpers.TestRename(t, dir)
-		test_helpers.TestMkdirRmdir(t, dir)
+		t.Run("TestRename", func(t *testing.T) { test_helpers.TestRename(t, dir) })
+		t.Run("TestMkdirRmdir", func(t *testing.T) { test_helpers.TestMkdirRmdir(t, dir) })
 	}
 }
 
