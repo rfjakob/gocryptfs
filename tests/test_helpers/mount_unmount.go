@@ -35,7 +35,11 @@ type mountInfo struct {
 // Contrary to InitFS(), you MUST passt "-extpass=echo test" (or another way for
 // getting the master key) explicitly.
 func Mount(c string, p string, showOutput bool, extraArgs ...string) error {
-	args := []string{"-q", "-wpanic", "-nosyslog", "-fg", fmt.Sprintf("-notifypid=%d", os.Getpid())}
+	args := []string{"-q", "-nosyslog", "-fg", fmt.Sprintf("-notifypid=%d", os.Getpid())}
+	// We are warning-free on Linux, but not (yet) on other OS's
+	if runtime.GOOS == "linux" {
+		args = append(args, "-wpanic")
+	}
 	args = append(args, extraArgs...)
 	if _, isset := os.LookupEnv("FUSEDEBUG"); isset {
 		fmt.Println("FUSEDEBUG is set, enabling -fusedebug")
