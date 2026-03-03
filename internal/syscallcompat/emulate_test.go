@@ -1,4 +1,3 @@
-//go:build darwin
 package syscallcompat
 
 import (

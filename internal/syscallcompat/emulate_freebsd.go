@@ -1,5 +1,3 @@
-//go:build !freebsd
-
 package syscallcompat
 
 import (
@@ -27,5 +25,5 @@ func emulateMknodat(dirfd int, path string, mode uint32, dev int) error {
 		}
 		defer syscall.Fchdir(cwd)
 	}
-	return syscall.Mknod(path, mode, dev)
+	return syscall.Mknod(path, mode, uint64(dev))
 }

@@ -2,13 +2,14 @@
 package syscallcompat
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
 	"golang.org/x/sys/unix"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
+
+	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
 const (
@@ -45,7 +46,8 @@ func EnospcPrealloc(fd int, off int64, len int64) (err error) {
 // Fallocate returns an error if mode is not 0
 func Fallocate(fd int, mode uint32, off int64, len int64) (err error) {
 	if mode != 0 {
-		return errors.New("fallocate unsupported mode")
+		tlog.Warn.Printf("Fallocate: unsupported mode\n")
+		return unix.EOPNOTSUPP
 	}
 	_, _, err = unix.Syscall(unix.SYS_POSIX_FALLOCATE, uintptr(fd), uintptr(off), uintptr(len))
 	return err
@@ -127,8 +129,9 @@ func GetdentsSpecial(fd int) (entries []fuse.DirEntry, entriesSpecial []fuse.Dir
 	return emulateGetdents(fd)
 }
 
-// Renameat2 does not exist on Darwin, so we have to wrap it here.
+// Renameat2 does not exist on FreeBSD, so we have to wrap it here.
 // Retries on EINTR.
+// The RENAME_EXCHANGE and RENAME_WHITEOUT flags are not supported.
 func Renameat2(olddirfd int, oldpath string, newdirfd int, newpath string, flags uint) (err error) {
 	if flags&(RENAME_NOREPLACE|RENAME_EXCHANGE) == RENAME_NOREPLACE|RENAME_EXCHANGE {
 		return unix.EINVAL
@@ -148,24 +151,7 @@ func Renameat2(olddirfd int, oldpath string, newdirfd int, newpath string, flags
 		}
 	}
 	if flags&RENAME_EXCHANGE != 0 {
-		// Note that on Linux, RENAME_EXCHANGE can handle oldpath and
-		// newpath of different file types (e.g. directory and
-		// symbolic link). On FreeBSD the file types must be the same.
-		var stold, stnew unix.Stat_t
-		err = unix.Fstatat(olddirfd, oldpath, &stold, 0)
-		if err != nil {
-			// Assume file does not exist if we can't stat() it.
-			// On Linux, RENAME_EXCHANGE requires both oldpath
-			// and newpath exist.
-			return unix.ENOENT
-		}
-		err = unix.Fstatat(newdirfd, newpath, &stnew, 0)
-		if err != nil {
-			// Assume file does not exist if we can't stat() it.
-			// On Linux, RENAME_EXCHANGE requires both oldpath
-			// and newpath exist.
-			return unix.ENOENT
-		}
+		return unix.EINVAL
 	}
 	if flags&RENAME_WHITEOUT != 0 {
 		return unix.EINVAL
