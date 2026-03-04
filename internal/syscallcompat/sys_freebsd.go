@@ -2,7 +2,6 @@
 package syscallcompat
 
 import (
-	"fmt"
 	"time"
 
 	"golang.org/x/sys/unix"
@@ -30,6 +29,9 @@ const (
 
 	// On FreeBSD, we only have O_NOFOLLOW.
 	OpenatFlagNofollowSymlink = unix.O_NOFOLLOW
+
+	// For the utimensat syscall on FreeBSD
+	AT_EMPTY_PATH = 0x4000
 )
 
 // EnospcPrealloc is supposed to preallocate ciphertext space without
@@ -101,10 +103,7 @@ func timesToTimespec(a *time.Time, m *time.Time) []unix.Timespec {
 // FutimesNano syscall.
 func FutimesNano(fd int, a *time.Time, m *time.Time) (err error) {
 	ts := timesToTimespec(a, m)
-	// To avoid introducing a separate syscall wrapper for futimens()
-	// (as done in go-fuse, for example), we instead use the /proc/self/fd trick.
-	procPath := fmt.Sprintf("/proc/self/fd/%d", fd)
-	return unix.UtimesNanoAt(unix.AT_FDCWD, procPath, ts, 0)
+	return unix.UtimesNanoAt(unix.AT_FDCWD, "", ts, AT_EMPTY_PATH)
 }
 
 // UtimesNanoAtNofollow is like UtimesNanoAt but never follows symlinks.
