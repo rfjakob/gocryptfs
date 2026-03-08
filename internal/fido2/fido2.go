@@ -44,7 +44,7 @@ func callFidoCommand(command fidoCommand, assertOptions []string, device string,
 		var args []string
 		args = append(args, "-G")
 		args = append(args, "-h")
-		for i := range assertOptions{
+		for i := range assertOptions {
 			args = append(args, "-t")
 			args = append(args, assertOptions[i])
 		}
