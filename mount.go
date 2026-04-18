@@ -449,9 +449,18 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 	if runtime.GOOS == "darwin" {
 		opts["volname"] = strings.Replace(path.Base(args.mountpoint), ",", "_", -1)
 	}
+	underlyingFilesystemRo, err := isReadOnlyFilesystem(args.cipherdir)
+	if err != nil {
+		tlog.Debug.Printf("Error checking if cipherdir is on a read-only filesystem: %s", err)
+	} else if underlyingFilesystemRo && args.rw {
+		tlog.Fatal.Printf("Writeable mount explicitly requested but cipherdir %s is on a read-only filesystem, refusing.", args.cipherdir)
+		os.Exit(exitcodes.Usage)
+	} else if underlyingFilesystemRo && !args.ro {
+		tlog.Info.Printf("Cipherdir %s is on a read-only filesystem, mounting as read-only.", args.cipherdir)
+	}
 	// The kernel enforces read-only operation, we just have to pass "ro".
-	// Reverse mounts are always read-only.
-	if args.ro || args.reverse {
+	// Reverse mounts and mounts with cipherdirs on read-only filesystems are always read-only.
+	if args.ro || args.reverse || underlyingFilesystemRo {
 		opts["ro"] = ""
 	} else if args.rw {
 		opts["rw"] = ""
@@ -561,4 +570,17 @@ func unmount(srv *fuse.Server, mountpoint string) {
 			cmd.Run()
 		}
 	}
+}
+
+const (
+	ST_RDONLY = 0x1
+)
+
+func isReadOnlyFilesystem(path string) (bool, error) {
+	var stat syscall.Statfs_t
+	if err := syscall.Statfs(path, &stat); err != nil {
+		return false, err
+	}
+
+	return (stat.Flags & ST_RDONLY) != 0, nil
 }
