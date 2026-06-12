@@ -332,11 +332,9 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 	nameTransform := nametransform.New(cCore.EMECipher, frontendArgs.LongNames, args.longnamemax,
 		args.raw64, []string(args.badname), frontendArgs.DeterministicNames)
 	// After the crypto backend is initialized,
-	// we can purge the master key from memory.
-	for i := range masterkey {
-		masterkey[i] = 0
-	}
-	masterkey = nil
+	// we can purge any master & _master keys from memory.
+	wipeByteArray(&masterkey)
+	wipeByteArray(&args._masterkey)
 	// Spawn fusefrontend
 	tlog.Debug.Printf("frontendArgs: %s", tlog.JSONDump(frontendArgs))
 	if args.reverse {

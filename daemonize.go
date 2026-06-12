@@ -26,7 +26,7 @@ func exitOnUsr1() {
 // forkChild - execute ourselves once again, this time with the "-fg" flag, and
 // wait for SIGUSR1 or child exit.
 // This is a workaround for the missing true fork function in Go.
-func forkChild() int {
+func forkChild(fgAtFront bool) int {
 	name := os.Args[0]
 	// Use the full path to our executable if we can get if from /proc.
 	buf := make([]byte, syscallcompat.PATH_MAX)
@@ -35,8 +35,20 @@ func forkChild() int {
 		name = string(buf[:n])
 		tlog.Debug.Printf("forkChild: readlink worked: %q", name)
 	}
-	newArgs := []string{"-fg", fmt.Sprintf("-notifypid=%d", os.Getpid())}
-	newArgs = append(newArgs, os.Args[1:]...)
+	fgFlags := []string{"-fg", fmt.Sprintf("-notifypid=%d", os.Getpid())}
+	// Build newArgs into a new slice so we never alias (and thus
+	// potentially corrupt) the backing array of os.Args.
+	var newArgs []string
+	if fgAtFront {
+		// Plain mount: "-fg -notifypid=N <original args>".
+		newArgs = append(newArgs, fgFlags...)
+		newArgs = append(newArgs, os.Args[1:]...)
+	} else {
+		// All-in-one "-init ... -mount ...": "-fg" must land in the mount
+		// section, so append it after the original args.
+		newArgs = append(newArgs, os.Args[1:]...)
+		newArgs = append(newArgs, fgFlags...)
+	}
 	c := exec.Command(name, newArgs...)
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr

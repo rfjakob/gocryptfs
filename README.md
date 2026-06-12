@@ -122,6 +122,15 @@ Use
 	$ ./gocryptfs -init cipher
 	$ ./gocryptfs cipher plain
 
+You can also initialize and mount in a single command. Everything before
+`-mount` configures the init phase, everything after it configures the mount.
+The mount phase takes its own CIPHERDIR and MOUNTPOINT. The password derived
+during init is automatically reused for the mount, so you are not prompted
+twice:
+
+	$ mkdir cipher plain
+	$ ./gocryptfs -init -extpass "PROGRAM" cipher -mount cipher plain
+
 See the [Quickstart](https://nuetzlich.net/gocryptfs/quickstart/) page for more info.
 
 The [MANPAGE.md](Documentation/MANPAGE.md) describes all available command-line options.
@@ -132,6 +141,8 @@ Use: Reverse Mode
     $ mkdir cipher plain
     $ ./gocryptfs -reverse -init plain
     $ ./gocryptfs -reverse plain cipher
+    or
+    $ ./gocryptfs -reverse -init plain -mount -reverse plain cipher
 
 Graphical Interface
 -------------------

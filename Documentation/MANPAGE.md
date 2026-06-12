@@ -16,6 +16,9 @@ SYNOPSIS
 #### Mount
 `gocryptfs [OPTIONS] CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]`
 
+#### Initialize and mount in one command
+`gocryptfs -init [INIT-OPTIONS] CIPHERDIR -mount [MOUNT-OPTIONS] CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]`
+
 #### Unmount
 `fusermount -u MOUNTPOINT`
 
@@ -68,6 +71,34 @@ Example:
 
 #### -init
 Initialize encrypted directory.
+
+#### -mount
+Only valid in combination with a preceding `-init`. Initialize the encrypted
+directory and then immediately mount it, all in a single command, for example:
+
+    gocryptfs -init [INIT-OPTIONS] CIPHERDIR -mount [MOUNT-OPTIONS] CIPHERDIR MOUNTPOINT
+
+The `-mount` token splits the command line into two phases: everything before
+`-mount` configures the `-init` phase, everything after `-mount` configures the
+mount phase. The mount phase must explicitly specify its own CIPHERDIR and
+MOUNTPOINT positional arguments.
+
+The password derived during the `-init` phase is automatically reused for the
+mount phase so you are not prompted for it twice, for example:
+
+    gocryptfs -init -extpass "PROGRAM" CIPHERDIR -mount CIPHERDIR MOUNTPOINT
+
+Like a normal mount, the mount phase forks into the background by default; the
+whole init+mount sequence is daemonized as a single process so the password
+carry-over keeps working. Pass `-fg` in the mount phase to stay in the
+foreground instead.
+
+For specific `-masterkey` use, the derived or supplied masterkey can be carried over to the -mount phase by
+passing the literal value `init` to the option in the mount phase, e.g.
+`-masterkey=init`.
+
+    gocryptfs -init -extpass "PROGRAM" -masterkey=explicit-hex-value CIPHERDIR -mount CIPHERDIR MOUNTPOINT -masterkey=init
+
 
 #### -passwd
 Change the password. Will ask for the old password, check if it is

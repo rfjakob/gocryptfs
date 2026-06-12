@@ -59,9 +59,33 @@ type argContainer struct {
 	_forceOwner *fuse.Owner
 	// _explicitScryptn is true then the user passed "-scryptn=xyz"
 	_explicitScryptn bool
+	// _initAndMount indicates which, if any, phase is active of an all-in-one "-init <init-args> -mount <mount-args>"
+	_initAndMount             initMountPhase
+	_initAndMountArgsForMount []string
+	// _password holds the password derived during "-init" to reuse if _initAndMount is phaseMount
+	_password []byte
+	// _masterkey holds the masterkey specified (if any) during "-init" to reuse if _initAndMount is phaseMount
+	_masterkey []byte
 }
 
+// flagSet holds the parsed flags of the command line currently being processed.
+// Just to be aware... in all-in-one "-init ... -mount ..." invocation, parseCliOpts
+// is called 2x and reassigns this global on each call. This is safe because the two
+// passes run strictly sequentially (the -init pass fully completes before the
+// -mount pass parses its args), so they never use each other's flagSet.
 var flagSet *flag.FlagSet
+
+// initMountPhase describes which step of an all-in-one "-init ... -mount ..." command line we are in.
+type initMountPhase int
+
+const (
+	// phaseNone means this is a plain command line, not an all-in-one
+	phaseNone initMountPhase = iota
+	// phaseInitWithMountQueued means we are in the "-init" pass and a "-mount" pass is queued in _initAndMountArgsForMount.
+	phaseInitWithMountQueued
+	// phaseMount means we are in the "-mount" pass of an all-in-one command line.
+	phaseMount
+)
 
 // prefixOArgs transform options passed via "-o foo,bar" into regular options
 // like "-foo -bar" and prefixes them to the command line.
@@ -140,10 +164,96 @@ func convertToDoubleDash(osArgs []string) (out []string) {
 	return out
 }
 
+// maybeExtractPostInitMountArgs scans the passed-in Args for a "-mount" parameter and splits the
+// command line into two lists. Args gets truncated to everything up to (but not
+// including) "-mount"; args._initAndMountArgsForMount gets set to a suitable command line
+// with all the remaining content to the end. If "-mount" is not found, Args is left as is.
+//
+// Detection is intentionally a raw token scan performed *before* any flag
+// parsing: we look for "-mount"/"--mount" appearing as a standalone token and
+// treat it as the separator between the init and mount sections. Because this
+// runs before pflag, we do not rely on pflag's value-binding rules to tell a
+// separator apart from an option value. The "--" terminator is the explicit
+// escape hatch: scanning stops there (mirroring prefixOArgs/convertToDoubleDash),
+// so a user who genuinely needs a "-mount" token as an option value can place it
+// after "--".
+func maybeExtractPostInitMountArgs(osArgs *[]string, args *argContainer) error {
+	mountIdx := -1
+	initIdx := -1
+	for i, a := range *osArgs {
+		if a == "--" {
+			// Everything after "--" is positional; stop looking for the separator.
+			break
+		}
+		if a == "-init" || a == "--init" {
+			initIdx = i
+		} else if a == "-mount" || a == "--mount" {
+			mountIdx = i
+			break
+		}
+	}
+	if mountIdx >= 0 {
+		if initIdx < 0 {
+			return fmt.Errorf("the -mount parameter can only be used in a command line with a preceding -init parameter")
+		}
+		args._initAndMountArgsForMount = append([]string{(*osArgs)[0]}, (*osArgs)[mountIdx+1:]...)
+		if len(args._initAndMountArgsForMount) > 1 {
+			// We have at least 1 Cli parameter for a -mount step - indicate that this is a multi-step init and mount operation
+			// Note we do not count the "-mount" itself as a parameter.
+			args._initAndMount = phaseInitWithMountQueued
+		} else {
+			return fmt.Errorf("the -mount parameter requires mount arguments [options]")
+		}
+		*osArgs = (*osArgs)[:mountIdx]
+	}
+	return nil
+}
+
+func inheritAuthentication(prevArgs *argContainer, args *argContainer) {
+	// possible additional parse+execution on "-mount command line" in all-in-1 init+mount.
+	if prevArgs._initAndMount != phaseInitWithMountQueued {
+		return
+	}
+	args._initAndMount = phaseMount
+	if len(args.passfile) == 0 && len(args.extpass) == 0 {
+		// Carry over the password derived during the -init phase so the mount
+		// phase will not need to derive it again. Ownership transfers to args
+		// (the mount pass); it will be wiped there by loadConfig after use.
+		args._password = prevArgs._password
+		prevArgs._password = nil
+	} else {
+		// Or if the user insists on re-deriving the password during -mount
+		// phase (via explicit -passfile or -extpass) then don't carry-over the
+		// password from -init: wipe it so the mount phase asks again.
+		wipeByteArray(&prevArgs._password)
+	}
+	// Carryover the -masterkey source from the -init pass if the mount phase -masterkey
+	// parameter is literal "init" - indicates the user wants explicit masterkey
+	// specified (if any) from init phase to also be passed into mount action
+	if args.masterkey == "init" {
+		args._masterkey = prevArgs._masterkey
+		prevArgs._masterkey = nil
+		// Don't want possible "init" attempted to be parsed as a hex master key.
+		args.masterkey = ""
+	} else {
+		wipeByteArray(&prevArgs._masterkey)
+	}
+}
+
 // parseCliOpts - parse command line options (i.e. arguments that start with "-")
+// Also scan for -mount (2nd command line) possibility in the command line and if
+// found then pull it aside for a multi-pass init+mount execution sequence.
 func parseCliOpts(osArgs []string) (args argContainer) {
 	var err error
 	var opensslAuto string
+
+	// Split off an "-init ... -mount ..." all-in-one command line (if any)
+	// before preprocessing, so the truncated osArgs flows into parsing.
+	err = maybeExtractPostInitMountArgs(&osArgs, &args)
+	if err != nil {
+		tlog.Fatal.Println(err)
+		os.Exit(exitcodes.Usage)
+	}
 
 	osArgsPreprocessed, err := prefixOArgs(osArgs)
 	if err != nil {
@@ -158,6 +268,8 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.BoolVar(&args.debug, "debug", false, "Enable debug output")
 	flagSet.BoolVar(&args.fusedebug, "fusedebug", false, "Enable fuse library debug output")
 	flagSet.BoolVar(&args.init, "init", false, "Initialize encrypted directory")
+	// "mount" is reg'd here only so it shows up in "-hh" long help; the value here is never actually read.
+	flagSet.Bool("mount", false, "Mount the freshly initialized directory (must be after -init)")
 	flagSet.BoolVar(&args.zerokey, "zerokey", false, "Use all-zero dummy master key")
 	// Tri-state true/false/auto
 	flagSet.StringVar(&opensslAuto, "openssl", "auto", "Use OpenSSL instead of built-in Go crypto")

@@ -8,7 +8,8 @@ import (
 
 const tUsage = "" +
 	"Usage: " + tlog.ProgramName + " -init|-passwd|-info [OPTIONS] CIPHERDIR\n" +
-	"  or   " + tlog.ProgramName + " [OPTIONS] CIPHERDIR MOUNTPOINT\n"
+	"  or   " + tlog.ProgramName + " [OPTIONS] CIPHERDIR MOUNTPOINT\n" +
+	"  or   " + tlog.ProgramName + " -init [INIT-OPTIONS] CIPHERDIR -mount [MOUNT-OPTIONS] CIPHERDIR MOUNTPOINT\n"
 
 // helpShort is what gets displayed when passed "-h" or on syntax error.
 func helpShort() {
@@ -33,6 +34,7 @@ Common Options (use -hh to show all):
   -masterkey         Mount with explicit master key instead of password
   -nonempty          Allow mounting over non-empty directory
   -nosyslog          Do not redirect log messages to syslog
+  -mount             Init and mount in one command (must come after -init)
   -passfile          Read password from plain text file(s)
   -passwd            Change password
   -plaintextnames    Do not encrypt file names (with -init)

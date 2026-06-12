@@ -37,8 +37,15 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 	if masterkey != nil {
 		return masterkey, cf, nil
 	}
+	// Master key being carried over from a preceding "-init" phase.
+	if len(args._masterkey) > 0 {
+		return args._masterkey, cf, nil
+	}
 	var pw []byte
-	if cf.IsFeatureFlagSet(configfile.FlagFIDO2) {
+	if len(args._password) > 0 {
+		// Password was supplied by a preceding "-init" phase, use it directly.
+		pw = args._password
+	} else if cf.IsFeatureFlagSet(configfile.FlagFIDO2) {
 		if args.fido2 == "" {
 			tlog.Fatal.Printf("Masterkey encrypted using FIDO2 token; need to use the --fido2 option.")
 			return nil, nil, exitcodes.NewErr("", exitcodes.Usage)
@@ -123,6 +130,16 @@ func changePassword(args *argContainer) {
 	tlog.Info.Println(tlog.ColorGreen + "Password changed." + tlog.ColorReset)
 }
 
+// wipeByteArray - zeroes and nil a byte array (e.g., secure password|masterkey)
+func wipeByteArray(bArray *[]byte) {
+	if bArray != nil {
+		for i := range *bArray {
+			(*bArray)[i] = 0
+		}
+		*bArray = nil
+	}
+}
+
 func main() {
 	mxp := runtime.GOMAXPROCS(0)
 	if mxp < 4 && os.Getenv("GOMAXPROCS") == "" {
@@ -137,14 +154,18 @@ func main() {
 	}
 	// Show microseconds in go-fuse debug output (-fusedebug)
 	log.SetFlags(log.Lmicroseconds)
-	var err error
 	// Parse all command-line options (i.e. arguments starting with "-")
-	// into "args". Path arguments are parsed below.
+	// into "args". Path arguments are parsed below inside runACommandLinePass.
 	args := parseCliOpts(os.Args)
+	runACommandLinePass(&args)
+}
+
+func runACommandLinePass(args *argContainer) {
+	var err error
 	// Fork a child into the background if "-fg" is not set AND we are mounting
 	// a filesystem. The child will do all the work.
 	if !args.fg && flagSet.NArg() == 2 {
-		ret := forkChild()
+		ret := forkChild(true)
 		os.Exit(ret)
 	}
 	if args.debug {
@@ -258,7 +279,7 @@ func main() {
 		tlog.Info.Printf("Note: You must unmount gracefully, otherwise the profile file(s) will stay empty!\n")
 	}
 	// Operation flags
-	nOps := countOpFlags(&args)
+	nOps := countOpFlags(args)
 	if nOps == 0 {
 		// Default operation: mount.
 		if flagSet.NArg() != 2 {
@@ -268,7 +289,7 @@ func main() {
 			tlog.Fatal.Printf("Usage: %s [OPTIONS] CIPHERDIR MOUNTPOINT [-o COMMA-SEPARATED-OPTIONS]", tlog.ProgramName)
 			os.Exit(exitcodes.Usage)
 		}
-		doMount(&args)
+		doMount(args)
 		// Don't call os.Exit to give deferred functions a chance to run
 		return
 	}
@@ -288,17 +309,37 @@ func main() {
 	}
 	// "-init"
 	if args.init {
-		initDir(&args)
+		if args._initAndMount == phaseInitWithMountQueued {
+			// Need to parse the queued mount section to determine if -fg requested.
+			mountArgs := parseCliOpts(args._initAndMountArgsForMount)
+			if !mountArgs.fg {
+				// -fg not requested. Daemonize entire init+mount sequence: fork
+				// once and run both phases in single child process. Both in
+				// one process facilitates in-memory password/masterkey carry-over
+				os.Exit(forkChild(false))
+			}
+			// Foreground: run the init here, then the mount in-process.
+			initDir(args)
+			prevArgs := *args
+			args._password = nil
+			args._masterkey = nil
+			inheritAuthentication(&prevArgs, &mountArgs)
+			runACommandLinePass(&mountArgs)
+			return
+		}
+		initDir(args)
+		wipeByteArray(&args._password)
+		wipeByteArray(&args._masterkey)
 		os.Exit(0)
 	}
 	// "-passwd"
 	if args.passwd {
-		changePassword(&args)
+		changePassword(args)
 		os.Exit(0)
 	}
 	// "-fsck"
 	if args.fsck {
-		code := fsck(&args)
+		code := fsck(args)
 		os.Exit(code)
 	}
 }

@@ -95,6 +95,11 @@ func initDir(args *argContainer) {
 			fido2HmacSalt = nil
 		}
 		creator := tlog.ProgramName + " " + GitVersion
+		masterkey := handleArgsMasterkey(args)
+		if args._initAndMount != phaseNone {
+			args._masterkey = append([]byte(nil), masterkey...)
+			args._password = append([]byte(nil), password...)
+		}
 		err = configfile.Create(&configfile.CreateArgs{
 			Filename:           args.config,
 			Password:           password,
@@ -108,15 +113,14 @@ func initDir(args *argContainer) {
 			DeterministicNames: args.deterministic_names,
 			XChaCha20Poly1305:  args.xchacha,
 			LongNameMax:        args.longnamemax,
-			Masterkey:          handleArgsMasterkey(args),
+			Masterkey:          masterkey,
 		})
 		if err != nil {
 			tlog.Fatal.Println(err)
 			os.Exit(exitcodes.WriteConf)
 		}
-		for i := range password {
-			password[i] = 0
-		}
+		wipeByteArray(&password)
+		wipeByteArray(&masterkey)
 		// password runs out of scope here
 	}
 	// Forward mode with filename encryption enabled needs a gocryptfs.diriv file
@@ -151,6 +155,8 @@ func initDir(args *argContainer) {
 	if strings.Contains(friendlyPath, " ") {
 		friendlyPath = "\"" + friendlyPath + "\""
 	}
-	tlog.Info.Printf(tlog.ColorGrey+"You can now mount it using: %s%s %s MOUNTPOINT"+tlog.ColorReset,
-		tlog.ProgramName, mountArgs, friendlyPath)
+	if args._initAndMount == phaseNone {
+		tlog.Info.Printf(tlog.ColorGrey+"You can now mount it using: %s%s %s MOUNTPOINT"+tlog.ColorReset,
+			tlog.ProgramName, mountArgs, friendlyPath)
+	}
 }
