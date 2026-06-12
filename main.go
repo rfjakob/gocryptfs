@@ -44,6 +44,10 @@ func loadConfig(args *argContainer) (masterkey []byte, cf *configfile.ConfFile, 
 			return nil, nil, exitcodes.NewErr("", exitcodes.Usage)
 		}
 		pw = fido2.Secret(args.fido2, cf.FIDO2.AssertOptions, cf.FIDO2.CredentialID, cf.FIDO2.HMACSalt)
+	} else if len(args._savedPassword) > 0 && len(args.extpass) == 0 && len(args.passfile) == 0 {
+		// Combined "-init ... -mount ..." in the foreground: reuse the password
+		// captured during the init phase instead of prompting again.
+		pw = append([]byte(nil), args._savedPassword...)
 	} else {
 		pw, err = readpassword.Once([]string(args.extpass), []string(args.passfile), "")
 		if err != nil {
@@ -138,9 +142,20 @@ func main() {
 	// Show microseconds in go-fuse debug output (-fusedebug)
 	log.SetFlags(log.Lmicroseconds)
 	var err error
+	// Handle the combined "-init ... -mount ..." invocation before the normal
+	// flow. It splits the command line into an init phase and a mount phase and
+	// processes each as if it were a separate gocryptfs call.
+	if initMountPos, ok := detectInitMount(os.Args); ok {
+		os.Exit(doInitAndMount(os.Args, initMountPos))
+	}
 	// Parse all command-line options (i.e. arguments starting with "-")
 	// into "args". Path arguments are parsed below.
 	args := parseCliOpts(os.Args)
+	// "-mount" is only meaningful together with "-init" (handled above).
+	if args.mount {
+		tlog.Fatal.Printf("-mount is only valid in combination with -init (see -hh)")
+		os.Exit(exitcodes.Usage)
+	}
 	// Fork a child into the background if "-fg" is not set AND we are mounting
 	// a filesystem. The child will do all the work.
 	if !args.fg && flagSet.NArg() == 2 {

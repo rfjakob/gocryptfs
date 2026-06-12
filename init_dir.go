@@ -114,6 +114,10 @@ func initDir(args *argContainer) {
 			tlog.Fatal.Println(err)
 			os.Exit(exitcodes.WriteConf)
 		}
+		// Save a copy of the password so a combined "-init ... -mount ..." call
+		// can reuse it for the mount phase without prompting again. The caller
+		// is responsible for wiping args._savedPassword.
+		args._savedPassword = append([]byte(nil), password...)
 		for i := range password {
 			password[i] = 0
 		}

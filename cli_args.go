@@ -26,7 +26,7 @@ import (
 
 // argContainer stores the parsed CLI options and arguments
 type argContainer struct {
-	debug, init, zerokey, fusedebug, openssl, passwd, fg, version,
+	debug, init, mount, zerokey, fusedebug, openssl, passwd, fg, version,
 	plaintextnames, quiet, nosyslog, wpanic,
 	longnames, allow_other, reverse, aessiv, nonempty, raw64,
 	noprealloc, speed, hkdf, serialize_reads, hh, info,
@@ -59,6 +59,10 @@ type argContainer struct {
 	_forceOwner *fuse.Owner
 	// _explicitScryptn is true then the user passed "-scryptn=xyz"
 	_explicitScryptn bool
+	// _savedPassword holds the password captured during the -init phase of a
+	// combined "-init ... -mount ..." invocation, so it can be reused for the
+	// mount phase without prompting again. It must be wiped after use.
+	_savedPassword []byte
 }
 
 var flagSet *flag.FlagSet
@@ -158,6 +162,7 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.BoolVar(&args.debug, "debug", false, "Enable debug output")
 	flagSet.BoolVar(&args.fusedebug, "fusedebug", false, "Enable fuse library debug output")
 	flagSet.BoolVar(&args.init, "init", false, "Initialize encrypted directory")
+	flagSet.BoolVar(&args.mount, "mount", false, "Mount plaintext directory; only valid combined with -init (see -hh)")
 	flagSet.BoolVar(&args.zerokey, "zerokey", false, "Use all-zero dummy master key")
 	// Tri-state true/false/auto
 	flagSet.StringVar(&opensslAuto, "openssl", "auto", "Use OpenSSL instead of built-in Go crypto")
