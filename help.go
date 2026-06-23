@@ -32,9 +32,9 @@ Common Options (use -hh to show all):
   -init              Initialize encrypted directory
   -info              Display information about encrypted directory
   -masterkey         Mount with explicit master key instead of password
+  -mount             Init and mount in one command (must come after -init)
   -nonempty          Allow mounting over non-empty directory
   -nosyslog          Do not redirect log messages to syslog
-  -mount             Init and mount in one command (must come after -init)
   -passfile          Read password from plain text file(s)
   -passwd            Change password
   -plaintextnames    Do not encrypt file names (with -init)
