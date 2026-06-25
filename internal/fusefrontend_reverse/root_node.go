@@ -36,6 +36,11 @@ type RootNode struct {
 	contentEnc *contentenc.ContentEnc
 	// Tests whether a path is excluded (hidden) from the user. Used by -exclude.
 	excluder ignore.IgnoreParser
+	// configPlainPath is the path of a custom config file (-config), relative to
+	// Cipherdir, set only when that file is located inside Cipherdir. Such a file
+	// is hidden from the encrypted view, otherwise it would leak in encrypted
+	// form (https://github.com/rfjakob/gocryptfs/issues/1009).
+	configPlainPath string
 	// inoMap translates inode numbers from different devices to unique inode
 	// numbers.
 	inoMap *inomap.InoMap
@@ -92,6 +97,14 @@ func NewRootNode(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransf
 	if len(args.Exclude) > 0 || len(args.ExcludeWildcard) > 0 || len(args.ExcludeFrom) > 0 {
 		rn.excluder = prepareExcluder(args)
 	}
+	// A custom config file (-config) located inside Cipherdir must be hidden from
+	// the encrypted view, otherwise it leaks there in encrypted form (#1009).
+	if args.ConfigCustom && args.Config != "" {
+		if rel, err := filepath.Rel(args.Cipherdir, args.Config); err == nil &&
+			rel != "." && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			rn.configPlainPath = rel
+		}
+	}
 	return rn
 }
 
@@ -141,6 +154,11 @@ func (rn *RootNode) isExcludedPlain(pPath string) bool {
 	if pPath == "" || pPath == configfile.ConfReverseName {
 		return false
 	}
+	// A custom config file (-config) inside Cipherdir is hidden from the
+	// encrypted view (https://github.com/rfjakob/gocryptfs/issues/1009).
+	if rn.configPlainPath != "" && pPath == rn.configPlainPath {
+		return true
+	}
 	return rn.excluder != nil && rn.excluder.MatchesPath(pPath)
 }
 
@@ -148,7 +166,7 @@ func (rn *RootNode) isExcludedPlain(pPath string) bool {
 // pDir is the relative plaintext path to the directory these entries are
 // from. The entries should be plaintext files.
 func (rn *RootNode) excludeDirEntries(d *dirfdPlus, entries []fuse.DirEntry) (filtered []fuse.DirEntry) {
-	if rn.excluder == nil {
+	if rn.excluder == nil && rn.configPlainPath == "" {
 		return entries
 	}
 	filtered = make([]fuse.DirEntry, 0, len(entries))

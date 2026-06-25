@@ -274,6 +274,7 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 		PlaintextNames:     args.plaintextnames,
 		LongNames:          args.longnames,
 		ConfigCustom:       args._configCustom,
+		Config:             args.config,
 		NoPrealloc:         args.noprealloc,
 		ForceOwner:         args._forceOwner,
 		Exclude:            args.exclude,

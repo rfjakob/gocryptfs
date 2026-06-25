@@ -457,6 +457,14 @@ Use specified config file instead of `CIPHERDIR/gocryptfs.conf`.
 
 Applies to: all actions that use a config file: mount, `-fsck`, `-passwd`, `-info`, `-init`.
 
+In `-reverse` mode, this also changes what the encrypted view contains: by
+default the config is exposed there as a virtual `gocryptfs.conf` (so a backup
+of the encrypted view is self-contained), but with `-config` no `gocryptfs.conf`
+is presented. Make sure to back up the config file (or the master key) from its
+custom location separately, otherwise the encrypted data cannot be decrypted.
+If the custom config file is located inside `CIPHERDIR`, it is hidden from the
+encrypted view rather than exposed in encrypted form.
+
 #### -cpuprofile string
 Write cpu profile to specified file.
 

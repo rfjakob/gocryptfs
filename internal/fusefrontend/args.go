@@ -24,6 +24,10 @@ type Args struct {
 	// location. If it is false, reverse mode maps ".gocryptfs.reverse.conf"
 	// to "gocryptfs.conf" in the plaintext dir.
 	ConfigCustom bool
+	// Config is the path to the config file. In reverse mode, a custom config
+	// file (-config) located inside Cipherdir is hidden from the encrypted view
+	// (https://github.com/rfjakob/gocryptfs/issues/1009).
+	Config string
 	// NoPrealloc disables automatic preallocation before writing
 	NoPrealloc bool
 	// Exclude is a list of paths to make inaccessible, starting match at
