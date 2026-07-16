@@ -264,6 +264,8 @@ func (f *File) Read(ctx context.Context, buf []byte, off int64) (resultData fuse
 			tlog.Warn.Printf("ino%d: FUSE Read: LockSharedStorage(F_RDLCK, %d, %d) failed: %v", f.qIno.Ino, alignedOffset, alignedLength, err)
 			return nil, fs.ToErrno(err)
 		}
+		defer f.UnlockSharedStorage(int64(alignedOffset), int64(alignedLength))
+
 		out, errno = f.doRead(buf[:0], uint64(off), uint64(len(buf)))
 		if errno != 0 {
 			return nil, errno
@@ -293,22 +295,20 @@ func (f *File) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
 			tlog.Warn.Printf("ino%d: doWrite: LockSharedStorage(F_WRLCK, %d, %d) failed: %v", f.qIno.Ino, 0, contentenc.HeaderLen, err)
 			return 0, fs.ToErrno(err)
 		}
+		defer f.UnlockSharedStorage(0, contentenc.HeaderLen)
+
 		var err error
 		fileID, err := f.readFileID()
 		// Write a new file header if the file is empty
 		if err == io.EOF {
 			fileID, err = f.createHeader()
 			fileWasEmpty = true
-			// Having the unlock three times is ugly. But every other way I tried is even uglier.
-			f.LockSharedStorage(unix.F_UNLCK, 0, contentenc.HeaderLen)
 		} else if err != nil {
 			// Other errors mean readFileID() found a corrupt header
 			tlog.Warn.Printf("doWrite %d: corrupt header: %v", f.qIno.Ino, err)
-			f.LockSharedStorage(unix.F_UNLCK, 0, contentenc.HeaderLen)
 			return 0, syscall.EIO
 		}
 		if err != nil {
-			f.LockSharedStorage(unix.F_UNLCK, 0, contentenc.HeaderLen)
 			return 0, fs.ToErrno(err)
 		}
 		f.fileTableEntry.ID = fileID
