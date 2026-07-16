@@ -29,3 +29,8 @@ func (f *File) LockSharedStorage(lkType int16, lkStart int64, lkLen int64) error
 	}
 	return unix.FcntlFlock(uintptr(f.intFd()), syscallcompat.F_OFD_SETLKW, &lk)
 }
+
+// UnlockSharedStorage calls LockSharedStorage with unix.F_UNLCK.
+func (f *File) UnlockSharedStorage(lkStart int64, lkLen int64) error {
+	return f.LockSharedStorage(unix.F_UNLCK, lkStart, lkLen)
+}

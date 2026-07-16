@@ -327,7 +327,7 @@ func (f *File) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
 		tlog.Warn.Printf("ino%d: LockSharedStorage(F_WRLCK, %d, %d) failed: %v", f.qIno.Ino, cOff, int64(lkLen), err)
 		return 0, fs.ToErrno(err)
 	}
-	defer f.LockSharedStorage(unix.F_UNLCK, int64(cOff), int64(lkLen))
+	defer f.UnlockSharedStorage(int64(cOff), int64(lkLen))
 
 	for i, b := range blocks {
 		blockData := dataBuf.Next(int(b.Length))

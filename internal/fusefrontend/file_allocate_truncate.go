@@ -115,7 +115,7 @@ func (f *File) truncate(newSize uint64) (errno syscall.Errno) {
 			// racy on tmpfs and ext4 ( https://lore.kernel.org/all/18e9fa0f-ec31-9107-459c-ae1694503f87@gmail.com/t/ )
 			// as evident by TestOpenTruncate test failures.
 			f.LockSharedStorage(unix.F_WRLCK, 0, 0)
-			defer f.LockSharedStorage(unix.F_UNLCK, 0, 0)
+			defer f.UnlockSharedStorage(0, 0)
 
 			// With -sharedstorage, we keep the on-disk file header.
 			// Other mounts may have the file ID cached so we cannot mess with it.
