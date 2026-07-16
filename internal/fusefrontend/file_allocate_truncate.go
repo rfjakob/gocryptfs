@@ -126,7 +126,7 @@ func (f *File) truncate(newSize uint64) (errno syscall.Errno) {
 				return fs.ToErrno(syscall.Ftruncate(int(f.fd.Fd()), contentenc.HeaderLen))
 			}
 			// We don't have the file ID cached, so the file may be empty on disk.
-			// We dont't want to grow it, as this will create an all-zero header.
+			// We don't want to grow it, as this will create an all-zero header.
 			fi, err := f.fd.Stat()
 			if err != nil {
 				return fs.ToErrno(err)

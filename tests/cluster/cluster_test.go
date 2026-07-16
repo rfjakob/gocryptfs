@@ -176,6 +176,10 @@ func TestConcurrentCreate(t *testing.T) {
 				return
 			}
 			syscall.Unlink(path)
+
+			// Close now (not only when the whole loop exists) to avoid exhausting fds.
+			// Double-close on happy path is harmless: "Close will return an error if it has already been called"
+			f.Close()
 		}
 	}
 
