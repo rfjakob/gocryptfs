@@ -44,11 +44,11 @@ func TestPoCFcntlFlock(t *testing.T) {
 		Start:  0,
 		Len:    0,
 	}
-	err = unix.FcntlFlock(uintptr(fd1), unix.F_OFD_SETLK, &lk)
+	err = unix.FcntlFlock(uintptr(fd1), syscallcompat.F_OFD_SETLK, &lk)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = unix.FcntlFlock(uintptr(fd2), unix.F_OFD_SETLK, &lk)
+	err = unix.FcntlFlock(uintptr(fd2), syscallcompat.F_OFD_SETLK, &lk)
 	if err == nil {
 		t.Fatal("double-lock succeeded but should have failed")
 	}
@@ -190,7 +190,7 @@ func doTestPoCTornWrite(t *testing.T, locking bool) {
 					Start:  0,
 					Len:    int64(len(blockData)),
 				}
-				if err := unix.FcntlFlock(uintptr(f.Fd()), unix.F_OFD_SETLKW, &lk); err != nil {
+				if err := unix.FcntlFlock(uintptr(f.Fd()), syscallcompat.F_OFD_SETLKW, &lk); err != nil {
 					t.Error(err)
 					return
 				}

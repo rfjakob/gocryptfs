@@ -32,6 +32,11 @@ const (
 
 	// For the utimensat syscall on FreeBSD
 	AT_EMPTY_PATH = 0x4000
+
+	// F_OFD_SETLKW only exists on Linux. On Darwin, fall back to F_SETLKW as a
+	// flawed replacement.
+	F_OFD_SETLKW = unix.F_SETLKW
+	F_OFD_SETLK  = unix.F_SETLK
 )
 
 // EnospcPrealloc is supposed to preallocate ciphertext space without
