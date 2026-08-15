@@ -386,6 +386,32 @@ Only applicable to reverse mode.
 
 Limitation: Mounted single files (yes this is possible) are NOT hidden.
 
+#### -readdirplus
+Enable FUSE `READDIRPLUS` on Linux. It is disabled by default, so
+attributes are fetched only when an application requests them.
+
+`READDIRPLUS` requests attributes for every entry during a directory
+listing. This can improve metadata-heavy workloads such as `ls -l`,
+but adds unnecessary work to names-only listings. With the default
+cache timeouts (without `-sharedstorage`), enabling `READDIRPLUS` made
+metadata-heavy listings 1.36x faster in a local 100,000-file directory
+and 1.82x faster in a single run over a 1,000,000-file NFS directory.
+It made names-only listings 6.5x and 18.2x slower respectively.
+
+The default also applies to reverse mode. Backup and synchronization
+tools that inspect metadata for most entries may benefit from
+`-readdirplus`.
+
+This option can also be combined with `-sharedstorage`. Because that
+mode disables kernel attribute caching, whether `READDIRPLUS` helps
+depends on the workload and backing storage.
+
+On platforms other than Linux, this option is accepted but has no
+effect.
+
+For benchmarks and more details, see
+https://github.com/rfjakob/gocryptfs/issues/1026 .
+
 #### -rw, -ro
 Mount the filesystem read-write (`-rw`, default) or read-only (`-ro`).
 If both are specified, `-ro` takes precedence.

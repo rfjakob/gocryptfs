@@ -390,6 +390,7 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 	// Enable go-fuse warnings
 	fuseOpts.Logger = log.New(os.Stderr, "go-fuse: ", log.Lmicroseconds)
 	fuseOpts.MountOptions = fuse.MountOptions{
+		DisableReadDirPlus: !args.readdirplus,
 		// Writes and reads are usually capped at 128kiB on Linux through
 		// the FUSE_MAX_PAGES_PER_REQ kernel constant in fuse_i.h. Our
 		// sync.Pool buffer pools are sized acc. to the default. Users may set

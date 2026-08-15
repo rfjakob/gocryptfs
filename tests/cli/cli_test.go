@@ -991,6 +991,25 @@ func TestInitNotEmpty(t *testing.T) {
 	}
 }
 
+// TestReaddirplus checks that mounting and listing work with -readdirplus.
+func TestReaddirplus(t *testing.T) {
+	dir := test_helpers.InitFS(t)
+	mnt := dir + ".mnt"
+	test_helpers.MountOrFatal(t, dir, mnt, "-extpass=echo test", "-readdirplus")
+	defer test_helpers.UnmountPanic(mnt)
+
+	if err := os.WriteFile(mnt+"/file", nil, 0600); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := os.ReadDir(mnt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || entries[0].Name() != "file" {
+		t.Fatalf("unexpected directory entries: %v", entries)
+	}
+}
+
 // TestSharedstorage checks that `-sharedstorage` shows stable inode numbers to
 // userspace despite having hard link tracking disabled
 func TestSharedstorage(t *testing.T) {

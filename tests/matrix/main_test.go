@@ -59,6 +59,7 @@ func TestMain(m *testing.M) {
 		{false, "auto", false, true, nil},
 		// -serialize_reads
 		{false, "auto", false, false, []string{"-serialize_reads"}},
+		{false, "auto", false, false, []string{"-readdirplus"}},
 		{false, "auto", false, false, []string{"-sharedstorage"}},
 		{false, "auto", false, false, []string{"-deterministic-names"}},
 		// Test xchacha with and without openssl
