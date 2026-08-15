@@ -65,6 +65,7 @@ func (n *Node) OpendirHandle(ctx context.Context, flags uint32) (fh fs.FileHandl
 		ds:        ds,
 		dirIV:     dirIV,
 		isRootDir: n.IsRoot(),
+		node:      n,
 	}
 
 	return file, fuseFlags, errno
@@ -91,6 +92,18 @@ type DirHandle struct {
 
 	// fs.loopbackDirStream with a private dup of the file descriptor
 	ds fs.FileHandle
+
+	// lastName and lastCName are the plaintext and raw ciphertext names from
+	// the last entry returned by Readdirent. go-fuse's READDIRPLUS bridge
+	// serializes Readdirent, Lookup, and Seekdir on each file handle.
+	//
+	// Keep this mapping across calls: go-fuse may carry an overflow entry into
+	// the next READDIRPLUS request without calling Readdirent again.
+	lastName  string
+	lastCName string
+
+	// Node this directory handle was opened from.
+	node *Node
 }
 
 var _ = (fs.FileReleasedirer)((*File)(nil))
@@ -105,7 +118,13 @@ func (f *File) Releasedir(ctx context.Context, flags uint32) {
 var _ = (fs.FileSeekdirer)((*File)(nil))
 
 func (f *File) Seekdir(ctx context.Context, off uint64) syscall.Errno {
-	return f.dirHandle.ds.(fs.FileSeekdirer).Seekdir(ctx, off)
+	errno := f.dirHandle.ds.(fs.FileSeekdirer).Seekdir(ctx, off)
+	if errno == 0 {
+		// Readdirent will repopulate the mapping at the new position.
+		f.dirHandle.lastName = ""
+		f.dirHandle.lastCName = ""
+	}
+	return errno
 }
 
 var _ = (fs.FileFsyncdirer)((*File)(nil))
@@ -115,6 +134,11 @@ func (f *File) Fsyncdir(ctx context.Context, flags uint32) syscall.Errno {
 }
 
 var _ = (fs.FileReaddirenter)((*File)(nil))
+
+func (f *File) rememberName(name string, cName string) {
+	f.dirHandle.lastName = name
+	f.dirHandle.lastCName = cName
+}
 
 // This function is symlink-safe through use of openBackingDir() and
 // ReadDirIVAt().
@@ -128,7 +152,12 @@ func (f *File) Readdirent(ctx context.Context) (entry *fuse.DirEntry, errno sysc
 			return
 		}
 
-		cName := entry.Name
+		// Preserve the name that exists on disk. For long names, cName below is
+		// replaced with the full ciphertext name from the .name sidecar, which
+		// is only the input for decryption.
+		rawCName := entry.Name
+		cName := rawCName
+		lookupCName := rawCName
 		if cName == "." || cName == ".." {
 			// We want these as-is
 			return
@@ -138,6 +167,7 @@ func (f *File) Readdirent(ctx context.Context) (entry *fuse.DirEntry, errno sysc
 			continue
 		}
 		if f.rootNode.args.PlaintextNames {
+			f.rememberName(cName, rawCName)
 			return
 		}
 		if !f.rootNode.args.DeterministicNames && cName == nametransform.DirIVFilename {
@@ -157,10 +187,23 @@ func (f *File) Readdirent(ctx context.Context) (entry *fuse.DirEntry, errno sysc
 				f.rootNode.reportMitigatedCorruption(cName)
 				continue
 			}
+			// A mismatched sidecar is corrupt. Preserve Node.Lookup semantics
+			// by falling back to its canonical re-encryption and hashing.
+			if f.rootNode.nameTransform.HashLongName(cNameLong) != rawCName ||
+				len(cNameLong) <= f.rootNode.nameTransform.GetLongNameMax() {
+				tlog.Warn.Printf("Readdirent: noncanonical long-name entry %q", rawCName)
+				f.rootNode.reportMitigatedCorruption(rawCName)
+				lookupCName = ""
+			}
 			cName = cNameLong
 		} else if isLong == nametransform.LongNameFilename {
 			// ignore "gocryptfs.longname.*.name"
 			continue
+		} else if len(rawCName) > f.rootNode.nameTransform.GetLongNameMax() {
+			// The canonical form of this name is hashed.
+			tlog.Warn.Printf("Readdirent: noncanonical unhashed name %q", rawCName)
+			f.rootNode.reportMitigatedCorruption(rawCName)
+			lookupCName = ""
 		}
 		name, err := f.rootNode.nameTransform.DecryptName(cName, f.dirHandle.dirIV)
 		if err != nil {
@@ -172,6 +215,36 @@ func (f *File) Readdirent(ctx context.Context) (entry *fuse.DirEntry, errno sysc
 		// Override the ciphertext name with the plaintext name but reuse the rest
 		// of the structure
 		entry.Name = name
+		f.rememberName(name, lookupCName)
 		return
 	}
+}
+
+var _ = (fs.FileLookuper)((*File)(nil))
+
+// Lookup implements fs.FileLookuper for READDIRPLUS. Readdirent has already
+// translated name and retained the exact backing name, so the common path can
+// avoid translating the name again and obtaining another directory fd.
+func (f *File) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (ch *fs.Inode, errno syscall.Errno) {
+	f.fdLock.RLock()
+	if f.released {
+		f.fdLock.RUnlock()
+		return nil, syscall.EBADF
+	}
+
+	f.rootNode.IsIdle.Store(false)
+
+	if name != f.dirHandle.lastName ||
+		f.dirHandle.lastCName == "" ||
+		f.rootNode.nameTransform.HaveBadnamePatterns() {
+		// go-fuse can replay entries without calling Readdirent after an
+		// interrupted read. The retained mapping may not belong to name then.
+		// Badname mappings can also be ambiguous, and corrupt long-name
+		// sidecars must go through canonical name translation.
+		f.fdLock.RUnlock()
+		return f.dirHandle.node.Lookup(ctx, name, out)
+	}
+
+	defer f.fdLock.RUnlock()
+	return f.dirHandle.node.lookupChild(ctx, name, f.intFd(), f.dirHandle.lastCName, out)
 }

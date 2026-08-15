@@ -40,9 +40,8 @@ type RootNode struct {
 	// "gocryptfs -fsck" reads from the channel to also catch these transparently-
 	// mitigated corruptions.
 	MitigatedCorruptions chan string
-	// IsIdle flag is set to zero each time fs.isFiltered() is called
-	// (uint32 so that it can be reset with CompareAndSwapUint32).
-	// When -idle was used when mounting, idleMonitor() sets it to 1
+	// IsIdle is set to false on each filesystem operation.
+	// When -idle was used when mounting, idleMonitor() sets it to true
 	// periodically.
 	IsIdle atomic.Bool
 	// dirCache caches directory fds

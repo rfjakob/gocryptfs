@@ -15,11 +15,15 @@ import (
 )
 
 func newTestFS(args Args) *RootNode {
+	return newTestFSWithLongNameMax(args, 0)
+}
+
+func newTestFSWithLongNameMax(args Args, longNameMax uint8) *RootNode {
 	// Init crypto backend
 	key := make([]byte, cryptocore.KeyLen)
 	cCore := cryptocore.New(key, cryptocore.BackendGoGCM, contentenc.DefaultIVBits, true)
 	cEnc := contentenc.New(cCore, contentenc.DefaultBS)
-	n := nametransform.New(cCore.EMECipher, true, 0, true, nil, false)
+	n := nametransform.New(cCore.EMECipher, true, longNameMax, true, nil, args.DeterministicNames)
 	rn := NewRootNode(args, cEnc, n)
 	oneSecond := time.Second
 	options := &fs.Options{

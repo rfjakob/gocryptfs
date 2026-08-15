@@ -28,6 +28,12 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (ch 
 	}
 	defer syscall.Close(dirfd)
 
+	return n.lookupChild(ctx, name, dirfd, cName, out)
+}
+
+// lookupChild looks up name using an already-open backing directory and the
+// corresponding ciphertext name.
+func (n *Node) lookupChild(ctx context.Context, name string, dirfd int, cName string, out *fuse.EntryOut) (ch *fs.Inode, errno syscall.Errno) {
 	// Get device number and inode number into `st`
 	st, err := syscallcompat.Fstatat2(dirfd, cName, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
