@@ -378,6 +378,9 @@ metadata-heavy workloads such as `ls -l`. With the default cache
 timeouts (that is, without `-sharedstorage`), `ls -l` was 36% slower
 on local storage and 82% slower in a single NFS run.
 
+`-sharedstorage` implies `-noreaddirplus` and this cannot be
+overridden.
+
 This option currently only has an effect on Linux.
 
 For benchmarks and more details, see
@@ -434,7 +437,7 @@ Enable work-arounds so gocryptfs works better when the backing
 storage directory is concurrently accessed by multiple gocryptfs
 instances.
 
-At the moment, it does two things:
+At the moment, it does three things:
 
 1. Disable stat() caching so changes to the backing storage show up
    immediately.
@@ -442,6 +445,11 @@ At the moment, it does two things:
    storage are not stable when files are deleted and re-created behind
    our back. This would otherwise produce strange "file does not exist"
    and other errors.
+3. Disable FUSE `READDIRPLUS`, because its eagerly fetched attributes
+   cannot be reused by the kernel's attribute cache when stat caching
+   is disabled. The backing filesystem may still cache attributes.
+   On network backing storage, metadata-heavy directory listings may
+   become slower.
 
 When "-sharedstorage" is active, performance is reduced and hard
 links cannot be created.

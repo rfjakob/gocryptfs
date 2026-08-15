@@ -364,7 +364,10 @@ type RootInoer interface {
 // adds mount-specific values.
 func baseMountOptions(args *argContainer) fuse.MountOptions {
 	return fuse.MountOptions{
-		DisableReadDirPlus: args.noreaddirplus,
+		// With -sharedstorage, attribute and entry caching is disabled, so the
+		// attributes returned by READDIRPLUS cannot be reused by the kernel's
+		// attribute cache.
+		DisableReadDirPlus: args.noreaddirplus || args.sharedstorage,
 		// Writes and reads are usually capped at 128kiB on Linux through
 		// the FUSE_MAX_PAGES_PER_REQ kernel constant in fuse_i.h. Our
 		// sync.Pool buffer pools are sized acc. to the default. Users may set
