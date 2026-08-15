@@ -360,6 +360,33 @@ type RootInoer interface {
 	RootIno() uint64
 }
 
+// baseMountOptions returns the mount options that are set before initGoFuse
+// adds mount-specific values.
+func baseMountOptions(args *argContainer) fuse.MountOptions {
+	return fuse.MountOptions{
+		DisableReadDirPlus: args.noreaddirplus,
+		// Writes and reads are usually capped at 128kiB on Linux through
+		// the FUSE_MAX_PAGES_PER_REQ kernel constant in fuse_i.h. Our
+		// sync.Pool buffer pools are sized acc. to the default. Users may set
+		// the kernel constant higher, and Synology NAS kernels are known to
+		// have it >128kiB. We cannot handle more than 128kiB, so we tell
+		// the kernel to limit the size explicitly.
+		MaxWrite: fuse.MAX_KERNEL_WRITE,
+		Debug:    args.fusedebug,
+		// The kernel usually submits multiple read requests in parallel,
+		// which means we serve them in any order. Out-of-order reads are
+		// expensive on some backing network filesystems
+		// ( https://github.com/rfjakob/gocryptfs/issues/92 ).
+		//
+		// Setting SyncRead disables FUSE_CAP_ASYNC_READ. This makes the kernel
+		// do everything in-order without parallelism.
+		SyncRead: args.serialize_reads,
+		// Attempt to directly call mount(2) before trying fusermount. This means we
+		// can do without fusermount if running as root.
+		DirectMount: true,
+	}
+}
+
 // initGoFuse calls into go-fuse to mount `rootNode` on `args.mountpoint`.
 // The mountpoint is ready to use when the functions returns.
 // On error, it calls os.Exit and does not return.
@@ -389,27 +416,7 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 	fuseOpts.RootStableAttr = &fs.StableAttr{Ino: rootNode.(RootInoer).RootIno()}
 	// Enable go-fuse warnings
 	fuseOpts.Logger = log.New(os.Stderr, "go-fuse: ", log.Lmicroseconds)
-	fuseOpts.MountOptions = fuse.MountOptions{
-		// Writes and reads are usually capped at 128kiB on Linux through
-		// the FUSE_MAX_PAGES_PER_REQ kernel constant in fuse_i.h. Our
-		// sync.Pool buffer pools are sized acc. to the default. Users may set
-		// the kernel constant higher, and Synology NAS kernels are known to
-		// have it >128kiB. We cannot handle more than 128kiB, so we tell
-		// the kernel to limit the size explicitly.
-		MaxWrite: fuse.MAX_KERNEL_WRITE,
-		Debug:    args.fusedebug,
-		// The kernel usually submits multiple read requests in parallel,
-		// which means we serve them in any order. Out-of-order reads are
-		// expensive on some backing network filesystems
-		// ( https://github.com/rfjakob/gocryptfs/issues/92 ).
-		//
-		// Setting SyncRead disables FUSE_CAP_ASYNC_READ. This makes the kernel
-		// do everything in-order without parallelism.
-		SyncRead: args.serialize_reads,
-		// Attempt to directly call mount(2) before trying fusermount. This means we
-		// can do without fusermount if running as root.
-		DirectMount: true,
-	}
+	fuseOpts.MountOptions = baseMountOptions(args)
 
 	mOpts := &fuseOpts.MountOptions
 	opts := make(map[string]string)

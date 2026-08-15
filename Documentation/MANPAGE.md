@@ -366,6 +366,23 @@ out-of-space errors for a massive speedup.
 For benchmarks and more details of the issue see
 https://github.com/rfjakob/gocryptfs/issues/63 .
 
+#### -noreaddirplus
+Disable FUSE `READDIRPLUS`. By default, Linux may request attributes
+for every entry during a directory listing. This improves workloads
+that immediately inspect most entries, but adds unnecessary work to
+names-only listings.
+
+This option restores demand-driven behavior: attributes are fetched
+only when the application requests them. It can substantially slow
+metadata-heavy workloads such as `ls -l`. With the default cache
+timeouts (that is, without `-sharedstorage`), `ls -l` was 36% slower
+on local storage and 82% slower in a single NFS run.
+
+This option currently only has an effect on Linux.
+
+For benchmarks and more details, see
+https://github.com/rfjakob/gocryptfs/issues/1026 .
+
 #### -nosuid
 See `-suid, -nosuid`.
 
