@@ -246,7 +246,7 @@ func (n *Node) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAttrIn,
 		}
 		f2 := f.(*File)
 		defer f2.Release(ctx)
-		errno = syscall.Errno(f2.truncate(sz))
+		errno = syscall.Errno(f2.truncateLocked(sz))
 		if errno != 0 {
 			return errno
 		}

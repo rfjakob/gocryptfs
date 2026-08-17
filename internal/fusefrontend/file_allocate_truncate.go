@@ -96,7 +96,27 @@ func (f *File) Allocate(ctx context.Context, off uint64, sz uint64, mode uint32)
 	return f.truncateGrowFile(oldPlainSz, newPlainSz)
 }
 
+// truncateLocked takes the locks that truncate needs and truncates.
+//
+// truncate calls doWrite, which requires ContentLock to be held by the caller.
+// file.Setattr already holds it; node.Setattr (the path used by truncate(2))
+// opens a fresh file handle and has nothing around it, so it goes through here.
+func (f *File) truncateLocked(newSize uint64) syscall.Errno {
+	f.fdLock.RLock()
+	defer f.fdLock.RUnlock()
+	if f.released {
+		tlog.Warn.Printf("ino%d fh%d: truncate on released file", f.qIno.Ino, f.intFd())
+		return syscall.EBADF
+	}
+	f.fileTableEntry.ContentLock.Lock()
+	defer f.fileTableEntry.ContentLock.Unlock()
+
+	return f.truncate(newSize)
+}
+
 // truncate - called from node.Setattr and file.Setattr.
+//
+// The caller must hold ContentLock, see truncateLocked.
 func (f *File) truncate(newSize uint64) (errno syscall.Errno) {
 	var err error
 	// Common case first: Truncate to zero
