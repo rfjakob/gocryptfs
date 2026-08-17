@@ -554,3 +554,38 @@ func TestSeekDir(t *testing.T) {
 		t.Error("Seek did not have any effect")
 	}
 }
+
+// Regression test for https://github.com/rfjakob/gocryptfs/issues/1024
+//
+// truncate(2) goes through node.Setattr, which opens its own file handle. That
+// handle must take ContentLock like file.Setattr does: the lock doubles as the
+// global write-operation counter that isConsecutiveWrite() uses to notice that
+// somebody else changed the file. Without it, an already-open handle keeps
+// believing its next write appends, skips writePadHole(), and leaves the last
+// block short while the file grows past it - the block then fails to decrypt.
+func TestConcurrentTruncateViaPath(t *testing.T) {
+	path := test_helpers.DefaultPlainDir + "/" + t.Name()
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	b := make([]byte, 4096)
+	_, err = f.Write(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Truncate via path used to not increment writeOpCount...
+	if err = os.Truncate(path, 8); err != nil {
+		t.Fatal(err)
+	}
+	// ...which means this write will not call writePadHole.
+	if _, err = f.Write([]byte("foo")); err != nil {
+		t.Fatal(err)
+	}
+	// First block is corrupt now.
+	if _, err = f.ReadAt(b, 0); err != nil {
+		t.Fatal(err)
+	}
+}
