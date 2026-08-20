@@ -29,7 +29,7 @@ type argContainer struct {
 	debug, init, zerokey, fusedebug, openssl, passwd, fg, version,
 	plaintextnames, quiet, nosyslog, wpanic,
 	longnames, allow_other, reverse, aessiv, nonempty, raw64,
-	noprealloc, noreaddirplus, speed, hkdf, serialize_reads, hh, info,
+	noprealloc, readdirplus, speed, hkdf, serialize_reads, hh, info,
 	sharedstorage, fsck, one_file_system, deterministic_names,
 	xchacha, noxattr bool
 	// Mount options with opposites
@@ -178,7 +178,7 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	flagSet.BoolVar(&args.nonempty, "nonempty", false, "Allow mounting over non-empty directories")
 	flagSet.BoolVar(&args.raw64, "raw64", true, "Use unpadded base64 for file names")
 	flagSet.BoolVar(&args.noprealloc, "noprealloc", false, "Disable preallocation before writing")
-	flagSet.BoolVar(&args.noreaddirplus, "noreaddirplus", false, "Disable FUSE READDIRPLUS")
+	flagSet.BoolVar(&args.readdirplus, "readdirplus", false, "Enable FUSE READDIRPLUS (Linux only)")
 	flagSet.BoolVar(&args.speed, "speed", false, "Run crypto speed test")
 	flagSet.BoolVar(&args.hkdf, "hkdf", true, "Use HKDF as an additional key derivation step")
 	flagSet.BoolVar(&args.serialize_reads, "serialize_reads", false, "Try to serialize read operations")

@@ -366,26 +366,6 @@ out-of-space errors for a massive speedup.
 For benchmarks and more details of the issue see
 https://github.com/rfjakob/gocryptfs/issues/63 .
 
-#### -noreaddirplus
-Disable FUSE `READDIRPLUS`. By default, Linux may request attributes
-for every entry during a directory listing. This improves workloads
-that immediately inspect most entries, but adds unnecessary work to
-names-only listings.
-
-This option restores demand-driven behavior: attributes are fetched
-only when the application requests them. It can substantially slow
-metadata-heavy workloads such as `ls -l`. With the default cache
-timeouts (that is, without `-sharedstorage`), `ls -l` was 36% slower
-on local storage and 82% slower in a single NFS run.
-
-`-sharedstorage` implies `-noreaddirplus` and this cannot be
-overridden.
-
-This option currently only has an effect on Linux.
-
-For benchmarks and more details, see
-https://github.com/rfjakob/gocryptfs/issues/1026 .
-
 #### -nosuid
 See `-suid, -nosuid`.
 
@@ -405,6 +385,32 @@ Mountpoints will appear as empty directories.
 Only applicable to reverse mode.
 
 Limitation: Mounted single files (yes this is possible) are NOT hidden.
+
+#### -readdirplus
+Enable FUSE `READDIRPLUS` on Linux. It is disabled by default, so
+attributes are fetched only when an application requests them.
+
+`READDIRPLUS` requests attributes for every entry during a directory
+listing. This can improve metadata-heavy workloads such as `ls -l`,
+but adds unnecessary work to names-only listings. With the default
+cache timeouts (without `-sharedstorage`), enabling `READDIRPLUS` made
+metadata-heavy listings 1.36x faster in a local 100,000-file directory
+and 1.82x faster in a single run over a 1,000,000-file NFS directory.
+It made names-only listings 6.5x and 18.2x slower respectively.
+
+The default also applies to reverse mode. Backup and synchronization
+tools that inspect metadata for most entries may benefit from
+`-readdirplus`.
+
+This option can also be combined with `-sharedstorage`. Because that
+mode disables kernel attribute caching, whether `READDIRPLUS` helps
+depends on the workload and backing storage.
+
+On platforms other than Linux, this option is accepted but has no
+effect.
+
+For benchmarks and more details, see
+https://github.com/rfjakob/gocryptfs/issues/1026 .
 
 #### -rw, -ro
 Mount the filesystem read-write (`-rw`, default) or read-only (`-ro`).
@@ -437,7 +443,7 @@ Enable work-arounds so gocryptfs works better when the backing
 storage directory is concurrently accessed by multiple gocryptfs
 instances.
 
-At the moment, it does three things:
+At the moment, it does two things:
 
 1. Disable stat() caching so changes to the backing storage show up
    immediately.
@@ -445,11 +451,6 @@ At the moment, it does three things:
    storage are not stable when files are deleted and re-created behind
    our back. This would otherwise produce strange "file does not exist"
    and other errors.
-3. Disable FUSE `READDIRPLUS`, because its eagerly fetched attributes
-   cannot be reused by the kernel's attribute cache when stat caching
-   is disabled. The backing filesystem may still cache attributes.
-   On network backing storage, metadata-heavy directory listings may
-   become slower.
 
 When "-sharedstorage" is active, performance is reduced and hard
 links cannot be created.

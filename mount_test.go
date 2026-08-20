@@ -5,18 +5,19 @@ import "testing"
 func TestDisableReadDirPlus(t *testing.T) {
 	for _, tc := range []struct {
 		name          string
-		noreaddirplus bool
+		readdirplus   bool
 		sharedstorage bool
 		want          bool
 	}{
-		{name: "default"},
-		{name: "noreaddirplus", noreaddirplus: true, want: true},
-		{name: "sharedstorage", sharedstorage: true, want: true},
-		{name: "both", noreaddirplus: true, sharedstorage: true, want: true},
+		{name: "default", want: true},
+		{name: "readdirplus", readdirplus: true},
+		// -sharedstorage does not override an explicit -readdirplus.
+		{name: "sharedstorage-default", sharedstorage: true, want: true},
+		{name: "sharedstorage-readdirplus", readdirplus: true, sharedstorage: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			args := &argContainer{
-				noreaddirplus: tc.noreaddirplus,
+				readdirplus:   tc.readdirplus,
 				sharedstorage: tc.sharedstorage,
 			}
 			got := baseMountOptions(args).DisableReadDirPlus

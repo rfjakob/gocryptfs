@@ -991,11 +991,11 @@ func TestInitNotEmpty(t *testing.T) {
 	}
 }
 
-// TestNoreaddirplus checks that mounting and listing work with -noreaddirplus.
-func TestNoreaddirplus(t *testing.T) {
+// TestReaddirplus checks that mounting and listing work with -readdirplus.
+func TestReaddirplus(t *testing.T) {
 	dir := test_helpers.InitFS(t)
 	mnt := dir + ".mnt"
-	test_helpers.MountOrFatal(t, dir, mnt, "-extpass=echo test", "-noreaddirplus")
+	test_helpers.MountOrFatal(t, dir, mnt, "-extpass=echo test", "-readdirplus")
 	defer test_helpers.UnmountPanic(mnt)
 
 	if err := os.WriteFile(mnt+"/file", nil, 0600); err != nil {
