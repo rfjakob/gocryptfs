@@ -330,8 +330,11 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 	// Init crypto backend
 	cCore := cryptocore.New(masterkey, cryptoBackend, IVBits, args.hkdf)
 	cEnc := contentenc.New(cCore, contentenc.DefaultBS)
-	nameTransform := nametransform.New(cCore.EMECipher, frontendArgs.LongNames, args.longnamemax,
-		args.raw64, []string(args.badname), frontendArgs.DeterministicNames)
+	var nameTransform *nametransform.NameTransform
+	if !args.plaintextnames {
+		nameTransform = nametransform.New(cCore.EMECipher, frontendArgs.LongNames, args.longnamemax,
+			args.raw64, []string(args.badname), frontendArgs.DeterministicNames)
+	}
 	// After the crypto backend is initialized,
 	// we can purge the master key from memory.
 	for i := range masterkey {
