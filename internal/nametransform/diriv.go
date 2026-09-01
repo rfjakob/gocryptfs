@@ -83,16 +83,22 @@ func WriteDirIVAt(dirfd int) error {
 		if !syscallcompat.IsENOSPC(err) {
 			tlog.Warn.Printf("WriteDirIV: Write: %v", err)
 		}
-		// Delete incomplete gocryptfs.diriv file
-		syscallcompat.Unlinkat(dirfd, DirIVFilename, 0)
-		return err
+		goto delete
+	}
+	err = f.Sync()
+	if err != nil {
+		tlog.Warn.Printf("WriteDirIV: Sync: %v", err)
+		goto delete
 	}
 	err = f.Close()
 	if err != nil {
 		tlog.Warn.Printf("WriteDirIV: Close: %v", err)
-		// Delete incomplete gocryptfs.diriv file
-		syscallcompat.Unlinkat(dirfd, DirIVFilename, 0)
-		return err
+		goto delete
 	}
 	return nil
+
+delete:
+	// Delete potentially incomplete gocryptfs.diriv file
+	syscallcompat.Unlinkat(dirfd, DirIVFilename, 0)
+	return err
 }
