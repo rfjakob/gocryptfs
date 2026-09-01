@@ -3,6 +3,7 @@ package fusefrontend
 import (
 	"syscall"
 
+	"github.com/rfjakob/gocryptfs/v2/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 
 	"github.com/hanwen/go-fuse/v2/fs"
@@ -73,8 +74,9 @@ func (n *Node) prepareAtSyscall(child string) (dirfd int, cName string, errno sy
 		var err error
 		iv, err = rn.nameTransform.ReadDirIVAt(dirfd)
 		if err != nil {
+			tlog.Warn.Printf("prepareAtSyscall: could not read %s: %v", nametransform.DirIVFilename, err)
 			syscall.Close(dirfd)
-			return -1, "", fs.ToErrno(err)
+			return -1, "", syscall.EIO
 		}
 	}
 	rn.dirCache.Store(n, dirfd, iv)
