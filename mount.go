@@ -330,8 +330,11 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 	// Init crypto backend
 	cCore := cryptocore.New(masterkey, cryptoBackend, IVBits, args.hkdf)
 	cEnc := contentenc.New(cCore, contentenc.DefaultBS)
-	nameTransform := nametransform.New(cCore.EMECipher, frontendArgs.LongNames, args.longnamemax,
-		args.raw64, []string(args.badname), frontendArgs.DeterministicNames)
+	var nameTransform *nametransform.NameTransform
+	if !args.plaintextnames {
+		nameTransform = nametransform.New(cCore.EMECipher, frontendArgs.LongNames, args.longnamemax,
+			args.raw64, []string(args.badname), frontendArgs.DeterministicNames)
+	}
 	// After the crypto backend is initialized,
 	// we can purge the master key from memory.
 	for i := range masterkey {
@@ -390,6 +393,7 @@ func initGoFuse(rootNode fs.InodeEmbedder, args *argContainer) *fuse.Server {
 	// Enable go-fuse warnings
 	fuseOpts.Logger = log.New(os.Stderr, "go-fuse: ", log.Lmicroseconds)
 	fuseOpts.MountOptions = fuse.MountOptions{
+		DisableReadDirPlus: !args.readdirplus,
 		// Writes and reads are usually capped at 128kiB on Linux through
 		// the FUSE_MAX_PAGES_PER_REQ kernel constant in fuse_i.h. Our
 		// sync.Pool buffer pools are sized acc. to the default. Users may set

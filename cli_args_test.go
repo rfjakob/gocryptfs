@@ -157,6 +157,18 @@ func TestParseCliOpts(t *testing.T) {
 	}...)
 
 	o = defaultArgs
+	o.readdirplus = true
+	testcases = append(testcases, []testcaseContainer{
+		{
+			i: []string{"gocryptfs", "-readdirplus"},
+			o: o,
+		}, {
+			i: []string{"gocryptfs", "-o", "readdirplus"},
+			o: o,
+		},
+	}...)
+
+	o = defaultArgs
 	o.exclude = []string{"foo", "bar", "baz,boe"}
 	testcases = append(testcases, []testcaseContainer{
 		{

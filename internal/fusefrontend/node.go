@@ -38,7 +38,7 @@ func (n *Node) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (ch 
 	ch = n.newChild(ctx, st, out)
 
 	// Translate ciphertext size in `out.Attr.Size` to plaintext size
-	n.translateSize(dirfd, cName, &out.Attr)
+	out.Size = n.translateSize(dirfd, cName, out.Mode, out.Size)
 
 	rn := n.rootNode()
 	if rn.args.ForceOwner != nil {
@@ -116,7 +116,7 @@ func (n *Node) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) 
 	out.Attr.FromStat(st)
 
 	// Translate ciphertext size in `out.Attr.Size` to plaintext size
-	n.translateSize(dirfd, cName, &out.Attr)
+	out.Size = n.translateSize(dirfd, cName, out.Mode, out.Size)
 
 out:
 	if rn.args.ForceOwner != nil {
@@ -246,6 +246,8 @@ func (n *Node) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAttrIn,
 		}
 		f2 := f.(*File)
 		defer f2.Release(ctx)
+		f2.fileTableEntry.ContentLock.Lock()
+		defer f2.fileTableEntry.ContentLock.Unlock()
 		errno = syscall.Errno(f2.truncate(sz))
 		if errno != 0 {
 			return errno
@@ -371,7 +373,7 @@ func (n *Node) Link(ctx context.Context, target fs.InodeEmbedder, name string, o
 		return
 	}
 	inode = n.newChild(ctx, st, out)
-	n.translateSize(dirfd, cName, &out.Attr)
+	out.Size = n.translateSize(dirfd, cName, out.Mode, out.Size)
 	return inode, 0
 }
 

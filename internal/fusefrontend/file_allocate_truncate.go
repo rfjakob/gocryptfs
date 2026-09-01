@@ -97,6 +97,8 @@ func (f *File) Allocate(ctx context.Context, off uint64, sz uint64, mode uint32)
 }
 
 // truncate - called from node.Setattr and file.Setattr.
+//
+// The caller must hold f.fileTableEntry.ContentLock
 func (f *File) truncate(newSize uint64) (errno syscall.Errno) {
 	var err error
 	// Common case first: Truncate to zero

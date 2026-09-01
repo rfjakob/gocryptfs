@@ -68,7 +68,7 @@ func NewRootNode(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransf
 	var rootDev uint64
 	var st syscall.Stat_t
 	var statErr error
-	var shortNameMax int
+	var shortNameMax = syscall.NAME_MAX
 	if statErr = syscall.Stat(args.Cipherdir, &st); statErr != nil {
 		tlog.Warn.Printf("Could not stat backing directory %q: %v", args.Cipherdir, statErr)
 		if args.OneFileSystem {
@@ -79,8 +79,10 @@ func NewRootNode(args fusefrontend.Args, c *contentenc.ContentEnc, n *nametransf
 		rootDev = uint64(st.Dev)
 	}
 
-	shortNameMax = n.GetLongNameMax() * 3 / 4
-	shortNameMax = shortNameMax - shortNameMax%16 - 1
+	if !args.PlaintextNames {
+		shortNameMax = n.GetLongNameMax() * 3 / 4
+		shortNameMax = shortNameMax - shortNameMax%16 - 1
+	}
 
 	rn := &RootNode{
 		args:          args,

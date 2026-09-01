@@ -77,6 +77,7 @@ v2.0.1-28-g49507ea     335  951     10.2   5.4  4.1    2.0    go1.25.4, Linux 6.
 v2.6.1-22-gbc94538     432  950     10.0   5.4  3.8    2.0
 v2.6.1-24-gb239d51     426  941      9.9   5.5  3.7    2.0    go-fuse v2.9.0
 v2.6.1-26-g700432e     461  962      9.8   5.4  2.0    2.0
+v2.6.1-71-g5b2881e7    449  964     10.5   5.6  2.4    2.6    use READDIR by default
 
 Results for EncFS for comparison (benchmark.bash -encfs):
 

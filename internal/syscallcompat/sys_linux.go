@@ -80,6 +80,15 @@ func Mknodat(dirfd int, path string, mode uint32, dev int) (err error) {
 	return syscall.Mknodat(dirfd, path, mode, dev)
 }
 
+// Statx wraps the Statx syscall.
+// Retries on EINTR.
+func Statx(dirfd int, path string, flags int, mask int, st *unix.Statx_t) (err error) {
+	err = retryEINTR(func() error {
+		return unix.Statx(dirfd, path, flags, mask, st)
+	})
+	return err
+}
+
 // Dup3 wraps the Dup3 syscall. We want to use Dup3 rather than Dup2 because Dup2
 // is not implemented on arm64.
 func Dup3(oldfd int, newfd int, flags int) (err error) {
