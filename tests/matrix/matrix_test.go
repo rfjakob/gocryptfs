@@ -993,3 +993,18 @@ func TestRenameExchangeOnGocryptfs(t *testing.T) {
 		t.Errorf("file2 content wrong after exchange. Expected: %s, Got: %s", content1, newContent2)
 	}
 }
+
+func TestUnlinkedO_SYNC(t *testing.T) {
+	path := test_helpers.DefaultPlainDir + "/" + t.Name()
+	fd, err := syscall.Open(path, syscall.O_CREAT|syscall.O_RDWR|syscall.O_SYNC, 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer syscall.Close(fd)
+	if err = os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = syscall.Write(fd, make([]byte, 10)); err != nil {
+		t.Error(err)
+	}
+}
