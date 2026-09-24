@@ -455,9 +455,6 @@ func (f *File) Flush(ctx context.Context) syscall.Errno {
 }
 
 // Fsync: handles FUSE opcode FSYNC
-//
-// Unfortunately, as Node.Fsync is also defined and takes precedence,
-// File.Fsync is never called at the moment.
 func (f *File) Fsync(ctx context.Context, flags uint32) (errno syscall.Errno) {
 	f.fdLock.RLock()
 	defer f.fdLock.RUnlock()
