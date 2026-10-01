@@ -8,6 +8,9 @@
 An encrypted overlay filesystem written in Go.
 Official website: https://nuetzlich.net/gocryptfs ([markdown source](https://github.com/rfjakob/gocryptfs-website/blob/master/docs/index.md)).
 
+> [!WARNING]  
+> The website "gocryptfs.com" is not affiliated with the gocryptfs project!
+
 ![Folders side-by-side animation](Documentation/folders-side-by-side.gif)
 
 gocryptfs is built on top the excellent
