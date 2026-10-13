@@ -247,11 +247,13 @@ func ListFds(pid int, prefix string) []string {
 			continue
 		}
 		if strings.HasPrefix(target, "pipe:") || strings.HasPrefix(target, "anon_inode:[eventpoll]") ||
-			strings.HasPrefix(target, "anon_inode:[pidfd]") {
+			strings.HasPrefix(target, "anon_inode:[pidfd]") || target == "/dev/null" {
 			// The Go runtime creates pipes on demand for splice(), which
 			// creates spurious test failures. Ignore all pipes.
 			// Also get rid of the "eventpoll" and "pidfd" fds that are always there
 			// and not interesting.
+			// go-fuse opens /dev/null on demand as a sink for emptying its
+			// splice pipes and keeps it open. Ignore that as well.
 			filtered = append(filtered, target)
 			continue
 		}
