@@ -15,9 +15,9 @@ import (
 )
 
 // gocryptfs may hold up to maxCacheFds open for caching
-// Keep in sync with fusefrontend.dirCacheSize
+// Keep in sync with fusefrontend.dirCacheSize. Plus one for go-fuse (splice fd).
 // TODO: How to share this constant without causing an import cycle?!
-const maxCacheFds = 20
+const maxCacheFds = 20 + 1
 
 // Indexed by mountpoint. Initialized in doInit().
 var MountInfo map[string]mountInfo
