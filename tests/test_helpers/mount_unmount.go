@@ -191,7 +191,7 @@ func UnmountErr(dir string) (err error) {
 		err = cmd.Run()
 		if err == nil {
 			if len(fdsNow) > len(fds)+maxCacheFds {
-				return fmt.Errorf("fd leak in gocryptfs process? pid=%d dir=%q, fds:\nold=%v \nnew=%v", pid, dir, fds, fdsNow)
+				return fmt.Errorf("fd leak in gocryptfs process? pid=%d dir=%q, fds:\nold=%d:%v \nnew=%d:%v", pid, dir, len(fds), fds, len(fdsNow), fdsNow)
 			}
 			return nil
 		}
