@@ -204,6 +204,33 @@ RM:    2,367
 Changelog
 ---------
 
+#### v2.7.0, 2026-11-08
+* `-sharedstorage`: use byte-range locks to make concurrent access from multiple
+  mounts safe ([#754](https://github.com/rfjakob/gocryptfs/issues/754),
+  [#56](https://github.com/rfjakob/gocryptfs/issues/56))
+* MacOS: normalize Unicode file names in forward mode (store as NFC, present as NFD)
+  ([#850](https://github.com/rfjakob/gocryptfs/issues/850),
+  [#992](https://github.com/rfjakob/gocryptfs/pull/992))
+* Fix data corruption (EIO on all later operations) when a file was truncated
+  through `node.Setattr` while another handle had it open
+  ([#1024](https://github.com/rfjakob/gocryptfs/issues/1024))
+* Fix permission denied when copying a read-only directory
+  ([#964](https://github.com/rfjakob/gocryptfs/issues/964))
+* Use `READDIR` instead of `READDIRPLUS` by default for faster directory listings,
+  add `-readdirplus` flag to get the old behavior
+  ([5b2881e7](https://github.com/rfjakob/gocryptfs/commit/5b2881e7cbc347eb379d35c3ae1f491bef8f227f))
+* Add `-noxattr` flag which ignores all xattr operations
+  ([#987](https://github.com/rfjakob/gocryptfs/pull/987))
+* Expose file birth time via `statx` (Linux 6.6+)
+  ([#868](https://github.com/rfjakob/gocryptfs/issues/868))
+* `-reverse`: add xattr support ([#827](https://github.com/rfjakob/gocryptfs/issues/827))
+* `-reverse`: fix `gocryptfs.longname.*.name` files missing with some `-exclude` patterns
+  ([#686](https://github.com/rfjakob/gocryptfs/issues/686))
+* `-reverse`: hide custom `-config` file located inside CIPHERDIR
+  ([#1009](https://github.com/rfjakob/gocryptfs/issues/1009))
+* Add basic FreeBSD support
+  ([4fa21dcb](https://github.com/rfjakob/gocryptfs/commit/4fa21dcb57c5a0b7761bfec606ffd0e94c293ce8))
+
 #### v2.6.1, 2025-08-10
 * Fix warnings `cipherSize X: incomplete last block (Y bytes), padding to Z bytes`
   (harmless but annoying, [#951](https://github.com/rfjakob/gocryptfs/issues/951))
