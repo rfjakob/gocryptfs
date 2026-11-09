@@ -208,6 +208,22 @@ Show all invalid filenames:
 
     -badname '*'
 
+#### -ignorename string
+Like `-badname`, but hide matching "bad" file names silently instead of
+showing them, and do not log a warning or have `-fsck` report them
+either. Only file names that cannot be decrypted are affected, so this
+cannot hide a valid file.
+
+This is for files that are not part of the gocryptfs filesystem but
+have to live in the cipherdir, for example when the cipherdir is a git
+working tree:
+
+    -ignorename '.*' -ignorename '*.pgp'
+
+If a name matches both `-badname` and `-ignorename`, `-badname` wins.
+
+Glob pattern. Can be passed multiple times for multiple patterns.
+
 #### -context string
 Set the SELinux context. See mount(8) for details.
 
