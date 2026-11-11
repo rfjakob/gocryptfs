@@ -140,18 +140,20 @@ func Renameat2(olddirfd int, oldpath string, newdirfd int, newpath string, flags
 	if flags&(RENAME_NOREPLACE|RENAME_EXCHANGE) == RENAME_NOREPLACE|RENAME_EXCHANGE {
 		return unix.EINVAL
 	}
-	if flags&(RENAME_NOREPLACE|RENAME_EXCHANGE) == RENAME_NOREPLACE|RENAME_EXCHANGE {
-		return unix.EINVAL
-	}
 
 	if flags&RENAME_NOREPLACE != 0 {
 		var st unix.Stat_t
-		err = unix.Fstatat(newdirfd, newpath, &st, 0)
+		// AT_SYMLINK_NOFOLLOW: a (possibly dangling) symlink at newpath
+		// counts as existing, like on Linux.
+		err = unix.Fstatat(newdirfd, newpath, &st, unix.AT_SYMLINK_NOFOLLOW)
 		if err == nil {
-			// Assume newpath is an existing file if we can stat() it.
 			// On Linux, RENAME_NOREPLACE fails with EEXIST if newpath
 			// already exists.
 			return unix.EEXIST
+		}
+		if err != unix.ENOENT {
+			// We could not determine whether newpath exists
+			return err
 		}
 	}
 	if flags&RENAME_EXCHANGE != 0 {
