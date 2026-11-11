@@ -284,34 +284,47 @@ func (f *File) Read(ctx context.Context, buf []byte, off int64) (resultData fuse
 // and by Truncate() to rewrite the last file block.
 //
 // Empty writes do nothing and are allowed.
-func (f *File) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
-	fileWasEmpty := false
-	// The caller has exclusively locked ContentLock, which blocks all other
-	// readers and writers. No need to take IDLock.
-	//
-	// If the file ID is not cached, read it from disk
-	if f.fileTableEntry.ID == nil {
-		if err := f.LockSharedStorage(unix.F_WRLCK, 0, contentenc.HeaderLen); err != nil {
-			tlog.Warn.Printf("ino%d: doWrite: LockSharedStorage(F_WRLCK, %d, %d) failed: %v", f.qIno.Ino, 0, contentenc.HeaderLen, err)
-			return 0, fs.ToErrno(err)
-		}
-		defer f.UnlockSharedStorage(0, contentenc.HeaderLen)
+// loadOrCreateFileID makes sure f.fileTableEntry.ID is set. If it is not
+// cached, the file ID is read from the on-disk header, or, if the file is
+// empty, a new header is created. Returns created=true in the latter case.
+//
+// With -sharedstorage, this happens under a byte-range lock on the header,
+// so concurrent mounts agree on a single header.
+//
+// The caller must hold ContentLock exclusively, which blocks all other
+// readers and writers. No need to take IDLock.
+func (f *File) loadOrCreateFileID() (created bool, errno syscall.Errno) {
+	if f.fileTableEntry.ID != nil {
+		return false, 0
+	}
+	if err := f.LockSharedStorage(unix.F_WRLCK, 0, contentenc.HeaderLen); err != nil {
+		tlog.Warn.Printf("ino%d: loadOrCreateFileID: LockSharedStorage(F_WRLCK, %d, %d) failed: %v", f.qIno.Ino, 0, contentenc.HeaderLen, err)
+		return false, fs.ToErrno(err)
+	}
+	defer f.UnlockSharedStorage(0, contentenc.HeaderLen)
 
-		var err error
-		fileID, err := f.readFileID()
-		// Write a new file header if the file is empty
-		if err == io.EOF {
-			fileID, err = f.createHeader()
-			fileWasEmpty = true
-		} else if err != nil {
-			// Other errors mean readFileID() found a corrupt header
-			tlog.Warn.Printf("doWrite %d: corrupt header: %v", f.qIno.Ino, err)
-			return 0, syscall.EIO
-		}
-		if err != nil {
-			return 0, fs.ToErrno(err)
-		}
-		f.fileTableEntry.ID = fileID
+	fileID, err := f.readFileID()
+	// Write a new file header if the file is empty
+	if err == io.EOF {
+		fileID, err = f.createHeader()
+		created = true
+	} else if err != nil {
+		// Other errors mean readFileID() found a corrupt header
+		tlog.Warn.Printf("loadOrCreateFileID %d: corrupt header: %v", f.qIno.Ino, err)
+		return false, syscall.EIO
+	}
+	if err != nil {
+		return false, fs.ToErrno(err)
+	}
+	f.fileTableEntry.ID = fileID
+	return created, 0
+}
+
+func (f *File) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
+	// If the file ID is not cached, read it from disk or create a new header
+	fileWasEmpty, errno := f.loadOrCreateFileID()
+	if errno != 0 {
+		return 0, errno
 	}
 	// Handle payload data
 	dataBuf := bytes.NewBuffer(data)

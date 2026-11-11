@@ -226,3 +226,65 @@ func TestOpenTruncate(t *testing.T) {
 	go writerThread(mnt2 + "/foo")
 	wg.Wait()
 }
+
+// mountTwice creates a new filesystem and mounts it twice with -sharedstorage.
+func mountTwice(t *testing.T) (mnt1 string, mnt2 string) {
+	cDir := test_helpers.InitFS(t)
+	mnt1 = cDir + ".mnt1"
+	mnt2 = cDir + ".mnt2"
+	test_helpers.MountOrFatal(t, cDir, mnt1, "-extpass=echo test", "-wpanic=0", "-sharedstorage")
+	t.Cleanup(func() { test_helpers.UnmountPanic(mnt1) })
+	test_helpers.MountOrFatal(t, cDir, mnt2, "-extpass=echo test", "-wpanic=0", "-sharedstorage")
+	t.Cleanup(func() { test_helpers.UnmountPanic(mnt2) })
+	return
+}
+
+// With -sharedstorage, truncate to zero keeps the file header because other
+// mounts may have the file ID cached. Growing the file to a block-aligned size
+// afterwards used to create a new header, replacing the file ID the other
+// mount was still using, corrupting everything it wrote afterwards.
+func TestGrowAfterTruncateKeepsHeader(t *testing.T) {
+	mnt1, mnt2 := mountTwice(t)
+	f1, err := os.Create(mnt1 + "/foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f1.Close()
+	if _, err := f1.WriteAt([]byte("xxxxxxxx"), 0); err != nil {
+		t.Fatal(err)
+	}
+	f2, err := os.OpenFile(mnt2+"/foo", os.O_RDWR, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f2.Close()
+	// Make mount2 cache the file ID
+	if _, err := f2.ReadAt(make([]byte, 8), 0); err != nil {
+		t.Fatal(err)
+	}
+	// mount1: truncate to zero, then grow to exactly one block
+	if err := f1.Truncate(0); err != nil {
+		t.Fatal(err)
+	}
+	if err := f1.Truncate(4096); err != nil {
+		t.Fatal(err)
+	}
+	// mount2 writes using its cached file ID
+	want := []byte("hello")
+	if _, err := f2.WriteAt(want, 0); err != nil {
+		t.Fatal(err)
+	}
+	// A fresh open on mount1 (reads the file ID from disk) must see the data
+	f3, err := os.Open(mnt1 + "/foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f3.Close()
+	buf := make([]byte, len(want))
+	if _, err := f3.ReadAt(buf, 0); err != nil {
+		t.Fatalf("ReadAt: %v", err)
+	}
+	if !bytes.Equal(buf, want) {
+		t.Errorf("wrong content: got %q, want %q", buf, want)
+	}
+}

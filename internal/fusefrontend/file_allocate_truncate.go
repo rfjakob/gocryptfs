@@ -241,8 +241,15 @@ func (f *File) truncateGrowFile(oldPlainSz uint64, newPlainSz uint64) syscall.Er
 	// The new size is block-aligned. In this case we can do everything ourselves
 	// and avoid the call to doWrite.
 	if newPlainSz%f.rootNode.contentEnc.PlainBS() == 0 {
-		// The file was empty, so it did not have a header. Create one.
-		if oldPlainSz == 0 {
+		if oldPlainSz == 0 && f.rootNode.args.SharedStorage {
+			// With -sharedstorage, truncate to zero keeps the header, and other
+			// mounts may have the file ID cached. Reuse the existing header if
+			// there is one, and only create one if the file is really empty.
+			if _, errno := f.loadOrCreateFileID(); errno != 0 {
+				return errno
+			}
+		} else if oldPlainSz == 0 {
+			// The file was empty, so it did not have a header. Create one.
 			id, err := f.createHeader()
 			if err != nil {
 				return fs.ToErrno(err)
