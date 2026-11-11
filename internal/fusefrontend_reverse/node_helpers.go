@@ -11,7 +11,6 @@ import (
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 
-	"github.com/rfjakob/gocryptfs/v2/internal/configfile"
 	"github.com/rfjakob/gocryptfs/v2/internal/pathiv"
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 )
@@ -190,13 +189,12 @@ func (n *Node) lookupDiriv(ctx context.Context, out *fuse.EntryOut) (ch *fs.Inod
 // lookupConf returns a new Inode for the gocryptfs.conf file
 func (n *Node) lookupConf(ctx context.Context, out *fuse.EntryOut) (ch *fs.Inode, errno syscall.Errno) {
 	rn := n.rootNode()
-	p := filepath.Join(rn.args.Cipherdir, configfile.ConfReverseName)
-	var st syscall.Stat_t
-	err := syscall.Stat(p, &st)
+	fd, st, err := rn.openConf()
 	if err != nil {
 		errno = fs.ToErrno(err)
 		return
 	}
+	syscall.Close(fd)
 	// Get unique inode number
 	rn.inoMap.TranslateStat(&st)
 	out.Attr.FromStat(&st)
@@ -205,7 +203,7 @@ func (n *Node) lookupConf(ctx context.Context, out *fuse.EntryOut) (ch *fs.Inode
 	}
 	// Create child node
 	id := rn.uniqueStableAttr(uint32(st.Mode), st.Ino)
-	node := &VirtualConfNode{path: p}
+	node := &VirtualConfNode{}
 	ch = n.NewInode(ctx, node, id)
 	return
 }

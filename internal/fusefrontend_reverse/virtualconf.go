@@ -7,6 +7,10 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
+
+	"github.com/rfjakob/gocryptfs/v2/internal/configfile"
+	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
+	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
 var _ = (fs.NodeOpener)((*VirtualConfNode)(nil))
@@ -14,8 +18,42 @@ var _ = (fs.NodeGetattrer)((*VirtualConfNode)(nil))
 
 type VirtualConfNode struct {
 	fs.Inode
+}
 
-	path string
+// openConf opens .gocryptfs.reverse.conf in the root of the backing
+// plaintext directory and returns the fd and its stat data.
+//
+// The file is passed through to the user unencrypted, so we must make sure
+// not to follow symlinks: otherwise, someone with write access to the
+// backing directory could replace it with a symlink to /etc/shadow and
+// read the target through the mount. O_NONBLOCK prevents hanging on a FIFO.
+// Anything that is not a regular file is rejected.
+func (rn *RootNode) openConf() (fd int, st syscall.Stat_t, err error) {
+	dirfd, err := syscallcompat.Open(rn.args.Cipherdir, syscall.O_DIRECTORY|syscallcompat.O_PATH, 0)
+	if err != nil {
+		return -1, st, err
+	}
+	defer syscall.Close(dirfd)
+	fd, err = syscallcompat.Openat(dirfd, configfile.ConfReverseName,
+		syscall.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		if err == syscall.ELOOP {
+			tlog.Warn.Printf("openConf: %s is a symlink, refusing to serve it", configfile.ConfReverseName)
+		}
+		return -1, st, err
+	}
+	err = syscall.Fstat(fd, &st)
+	if err != nil {
+		syscall.Close(fd)
+		return -1, st, err
+	}
+	if st.Mode&syscall.S_IFMT != syscall.S_IFREG {
+		tlog.Warn.Printf("openConf: %s is not a regular file (mode %#o), refusing to serve it",
+			configfile.ConfReverseName, st.Mode)
+		syscall.Close(fd)
+		return -1, st, syscall.EPERM
+	}
+	return fd, st, nil
 }
 
 // rootNode returns the Root Node of the filesystem.
@@ -24,7 +62,7 @@ func (n *VirtualConfNode) rootNode() *RootNode {
 }
 
 func (n *VirtualConfNode) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, fuseFlags uint32, errno syscall.Errno) {
-	fd, err := syscall.Open(n.path, syscall.O_RDONLY, 0)
+	fd, _, err := n.rootNode().openConf()
 	if err != nil {
 		errno = fs.ToErrno(err)
 		return
@@ -34,13 +72,13 @@ func (n *VirtualConfNode) Open(ctx context.Context, flags uint32) (fh fs.FileHan
 }
 
 func (n *VirtualConfNode) Getattr(ctx context.Context, fh fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
-	var st syscall.Stat_t
-	err := syscall.Stat(n.path, &st)
+	rn := n.rootNode()
+	fd, st, err := rn.openConf()
 	if err != nil {
 		return fs.ToErrno(err)
 	}
+	syscall.Close(fd)
 	out.FromStat(&st)
-	rn := n.rootNode()
 	if rn.args.ForceOwner != nil {
 		out.Owner = *rn.args.ForceOwner
 	}
