@@ -132,7 +132,7 @@ func (n *Node) Access(ctx context.Context, mode uint32) syscall.Errno {
 	}
 	defer syscall.Close(dirfd)
 
-	err := syscallcompat.Faccessat(dirfd, cName, mode)
+	err := unix.Faccessat(dirfd, cName, mode, unix.AT_SYMLINK_NOFOLLOW)
 	return fs.ToErrno(err)
 }
 

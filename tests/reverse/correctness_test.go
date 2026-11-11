@@ -12,7 +12,6 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/rfjakob/gocryptfs/v2/ctlsock"
-	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
 )
 
@@ -160,12 +159,12 @@ func TestAccess(t *testing.T) {
 	}
 	for _, n := range names {
 		// Check if file exists - this should never fail
-		err = syscallcompat.Faccessat(unix.AT_FDCWD, dirB+"/"+n, unix.F_OK)
+		err = unix.Faccessat(unix.AT_FDCWD, dirB+"/"+n, unix.F_OK, unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
 			t.Errorf("%s: %v", n, err)
 		}
 		// Check if file is readable
-		err = syscallcompat.Faccessat(unix.AT_FDCWD, dirB+"/"+n, unix.R_OK)
+		err = unix.Faccessat(unix.AT_FDCWD, dirB+"/"+n, unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 		if err != nil {
 			t.Logf("%s: %v", n, err)
 		}

@@ -10,7 +10,6 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 
-	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 	"github.com/rfjakob/gocryptfs/v2/tests/test_helpers"
 )
 
@@ -53,11 +52,11 @@ func TestPrepareAtSyscall(t *testing.T) {
 		t.Fatal("cName should be .")
 	}
 
-	err := syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
+	err := unix.Faccessat(dirfd, cName, unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Error(err)
 	}
-	err = syscallcompat.Faccessat(dirfd, ".", unix.R_OK)
+	err = unix.Faccessat(dirfd, ".", unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Error(err)
 	}
@@ -70,7 +69,7 @@ func TestPrepareAtSyscall(t *testing.T) {
 	if cName == "" {
 		t.Fatal("cName should not be empty")
 	}
-	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
+	err = unix.Faccessat(dirfd, cName, unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Error(err)
 	}
@@ -83,7 +82,7 @@ func TestPrepareAtSyscall(t *testing.T) {
 	if cName == "" {
 		t.Fatal("cName should not be empty")
 	}
-	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
+	err = unix.Faccessat(dirfd, cName, unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Errorf("Faccessat(%d, %q): %v", dirfd, cName, err)
 	}
@@ -101,7 +100,7 @@ func TestPrepareAtSyscall(t *testing.T) {
 	if len(cName) >= 255 {
 		t.Fatalf("cName is too long: %q", cName)
 	}
-	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
+	err = unix.Faccessat(dirfd, cName, unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Errorf("Faccessat(%d, %q): %v", dirfd, cName, err)
 	}
@@ -135,11 +134,11 @@ func TestPrepareAtSyscallPlaintextnames(t *testing.T) {
 	if cName != "." {
 		t.Fatal("cName should be .")
 	}
-	err := syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
+	err := unix.Faccessat(dirfd, cName, unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Error(err)
 	}
-	err = syscallcompat.Faccessat(dirfd, ".", unix.R_OK)
+	err = unix.Faccessat(dirfd, ".", unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Error(err)
 	}
@@ -152,7 +151,7 @@ func TestPrepareAtSyscallPlaintextnames(t *testing.T) {
 	if cName != "dir1" {
 		t.Fatalf("wrong cName: %q", cName)
 	}
-	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
+	err = unix.Faccessat(dirfd, cName, unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Error(err)
 	}
@@ -165,7 +164,7 @@ func TestPrepareAtSyscallPlaintextnames(t *testing.T) {
 	if cName != "dir2" {
 		t.Fatalf("wrong cName: %q", cName)
 	}
-	err = syscallcompat.Faccessat(dirfd, cName, unix.R_OK)
+	err = unix.Faccessat(dirfd, cName, unix.R_OK, unix.AT_SYMLINK_NOFOLLOW)
 	if err != nil {
 		t.Error(err)
 	}
