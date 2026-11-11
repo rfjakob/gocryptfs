@@ -288,3 +288,36 @@ func TestGrowAfterTruncateKeepsHeader(t *testing.T) {
 		t.Errorf("wrong content: got %q, want %q", buf, want)
 	}
 }
+
+// Write() skips hole padding when a write directly follows the previous one,
+// based on process-local state. With -sharedstorage, another mount may have
+// shrunk the file in between, leaving the old partial last block unpadded
+// in the middle of the file, making it unreadable.
+func TestConsecutiveWriteAfterRemoteTruncate(t *testing.T) {
+	mnt1, mnt2 := mountTwice(t)
+	f1, err := os.Create(mnt1 + "/foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f1.Close()
+	if _, err := f1.WriteAt(bytes.Repeat([]byte("a"), 8192), 0); err != nil {
+		t.Fatal(err)
+	}
+	// mount2 shrinks the file so that the second block is partial
+	if err := os.Truncate(mnt2+"/foo", 5000); err != nil {
+		t.Fatal(err)
+	}
+	// mount1 continues writing where it left off, creating a hole
+	if _, err := f1.WriteAt(bytes.Repeat([]byte("b"), 4096), 8192); err != nil {
+		t.Fatal(err)
+	}
+	want := append(bytes.Repeat([]byte("a"), 5000), make([]byte, 8192-5000)...)
+	want = append(want, bytes.Repeat([]byte("b"), 4096)...)
+	have, err := os.ReadFile(mnt2 + "/foo")
+	if err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	}
+	if !bytes.Equal(have, want) {
+		t.Errorf("wrong content: len(have)=%d, len(want)=%d", len(have), len(want))
+	}
+}

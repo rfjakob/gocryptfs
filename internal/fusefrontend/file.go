@@ -431,7 +431,9 @@ func (f *File) Write(ctx context.Context, data []byte, off int64) (uint32, sysca
 	// If the write creates a file hole, we have to zero-pad the last block.
 	// But if the write directly follows an earlier write, it cannot create a
 	// hole, and we can save one Stat() call.
-	if !f.isConsecutiveWrite(off) {
+	// With -sharedstorage, another mount may have truncated the file since our
+	// last write, so we have to check every time.
+	if f.rootNode.args.SharedStorage || !f.isConsecutiveWrite(off) {
 		errno := f.writePadHole(off)
 		if errno != 0 {
 			return 0, errno
