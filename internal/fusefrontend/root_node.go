@@ -206,7 +206,9 @@ func (rn *RootNode) openWriteOnlyFile(dirfd int, cName string, newFlags int) (rw
 			tlog.Warn.Printf("openWriteOnlyFile: reverting permissions failed: %v", err2)
 		}
 	}()
-	return syscallcompat.Openat(dirfd, cName, newFlags, 0)
+	// cName may have been replaced by a different file since we opened woFd.
+	// ReopenFd makes sure we get the same file we just chmod'ed.
+	return syscallcompat.ReopenFd(woFd, dirfd, cName, newFlags)
 }
 
 // encryptSymlinkTarget: "data" is encrypted like file contents (GCM)
