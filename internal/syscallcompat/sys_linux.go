@@ -106,7 +106,8 @@ func Dup3(oldfd int, newfd int, flags int) (err error) {
 func FchmodatNofollow(dirfd int, path string, mode uint32) (err error) {
 	// Open handle to the filename (but without opening the actual file).
 	// This succeeds even when we don't have read permissions to the file.
-	fd, err := syscall.Openat(dirfd, path, syscall.O_NOFOLLOW|O_PATH, 0)
+	// Openat() adds O_CLOEXEC so the fd does not leak to child processes.
+	fd, err := Openat(dirfd, path, syscall.O_NOFOLLOW|O_PATH, 0)
 	if err != nil {
 		return err
 	}
