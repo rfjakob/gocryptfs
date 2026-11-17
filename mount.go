@@ -109,6 +109,12 @@ func doMount(args *argContainer) {
 	defer wipeKeys()
 	// Initialize go-fuse FUSE server
 	srv := initGoFuse(fs, args)
+	// Start serving the control socket only now. fusefrontend's
+	// EncryptPath/DecryptPath use the root inode, which go-fuse initializes
+	// in initGoFuse. Requests that arrived earlier wait in the listen backlog.
+	if args._ctlsockFd != nil {
+		go ctlsocksrv.Serve(args._ctlsockFd, fs.(ctlsocksrv.Interface))
+	}
 	if x, ok := fs.(AfterUnmounter); ok {
 		defer x.AfterUnmount()
 	}
@@ -350,11 +356,6 @@ func initFuseFrontend(args *argContainer) (rootNode fs.InodeEmbedder, wipeKeys f
 		rootNode = fusefrontend_reverse.NewRootNode(frontendArgs, cEnc, nameTransform)
 	} else {
 		rootNode = fusefrontend.NewRootNode(frontendArgs, cEnc, nameTransform)
-	}
-	// We have opened the socket early so that we cannot fail here after
-	// asking the user for the password
-	if args._ctlsockFd != nil {
-		go ctlsocksrv.Serve(args._ctlsockFd, rootNode.(ctlsocksrv.Interface))
 	}
 	return rootNode, func() { cCore.Wipe() }
 }
