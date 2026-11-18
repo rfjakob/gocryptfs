@@ -2,6 +2,7 @@ package fsck
 
 import (
 	"encoding/base64"
+	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
@@ -47,6 +48,17 @@ func TestBrokenFsV14(t *testing.T) {
 	if code != exitcodes.FsckErrors {
 		t.Errorf("wrong exit code, have=%d want=%d", code, exitcodes.FsckErrors)
 	}
+	checkSummary(t, out, 15)
+}
+
+// checkSummary verifies that the fsck output reports exactly `corrupt`
+// corrupt files and no skipped files.
+func checkSummary(t *testing.T, out string, corrupt int) {
+	t.Helper()
+	want := fmt.Sprintf("fsck summary: %d corrupt files, 0 files skipped", corrupt)
+	if !strings.Contains(out, want) {
+		t.Errorf("summary line %q not found in output", want)
+	}
 }
 
 func TestMalleableBase64(t *testing.T) {
@@ -69,6 +81,7 @@ func TestMalleableBase64(t *testing.T) {
 	if code != exitcodes.FsckErrors {
 		t.Errorf("wrong exit code, have=%d want=%d", code, exitcodes.FsckErrors)
 	}
+	checkSummary(t, out, 3)
 }
 
 func TestExampleFses(t *testing.T) {
