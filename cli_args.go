@@ -39,8 +39,8 @@ type argContainer struct {
 	// FIDO2
 	fido2                string
 	fido2_assert_options []string
-	// -extpass, -badname, -passfile can be passed multiple times
-	extpass, badname, passfile []string
+	// -extpass, -badname, -ignorename, -passfile can be passed multiple times
+	extpass, badname, ignorename, passfile []string
 	// For reverse mode, several ways to specify exclusions. All can be specified multiple times.
 	exclude, excludeWildcard, excludeFrom []string
 	// Configuration file name override
@@ -226,6 +226,7 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 	// multipleStrings options ([]string)
 	flagSet.StringArrayVar(&args.extpass, "extpass", nil, "Use external program for the password prompt")
 	flagSet.StringArrayVar(&args.badname, "badname", nil, "Glob pattern invalid file names that should be shown")
+	flagSet.StringArrayVar(&args.ignorename, "ignorename", nil, "Glob pattern invalid file names that should be hidden without a warning")
 	flagSet.StringArrayVar(&args.passfile, "passfile", nil, "Read password from file")
 
 	flagSet.Uint8Var(&args.longnamemax, "longnamemax", 255, "Hash encrypted names that are longer than this")
@@ -304,6 +305,13 @@ func parseCliOpts(osArgs []string) (args argContainer) {
 		_, err := filepath.Match(pattern, "")
 		if err != nil {
 			tlog.Fatal.Printf("-badname: invalid pattern %q supplied", pattern)
+			os.Exit(exitcodes.Usage)
+		}
+	}
+	for _, pattern := range args.ignorename {
+		_, err := filepath.Match(pattern, "")
+		if err != nil {
+			tlog.Fatal.Printf("-ignorename: invalid pattern %q supplied", pattern)
 			os.Exit(exitcodes.Usage)
 		}
 	}

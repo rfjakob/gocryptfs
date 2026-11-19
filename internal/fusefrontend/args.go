@@ -57,4 +57,7 @@ type Args struct {
 	DeterministicNames bool
 	// NoXattr disables extended attribute operations
 	NoXattr bool
+	// IgnoreNames are glob patterns, from "-ignorename", of ciphertext
+	// names that cannot be decrypted and should be hidden silently
+	IgnoreNames []string
 }

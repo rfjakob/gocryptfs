@@ -164,6 +164,10 @@ func (f *File) Readdirent(ctx context.Context) (entry *fuse.DirEntry, errno sysc
 		}
 		name, err := f.rootNode.nameTransform.DecryptName(cName, f.dirHandle.dirIV)
 		if err != nil {
+			if f.rootNode.isIgnoredName(cName) {
+				tlog.Debug.Printf("Readdirent: ignoring entry %q", cName)
+				continue
+			}
 			tlog.Warn.Printf("Readdirent: could not decrypt entry %q: %v",
 				cName, err)
 			f.rootNode.reportMitigatedCorruption(cName)

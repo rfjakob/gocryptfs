@@ -1,6 +1,7 @@
 package fusefrontend
 
 import (
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -107,6 +108,17 @@ func NewRootNode(args Args, c *contentenc.ContentEnc, n *nametransform.NameTrans
 func (rn *RootNode) AfterUnmount() {
 	// print stats before we exit
 	rn.dirCache.stats()
+}
+
+// isIgnoredName returns true if cName matches one of the "-ignorename"
+// patterns.
+func (rn *RootNode) isIgnoredName(cName string) bool {
+	for _, pattern := range rn.args.IgnoreNames {
+		if match, _ := filepath.Match(pattern, cName); match {
+			return true
+		}
+	}
+	return false
 }
 
 // reportMitigatedCorruption is used to report a corruption that was transparently
