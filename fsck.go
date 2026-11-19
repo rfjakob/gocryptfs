@@ -23,15 +23,12 @@ import (
 // fsckObj walks the filesystem by calling the fusefrontend node operations
 // directly, without mounting it via FUSE.
 type fsckObj struct {
-	rootNode *fusefrontend.RootNode
 	// List of corrupt files
 	corruptList []string
 	// List of skipped files
 	skippedList []string
 	// Protects corruptList
 	listLock sync.Mutex
-	// stop a running watchMitigatedCorruptions thread
-	watchDone chan struct{}
 	// Inode numbers of hard-linked files (Nlink > 1) that we have already checked
 	seenInodes map[uint64]struct{}
 	// abort the running fsck operation? Checked in a few long-running loops.
@@ -64,27 +61,16 @@ func (ck *fsckObj) markError(relPath string, err error) {
 	}
 }
 
-// Watch for mitigated corruptions that occur during OpenDir()
-func (ck *fsckObj) watchMitigatedCorruptionsOpenDir(path string) {
-	for {
-		select {
-		case item := <-ck.rootNode.MitigatedCorruptions:
-			fmt.Printf("fsck: corrupt entry in dir %q: %q\n", path, item)
-			ck.markCorrupt(filepath.Join(path, item))
-		case <-ck.watchDone:
-			return
-		}
-	}
-}
-
 // Recursively check dir for corruption
 func (ck *fsckObj) dir(inode *fs.Inode, relPath string) {
 	tlog.Debug.Printf("ck.dir %q\n", relPath)
 	ck.xattrs(inode, relPath)
-	// Run OpendirHandle and Readdirent and catch transparently mitigated corruptions
-	go ck.watchMitigatedCorruptionsOpenDir(relPath)
-	entries, errno := ck.readdir(inode, relPath)
-	ck.watchDone <- struct{}{}
+	// Catch corrupt entries that Readdirent transparently skips
+	ctx := fusefrontend.WithCorruptionReporter(context.Background(), func(item string) {
+		fmt.Printf("fsck: corrupt entry in dir %q: %q\n", relPath, item)
+		ck.markCorrupt(filepath.Join(relPath, item))
+	})
+	entries, errno := ck.readdir(ctx, inode, relPath)
 	if errno != 0 {
 		ck.markError(relPath, errno)
 		return
@@ -126,15 +112,15 @@ func (ck *fsckObj) dir(inode *fs.Inode, relPath string) {
 }
 
 // readdir returns the names of all entries in the directory, without "." and "..".
-func (ck *fsckObj) readdir(inode *fs.Inode, relPath string) (entries []string, errno syscall.Errno) {
-	fh, _, errno := inode.Operations().(fs.NodeOpendirHandler).OpendirHandle(context.Background(), syscall.O_RDONLY)
+func (ck *fsckObj) readdir(ctx context.Context, inode *fs.Inode, relPath string) (entries []string, errno syscall.Errno) {
+	fh, _, errno := inode.Operations().(fs.NodeOpendirHandler).OpendirHandle(ctx, syscall.O_RDONLY)
 	if errno != 0 {
 		fmt.Printf("fsck: error opening dir %q: %v\n", relPath, errno)
 		return nil, errno
 	}
-	defer fh.(fs.FileReleasedirer).Releasedir(context.Background(), 0)
+	defer fh.(fs.FileReleasedirer).Releasedir(ctx, 0)
 	for {
-		entry, errno := fh.(fs.FileReaddirenter).Readdirent(context.Background())
+		entry, errno := fh.(fs.FileReaddirenter).Readdirent(ctx)
 		if errno != 0 {
 			fmt.Printf("fsck: error reading dir %q: %v\n", relPath, errno)
 			return nil, errno
@@ -154,19 +140,6 @@ func (ck *fsckObj) symlink(inode *fs.Inode, relPath string) {
 	if errno != 0 {
 		ck.markCorrupt(relPath)
 		fmt.Printf("fsck: error reading symlink %q: %v\n", relPath, errno)
-	}
-}
-
-// Watch for mitigated corruptions that occur during Read()
-func (ck *fsckObj) watchMitigatedCorruptionsRead(path string) {
-	for {
-		select {
-		case item := <-ck.rootNode.MitigatedCorruptions:
-			fmt.Printf("fsck: corrupt file %q (inode %s)\n", path, item)
-			ck.markCorrupt(path)
-		case <-ck.watchDone:
-			return
-		}
 	}
 }
 
@@ -195,14 +168,16 @@ func (ck *fsckObj) file(inode *fs.Inode, relPath string, attr *fuse.Attr) {
 	buf := make([]byte, fuse.MAX_KERNEL_WRITE)
 	var off int64
 	// Read() through the whole file and catch transparently mitigated corruptions
-	go ck.watchMitigatedCorruptionsRead(relPath)
-	defer func() { ck.watchDone <- struct{}{} }()
+	ctx := fusefrontend.WithCorruptionReporter(context.Background(), func(item string) {
+		fmt.Printf("fsck: corrupt file %q (inode %s)\n", relPath, item)
+		ck.markCorrupt(relPath)
+	})
 	for {
 		if ck.abort {
 			return
 		}
 		tlog.Debug.Printf("ck.file: read %d bytes from offset %d\n", len(buf), off)
-		res, errno := reader.Read(context.Background(), buf, off)
+		res, errno := reader.Read(ctx, buf, off)
 		if errno != 0 {
 			ck.markCorrupt(relPath)
 			fmt.Printf("fsck: error reading file %q (inum %d): %v\n", relPath, attr.Ino, errno)
@@ -236,28 +211,17 @@ func (ck *fsckObj) file(inode *fs.Inode, relPath string, attr *fuse.Attr) {
 	}
 }
 
-// Watch for mitigated corruptions that occur during ListXAttr()
-func (ck *fsckObj) watchMitigatedCorruptionsListXAttr(path string) {
-	for {
-		select {
-		case item := <-ck.rootNode.MitigatedCorruptions:
-			fmt.Printf("fsck: corrupt xattr name on file %q: %q\n", path, item)
-			ck.markCorrupt(path + " xattr:" + item)
-		case <-ck.watchDone:
-			return
-		}
-	}
-}
-
 // Check xattrs on file/dir
 func (ck *fsckObj) xattrs(inode *fs.Inode, relPath string) {
 	ops := inode.Operations()
 	// Run Listxattr() and catch transparently mitigated corruptions
-	go ck.watchMitigatedCorruptionsListXAttr(relPath)
-	list, errno := getBuf(func(dest []byte) (uint32, syscall.Errno) {
-		return ops.(fs.NodeListxattrer).Listxattr(context.Background(), dest)
+	ctx := fusefrontend.WithCorruptionReporter(context.Background(), func(item string) {
+		fmt.Printf("fsck: corrupt xattr name on file %q: %q\n", relPath, item)
+		ck.markCorrupt(relPath + " xattr:" + item)
 	})
-	ck.watchDone <- struct{}{}
+	list, errno := getBuf(func(dest []byte) (uint32, syscall.Errno) {
+		return ops.(fs.NodeListxattrer).Listxattr(ctx, dest)
+	})
 	if errno != 0 {
 		fmt.Printf("fsck: error listing xattrs on %q: %v\n", relPath, errno)
 		ck.markCorrupt(relPath)
@@ -308,10 +272,7 @@ func fsck(args *argContainer) (exitcode int) {
 	// We never mount the filesystem, but NewNodeFS initializes the root
 	// inode, which is required for the node operations to work.
 	_ = fs.NewNodeFS(rn, nil)
-	rn.MitigatedCorruptions = make(chan string)
 	ck := fsckObj{
-		rootNode:   rn,
-		watchDone:  make(chan struct{}),
 		seenInodes: make(map[uint64]struct{}),
 	}
 	// Handle SIGINT & SIGTERM

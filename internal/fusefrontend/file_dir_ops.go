@@ -154,7 +154,7 @@ func (f *File) Readdirent(ctx context.Context) (entry *fuse.DirEntry, errno sysc
 			if err != nil {
 				tlog.Warn.Printf("Readdirent: incomplete entry %q: Could not read .name: %v",
 					cName, err)
-				f.rootNode.reportMitigatedCorruption(cName)
+				reportMitigatedCorruption(ctx, cName)
 				continue
 			}
 			cName = cNameLong
@@ -166,7 +166,7 @@ func (f *File) Readdirent(ctx context.Context) (entry *fuse.DirEntry, errno sysc
 		if err != nil {
 			tlog.Warn.Printf("Readdirent: could not decrypt entry %q: %v",
 				cName, err)
-			f.rootNode.reportMitigatedCorruption(cName)
+			reportMitigatedCorruption(ctx, cName)
 			continue
 		}
 		// Override the ciphertext name with the plaintext name but reuse the rest

@@ -153,13 +153,13 @@ func (n *Node) Listxattr(ctx context.Context, dest []byte) (uint32, syscall.Errn
 		name, err := rn.decryptXattrName(curName)
 		if err != nil {
 			tlog.Warn.Printf("ListXAttr: invalid xattr name %q: %v", curName, err)
-			rn.reportMitigatedCorruption(curName)
+			reportMitigatedCorruption(ctx, curName)
 			continue
 		}
 		// We *used to* encrypt ACLs, which caused a lot of problems.
 		if isAcl(name) {
 			tlog.Warn.Printf("ListXAttr: ignoring deprecated encrypted ACL %q = %q", curName, name)
-			rn.reportMitigatedCorruption(curName)
+			reportMitigatedCorruption(ctx, curName)
 			continue
 		}
 		buf.WriteString(name + "\000")

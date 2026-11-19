@@ -179,7 +179,7 @@ func (f *File) truncate(newSize uint64) (errno syscall.Errno) {
 	lastBlockLen := newSize - plainOff
 	var data []byte
 	if lastBlockLen > 0 {
-		data, errno = f.doRead(nil, plainOff, lastBlockLen)
+		data, errno = f.doRead(context.Background(), nil, plainOff, lastBlockLen)
 		if errno != 0 {
 			tlog.Warn.Printf("Truncate: shrink doRead returned error: %v", err)
 			return errno

@@ -87,7 +87,9 @@ func (f *File) intFd() int {
 
 // readFileID loads the file header from disk and extracts the file ID.
 // Returns io.EOF if the file is empty.
-func (f *File) readFileID() ([]byte, error) {
+//
+// ctx is only used to report mitigated corruptions, see WithCorruptionReporter.
+func (f *File) readFileID(ctx context.Context) ([]byte, error) {
 	// We read +1 byte to determine if the file has actual content
 	// and not only the header. A header-only file will be considered empty.
 	// This makes File ID poisoning more difficult.
@@ -105,7 +107,7 @@ func (f *File) readFileID() ([]byte, error) {
 		if err == io.EOF && n != 0 {
 			tlog.Warn.Printf("readFileID %d: incomplete file, got %d instead of %d bytes",
 				f.qIno.Ino, n, readLen)
-			f.rootNode.reportMitigatedCorruption(fmt.Sprint(f.qIno.Ino))
+			reportMitigatedCorruption(ctx, fmt.Sprint(f.qIno.Ino))
 		}
 		return nil, err
 	}
@@ -150,7 +152,10 @@ func (f *File) createHeader() (fileID []byte, err error) {
 //
 // Called by Read() for normal reading,
 // by Write() and Truncate() via doWrite() for Read-Modify-Write.
-func (f *File) doRead(dst []byte, off uint64, length uint64) ([]byte, syscall.Errno) {
+//
+// ctx is only used to report mitigated corruptions, see WithCorruptionReporter.
+// The write paths pass context.Background(), as fsck never writes.
+func (f *File) doRead(ctx context.Context, dst []byte, off uint64, length uint64) ([]byte, syscall.Errno) {
 	// Get the file ID, either from the open file table, or from disk.
 	var fileID []byte
 	f.fileTableEntry.IDLock.Lock()
@@ -160,7 +165,7 @@ func (f *File) doRead(dst []byte, off uint64, length uint64) ([]byte, syscall.Er
 	} else {
 		// Not cached, we have to read it from disk.
 		var err error
-		fileID, err = f.readFileID()
+		fileID, err = f.readFileID(ctx)
 		if err != nil {
 			f.fileTableEntry.IDLock.Unlock()
 			if err == io.EOF {
@@ -251,7 +256,7 @@ func (f *File) Read(ctx context.Context, buf []byte, off int64) (resultData fuse
 	defer f.fileTableEntry.ContentLock.RUnlock()
 
 	tlog.Debug.Printf("ino%d: FUSE Read: offset=%d length=%d", f.qIno.Ino, off, len(buf))
-	out, errno := f.doRead(buf[:0], uint64(off), uint64(len(buf)))
+	out, errno := f.doRead(ctx, buf[:0], uint64(off), uint64(len(buf)))
 	if errno != 0 {
 		// With -sharedstorage, when we get a decryption error, we lock the
 		// byte range and try again.
@@ -266,7 +271,7 @@ func (f *File) Read(ctx context.Context, buf []byte, off int64) (resultData fuse
 		}
 		defer f.UnlockSharedStorage(int64(alignedOffset), int64(alignedLength))
 
-		out, errno = f.doRead(buf[:0], uint64(off), uint64(len(buf)))
+		out, errno = f.doRead(ctx, buf[:0], uint64(off), uint64(len(buf)))
 		if errno != 0 {
 			return nil, errno
 		}
@@ -303,7 +308,7 @@ func (f *File) loadOrCreateFileID() (created bool, errno syscall.Errno) {
 	}
 	defer f.UnlockSharedStorage(0, contentenc.HeaderLen)
 
-	fileID, err := f.readFileID()
+	fileID, err := f.readFileID(context.Background())
 	// Write a new file header if the file is empty
 	if err == io.EOF {
 		fileID, err = f.createHeader()
@@ -347,7 +352,7 @@ func (f *File) doWrite(data []byte, off int64) (uint32, syscall.Errno) {
 		// Incomplete block -> Read-Modify-Write
 		if b.IsPartial() {
 			// Read
-			oldData, errno := f.doRead(nil, b.BlockPlainOff(), f.rootNode.contentEnc.PlainBS())
+			oldData, errno := f.doRead(context.Background(), nil, b.BlockPlainOff(), f.rootNode.contentEnc.PlainBS())
 			if errno != 0 {
 				tlog.Warn.Printf("ino%d fh%d: RMW read failed: errno=%d", f.qIno.Ino, f.intFd(), errno)
 				return 0, errno

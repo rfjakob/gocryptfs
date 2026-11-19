@@ -1,11 +1,11 @@
 package fusefrontend
 
 import (
+	"context"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
-	"time"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/configfile"
 	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
@@ -31,15 +31,6 @@ type RootNode struct {
 	// This lock is used by openWriteOnlyFile() to block concurrent opens while
 	// it relaxes the permissions on a file.
 	openWriteOnlyLock sync.RWMutex
-	// MitigatedCorruptions is used to report data corruption that is internally
-	// mitigated by ignoring the corrupt item. For example, when OpenDir() finds
-	// a corrupt filename, we still return the other valid filenames.
-	// The corruption is logged to syslog to inform the user,	and in addition,
-	// the corrupt filename is logged to this channel via
-	// reportMitigatedCorruption().
-	// "gocryptfs -fsck" reads from the channel to also catch these transparently-
-	// mitigated corruptions.
-	MitigatedCorruptions chan string
 	// IsIdle flag is set to zero each time fs.isFiltered() is called
 	// (uint32 so that it can be reset with CompareAndSwapUint32).
 	// When -idle was used when mounting, idleMonitor() sets it to 1
@@ -109,20 +100,37 @@ func (rn *RootNode) AfterUnmount() {
 	rn.dirCache.stats()
 }
 
-// reportMitigatedCorruption is used to report a corruption that was transparently
-// mitigated and did not return an error to the user. Pass the name of the corrupt
-// item (filename for OpenDir(), xattr name for ListXAttr() etc).
-// See the MitigatedCorruptions channel for more info.
-func (rn *RootNode) reportMitigatedCorruption(item string) {
-	if rn.MitigatedCorruptions == nil {
-		return
-	}
-	select {
-	case rn.MitigatedCorruptions <- item:
-	case <-time.After(1 * time.Second):
-		tlog.Warn.Printf("BUG: reportCorruptItem: timeout")
-		//debug.PrintStack()
-		return
+type corruptionReporterKey struct{}
+
+// WithCorruptionReporter returns a copy of ctx that carries `report`. Pass it
+// to node and file operations to have mitigated corruptions reported to
+// `report`.
+//
+// A mitigated corruption is one that is handled internally by ignoring the
+// corrupt item, and hence does not return an error. For example, when
+// Readdirent() finds a corrupt filename, we still return the other valid
+// filenames.
+//
+// The corruption is always logged to inform the user. "gocryptfs -fsck"
+// additionally uses this to also catch these transparently-mitigated
+// corruptions.
+//
+// `item` is the name of the corrupt item: the ciphertext filename for
+// Readdirent(), the ciphertext xattr name for Listxattr(), and the inode
+// number for Read().
+//
+// `report` is called synchronously from the goroutine that runs the
+// operation.
+func WithCorruptionReporter(ctx context.Context, report func(item string)) context.Context {
+	return context.WithValue(ctx, corruptionReporterKey{}, report)
+}
+
+// reportMitigatedCorruption reports a corruption that was transparently
+// mitigated to the reporter in ctx, if there is one.
+// See WithCorruptionReporter for more info.
+func reportMitigatedCorruption(ctx context.Context, item string) {
+	if report, ok := ctx.Value(corruptionReporterKey{}).(func(item string)); ok {
+		report(item)
 	}
 }
 
