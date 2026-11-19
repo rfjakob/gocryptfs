@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -53,6 +54,16 @@ func (ck *fsckObj) markSkipped(path string) {
 	ck.listLock.Unlock()
 }
 
+// markError marks relPath as skipped if err is a permission error and we
+// are not root, and as corrupt otherwise.
+func (ck *fsckObj) markError(relPath string, err error) {
+	if errors.Is(err, os.ErrPermission) && !runsAsRoot() {
+		ck.markSkipped(relPath)
+	} else {
+		ck.markCorrupt(relPath)
+	}
+}
+
 func (ck *fsckObj) abs(relPath string) (absPath string) {
 	return filepath.Join(ck.mnt, relPath)
 }
@@ -80,11 +91,7 @@ func (ck *fsckObj) dir(relPath string) {
 	ck.watchDone <- struct{}{}
 	if err != nil {
 		fmt.Printf("fsck: error opening dir %q: %v\n", relPath, err)
-		if err == os.ErrPermission && !runsAsRoot() {
-			ck.markSkipped(relPath)
-		} else {
-			ck.markCorrupt(relPath)
-		}
+		ck.markError(relPath, err)
 		return
 	}
 	go ck.watchMitigatedCorruptionsOpenDir(relPath)
@@ -171,11 +178,7 @@ func (ck *fsckObj) file(relPath string) {
 	f, err := os.Open(ck.abs(relPath))
 	if err != nil {
 		fmt.Printf("fsck: error opening file %q: %v\n", relPath, err)
-		if err == os.ErrPermission && !runsAsRoot() {
-			ck.markSkipped(relPath)
-		} else {
-			ck.markCorrupt(relPath)
-		}
+		ck.markError(relPath, err)
 		return
 	}
 	defer f.Close()
@@ -245,11 +248,7 @@ func (ck *fsckObj) xattrs(relPath string) {
 		_, err := syscallcompat.Lgetxattr(ck.abs(relPath), a)
 		if err != nil {
 			fmt.Printf("fsck: error reading xattr %q from %q: %v\n", a, relPath, err)
-			if err == syscall.EACCES && !runsAsRoot() {
-				ck.markSkipped(relPath)
-			} else {
-				ck.markCorrupt(relPath)
-			}
+			ck.markError(relPath, err)
 		}
 	}
 }
