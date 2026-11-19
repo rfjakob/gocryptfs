@@ -9,8 +9,8 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/hanwen/go-fuse/v2/fs"
-	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v3/fs"
+	"github.com/hanwen/go-fuse/v3/fuse"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/cryptocore"
 	"github.com/rfjakob/gocryptfs/v2/internal/nametransform"
@@ -34,7 +34,7 @@ func haveDsstore(entries []fuse.DirEntry) bool {
 // should be a handle to the parent directory, cName is the name of the new
 // directory and mode specifies the access permissions to use.
 // If DeterministicNames is set, the diriv file is NOT created.
-func (n *Node) mkdirWithIv(dirfd int, cName string, mode uint32, context *fuse.Context) error {
+func (n *Node) mkdirWithIv(dirfd int, cName string, mode uint32, context *fuse.Caller) error {
 	rn := n.rootNode()
 
 	if rn.args.DeterministicNames {
@@ -77,7 +77,7 @@ func (n *Node) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.En
 	defer syscall.Close(dirfd)
 
 	rn := n.rootNode()
-	var context *fuse.Context
+	var context *fuse.Caller
 	if rn.args.PreserveOwner {
 		context = toFuseCtx(ctx)
 	}

@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v3/fuse"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
@@ -135,7 +135,7 @@ func FchmodatNofollow(dirfd int, path string, mode uint32) (err error) {
 // the operation (see fuse-xfstests generic/375).
 //
 // If `context` is nil, this function behaves like ordinary Lsetxattr.
-func LsetxattrUser(path string, attr string, data []byte, flags int, context *fuse.Context) (err error) {
+func LsetxattrUser(path string, attr string, data []byte, flags int, context *fuse.Caller) (err error) {
 	f := func() (int, error) {
 		err := unix.Lsetxattr(path, attr, data, flags)
 		return -1, err

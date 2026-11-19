@@ -6,7 +6,7 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/nametransform"
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 
-	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/hanwen/go-fuse/v3/fs"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/syscallcompat"
 )

@@ -3,7 +3,7 @@ package fusefrontend
 import (
 	"golang.org/x/sys/unix"
 
-	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v3/fuse"
 )
 
 const noSuchAttributeError = unix.ENOATTR
@@ -17,7 +17,7 @@ func (n *Node) getXAttr(cAttr string) (out []byte, errno unix.Errno) {
 	return nil, unix.EOPNOTSUPP
 }
 
-func (n *Node) setXAttr(context *fuse.Context, cAttr string, cData []byte, flags uint32) (errno unix.Errno) {
+func (n *Node) setXAttr(context *fuse.Caller, cAttr string, cData []byte, flags uint32) (errno unix.Errno) {
 	// TODO
 	return unix.EOPNOTSUPP
 }

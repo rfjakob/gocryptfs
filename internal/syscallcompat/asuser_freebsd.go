@@ -3,7 +3,7 @@ package syscallcompat
 import (
 	"golang.org/x/sys/unix"
 
-	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v3/fuse"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
@@ -15,7 +15,7 @@ import (
 //
 // FreeBSD does not support changing uid/gid per thread. If context is not nil,
 // an error is returned.
-func asUser(f func() (int, error), context *fuse.Context) (int, error) {
+func asUser(f func() (int, error), context *fuse.Caller) (int, error) {
 	if context == nil {
 		return f()
 	}

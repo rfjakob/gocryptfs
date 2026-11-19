@@ -66,7 +66,7 @@ func versionFromBuildInfo() {
 	}
 	if GitVersionFuse == gitVersionFuseNotSet {
 		for _, m := range info.Deps {
-			if m.Path == "github.com/hanwen/go-fuse/v2" {
+			if m.Path == "github.com/hanwen/go-fuse/v3" {
 				GitVersionFuse = m.Version
 				if m.Replace != nil {
 					GitVersionFuse = m.Replace.Version

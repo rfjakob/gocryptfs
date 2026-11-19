@@ -12,8 +12,8 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/hanwen/go-fuse/v2/fs"
-	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v3/fs"
+	"github.com/hanwen/go-fuse/v3/fuse"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/exitcodes"
 	"github.com/rfjakob/gocryptfs/v2/internal/fusefrontend"
@@ -183,10 +183,10 @@ func (ck *fsckObj) file(inode *fs.Inode, relPath string, attr *fuse.Attr) {
 			fmt.Printf("fsck: error reading file %q (inum %d): %v\n", relPath, attr.Ino, errno)
 			return
 		}
-		data, status := res.Bytes(buf)
-		if !status.Ok() {
+		data, errno := res.Bytes(buf)
+		if errno != 0 {
 			ck.markCorrupt(relPath)
-			fmt.Printf("fsck: error reading file %q (inum %d): %v\n", relPath, attr.Ino, status)
+			fmt.Printf("fsck: error reading file %q (inum %d): %v\n", relPath, attr.Ino, errno)
 			return
 		}
 		// Short read means EOF

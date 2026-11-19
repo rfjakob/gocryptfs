@@ -3,7 +3,7 @@ package syscallcompat
 import (
 	"golang.org/x/sys/unix"
 
-	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v3/fuse"
 )
 
 // OpenatUser runs the Openat syscall in the context of a different user.
@@ -12,7 +12,7 @@ import (
 //
 // If `context` is nil, this function behaves like ordinary Openat (no
 // user switching).
-func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Context) (fd int, err error) {
+func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Caller) (fd int, err error) {
 	f := func() (int, error) {
 		return Openat(dirfd, path, flags, mode)
 	}
@@ -23,7 +23,7 @@ func OpenatUser(dirfd int, path string, flags int, mode uint32, context *fuse.Co
 // If `context` is nil, this function behaves like ordinary Mknodat.
 //
 // See OpenatUser() for how this works.
-func MknodatUser(dirfd int, path string, mode uint32, dev int, context *fuse.Context) (err error) {
+func MknodatUser(dirfd int, path string, mode uint32, dev int, context *fuse.Caller) (err error) {
 	f := func() (int, error) {
 		err := Mknodat(dirfd, path, mode, dev)
 		return -1, err
@@ -36,7 +36,7 @@ func MknodatUser(dirfd int, path string, mode uint32, dev int, context *fuse.Con
 // If `context` is nil, this function behaves like ordinary Symlinkat.
 //
 // See OpenatUser() for how this works.
-func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.Context) (err error) {
+func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.Caller) (err error) {
 	f := func() (int, error) {
 		err := unix.Symlinkat(oldpath, newdirfd, newpath)
 		return -1, err
@@ -49,7 +49,7 @@ func SymlinkatUser(oldpath string, newdirfd int, newpath string, context *fuse.C
 // If `context` is nil, this function behaves like ordinary Mkdirat.
 //
 // See OpenatUser() for how this works.
-func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Context) (err error) {
+func MkdiratUser(dirfd int, path string, mode uint32, context *fuse.Caller) (err error) {
 	f := func() (int, error) {
 		err := unix.Mkdirat(dirfd, path, mode)
 		return -1, err

@@ -4,14 +4,14 @@ import (
 	"runtime"
 	"syscall"
 
-	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v3/fuse"
 )
 
 // asUser runs `f()` under the effective uid, gid, groups specified
 // in `context`.
 //
 // If `context` is nil, `f()` is executed directly without switching user id.
-func asUser(f func() (int, error), context *fuse.Context) (int, error) {
+func asUser(f func() (int, error), context *fuse.Caller) (int, error) {
 	if context == nil {
 		return f()
 	}

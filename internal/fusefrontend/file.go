@@ -16,8 +16,8 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/hanwen/go-fuse/v2/fs"
-	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v3/fs"
+	"github.com/hanwen/go-fuse/v3/fuse"
 
 	"github.com/rfjakob/gocryptfs/v2/internal/contentenc"
 	"github.com/rfjakob/gocryptfs/v2/internal/inomap"
@@ -26,7 +26,7 @@ import (
 	"github.com/rfjakob/gocryptfs/v2/internal/tlog"
 )
 
-// File implements the go-fuse v2 API (github.com/hanwen/go-fuse/v2/fs)
+// File implements the go-fuse v2 API (github.com/hanwen/go-fuse/v3/fs)
 type File struct {
 	fd *os.File
 	// Has Release() already been called on this file? This also means that the
