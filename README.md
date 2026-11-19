@@ -204,6 +204,10 @@ RM:    2,367
 Changelog
 ---------
 
+#### vNEXT
+* `-fsck` does not use a temporary FUSE mount anymore
+  ([#985](https://github.com/rfjakob/gocryptfs/issues/985))
+
 #### v2.7.0, 2026-11-11
 * `-sharedstorage`: use byte-range locks to make concurrent access from multiple
   mounts safe ([#754](https://github.com/rfjakob/gocryptfs/issues/754),
