@@ -127,12 +127,6 @@ func Getdents(fd int) ([]fuse.DirEntry, error) {
 	return entries, err
 }
 
-// GetdentsSpecial calls the Getdents syscall,
-// with normal entries and "." / ".." split into two slices.
-func GetdentsSpecial(fd int) (entries []fuse.DirEntry, entriesSpecial []fuse.DirEntry, err error) {
-	return emulateGetdents(fd)
-}
-
 // Renameat2 does not exist on FreeBSD, so we have to wrap it here.
 // Retries on EINTR.
 // The RENAME_EXCHANGE and RENAME_WHITEOUT flags are not supported.

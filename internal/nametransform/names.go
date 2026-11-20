@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"math"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
@@ -196,15 +195,6 @@ func (n *NameTransform) B64EncodeToString(src []byte) string {
 // B64DecodeString decodes a Base64-encoded string
 func (n *NameTransform) B64DecodeString(s string) ([]byte, error) {
 	return n.B64.DecodeString(s)
-}
-
-// Dir is like filepath.Dir but returns "" instead of ".".
-func Dir(path string) string {
-	d := filepath.Dir(path)
-	if d == "." {
-		return ""
-	}
-	return d
 }
 
 // GetLongNameMax will return curent `longNameMax`. File name longer than

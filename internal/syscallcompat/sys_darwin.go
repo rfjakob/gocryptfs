@@ -161,10 +161,6 @@ func Getdents(fd int) ([]fuse.DirEntry, error) {
 	return entries, err
 }
 
-func GetdentsSpecial(fd int) (entries []fuse.DirEntry, entriesSpecial []fuse.DirEntry, err error) {
-	return emulateGetdents(fd)
-}
-
 // Renameat2 does not exist on Darwin, but RenameatxNp does.
 func Renameat2(olddirfd int, oldpath string, newdirfd int, newpath string, flags uint) (err error) {
 	// If no flags are set, use tried and true renameat

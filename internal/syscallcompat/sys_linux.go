@@ -184,12 +184,6 @@ func Getdents(fd int) ([]fuse.DirEntry, error) {
 	return entries, err
 }
 
-// GetdentsSpecial calls the Getdents syscall,
-// with normal entries and "." / ".." split into two slices.
-func GetdentsSpecial(fd int) (entries []fuse.DirEntry, entriesSpecial []fuse.DirEntry, err error) {
-	return getdents(fd)
-}
-
 // Renameat2 does not exist on Darwin, so we have to wrap it here.
 // Retries on EINTR.
 func Renameat2(olddirfd int, oldpath string, newdirfd int, newpath string, flags uint) (err error) {
