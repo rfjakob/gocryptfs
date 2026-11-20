@@ -23,3 +23,5 @@ gocryptfs.1
 
 # Ignore macos specific files
 .DS_Store
+# Coverage data written by test.bash
+/coverage

@@ -89,13 +89,34 @@ if [[ $VERBOSE -eq 1 ]]; then
 	EXTRA_ARGS="-p 1"
 fi
 
-#                         We don't want all the subprocesses
-#                              holding the lock file open
-#                                       vvvvv
-# shellcheck disable=SC2086
-go test -count 1 $EXTRA_ARGS ./... "$@" 200>&-
-#       ^^^^^^^^
-#   Disable result caching
+# Coverage data from both the test binaries (unit tests) and the gocryptfs
+# processes they start (integration tests) ends up in $COVERAGE/data.
+COVERAGE=$PWD/coverage
+rm -rf "$COVERAGE"
+mkdir -p "$COVERAGE/data"
+# Separate instrumented binary so that ./gocryptfs, which "make install" and
+# build.bash install, stays a normal build.
+# Only instrument our packages that go into the gocryptfs binary, so the
+# reported percentage is relative to that code.
+COVERPKG=$(go list -deps -f '{{if .Module}}{{if .Module.Main}}{{.ImportPath}}{{end}}{{end}}' . | paste -sd,)
+go build -cover -coverpkg="$COVERPKG" -o "$COVERAGE/gocryptfs" .
+export GOCRYPTFS_TEST_BINARY=$COVERAGE/gocryptfs
+export GOCRYPTFS_COVERAGE_DATA=$COVERAGE/data
+
+(
+	# We don't want all the subprocesses holding the lock file open
+	exec 200>&-
+	# shellcheck disable=SC2086
+	go test -count 1 -cover -coverpkg="$COVERPKG" $EXTRA_ARGS ./... "$@" -args -test.gocoverdir="$GOCRYPTFS_COVERAGE_DATA"
+	#       ^^^^^^^^
+	#   Disable result caching
+)
+unset GOCRYPTFS_COVERAGE_DATA
+
+go tool covdata textfmt -i="$COVERAGE/data" -o "$COVERAGE/coverage.out"
+go tool cover -html="$COVERAGE/coverage.out" -o "$COVERAGE/coverage.html"
+echo "Total coverage: $(go tool cover -func="$COVERAGE/coverage.out" | tail -1 | awk '{print $NF}')" \
+	"(details: $COVERAGE/coverage.html)"
 
 # Clean up dangling filesystems but do exit with an error if we found one
 unmount_leftovers || { echo "Error: the tests left mounted filesystems behind" ; exit 1 ; }

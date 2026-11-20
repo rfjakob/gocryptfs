@@ -49,7 +49,7 @@ dd if=zero of=/dev/null bs=131072 count=2000 2>&1 | tail -n 1
 rm zero
 sleep 0.1
 echo -n "UNTAR: "
-etime tar xzf /tmp/linux-3.0.tar.gz
+etime tar xf /tmp/linux-3.0.tar
 sleep 0.1
 echo -n "MD5:   "
 etime md5sum --quiet -c "$MD5"

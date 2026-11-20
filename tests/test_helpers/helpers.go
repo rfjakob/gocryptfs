@@ -22,8 +22,16 @@ import (
 // $TMPDIR/gocryptfs-test-parent .
 var testParentDir = ""
 
-// GocryptfsBinary is the assumed path to the gocryptfs build.
-const GocryptfsBinary = "../../gocryptfs"
+// GocryptfsBinary is the path to the gocryptfs build under test.
+// test.bash sets $GOCRYPTFS_TEST_BINARY to a coverage-instrumented build.
+var GocryptfsBinary = gocryptfsBinary()
+
+func gocryptfsBinary() string {
+	if b := os.Getenv("GOCRYPTFS_TEST_BINARY"); b != "" {
+		return b
+	}
+	return "../../gocryptfs"
+}
 
 // UnmountScript is the fusermount/umount compatibility wrapper script
 const UnmountScript = "../../tests/fuse-unmount.bash"
@@ -42,6 +50,12 @@ var DefaultPlainDir string
 var DefaultCipherDir string
 
 func init() {
+	// "go test -cover" overwrites $GOCOVERDIR with a temporary directory, so
+	// let's overwrite it back. Then the gocryptfs processes, that we start,
+	// write coverage info to ./coverage/data like the unit tests do.
+	if d := os.Getenv("GOCRYPTFS_COVERAGE_DATA"); d != "" {
+		os.Setenv("GOCOVERDIR", d)
+	}
 	doInit()
 }
 
