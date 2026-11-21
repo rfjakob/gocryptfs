@@ -78,15 +78,19 @@ func changePassword(args *argContainer) {
 		if len(masterkey) == 0 {
 			log.Panic("empty masterkey")
 		}
+		var newPw []byte
 		if confFile.IsFeatureFlagSet(configfile.FlagFIDO2) {
-			tlog.Fatal.Printf("Password change is not supported on FIDO2-enabled filesystems.")
-			os.Exit(exitcodes.Usage)
-		}
-		tlog.Info.Println("Please enter your new password.")
-		newPw, err := readpassword.Twice(nil, nil)
-		if err != nil {
-			tlog.Fatal.Println(err)
-			os.Exit(exitcodes.ReadPassword)
+			var fido2CredentialID, fido2HmacSalt []byte
+			fido2CredentialID = confFile.FIDO2.CredentialID //fido2.Register(args.fido2, filepath.Base(args.cipherdir))
+			fido2HmacSalt = confFile.FIDO2.HMACSalt //cryptocore.RandBytes(32)
+			newPw = fido2.Secret(args.fido2, args.fido2_assert_options, fido2CredentialID,	fido2HmacSalt)
+		} else {
+			tlog.Info.Println("Please enter your new password.")
+			newPw, err = readpassword.Twice(nil, nil)
+			if err != nil {
+			  tlog.Fatal.Println(err)
+			  os.Exit(exitcodes.ReadPassword)
+			}
 		}
 		logN := confFile.ScryptObject.LogN()
 		if args._explicitScryptn {
