@@ -21,6 +21,24 @@ func TestShouldPrefixExcludeValuesWithSlash(t *testing.T) {
 	}
 }
 
+func TestShouldExcludeValuesThatAlreadyStartWithSlash(t *testing.T) {
+	var args fusefrontend.Args
+	args.Exclude = []string{"/file1", "/dir1/file2.txt"}
+
+	var rfs RootNode
+	rfs.excluder = prepareExcluder(args)
+
+	for _, p := range []string{"file1", "dir1/file2.txt"} {
+		if !rfs.isExcludedPlain(p) {
+			t.Errorf("%q should be excluded", p)
+		}
+	}
+	// Still anchored at the root, same as without the slash
+	if rfs.isExcludedPlain("dir1/file1") {
+		t.Error(`"dir1/file1" should not be excluded`)
+	}
+}
+
 func TestShouldReadExcludePatternsFromFiles(t *testing.T) {
 	tmpfile1, err := os.CreateTemp("", "excludetest")
 	if err != nil {

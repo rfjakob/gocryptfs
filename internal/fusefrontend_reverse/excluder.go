@@ -26,12 +26,13 @@ func prepareExcluder(args fusefrontend.Args) *ignore.GitIgnore {
 // Patterns passed in the -exclude command line option are prefixed
 // with a leading '/' to preserve backwards compatibility (before
 // wildcard matching was implemented, exclusions always were matched
-// against the full path).
+// against the full path). A slash the user already wrote is dropped
+// first, as "//foo" matches nothing.
 func getExclusionPatterns(args fusefrontend.Args) []string {
 	patterns := make([]string, len(args.Exclude)+len(args.ExcludeWildcard))
 	// add -exclude
 	for i, p := range args.Exclude {
-		patterns[i] = "/" + p
+		patterns[i] = "/" + strings.TrimLeft(p, "/")
 	}
 	// add -exclude-wildcard
 	copy(patterns[len(args.Exclude):], args.ExcludeWildcard)
